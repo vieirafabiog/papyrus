@@ -8,6 +8,19 @@ export {
   sanitizeDatabaseErrorMessage,
 } from "./client.js";
 
+export { createAuditRepository } from "./repositories/audit-repository.js";
+export {
+  createDocumentRepository,
+  createDocumentVersionRepository,
+} from "./repositories/document-repository.js";
+export { createStorageConnectionRepository } from "./repositories/storage-connection-repository.js";
+export {
+  createTransactionManager,
+  type DrizzleDbExecutor,
+  resolveDbExecutor,
+} from "./repositories/transaction-manager.js";
+export { createUserRepository } from "./repositories/user-repository.js";
+
 export {
   type DocumentMetadataColumnValue,
   documentMetadata,

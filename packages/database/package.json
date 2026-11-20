@@ -15,10 +15,11 @@
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc --noEmit",
     "test": "vitest run --passWithNoTests",
-    "test:integration": "vitest run test/schema-constraints.test.ts",
+    "test:integration": "vitest run test",
     "db:generate": "tsc -p tsconfig.json && drizzle-kit generate"
   },
   "dependencies": {
+    "@docuflow/domain": "workspace:*",
     "drizzle-orm": "^0.41.0",
     "pg": "^8.14.1"
   },

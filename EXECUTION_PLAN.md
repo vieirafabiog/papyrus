@@ -370,7 +370,7 @@ docuflow/
   - **Ação:** Gerar migration revisável a partir dos schemas. Confirmar que a migration não depende de dados preexistentes.
   - **Verificação:** `pnpm --filter @docuflow/database db:generate` e `pnpm --filter @docuflow/database test:integration`.
 
-- [ ] **Step 04.10 — Implementar repositórios básicos**
+- [x] **Step 04.10 — Implementar repositórios básicos**
   - **Arquivos:** `packages/database/src/repositories/*.ts`
   - **Ação:** Implementar repositórios exigidos pelas portas do domínio, com paginação no banco, ordenação permitida e transações explícitas.
   - **Verificação:** `pnpm --filter @docuflow/database test:integration`.
