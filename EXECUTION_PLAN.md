@@ -316,7 +316,7 @@ docuflow/
   - **Ação:** Definir criação de próxima versão, versão corrente, restauração como nova versão e vínculo de aprovação a uma versão exata.
   - **Verificação:** `pnpm --filter @docuflow/domain test`.
 
-- [ ] **Step 03.10 — Criar testes de invariantes do domínio**
+- [x] **Step 03.10 — Criar testes de invariantes do domínio**
   - **Arquivos:** `packages/domain/test/document-invariants.test.ts`, `workflow-invariants.test.ts`
   - **Ação:** Cobrir estados inválidos, concorrência conceitual, versão imutável, hold e decisões duplicadas.
   - **Verificação:** `pnpm --filter @docuflow/domain test`.
