@@ -537,7 +537,7 @@ docuflow/
   - **Ação:** Expor listagem e cadastro de conexão local, teste de saúde e seleção do destino padrão, com acesso somente de administrador.
   - **Verificação:** `pnpm --filter @docuflow/api test:integration`.
 
-- [ ] **Step 07.11 — Criar testes de contrato do provider local**
+- [x] **Step 07.11 — Criar testes de contrato do provider local**
   - **Arquivos:** `packages/storage-local/test/storage-contract.test.ts`
   - **Ação:** Reutilizar suíte de contrato para stream vazio, stream grande, abort, objeto inexistente, checksum e reexecução idempotente.
   - **Verificação:** `pnpm --filter @docuflow/storage-local test`.

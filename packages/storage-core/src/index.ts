@@ -10,6 +10,12 @@ export {
 } from "./secret-vault.js";
 
 export {
+  buildStorageProviderContractScenarios,
+  type StorageContractContext,
+  type StorageContractScenario,
+} from "./storage-contract-suite.js";
+
+export {
   isRetryableStorageError,
   isStorageError,
   normalizeStorageError,
