@@ -532,7 +532,7 @@ docuflow/
   - **Ação:** Criar, editar, ativar, desativar e testar conexão; impedir desativação quando ainda for necessária para leitura de arquivos existentes.
   - **Verificação:** `pnpm --filter @docuflow/domain test`.
 
-- [ ] **Step 07.10 — Implementar rotas administrativas de storage local**
+- [x] **Step 07.10 — Implementar rotas administrativas de storage local**
   - **Arquivos:** `apps/api/src/modules/storage/*`
   - **Ação:** Expor listagem e cadastro de conexão local, teste de saúde e seleção do destino padrão, com acesso somente de administrador.
   - **Verificação:** `pnpm --filter @docuflow/api test:integration`.

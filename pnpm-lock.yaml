@@ -202,6 +202,12 @@ importers:
       '@docuflow/domain':
         specifier: workspace:*
         version: link:../../packages/domain
+      '@docuflow/storage-core':
+        specifier: workspace:*
+        version: link:../../packages/storage-core
+      '@docuflow/storage-local':
+        specifier: workspace:*
+        version: link:../../packages/storage-local
       '@fastify/cookie':
         specifier: ^11.0.2
         version: 11.1.5

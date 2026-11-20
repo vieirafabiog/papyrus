@@ -4,6 +4,7 @@ import type {
   AuditRepositoryPort,
   DocumentRepositoryPort,
   GroupAdministrationService,
+  StorageConnectionAdminService,
   UserAdministrationService,
 } from "@docuflow/domain";
 import cookie from "@fastify/cookie";
@@ -14,6 +15,7 @@ import { registerDocumentRoutes } from "./modules/documents/documents.routes.js"
 import { registerGroupRoutes } from "./modules/groups/groups.routes.js";
 import { registerSetupRoutes } from "./modules/setup/setup.routes.js";
 import type { SetupService } from "./modules/setup/setup.service.js";
+import { registerStorageRoutes } from "./modules/storage/storage.routes.js";
 import { registerUserRoutes } from "./modules/users/users.routes.js";
 import { createDocumentAuthorizationGuard } from "./plugins/authorization.js";
 import { registerSecurityPlugin, type SecurityPluginOptions } from "./plugins/security.js";
@@ -24,6 +26,7 @@ export interface AppOptions {
   readonly setupService?: SetupService | undefined;
   readonly userAdminService?: UserAdministrationService | undefined;
   readonly groupAdminService?: GroupAdministrationService | undefined;
+  readonly storageAdminService?: StorageConnectionAdminService | undefined;
   readonly documentDeps?:
     | {
         readonly authzRepository: AuthorizationRepository;
@@ -82,6 +85,13 @@ export function buildApp(options: AppOptions = {}): FastifyInstance {
       const groupAdminService = options.groupAdminService;
       void app.register(async (instance) => {
         await registerGroupRoutes(instance, { authService, groupAdminService });
+      });
+    }
+
+    if (options.storageAdminService) {
+      const storageAdminService = options.storageAdminService;
+      void app.register(async (instance) => {
+        await registerStorageRoutes(instance, { authService, storageAdminService });
       });
     }
 
