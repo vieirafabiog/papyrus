@@ -105,10 +105,24 @@ export type {
 } from "./ports/transaction.port.js";
 
 export type {
+  AddGroupMemberInput,
+  CreateGroupInput,
+  GroupRepositoryPort,
+} from "./ports/group-repository.port.js";
+
+export type {
   CreateUserInput,
   UpdateUserInput,
   UserRepositoryPort,
 } from "./ports/user-repository.port.js";
+
+export {
+  type CreateGroupCommand,
+  createGroupAdministrationService,
+  type GroupAdministrationService,
+  type GroupAdministrationServiceDependencies,
+  type GroupMemberCommand,
+} from "./users/group-management.js";
 
 export {
   type ChangeUserStatusCommand,

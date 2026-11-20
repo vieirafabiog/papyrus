@@ -458,7 +458,7 @@ docuflow/
   - **Ação:** Criar, editar, desativar e reativar usuários; impedir que o último administrador ativo seja removido sem substituição.
   - **Verificação:** `pnpm --filter @docuflow/api test:integration`.
 
-- [ ] **Step 06.07 — Implementar grupos e associação de usuários**
+- [x] **Step 06.07 — Implementar grupos e associação de usuários**
   - **Arquivos:** módulos de grupos no domínio, database e API
   - **Ação:** Criar grupos, vincular usuários e impedir vínculos duplicados.
   - **Verificação:** `pnpm --filter @docuflow/api test:integration`.

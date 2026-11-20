@@ -121,3 +121,14 @@ export const updateUserRequestSchema = z.object({
   fullName: z.string().trim().min(2).max(160),
 });
 export type UpdateUserRequest = z.infer<typeof updateUserRequestSchema>;
+
+export const createGroupRequestSchema = z.object({
+  name: z.string().trim().min(2).max(120),
+  description: z.string().trim().max(500).nullable().optional(),
+});
+export type CreateGroupRequest = z.infer<typeof createGroupRequestSchema>;
+
+export const addGroupMemberRequestSchema = z.object({
+  userId: uuidSchema,
+});
+export type AddGroupMemberRequest = z.infer<typeof addGroupMemberRequestSchema>;

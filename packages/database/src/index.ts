@@ -13,6 +13,7 @@ export {
   createDocumentRepository,
   createDocumentVersionRepository,
 } from "./repositories/document-repository.js";
+export { createGroupRepository } from "./repositories/group-repository.js";
 export { createStorageConnectionRepository } from "./repositories/storage-connection-repository.js";
 export {
   createTransactionManager,

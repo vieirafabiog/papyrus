@@ -1,9 +1,13 @@
 import { randomUUID } from "node:crypto";
-import type { UserAdministrationService } from "@docuflow/domain";
+import type {
+  GroupAdministrationService,
+  UserAdministrationService,
+} from "@docuflow/domain";
 import cookie from "@fastify/cookie";
 import Fastify, { type FastifyInstance } from "fastify";
 import { registerAuthRoutes } from "./modules/auth/auth.routes.js";
 import type { AuthService } from "./modules/auth/auth.service.js";
+import { registerGroupRoutes } from "./modules/groups/groups.routes.js";
 import { registerSetupRoutes } from "./modules/setup/setup.routes.js";
 import type { SetupService } from "./modules/setup/setup.service.js";
 import { registerUserRoutes } from "./modules/users/users.routes.js";
@@ -14,6 +18,7 @@ export interface AppOptions {
   readonly authService?: AuthService | undefined;
   readonly setupService?: SetupService | undefined;
   readonly userAdminService?: UserAdministrationService | undefined;
+  readonly groupAdminService?: GroupAdministrationService | undefined;
   readonly secureCookies?: boolean | undefined;
   readonly security?: Partial<SecurityPluginOptions> | undefined;
 }
@@ -58,6 +63,13 @@ export function buildApp(options: AppOptions = {}): FastifyInstance {
       const userAdminService = options.userAdminService;
       void app.register(async (instance) => {
         await registerUserRoutes(instance, { authService, userAdminService });
+      });
+    }
+
+    if (options.groupAdminService) {
+      const groupAdminService = options.groupAdminService;
+      void app.register(async (instance) => {
+        await registerGroupRoutes(instance, { authService, groupAdminService });
       });
     }
   }
