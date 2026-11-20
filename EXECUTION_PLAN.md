@@ -217,7 +217,7 @@ docuflow/
   - **Ação:** Configurar pacote para schemas Zod e contratos públicos compartilhados.
   - **Verificação:** `pnpm --filter @docuflow/contracts typecheck`.
 
-- [ ] **Step 02.05 — Scaffold de `packages/domain`**
+- [x] **Step 02.05 — Scaffold de `packages/domain`**
   - **Arquivos:** `package.json`, `tsconfig.json`, `src/index.ts`
   - **Ação:** Configurar pacote sem dependência de framework, banco ou SDK de storage.
   - **Verificação:** `pnpm --filter @docuflow/domain typecheck`.
