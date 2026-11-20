@@ -4,8 +4,13 @@ import { Readable, Transform } from "node:stream";
 import { ReadableStream as WebReadableStream } from "node:stream/web";
 import {
   DeleteObjectCommand,
+  type DeleteObjectCommandOutput,
   GetObjectCommand,
+  type GetObjectCommandOutput,
+  HeadObjectCommand,
+  type HeadObjectCommandOutput,
   PutObjectCommand,
+  type PutObjectCommandOutput,
   S3Client,
   type S3ClientConfig,
 } from "@aws-sdk/client-s3";
@@ -33,13 +38,41 @@ const SHA256_HEX_PATTERN = /^[a-f0-9]{64}$/i;
 const DOCUFLOW_SHA256_META_KEY = "docuflow-sha256";
 const SAFE_SEGMENT_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/;
 
+export type S3SupportedCommand =
+  | PutObjectCommand
+  | GetObjectCommand
+  | HeadObjectCommand
+  | DeleteObjectCommand;
+
+export interface S3CommandExecutor {
+  send(
+    command: PutObjectCommand,
+    options?: { abortSignal?: AbortSignal },
+  ): Promise<PutObjectCommandOutput>;
+  send(
+    command: GetObjectCommand,
+    options?: { abortSignal?: AbortSignal },
+  ): Promise<GetObjectCommandOutput>;
+  send(
+    command: HeadObjectCommand,
+    options?: { abortSignal?: AbortSignal },
+  ): Promise<HeadObjectCommandOutput>;
+  send(
+    command: DeleteObjectCommand,
+    options?: { abortSignal?: AbortSignal },
+  ): Promise<DeleteObjectCommandOutput>;
+}
+
+export type S3ChecksumSupportMode = "auto" | "native_sha256" | "metadata_only";
+
 export interface S3StorageProviderOptions {
   readonly securityPolicy?: S3EndpointSecurityPolicy | undefined;
   readonly dnsLookup?: DnsLookupAllFn | undefined;
-  readonly client?: S3Client | undefined;
+  readonly client?: S3Client | S3CommandExecutor | undefined;
+  readonly checksumSupport?: S3ChecksumSupportMode | undefined;
 }
 
-const S3_STREAMING_CAPABILITIES: StorageCapabilities = {
+const S3_CAPABILITIES: StorageCapabilities = {
   streamingRead: true,
   streamingWrite: true,
   signedUpload: false,
@@ -114,6 +147,8 @@ function createConfiguredS3Client(config: S3StorageConfig): S3Client {
     endpoint: config.endpoint,
     region: config.region,
     forcePathStyle: config.forcePathStyle,
+    requestChecksumCalculation: "WHEN_REQUIRED",
+    responseChecksumValidation: "WHEN_REQUIRED",
     credentials: {
       accessKeyId: config.credentials.accessKeyId,
       secretAccessKey: config.credentials.secretAccessKey,
@@ -173,6 +208,46 @@ function base64ChecksumToHex(base64Checksum: string | undefined): string | undef
   return decoded.toString("hex");
 }
 
+function hexChecksumToBase64(hexChecksum: string): string {
+  return Buffer.from(hexChecksum, "hex").toString("base64");
+}
+
+function resolveVerifiedSha256(
+  nativeBase64Checksum: string | undefined,
+  rawMetadata: Record<string, string> | undefined,
+): string {
+  const nativeHex = base64ChecksumToHex(nativeBase64Checksum)?.toLowerCase();
+  const metaHex = rawMetadata?.[DOCUFLOW_SHA256_META_KEY]?.trim().toLowerCase();
+  const validMetaHex = metaHex && SHA256_HEX_PATTERN.test(metaHex) ? metaHex : undefined;
+
+  if (nativeHex && validMetaHex && nativeHex !== validMetaHex) {
+    throw new StorageError(
+      "CHECKSUM_MISMATCH",
+      "Checksum SHA-256 do provedor S3 diverge dos metadados registrados.",
+      "s3",
+    );
+  }
+
+  return nativeHex ?? validMetaHex ?? "0".repeat(64);
+}
+
+function isUnsupportedChecksumFeatureError(error: unknown): boolean {
+  if (typeof error !== "object" || error === null) {
+    return false;
+  }
+  const record = error as Record<string, unknown>;
+  const name = typeof record.name === "string" ? record.name.toLowerCase() : "";
+  const code = typeof record.code === "string" ? record.code.toLowerCase() : "";
+  const message = typeof record.message === "string" ? record.message.toLowerCase() : "";
+  const isUnsupportedCode =
+    name.includes("notimplemented") ||
+    code.includes("notimplemented") ||
+    name.includes("invalidargument") ||
+    message.includes("not implemented") ||
+    message.includes("unsupported");
+  return isUnsupportedCode && message.includes("checksum");
+}
+
 function toNodeReadable(body: unknown): Readable {
   if (body instanceof Readable) {
     return body;
@@ -228,7 +303,9 @@ export function createS3StorageProvider(
     ...options.securityPolicy,
     allowInsecureHttp: options.securityPolicy?.allowInsecureHttp ?? config.tls.allowInsecureHttp,
   };
-  const client = options.client ?? createConfiguredS3Client(config);
+  const client: S3CommandExecutor = options.client ?? createConfiguredS3Client(config);
+  const checksumSupportMode: S3ChecksumSupportMode = options.checksumSupport ?? "auto";
+  let nativeReadChecksumSupported = checksumSupportMode !== "metadata_only";
 
   const ensureEndpointResolutionSafe = async (): Promise<void> => {
     await validateS3EndpointResolution(config.endpoint, effectivePolicy, options.dnsLookup);
@@ -236,7 +313,7 @@ export function createS3StorageProvider(
 
   return {
     kind: "s3",
-    capabilities: S3_STREAMING_CAPABILITIES,
+    capabilities: S3_CAPABILITIES,
 
     async checkHealth() {
       throw new StorageError(
@@ -294,6 +371,7 @@ export function createS3StorageProvider(
       );
 
       try {
+        const useNativeWriteChecksum = checksumSupportMode === "native_sha256";
         const command = new PutObjectCommand({
           Bucket: config.bucket,
           Key: bucketKey,
@@ -301,16 +379,26 @@ export function createS3StorageProvider(
           ContentType: input.metadata.contentType,
           ContentLength: input.metadata.contentLength,
           Metadata: buildS3UserMetadata(expectedChecksum, input.metadata.customMetadata),
+          ...(useNativeWriteChecksum
+            ? {
+                ChecksumAlgorithm: "SHA256" as const,
+                ChecksumSHA256: hexChecksumToBase64(expectedChecksum),
+              }
+            : {}),
         });
 
         const output = await client.send(command, { abortSignal: signal });
 
         const computedChecksum = hasher.digest("hex");
+        const serverChecksum = base64ChecksumToHex(output.ChecksumSHA256)?.toLowerCase();
+        const serverChecksumDiverged =
+          serverChecksum !== undefined && serverChecksum !== expectedChecksum;
+
         if (
           bytesStreamed !== input.metadata.contentLength ||
-          computedChecksum !== expectedChecksum
+          computedChecksum !== expectedChecksum ||
+          serverChecksumDiverged
         ) {
-          // Best-effort cleanup if uploaded stream diverged from declared length/checksum
           await client
             .send(new DeleteObjectCommand({ Bucket: config.bucket, Key: bucketKey }))
             .catch(() => undefined);
@@ -349,23 +437,38 @@ export function createS3StorageProvider(
       const { signal, cleanup } = createOperationSignal(config.timeouts.requestTimeoutMs);
 
       try {
-        const output = await client.send(
-          new GetObjectCommand({
-            Bucket: config.bucket,
-            Key: bucketKey,
-          }),
-          { abortSignal: signal },
-        );
+        let output: GetObjectCommandOutput;
+        try {
+          output = await client.send(
+            new GetObjectCommand({
+              Bucket: config.bucket,
+              Key: bucketKey,
+              ...(nativeReadChecksumSupported ? { ChecksumMode: "ENABLED" as const } : {}),
+            }),
+            { abortSignal: signal },
+          );
+        } catch (error) {
+          if (
+            checksumSupportMode === "auto" &&
+            nativeReadChecksumSupported &&
+            isUnsupportedChecksumFeatureError(error)
+          ) {
+            nativeReadChecksumSupported = false;
+            output = await client.send(
+              new GetObjectCommand({
+                Bucket: config.bucket,
+                Key: bucketKey,
+              }),
+              { abortSignal: signal },
+            );
+          } else {
+            throw error;
+          }
+        }
 
         const body = toNodeReadable(output.Body);
         const rawMeta = output.Metadata;
-        const checksumFromHeader = base64ChecksumToHex(output.ChecksumSHA256);
-        const checksumFromMeta = rawMeta?.[DOCUFLOW_SHA256_META_KEY]?.toLowerCase();
-        const resolvedChecksum =
-          checksumFromHeader ??
-          (checksumFromMeta && SHA256_HEX_PATTERN.test(checksumFromMeta)
-            ? checksumFromMeta
-            : "0".repeat(64));
+        const resolvedChecksum = resolveVerifiedSha256(output.ChecksumSHA256, rawMeta);
 
         const metadata: StorageObjectMetadata = {
           contentType: output.ContentType ?? "application/octet-stream",
@@ -385,20 +488,93 @@ export function createS3StorageProvider(
       }
     },
 
-    async headObject() {
-      throw new StorageError(
-        "CAPABILITY_NOT_SUPPORTED",
-        "Inspeção HEAD S3 ainda não habilitada nesta versão do provedor.",
-        "s3",
-      );
+    async headObject(key: StorageObjectKey): Promise<StoredObject | null> {
+      const { logicalKey, bucketKey } = normalizeS3ObjectKey(key.value, config.keyPrefix);
+      await ensureEndpointResolutionSafe();
+
+      const { signal, cleanup } = createOperationSignal(config.timeouts.requestTimeoutMs);
+
+      try {
+        let output: HeadObjectCommandOutput;
+        try {
+          output = await client.send(
+            new HeadObjectCommand({
+              Bucket: config.bucket,
+              Key: bucketKey,
+              ...(nativeReadChecksumSupported ? { ChecksumMode: "ENABLED" as const } : {}),
+            }),
+            { abortSignal: signal },
+          );
+        } catch (error) {
+          if (
+            checksumSupportMode === "auto" &&
+            nativeReadChecksumSupported &&
+            isUnsupportedChecksumFeatureError(error)
+          ) {
+            nativeReadChecksumSupported = false;
+            output = await client.send(
+              new HeadObjectCommand({
+                Bucket: config.bucket,
+                Key: bucketKey,
+              }),
+              { abortSignal: signal },
+            );
+          } else {
+            throw error;
+          }
+        }
+
+        const resolvedChecksum = resolveVerifiedSha256(output.ChecksumSHA256, output.Metadata);
+
+        return {
+          key: { value: logicalKey },
+          contentType: output.ContentType ?? "application/octet-stream",
+          contentLength: output.ContentLength ?? 0,
+          checksumSha256: resolvedChecksum,
+          customMetadata: extractCustomMetadata(output.Metadata),
+          ...(output.ETag ? { etag: output.ETag.replaceAll('"', "") } : {}),
+          ...(output.VersionId ? { providerVersionId: output.VersionId } : {}),
+        };
+      } catch (error) {
+        if (error instanceof StorageError) {
+          throw error;
+        }
+        const normalized = normalizeStorageError(error, "s3");
+        if (normalized.code === "NOT_FOUND") {
+          return null;
+        }
+        throw normalized;
+      } finally {
+        cleanup();
+      }
     },
 
-    async deleteObject() {
-      throw new StorageError(
-        "CAPABILITY_NOT_SUPPORTED",
-        "Exclusão S3 ainda não habilitada nesta versão do provedor.",
-        "s3",
-      );
+    async deleteObject(key: StorageObjectKey): Promise<void> {
+      const { bucketKey } = normalizeS3ObjectKey(key.value, config.keyPrefix);
+      await ensureEndpointResolutionSafe();
+
+      const { signal, cleanup } = createOperationSignal(config.timeouts.requestTimeoutMs);
+
+      try {
+        await client.send(
+          new DeleteObjectCommand({
+            Bucket: config.bucket,
+            Key: bucketKey,
+          }),
+          { abortSignal: signal },
+        );
+      } catch (error) {
+        if (error instanceof StorageError) {
+          throw error;
+        }
+        const normalized = normalizeStorageError(error, "s3");
+        if (normalized.code === "NOT_FOUND") {
+          return;
+        }
+        throw normalized;
+      } finally {
+        cleanup();
+      }
     },
   };
 }

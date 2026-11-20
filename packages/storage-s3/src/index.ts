@@ -6,7 +6,10 @@ export const S3_STORAGE_CORE_VERSION = STORAGE_CORE_VERSION;
 export {
   createS3StorageProvider,
   normalizeS3ObjectKey,
+  type S3ChecksumSupportMode,
+  type S3CommandExecutor,
   type S3StorageProviderOptions,
+  type S3SupportedCommand,
 } from "./s3-storage-provider.js";
 
 export {

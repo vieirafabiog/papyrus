@@ -556,7 +556,7 @@ docuflow/
   - **Ação:** Implementar escrita e leitura usando SDK isolado, stream e tratamento de abort/timeout.
   - **Verificação:** `pnpm --filter @docuflow/storage-s3 typecheck`.
 
-- [ ] **Step 08.03 — Implementar HEAD, checksum e exclusão S3**
+- [x] **Step 08.03 — Implementar HEAD, checksum e exclusão S3**
   - **Arquivos:** `packages/storage-s3/src/s3-storage-provider.ts`, testes
   - **Ação:** Implementar existência, metadados, checksum conforme suporte real do provedor e exclusão idempotente.
   - **Verificação:** `pnpm --filter @docuflow/storage-s3 test`.
