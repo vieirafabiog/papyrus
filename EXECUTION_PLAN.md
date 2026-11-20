@@ -222,7 +222,7 @@ docuflow/
   - **Ação:** Configurar pacote sem dependência de framework, banco ou SDK de storage.
   - **Verificação:** `pnpm --filter @docuflow/domain typecheck`.
 
-- [ ] **Step 02.06 — Scaffold de `packages/database`**
+- [x] **Step 02.06 — Scaffold de `packages/database`**
   - **Arquivos:** `package.json`, `tsconfig.json`, `drizzle.config.ts`, `src/index.ts`
   - **Ação:** Configurar Drizzle, cliente PostgreSQL, diretório de schema e migrations.
   - **Verificação:** `pnpm --filter @docuflow/database typecheck`.
