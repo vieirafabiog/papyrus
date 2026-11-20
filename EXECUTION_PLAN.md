@@ -296,7 +296,7 @@ docuflow/
   - **Ação:** Definir usuário, grupo, papel, permissão, ação e escopos global/categoria/pasta/documento.
   - **Verificação:** `pnpm --filter @docuflow/domain test`.
 
-- [ ] **Step 03.06 — Implementar estados e transições documentais**
+- [x] **Step 03.06 — Implementar estados e transições documentais**
   - **Arquivos:** `packages/domain/src/documents/document-state.ts`, `document-state.test.ts`
   - **Ação:** Definir transições permitidas entre estados de documento e impedir transições arbitrárias. Estado de arquivo deve permanecer separado.
   - **Verificação:** `pnpm --filter @docuflow/domain test`.

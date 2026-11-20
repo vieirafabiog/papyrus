@@ -40,6 +40,14 @@ export {
 } from "./categories/metadata-validation.js";
 
 export {
+  ALLOWED_DOCUMENT_TRANSITIONS,
+  assertDocumentStatusTransition,
+  canSubmitDocumentForReview,
+  canTransitionDocumentStatus,
+  isFileObjectDownloadable,
+} from "./documents/document-state.js";
+
+export {
   DOCUMENT_STATUSES,
   type DocumentEntity,
   type DocumentMetadataMap,
