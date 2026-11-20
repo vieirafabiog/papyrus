@@ -384,7 +384,7 @@ docuflow/
   - **Ação:** Centralizar cores semânticas, superfícies, tipografia, espaçamento, shape, densidade, foco e estados. Documentar que MUI é a implementação de componentes e MD3 é a direção visual.
   - **Verificação:** `pnpm --filter @docuflow/ui typecheck`.
 
-- [ ] **Step 05.02 — Criar providers globais do frontend**
+- [x] **Step 05.02 — Criar providers globais do frontend**
   - **Arquivos:** `apps/web/src/app/providers.tsx`, `src/main.tsx`
   - **Ação:** Registrar ThemeProvider, CssBaseline, QueryClientProvider, roteador e boundary global de erro.
   - **Verificação:** `pnpm --filter @docuflow/web typecheck`.

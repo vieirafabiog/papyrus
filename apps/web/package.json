@@ -10,8 +10,14 @@
     "test": "vitest run --passWithNoTests"
   },
   "dependencies": {
+    "@docuflow/ui": "workspace:*",
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.13.5",
+    "@mui/material": "^7.0.0",
+    "@tanstack/react-query": "^5.66.0",
     "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "react-dom": "^19.0.0",
+    "react-router-dom": "^7.2.0"
   },
   "devDependencies": {
     "@types/react": "^19.0.10",
