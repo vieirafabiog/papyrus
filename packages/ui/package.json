@@ -14,11 +14,12 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run --passWithNoTests"
+    "test": "vitest run"
   },
   "peerDependencies": {
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.13.5",
+    "@mui/icons-material": "^7.0.0",
     "@mui/material": "^6.4.0 || ^7.0.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
@@ -26,9 +27,13 @@
   "devDependencies": {
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.13.5",
+    "@mui/icons-material": "^7.0.0",
     "@mui/material": "^7.0.0",
+    "@testing-library/jest-dom": "^6.6.3",
+    "@testing-library/react": "^16.2.0",
     "@types/react": "^19.0.10",
     "@types/react-dom": "^19.0.4",
+    "jsdom": "^26.0.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
   }

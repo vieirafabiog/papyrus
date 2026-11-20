@@ -399,7 +399,7 @@ docuflow/
   - **Ação:** Montar navegação lateral, cabeçalho, área de conteúdo, perfil do usuário e adaptação responsiva. Não criar links sem destino funcional.
   - **Verificação:** `pnpm --filter @docuflow/web typecheck`.
 
-- [ ] **Step 05.05 — Criar componentes de feedback compartilhados**
+- [x] **Step 05.05 — Criar componentes de feedback compartilhados**
   - **Arquivos:** `packages/ui/src/components/LoadingState.tsx`, `EmptyState.tsx`, `ErrorState.tsx`, `ConfirmDialog.tsx`
   - **Ação:** Implementar estados acessíveis, textos em pt-BR e callbacks funcionais.
   - **Verificação:** `pnpm --filter @docuflow/ui test`.
