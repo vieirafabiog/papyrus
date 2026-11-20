@@ -566,7 +566,7 @@ docuflow/
   - **Ação:** Gerar URL temporária para chave específica, método específico e expiração curta. Não expor credenciais nem permitir escolha arbitrária de chave pelo navegador.
   - **Verificação:** `pnpm --filter @docuflow/storage-s3 test`.
 
-- [ ] **Step 08.05 — Implementar health check S3**
+- [x] **Step 08.05 — Implementar health check S3**
   - **Arquivos:** `packages/storage-s3/src/s3-health.ts`
   - **Ação:** Verificar credenciais, bucket e permissões mínimas sem listar conteúdo desnecessariamente.
   - **Verificação:** `pnpm --filter @docuflow/storage-s3 test`.

@@ -7,6 +7,8 @@ import {
   type DeleteObjectCommandOutput,
   GetObjectCommand,
   type GetObjectCommandOutput,
+  type HeadBucketCommand,
+  type HeadBucketCommandOutput,
   HeadObjectCommand,
   type HeadObjectCommandOutput,
   PutObjectCommand,
@@ -33,6 +35,7 @@ import {
   parseS3StorageConfig,
   validateS3EndpointResolution,
 } from "./s3-config.schema.js";
+import { checkS3StorageHealth } from "./s3-health.js";
 import { type S3SignedTargetsOptions, createS3SignedTargets } from "./signed-targets.js";
 
 const SHA256_HEX_PATTERN = /^[a-f0-9]{64}$/i;
@@ -40,12 +43,17 @@ const DOCUFLOW_SHA256_META_KEY = "docuflow-sha256";
 const SAFE_SEGMENT_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/;
 
 export type S3SupportedCommand =
+  | HeadBucketCommand
   | PutObjectCommand
   | GetObjectCommand
   | HeadObjectCommand
   | DeleteObjectCommand;
 
 export interface S3CommandExecutor {
+  send(
+    command: HeadBucketCommand,
+    options?: { abortSignal?: AbortSignal },
+  ): Promise<HeadBucketCommandOutput>;
   send(
     command: PutObjectCommand,
     options?: { abortSignal?: AbortSignal },
@@ -73,6 +81,7 @@ export interface S3StorageProviderOptions {
   readonly checksumSupport?: S3ChecksumSupportMode | undefined;
   readonly enableSignedTargets?: boolean | undefined;
   readonly signedTargetsOptions?: S3SignedTargetsOptions | undefined;
+  readonly healthVerifyReadWrite?: boolean | undefined;
 }
 
 function hasControlChars(value: string): boolean {
@@ -331,11 +340,13 @@ export function createS3StorageProvider(
     capabilities,
 
     async checkHealth() {
-      throw new StorageError(
-        "CAPABILITY_NOT_SUPPORTED",
-        "Verificação de saúde S3 ainda não habilitada nesta versão do provedor.",
-        "s3",
-      );
+      return checkS3StorageHealth({
+        client,
+        config,
+        securityPolicy: effectivePolicy,
+        dnsLookup: options.dnsLookup,
+        verifyReadWrite: options.healthVerifyReadWrite,
+      });
     },
 
     async putObject(input: StorageUploadInput): Promise<StoredObject> {

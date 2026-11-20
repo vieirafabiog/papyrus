@@ -4,6 +4,12 @@ export const S3_STORAGE_PROVIDER_KIND = "s3" as const;
 export const S3_STORAGE_CORE_VERSION = STORAGE_CORE_VERSION;
 
 export {
+  checkS3StorageHealth,
+  type S3HealthCheckOptions,
+  type S3HealthCommandExecutor,
+} from "./s3-health.js";
+
+export {
   createS3SignedTargets,
   DEFAULT_MAX_SIGNED_EXPIRATION_SECONDS,
   DEFAULT_MIN_SIGNED_EXPIRATION_SECONDS,
