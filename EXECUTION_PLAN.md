@@ -242,7 +242,7 @@ docuflow/
   - **Ação:** Configurar pacote que implementará filesystem local e dependerá de `storage-core` por `workspace:*`.
   - **Verificação:** `pnpm --filter @docuflow/storage-local typecheck`.
 
-- [ ] **Step 02.10 — Scaffold de `packages/storage-s3`**
+- [x] **Step 02.10 — Scaffold de `packages/storage-s3`**
   - **Arquivos:** `package.json`, `tsconfig.json`, `src/index.ts`
   - **Ação:** Configurar pacote isolado para S3 e SDK compatível. Evitar dependência do SDK no restante da aplicação.
   - **Verificação:** `pnpm --filter @docuflow/storage-s3 typecheck`.
