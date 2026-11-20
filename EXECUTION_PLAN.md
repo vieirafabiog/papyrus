@@ -517,7 +517,7 @@ docuflow/
   - **Ação:** Implementar `getObject`, `headObject` e `deleteObject`, diferenciando not found de falha de permissão/I/O.
   - **Verificação:** `pnpm --filter @docuflow/storage-local test`.
 
-- [ ] **Step 07.07 — Implementar health check do filesystem**
+- [x] **Step 07.07 — Implementar health check do filesystem**
   - **Arquivos:** `packages/storage-local/src/local-health.ts`, testes
   - **Ação:** Verificar existência, permissões, leitura/escrita controlada e espaço disponível quando possível sem expor o path ao usuário comum.
   - **Verificação:** `pnpm --filter @docuflow/storage-local test`.

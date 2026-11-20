@@ -15,6 +15,7 @@ import {
   type StoredObject,
   normalizeStorageError,
 } from "@docuflow/storage-core";
+import { checkLocalStorageHealth } from "./local-health.js";
 import { resolveSafeLocalPath } from "./safe-path.js";
 
 const SHA256_HEX_PATTERN = /^[a-f0-9]{64}$/i;
@@ -23,6 +24,7 @@ const META_DIR_NAME = ".docuflow-meta";
 export interface LocalStorageProviderConfig {
   readonly rootDirectory: string;
   readonly maxObjectSizeBytes?: number | undefined;
+  readonly minFreeBytes?: number | undefined;
   readonly overwrite?: boolean | undefined;
   readonly fsync?: boolean | undefined;
 }
@@ -260,11 +262,15 @@ export function createLocalStorageProvider(config: LocalStorageProviderConfig): 
     capabilities: LOCAL_CAPABILITIES,
 
     async checkHealth() {
-      throw new StorageError(
-        "CAPABILITY_NOT_SUPPORTED",
-        "Verificação de saúde do filesystem local ainda não habilitada nesta versão do provedor.",
-        "local",
-      );
+      const result = await checkLocalStorageHealth({
+        rootDirectory: config.rootDirectory,
+        minFreeBytes: config.minFreeBytes,
+      });
+      return {
+        healthy: result.healthy,
+        message: result.message,
+        checkedAt: result.checkedAt,
+      };
     },
 
     async putObject(input: StorageUploadInput): Promise<StoredObject> {
