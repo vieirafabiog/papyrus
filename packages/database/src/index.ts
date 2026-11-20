@@ -10,6 +10,14 @@ export {
 
 export { createAuditRepository } from "./repositories/audit-repository.js";
 export {
+  type AuthorizationRepository,
+  type AuthorizedDocumentQueryScope,
+  createAuthorizationRepository,
+  type LoadedAuthorizationSubject,
+  type LoadedRoleAssignment,
+  type LoadedRolePermission,
+} from "./repositories/authorization-repository.js";
+export {
   createDocumentRepository,
   createDocumentVersionRepository,
 } from "./repositories/document-repository.js";

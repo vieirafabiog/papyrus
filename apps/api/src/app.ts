@@ -1,5 +1,8 @@
 import { randomUUID } from "node:crypto";
+import type { AuthorizationRepository } from "@docuflow/database";
 import type {
+  AuditRepositoryPort,
+  DocumentRepositoryPort,
   GroupAdministrationService,
   UserAdministrationService,
 } from "@docuflow/domain";
@@ -7,10 +10,12 @@ import cookie from "@fastify/cookie";
 import Fastify, { type FastifyInstance } from "fastify";
 import { registerAuthRoutes } from "./modules/auth/auth.routes.js";
 import type { AuthService } from "./modules/auth/auth.service.js";
+import { registerDocumentRoutes } from "./modules/documents/documents.routes.js";
 import { registerGroupRoutes } from "./modules/groups/groups.routes.js";
 import { registerSetupRoutes } from "./modules/setup/setup.routes.js";
 import type { SetupService } from "./modules/setup/setup.service.js";
 import { registerUserRoutes } from "./modules/users/users.routes.js";
+import { createDocumentAuthorizationGuard } from "./plugins/authorization.js";
 import { registerSecurityPlugin, type SecurityPluginOptions } from "./plugins/security.js";
 
 export interface AppOptions {
@@ -19,6 +24,13 @@ export interface AppOptions {
   readonly setupService?: SetupService | undefined;
   readonly userAdminService?: UserAdministrationService | undefined;
   readonly groupAdminService?: GroupAdministrationService | undefined;
+  readonly documentDeps?:
+    | {
+        readonly authzRepository: AuthorizationRepository;
+        readonly documentRepository: DocumentRepositoryPort;
+        readonly auditRepository: AuditRepositoryPort;
+      }
+    | undefined;
   readonly secureCookies?: boolean | undefined;
   readonly security?: Partial<SecurityPluginOptions> | undefined;
 }
@@ -70,6 +82,23 @@ export function buildApp(options: AppOptions = {}): FastifyInstance {
       const groupAdminService = options.groupAdminService;
       void app.register(async (instance) => {
         await registerGroupRoutes(instance, { authService, groupAdminService });
+      });
+    }
+
+    if (options.documentDeps) {
+      const documentDeps = options.documentDeps;
+      const guard = createDocumentAuthorizationGuard({
+        authService,
+        authzRepository: documentDeps.authzRepository,
+        documentRepository: documentDeps.documentRepository,
+      });
+      void app.register(async (instance) => {
+        await registerDocumentRoutes(instance, {
+          guard,
+          authzRepository: documentDeps.authzRepository,
+          documentRepository: documentDeps.documentRepository,
+          auditRepository: documentDeps.auditRepository,
+        });
       });
     }
   }

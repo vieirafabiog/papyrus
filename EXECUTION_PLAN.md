@@ -473,7 +473,7 @@ docuflow/
   - **Ação:** Resolver permissões herdadas de pasta e exceções documentais, com precedência formal para negação explícita.
   - **Verificação:** `pnpm --filter @docuflow/auth test`.
 
-- [ ] **Step 06.10 — Integrar autorização em rotas e repositórios**
+- [x] **Step 06.10 — Integrar autorização em rotas e repositórios**
   - **Arquivos:** plugins e módulos da API
   - **Ação:** Aplicar autorização antes de buscar/contar/retornar documentos e antes de executar mutações.
   - **Verificação:** `pnpm --filter @docuflow/api test:integration`.
