@@ -109,3 +109,15 @@ export const authMeResponseSchema = z.object({
   sessionExpiresAt: isoDateTimeSchema,
 });
 export type AuthMeResponse = z.infer<typeof authMeResponseSchema>;
+
+export const createUserRequestSchema = z.object({
+  email: z.string().trim().email().toLowerCase(),
+  fullName: z.string().trim().min(2).max(160),
+  password: z.string().min(10).max(256),
+});
+export type CreateUserRequest = z.infer<typeof createUserRequestSchema>;
+
+export const updateUserRequestSchema = z.object({
+  fullName: z.string().trim().min(2).max(160),
+});
+export type UpdateUserRequest = z.infer<typeof updateUserRequestSchema>;

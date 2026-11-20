@@ -112,5 +112,24 @@ export function createUserRepository(db: NodePgDatabase): UserRepositoryPort {
         );
       return Number(row?.total ?? 0);
     },
+
+    async isActiveGlobalAdmin(userId: string, tx?: TransactionContext): Promise<boolean> {
+      const executor = resolveDbExecutor(db, tx);
+      const [row] = await executor
+        .select({ total: countDistinct(users.id) })
+        .from(users)
+        .innerJoin(userRoleScopes, eq(userRoleScopes.userId, users.id))
+        .innerJoin(roles, eq(roles.id, userRoleScopes.roleId))
+        .where(
+          and(
+            eq(users.id, userId),
+            eq(users.status, "ACTIVE"),
+            eq(roles.key, "admin"),
+            eq(userRoleScopes.scopeType, "GLOBAL"),
+            eq(userRoleScopes.effect, "ALLOW"),
+          ),
+        );
+      return Number(row?.total ?? 0) > 0;
+    },
   };
 }

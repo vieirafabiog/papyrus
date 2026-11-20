@@ -111,6 +111,16 @@ export type {
 } from "./ports/user-repository.port.js";
 
 export {
+  type ChangeUserStatusCommand,
+  createUserAdministrationService,
+  type CreateUserCommand,
+  type PasswordHasherPort,
+  type UpdateUserCommand,
+  type UserAdministrationService,
+  type UserAdministrationServiceDependencies,
+} from "./users/user-management.js";
+
+export {
   isTerminalInstanceStatus,
   isTerminalTaskStatus,
   TERMINAL_WORKFLOW_INSTANCE_STATUSES,

@@ -30,4 +30,5 @@ export interface UserRepositoryPort {
     tx?: TransactionContext,
   ): Promise<UserEntity | null>;
   countActiveAdmins(organizationId: string, tx?: TransactionContext): Promise<number>;
+  isActiveGlobalAdmin(userId: string, tx?: TransactionContext): Promise<boolean>;
 }

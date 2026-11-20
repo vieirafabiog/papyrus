@@ -453,7 +453,7 @@ docuflow/
   - **Ação:** Criar fluxo seguro de bootstrap que só funcione quando não existir administrador e não exponha senha em logs.
   - **Verificação:** `pnpm --filter @docuflow/api test:integration`.
 
-- [ ] **Step 06.06 — Implementar administração de usuários**
+- [x] **Step 06.06 — Implementar administração de usuários**
   - **Arquivos:** `packages/domain/src/users/*`, rotas e repositories
   - **Ação:** Criar, editar, desativar e reativar usuários; impedir que o último administrador ativo seja removido sem substituição.
   - **Verificação:** `pnpm --filter @docuflow/api test:integration`.

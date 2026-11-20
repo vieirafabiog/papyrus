@@ -1,16 +1,19 @@
 import { randomUUID } from "node:crypto";
+import type { UserAdministrationService } from "@docuflow/domain";
 import cookie from "@fastify/cookie";
 import Fastify, { type FastifyInstance } from "fastify";
 import { registerAuthRoutes } from "./modules/auth/auth.routes.js";
 import type { AuthService } from "./modules/auth/auth.service.js";
 import { registerSetupRoutes } from "./modules/setup/setup.routes.js";
 import type { SetupService } from "./modules/setup/setup.service.js";
+import { registerUserRoutes } from "./modules/users/users.routes.js";
 import { registerSecurityPlugin, type SecurityPluginOptions } from "./plugins/security.js";
 
 export interface AppOptions {
   readonly logger?: boolean | undefined;
   readonly authService?: AuthService | undefined;
   readonly setupService?: SetupService | undefined;
+  readonly userAdminService?: UserAdministrationService | undefined;
   readonly secureCookies?: boolean | undefined;
   readonly security?: Partial<SecurityPluginOptions> | undefined;
 }
@@ -50,6 +53,13 @@ export function buildApp(options: AppOptions = {}): FastifyInstance {
     void app.register(async (instance) => {
       await registerAuthRoutes(instance, { authService, secureCookies });
     });
+
+    if (options.userAdminService) {
+      const userAdminService = options.userAdminService;
+      void app.register(async (instance) => {
+        await registerUserRoutes(instance, { authService, userAdminService });
+      });
+    }
   }
 
   return app;
