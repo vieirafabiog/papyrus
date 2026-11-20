@@ -7,7 +7,7 @@
     "dev": "tsx watch src/server.ts",
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run test/*.test.ts",
+    "test": "vitest run test/*.test.ts test/security/*.test.ts",
     "test:integration": "vitest run test/integration"
   },
   "dependencies": {

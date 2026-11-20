@@ -478,7 +478,7 @@ docuflow/
   - **Ação:** Aplicar autorização antes de buscar/contar/retornar documentos e antes de executar mutações.
   - **Verificação:** `pnpm --filter @docuflow/api test:integration`.
 
-- [ ] **Step 06.11 — Implementar testes negativos de acesso**
+- [x] **Step 06.11 — Implementar testes negativos de acesso**
   - **Arquivos:** `apps/api/test/security/access-control.test.ts`
   - **Ação:** Cobrir IDOR, busca, preview, download, listagem, contagem e alteração de permissão.
   - **Verificação:** `pnpm --filter @docuflow/api test`.
