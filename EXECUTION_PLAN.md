@@ -394,7 +394,7 @@ docuflow/
   - **Ação:** Definir rotas públicas de autenticação e rotas privadas do sistema. Guard deve reagir ao estado real de sessão fornecido pela API.
   - **Verificação:** `pnpm --filter @docuflow/web test`.
 
-- [ ] **Step 05.04 — Criar shell principal**
+- [x] **Step 05.04 — Criar shell principal**
   - **Arquivos:** `apps/web/src/layout/AppShell.tsx`, `AppHeader.tsx`, `AppSidebar.tsx`
   - **Ação:** Montar navegação lateral, cabeçalho, área de conteúdo, perfil do usuário e adaptação responsiva. Não criar links sem destino funcional.
   - **Verificação:** `pnpm --filter @docuflow/web typecheck`.
