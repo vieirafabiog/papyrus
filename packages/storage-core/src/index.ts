@@ -24,6 +24,24 @@ export type {
 export type { StorageProvider } from "./storage-provider.js";
 
 export {
+  ALL_STORAGE_CAPABILITIES,
+  assertStorageCapabilities,
+  assertStorageCapability,
+  type CapabilityValidationResult,
+  hasStorageCapability,
+  requireSignedDownloadTargetProvider,
+  requireSignedUploadTargetProvider,
+  resolveDownloadMode,
+  resolveUploadMode,
+  type SignedDownloadCapableProvider,
+  type SignedUploadCapableProvider,
+  type StorageCapabilityName,
+  type StorageDownloadMode,
+  type StorageUploadMode,
+  validateStorageCapabilities,
+} from "./capability-validator.js";
+
+export {
   createStorageProviderRegistry,
   type RegisterFactoryOptions,
   type RegistryConnectionStatus,

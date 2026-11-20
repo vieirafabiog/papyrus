@@ -492,7 +492,7 @@ docuflow/
   - **Ação:** Registrar factories por tipo e resolver provider por conexão, sem importar drivers concretos no domínio.
   - **Verificação:** `pnpm --filter @docuflow/storage-core test`.
 
-- [ ] **Step 07.02 — Implementar validação de capacidades**
+- [x] **Step 07.02 — Implementar validação de capacidades**
   - **Arquivos:** `packages/storage-core/src/capability-validator.ts`, testes
   - **Ação:** Validar operações requeridas contra capabilities do provider; nunca presumir suporte a signed URL, multipart ou copy.
   - **Verificação:** `pnpm --filter @docuflow/storage-core test`.
