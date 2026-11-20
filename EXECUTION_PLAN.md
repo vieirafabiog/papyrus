@@ -281,7 +281,7 @@ docuflow/
   - **Ação:** Definir estados independentes de documento, versão e objeto binário, conforme `project.md` D.4.
   - **Verificação:** `pnpm --filter @docuflow/contracts test` e `pnpm --filter @docuflow/domain typecheck`.
 
-- [ ] **Step 03.03 — Implementar schemas de categorias e metadados**
+- [x] **Step 03.03 — Implementar schemas de categorias e metadados**
   - **Arquivos:** `packages/contracts/src/category.schema.ts`, `packages/domain/src/categories/metadata-validation.ts`
   - **Ação:** Suportar campos extras tipados: texto, número, data, booleano, opção única e múltipla. Validar obrigatoriedade e opções permitidas no servidor.
   - **Verificação:** `pnpm --filter @docuflow/domain test`.

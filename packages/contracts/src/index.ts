@@ -1,6 +1,20 @@
 export const CONTRACTS_API_PREFIX = "/api/v1" as const;
 
 export {
+  type CategoryFieldDefinition,
+  type CategoryFieldType,
+  type CategoryRecord,
+  type CreateCategoryInput,
+  categoryFieldDefinitionSchema,
+  categoryFieldKeySchema,
+  categoryFieldTypeSchema,
+  categorySchema,
+  createCategoryInputSchema,
+  type UpdateCategoryInput,
+  updateCategoryInputSchema,
+} from "./category.schema.js";
+
+export {
   type ApiErrorResponse,
   apiErrorResponseSchema,
   createApiResponseSchema,

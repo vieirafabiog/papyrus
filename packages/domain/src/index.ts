@@ -9,6 +9,14 @@ export class DomainError extends Error {
 }
 
 export {
+  type CategoryFieldDefinition,
+  type CategoryFieldType,
+  type MetadataValidationIssue,
+  type MetadataValidationResult,
+  validateDocumentMetadata,
+} from "./categories/metadata-validation.js";
+
+export {
   DOCUMENT_STATUSES,
   type DocumentEntity,
   type DocumentMetadataMap,
