@@ -419,7 +419,7 @@ docuflow/
   - **Ação:** Consumir endpoint real de resumo. Enquanto o endpoint ainda não existir, manter a rota em estado vazio informativo; não inventar KPIs reais.
   - **Verificação:** `pnpm --filter @docuflow/web typecheck` e `pnpm --filter @docuflow/web test`.
 
-- [ ] **Step 05.09 — Validar acessibilidade do shell**
+- [x] **Step 05.09 — Validar acessibilidade do shell**
   - **Arquivos:** testes do shell e componentes compartilhados
   - **Ação:** Cobrir foco, labels, navegação por teclado, dialogs, responsividade e contraste dos estados principais.
   - **Verificação:** `pnpm --filter @docuflow/web test`.
