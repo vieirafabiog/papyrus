@@ -389,7 +389,7 @@ docuflow/
   - **Ação:** Registrar ThemeProvider, CssBaseline, QueryClientProvider, roteador e boundary global de erro.
   - **Verificação:** `pnpm --filter @docuflow/web typecheck`.
 
-- [ ] **Step 05.03 — Implementar roteamento principal**
+- [x] **Step 05.03 — Implementar roteamento principal**
   - **Arquivos:** `apps/web/src/app/router.tsx`, `route-guards.tsx`
   - **Ação:** Definir rotas públicas de autenticação e rotas privadas do sistema. Guard deve reagir ao estado real de sessão fornecido pela API.
   - **Verificação:** `pnpm --filter @docuflow/web test`.
