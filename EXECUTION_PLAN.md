@@ -355,7 +355,7 @@ docuflow/
   - **Ação:** Criar definições/versionamento de fluxo, instâncias, tarefas, decisões e notificações.
   - **Verificação:** `pnpm --filter @docuflow/database typecheck`.
 
-- [ ] **Step 04.07 — Criar schema de auditoria e retenção**
+- [x] **Step 04.07 — Criar schema de auditoria e retenção**
   - **Arquivo:** `packages/database/src/schema/governance.ts`
   - **Ação:** Criar `audit_events`, `retention_policies`, `document_retention_holds` e `outbox_events`. Auditoria sem operação de update/delete na camada comum.
   - **Verificação:** `pnpm --filter @docuflow/database typecheck`.

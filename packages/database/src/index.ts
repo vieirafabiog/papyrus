@@ -18,6 +18,17 @@ export {
 } from "./schema/documents.js";
 
 export {
+  auditEvents,
+  type AuditMetadataJson,
+  auditResultEnum,
+  documentRetentionHolds,
+  outboxEvents,
+  outboxStatusEnum,
+  retentionActionEnum,
+  retentionPolicies,
+} from "./schema/governance.js";
+
+export {
   accessActionEnum,
   accessEffectEnum,
   accessResourceEnum,
