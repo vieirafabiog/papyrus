@@ -257,7 +257,7 @@ docuflow/
   - **Ação:** Preparar contratos de notificações internas e e-mail SMTP.
   - **Verificação:** `pnpm --filter @docuflow/notifications typecheck`.
 
-- [ ] **Step 02.13 — Scaffold de `packages/ui`**
+- [x] **Step 02.13 — Scaffold de `packages/ui`**
   - **Arquivos:** `package.json`, `tsconfig.json`, `src/index.ts`
   - **Ação:** Criar pacote de tema MUI, tokens e componentes compartilhados. Não copiar componentes da aplicação web para este pacote.
   - **Verificação:** `pnpm --filter @docuflow/ui typecheck`.
