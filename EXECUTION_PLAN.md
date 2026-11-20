@@ -252,7 +252,7 @@ docuflow/
   - **Ação:** Preparar validação MIME, checksum, quarentena, antivírus e geração de prévias.
   - **Verificação:** `pnpm --filter @docuflow/file-processing typecheck`.
 
-- [ ] **Step 02.12 — Scaffold de `packages/notifications`**
+- [x] **Step 02.12 — Scaffold de `packages/notifications`**
   - **Arquivos:** `package.json`, `tsconfig.json`, `src/index.ts`
   - **Ação:** Preparar contratos de notificações internas e e-mail SMTP.
   - **Verificação:** `pnpm --filter @docuflow/notifications typecheck`.
