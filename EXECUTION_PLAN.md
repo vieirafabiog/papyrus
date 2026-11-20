@@ -237,7 +237,7 @@ docuflow/
   - **Ação:** Criar pacote-base independente dos SDKs concretos.
   - **Verificação:** `pnpm --filter @docuflow/storage-core typecheck`.
 
-- [ ] **Step 02.09 — Scaffold de `packages/storage-local`**
+- [x] **Step 02.09 — Scaffold de `packages/storage-local`**
   - **Arquivos:** `package.json`, `tsconfig.json`, `src/index.ts`
   - **Ação:** Configurar pacote que implementará filesystem local e dependerá de `storage-core` por `workspace:*`.
   - **Verificação:** `pnpm --filter @docuflow/storage-local typecheck`.

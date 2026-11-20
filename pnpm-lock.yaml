@@ -226,6 +226,8 @@ importers:
         specifier: ^4.19.3
         version: 4.23.15
 
+  packages/auth: {}
+
   packages/contracts:
     dependencies:
       zod:
@@ -249,6 +251,14 @@ importers:
         version: 0.30.6
 
   packages/domain: {}
+
+  packages/storage-core: {}
+
+  packages/storage-local:
+    dependencies:
+      '@docuflow/storage-core':
+        specifier: workspace:*
+        version: link:../storage-core
 
 packages:
 
