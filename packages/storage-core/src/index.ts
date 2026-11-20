@@ -1,11 +1,13 @@
 export const STORAGE_CORE_VERSION = 1 as const;
 
 export {
+  isRetryableStorageError,
+  isStorageError,
   normalizeStorageError,
   sanitizeStorageErrorMessage,
   StorageError,
   type StorageErrorCode,
-} from "./storage.errors.js";
+} from "./storage-errors.js";
 
 export type {
   SignedDownloadTargetInput,

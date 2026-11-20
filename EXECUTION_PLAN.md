@@ -497,7 +497,7 @@ docuflow/
   - **Ação:** Validar operações requeridas contra capabilities do provider; nunca presumir suporte a signed URL, multipart ou copy.
   - **Verificação:** `pnpm --filter @docuflow/storage-core test`.
 
-- [ ] **Step 07.03 — Implementar normalização de erros de storage**
+- [x] **Step 07.03 — Implementar normalização de erros de storage**
   - **Arquivos:** `packages/storage-core/src/storage-errors.ts`, testes
   - **Ação:** Normalizar not found, unauthorized, timeout, throttling, unavailable, checksum mismatch e conflict, sem incluir credenciais.
   - **Verificação:** `pnpm --filter @docuflow/storage-core test`.

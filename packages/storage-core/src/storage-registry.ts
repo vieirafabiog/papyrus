@@ -1,5 +1,5 @@
+import { StorageError, normalizeStorageError } from "./storage-errors.js";
 import type { StorageProvider } from "./storage-provider.js";
-import { StorageError, normalizeStorageError } from "./storage.errors.js";
 import type { StorageProviderKind } from "./storage.types.js";
 
 export type RegistryConnectionStatus = "ACTIVE" | "INACTIVE" | "ERROR";

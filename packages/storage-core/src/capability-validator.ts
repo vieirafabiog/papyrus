@@ -1,5 +1,5 @@
+import { StorageError } from "./storage-errors.js";
 import type { StorageProvider } from "./storage-provider.js";
-import { StorageError } from "./storage.errors.js";
 import type { StorageCapabilities } from "./storage.types.js";
 
 export type StorageCapabilityName = keyof StorageCapabilities;
