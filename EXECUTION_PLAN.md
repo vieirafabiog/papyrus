@@ -232,7 +232,7 @@ docuflow/
   - **Ação:** Preparar pacote de credenciais, sessões e políticas de autorização, sem implementar ainda as regras.
   - **Verificação:** `pnpm --filter @docuflow/auth typecheck`.
 
-- [ ] **Step 02.08 — Scaffold de `packages/storage-core`**
+- [x] **Step 02.08 — Scaffold de `packages/storage-core`**
   - **Arquivos:** `package.json`, `tsconfig.json`, `src/index.ts`
   - **Ação:** Criar pacote-base independente dos SDKs concretos.
   - **Verificação:** `pnpm --filter @docuflow/storage-core typecheck`.
