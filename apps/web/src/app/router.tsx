@@ -1,6 +1,7 @@
 import { Box, Typography } from "@mui/material";
 import { Navigate, Route, Routes } from "react-router-dom";
 import { LoginPage } from "../features/auth/LoginPage.js";
+import { DashboardPage } from "../features/dashboard/DashboardPage.js";
 import { AppShell } from "../layout/AppShell.js";
 import { RedirectIfAuthenticated, RequireAuth } from "./route-guards.js";
 
@@ -53,15 +54,7 @@ export function AppRoutes() {
 
       <Route element={<RequireAuth />}>
         <Route element={<AppShell />}>
-          <Route
-            path="/"
-            element={
-              <RouteSectionView
-                title="Visão geral"
-                description="Resumo operacional do repositório documental."
-              />
-            }
-          />
+          <Route path="/" element={<DashboardPage />} />
           <Route
             path="/documentos"
             element={

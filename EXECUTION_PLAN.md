@@ -414,7 +414,7 @@ docuflow/
   - **Ação:** Criar componentes com paginação e ordenação controladas pelo servidor, seleção acessível e estados vazios. Não implementar busca client-side sobre toda a coleção.
   - **Verificação:** `pnpm --filter @docuflow/ui test`.
 
-- [ ] **Step 05.08 — Criar dashboard conectado à API**
+- [x] **Step 05.08 — Criar dashboard conectado à API**
   - **Arquivos:** `apps/web/src/features/dashboard/DashboardPage.tsx`, hooks e contracts
   - **Ação:** Consumir endpoint real de resumo. Enquanto o endpoint ainda não existir, manter a rota em estado vazio informativo; não inventar KPIs reais.
   - **Verificação:** `pnpm --filter @docuflow/web typecheck` e `pnpm --filter @docuflow/web test`.

@@ -66,6 +66,13 @@ export {
 } from "./common.schema.js";
 
 export {
+  type DashboardRecentActivity,
+  dashboardRecentActivitySchema,
+  type DashboardSummary,
+  dashboardSummarySchema,
+} from "./dashboard.schema.js";
+
+export {
   type DocumentListQuery,
   documentListQuerySchema,
   documentListSortSchema,
