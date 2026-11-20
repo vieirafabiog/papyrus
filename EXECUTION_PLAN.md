@@ -195,7 +195,7 @@ docuflow/
 
 ### Stage 2.1 — Aplicações
 
-- [ ] **Step 02.01 — Scaffold de `apps/web`**
+- [x] **Step 02.01 — Scaffold de `apps/web`**
   - **Arquivos:** `apps/web/package.json`, `tsconfig.json`, `vite.config.ts`, `index.html`, `src/main.tsx`
   - **Ação:** Criar aplicação React + TypeScript + Vite com scripts `dev`, `build`, `typecheck` e `test`. Não instalar componentes de negócio nesta etapa.
   - **Verificação:** `pnpm --filter @docuflow/web typecheck` e `pnpm --filter @docuflow/web build`.
