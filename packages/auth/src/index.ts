@@ -10,6 +10,15 @@ export {
 } from "./authorization/authorizer.js";
 
 export {
+  type DocumentScopeContext,
+  evaluateDocumentAuthorization,
+  evaluateFolderAuthorization,
+  type FolderScopeContext,
+  resolveApplicableScopesForDocument,
+  resolveApplicableScopesForFolder,
+} from "./authorization/scope-resolver.js";
+
+export {
   PERMISSION_CATALOG,
   type PermissionPair,
   roleGrantsPermission,

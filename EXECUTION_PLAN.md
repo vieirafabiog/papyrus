@@ -468,7 +468,7 @@ docuflow/
   - **Ação:** Implementar catálogo de ações, papéis e verificação `action + resource + scope`; negar por padrão.
   - **Verificação:** `pnpm --filter @docuflow/auth test`.
 
-- [ ] **Step 06.09 — Implementar escopos por pasta, categoria e documento**
+- [x] **Step 06.09 — Implementar escopos por pasta, categoria e documento**
   - **Arquivos:** `packages/auth/src/authorization/scope-resolver.ts`, testes
   - **Ação:** Resolver permissões herdadas de pasta e exceções documentais, com precedência formal para negação explícita.
   - **Verificação:** `pnpm --filter @docuflow/auth test`.
