@@ -212,7 +212,7 @@ docuflow/
 
 ### Stage 2.2 — Pacotes compartilhados
 
-- [ ] **Step 02.04 — Scaffold de `packages/contracts`**
+- [x] **Step 02.04 — Scaffold de `packages/contracts`**
   - **Arquivos:** `package.json`, `tsconfig.json`, `src/index.ts`
   - **Ação:** Configurar pacote para schemas Zod e contratos públicos compartilhados.
   - **Verificação:** `pnpm --filter @docuflow/contracts typecheck`.
