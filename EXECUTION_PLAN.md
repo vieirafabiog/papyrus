@@ -271,7 +271,7 @@ docuflow/
 
 # PHASE 3 — CONTRATOS, DOMÍNIO E REGRAS DE NEGÓCIO
 
-- [ ] **Step 03.01 — Implementar schemas comuns e identificadores**
+- [x] **Step 03.01 — Implementar schemas comuns e identificadores**
   - **Arquivos:** `packages/contracts/src/common.schema.ts`, `packages/contracts/src/index.ts`
   - **Ação:** Criar schemas para UUID, paginação, ordenação permitida, datas ISO, códigos de erro e resposta padrão. Exportar pela API pública.
   - **Verificação:** `pnpm --filter @docuflow/contracts test`.
