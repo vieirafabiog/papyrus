@@ -24,3 +24,12 @@ export {
   userStatusEnum,
   users,
 } from "./schema/identity.js";
+
+export {
+  categories,
+  categoryFields,
+  categoryFieldTypeEnum,
+  folders,
+  folderStatusEnum,
+  tags,
+} from "./schema/taxonomy.js";

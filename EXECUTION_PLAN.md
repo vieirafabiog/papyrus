@@ -335,7 +335,7 @@ docuflow/
   - **Ação:** Criar `organizations`, `users`, `groups`, `user_groups`, `roles`, `permissions`, `role_permissions`, `user_role_scopes` e `sessions` com PKs UUID e constraints.
   - **Verificação:** `pnpm --filter @docuflow/database typecheck`.
 
-- [ ] **Step 04.03 — Criar schema de pastas e categorias**
+- [x] **Step 04.03 — Criar schema de pastas e categorias**
   - **Arquivo:** `packages/database/src/schema/taxonomy.ts`
   - **Ação:** Criar `folders`, `categories`, `category_fields` e `tags`, com unicidade por escopo e relações corretas.
   - **Verificação:** `pnpm --filter @docuflow/database typecheck`.
