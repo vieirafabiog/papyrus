@@ -40,14 +40,14 @@ export type WebConfig = z.infer<typeof webConfigSchema>;
 
 export function parseApiConfig(env: Readonly<Record<string, string | undefined>>): ApiConfig {
   return apiConfigSchema.parse({
-    nodeEnv: env["NODE_ENV"],
-    port: env["PORT"],
-    host: env["HOST"],
-    appUrl: env["APP_URL"],
-    databaseUrl: env["DATABASE_URL"],
-    sessionSecretRef: env["SESSION_SECRET"],
-    encryptionKeyRef: env["ENCRYPTION_KEY"],
-    uploadMaxBytes: env["UPLOAD_MAX_BYTES"],
+    nodeEnv: env.NODE_ENV,
+    port: env.PORT,
+    host: env.HOST,
+    appUrl: env.APP_URL,
+    databaseUrl: env.DATABASE_URL,
+    sessionSecretRef: env.SESSION_SECRET,
+    encryptionKeyRef: env.ENCRYPTION_KEY,
+    uploadMaxBytes: env.UPLOAD_MAX_BYTES,
   });
 }
 
@@ -63,3 +63,11 @@ export function getSafeApiConfigSummary(config: ApiConfig): Readonly<Record<stri
     encryptionKeyConfigured: config.encryptionKeyRef.length >= 32,
   };
 }
+
+export {
+  type LoadedMasterKeyring,
+  loadMasterEncryptionKey,
+  loadMasterKeyring,
+  MasterKeyConfigError,
+  parseMasterKeyMaterial,
+} from "./secrets.js";

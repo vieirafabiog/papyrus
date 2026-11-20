@@ -522,7 +522,7 @@ docuflow/
   - **Ação:** Verificar existência, permissões, leitura/escrita controlada e espaço disponível quando possível sem expor o path ao usuário comum.
   - **Verificação:** `pnpm --filter @docuflow/storage-local test`.
 
-- [ ] **Step 07.08 — Implementar criptografia de credenciais de conectores**
+- [x] **Step 07.08 — Implementar criptografia de credenciais de conectores**
   - **Arquivos:** `packages/storage-core/src/secret-vault.ts`, `packages/config/src/secrets.ts`
   - **Ação:** Criptografar credenciais com chave mestra externa ao banco; validar formato e falhar com erro explícito se a chave estiver ausente ou inválida.
   - **Verificação:** `pnpm --filter @docuflow/storage-core test`.

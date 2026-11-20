@@ -1,6 +1,15 @@
 export const STORAGE_CORE_VERSION = 1 as const;
 
 export {
+  type ConnectorCredentials,
+  createStorageSecretVault,
+  isValidEncryptedVaultEnvelope,
+  type MasterKeyInput,
+  type SecretVaultOptions,
+  type StorageSecretVault,
+} from "./secret-vault.js";
+
+export {
   isRetryableStorageError,
   isStorageError,
   normalizeStorageError,
