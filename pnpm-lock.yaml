@@ -228,6 +228,12 @@ importers:
 
   packages/auth: {}
 
+  packages/config:
+    dependencies:
+      zod:
+        specifier: ^3.24.2
+        version: 3.25.76
+
   packages/contracts:
     dependencies:
       zod:

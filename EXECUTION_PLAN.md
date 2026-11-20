@@ -262,7 +262,7 @@ docuflow/
   - **Ação:** Criar pacote de tema MUI, tokens e componentes compartilhados. Não copiar componentes da aplicação web para este pacote.
   - **Verificação:** `pnpm --filter @docuflow/ui typecheck`.
 
-- [ ] **Step 02.14 — Scaffold de `packages/config`**
+- [x] **Step 02.14 — Scaffold de `packages/config`**
   - **Arquivos:** `package.json`, `tsconfig.json`, `src/index.ts`
   - **Ação:** Criar schemas de configuração tipados para API, worker, storage e web. Segredos devem ser representados por referências/configuração segura, nunca por valores em logs.
   - **Verificação:** `pnpm --filter @docuflow/config test` e `pnpm --filter @docuflow/config typecheck`.
