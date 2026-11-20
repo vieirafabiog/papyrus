@@ -330,7 +330,7 @@ docuflow/
   - **Ação:** Criar pool com limites configuráveis, timeouts, shutdown e logs sem string de conexão.
   - **Verificação:** `pnpm --filter @docuflow/database typecheck`.
 
-- [ ] **Step 04.02 — Criar schema de organização e usuários**
+- [x] **Step 04.02 — Criar schema de organização e usuários**
   - **Arquivo:** `packages/database/src/schema/identity.ts`
   - **Ação:** Criar `organizations`, `users`, `groups`, `user_groups`, `roles`, `permissions`, `role_permissions`, `user_role_scopes` e `sessions` com PKs UUID e constraints.
   - **Verificação:** `pnpm --filter @docuflow/database typecheck`.
