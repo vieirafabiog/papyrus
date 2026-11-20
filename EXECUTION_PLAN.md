@@ -379,7 +379,7 @@ docuflow/
 
 # PHASE 5 — DESIGN SYSTEM MATERIAL DESIGN 3 E SHELL WEB
 
-- [ ] **Step 05.01 — Definir tokens do tema MUI inspirado em Material 3**
+- [x] **Step 05.01 — Definir tokens do tema MUI inspirado em Material 3**
   - **Arquivos:** `packages/ui/src/theme/tokens.ts`, `theme.ts`
   - **Ação:** Centralizar cores semânticas, superfícies, tipografia, espaçamento, shape, densidade, foco e estados. Documentar que MUI é a implementação de componentes e MD3 é a direção visual.
   - **Verificação:** `pnpm --filter @docuflow/ui typecheck`.
