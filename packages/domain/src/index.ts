@@ -9,6 +9,29 @@ export class DomainError extends Error {
 }
 
 export {
+  ACCESS_ACTIONS,
+  ACCESS_EFFECTS,
+  ACCESS_RESOURCES,
+  ACCESS_SCOPE_TYPES,
+  type AccessAction,
+  type AccessEffect,
+  type AccessResource,
+  type AccessScope,
+  type AccessScopeType,
+  type AuthorizationDecision,
+  type AuthorizationRequest,
+  type AuthorizationSubject,
+  type GroupEntity,
+  type PermissionEntity,
+  type RoleEntity,
+  type RoleScopeAssignment,
+  type SessionSummary,
+  USER_STATUSES,
+  type UserEntity,
+  type UserStatus,
+} from "./access/access.types.js";
+
+export {
   type CategoryFieldDefinition,
   type CategoryFieldType,
   type MetadataValidationIssue,

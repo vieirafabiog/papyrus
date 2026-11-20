@@ -291,7 +291,7 @@ docuflow/
   - **Ação:** Implementar interfaces de provider, metadados, objetos, capacidades, upload/download por stream, health check e alvos temporários opcionais. Normalizar erros sem vazar segredo.
   - **Verificação:** `pnpm --filter @docuflow/storage-core test` e `pnpm --filter @docuflow/storage-core typecheck`.
 
-- [ ] **Step 03.05 — Implementar contratos de sessão e autorização**
+- [x] **Step 03.05 — Implementar contratos de sessão e autorização**
   - **Arquivos:** `packages/domain/src/access/access.types.ts`, `packages/contracts/src/access.schema.ts`
   - **Ação:** Definir usuário, grupo, papel, permissão, ação e escopos global/categoria/pasta/documento.
   - **Verificação:** `pnpm --filter @docuflow/domain test`.

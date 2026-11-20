@@ -1,6 +1,35 @@
 export const CONTRACTS_API_PREFIX = "/api/v1" as const;
 
 export {
+  type AccessAction,
+  type AccessEffect,
+  type AccessResource,
+  type AccessScope,
+  type AccessScopeType,
+  type AuthMeResponse,
+  accessActionSchema,
+  accessEffectSchema,
+  accessResourceSchema,
+  accessScopeSchema,
+  accessScopeTypeSchema,
+  authMeResponseSchema,
+  type GroupSummary,
+  groupSummarySchema,
+  type LoginRequest,
+  loginRequestSchema,
+  type PermissionRecord,
+  permissionSchema,
+  type RoleScopeAssignmentRecord,
+  type RoleSummary,
+  roleScopeAssignmentSchema,
+  roleSummarySchema,
+  type UserStatus,
+  type UserSummary,
+  userStatusSchema,
+  userSummarySchema,
+} from "./access.schema.js";
+
+export {
   type CategoryFieldDefinition,
   type CategoryFieldType,
   type CategoryRecord,
