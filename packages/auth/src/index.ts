@@ -1,6 +1,24 @@
 export const AUTH_MODULE_VERSION = 1 as const;
 
 export {
+  type AuthorizationSubjectContext,
+  buildSystemRolePermissionMap,
+  doesScopeMatch,
+  evaluateAuthorization,
+  type PrincipalAssignment,
+  type RolePermissionsLookup,
+} from "./authorization/authorizer.js";
+
+export {
+  PERMISSION_CATALOG,
+  type PermissionPair,
+  roleGrantsPermission,
+  SYSTEM_ROLE_DEFINITIONS,
+  type SystemRoleDefinition,
+  type SystemRoleKey,
+} from "./authorization/role-catalog.js";
+
+export {
   createPasswordService,
   type PasswordService,
   type PasswordServiceOptions,

@@ -463,7 +463,7 @@ docuflow/
   - **Ação:** Criar grupos, vincular usuários e impedir vínculos duplicados.
   - **Verificação:** `pnpm --filter @docuflow/api test:integration`.
 
-- [ ] **Step 06.08 — Implementar papéis e permissões**
+- [x] **Step 06.08 — Implementar papéis e permissões**
   - **Arquivos:** `packages/auth/src/authorization/*`
   - **Ação:** Implementar catálogo de ações, papéis e verificação `action + resource + scope`; negar por padrão.
   - **Verificação:** `pnpm --filter @docuflow/auth test`.

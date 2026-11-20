@@ -17,6 +17,7 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@docuflow/domain": "workspace:*",
     "argon2": "^0.41.1"
   }
 }
