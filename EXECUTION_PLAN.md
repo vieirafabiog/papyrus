@@ -325,7 +325,7 @@ docuflow/
 
 # PHASE 4 — POSTGRESQL, DRIZZLE E PERSISTÊNCIA
 
-- [ ] **Step 04.01 — Implementar conexão PostgreSQL tipada**
+- [x] **Step 04.01 — Implementar conexão PostgreSQL tipada**
   - **Arquivos:** `packages/database/src/client.ts`, `src/index.ts`
   - **Ação:** Criar pool com limites configuráveis, timeouts, shutdown e logs sem string de conexão.
   - **Verificação:** `pnpm --filter @docuflow/database typecheck`.

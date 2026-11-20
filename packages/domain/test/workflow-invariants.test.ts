@@ -92,3 +92,4 @@ describe("Workflow domain invariants", () => {
     expect(() => assertApprovalMatchesVersion(instanceForV1, DOC, "v1")).not.toThrow();
   });
 });
+

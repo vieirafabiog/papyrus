@@ -125,3 +125,4 @@ describe("Document domain invariants", () => {
     expect(canPhysicallyPurge).toBe(false);
   });
 });
+
