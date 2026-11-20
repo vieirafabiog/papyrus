@@ -190,6 +190,18 @@ importers:
 
   apps/api:
     dependencies:
+      '@docuflow/auth':
+        specifier: workspace:*
+        version: link:../../packages/auth
+      '@docuflow/contracts':
+        specifier: workspace:*
+        version: link:../../packages/contracts
+      '@docuflow/domain':
+        specifier: workspace:*
+        version: link:../../packages/domain
+      '@fastify/cookie':
+        specifier: ^11.0.2
+        version: 11.1.5
       fastify:
         specifier: ^5.2.1
         version: 5.12.8
@@ -1117,6 +1129,9 @@ packages:
   '@fastify/busboy@2.1.1':
     resolution: {integrity: sha512-vBZP4NlzfOlerQTnba4aqZoMhE/a9HY7HRqoOPaETQcSQuWEIyZMHGfVu6w9wGtGK5fED5qRs2DteVCjOH60sA==}
     engines: {node: '>=14'}
+
+  '@fastify/cookie@11.1.5':
+    resolution: {integrity: sha512-hs7e0otf7n/lJMpt63EFdQb5/u8kO6DeexEtLPVTybSdItC6SwJ1O0vtTyWvKNR70LZcHLlsUr/y3jFpqtyWRA==}
 
   '@fastify/deepmerge@3.2.4':
     resolution: {integrity: sha512-kc8GQq5gX9RRhw0rov3DMrN8wS8yRlxJRdDzsYwwdBV/wazuVgc/1K7CKL90tlvu3RlHan6Y0R0aE3nJtBz2eQ==}
@@ -2127,6 +2142,9 @@ packages:
 
   fast-uri@4.2.3:
     resolution: {integrity: sha512-I1PXwP5eAhlNlcdpjt9CgB59op2ZvZfxw+BkqGFVIUOgNpCVTcTqp3HhTX7brxj5vsip+nSY4nTvff+eIA76hg==}
+
+  fastify-plugin@6.0.1:
+    resolution: {integrity: sha512-4wW4RxSmvPXLrh5mgQEiu43qU3bw44N2ss4FTkTkQIbprUhE+/s43QX0j/ttcztdWK7PEkHqVthdc5GdEGDvjA==}
 
   fastify@5.12.8:
     resolution: {integrity: sha512-moP8exb2sCHLUbJkwp+I6C0padhy4D8lp0SdmzY7HhSdZuqm7O/u3o2aq7u8okaQ//33QDzj3G/u+FsSdB8Qzw==}
@@ -3759,6 +3777,11 @@ snapshots:
 
   '@fastify/busboy@2.1.1': {}
 
+  '@fastify/cookie@11.1.5':
+    dependencies:
+      cookie: 2.0.2
+      fastify-plugin: 6.0.1
+
   '@fastify/deepmerge@3.2.4': {}
 
   '@fastify/error@4.2.1': {}
@@ -4726,6 +4749,8 @@ snapshots:
   fast-uri@3.1.9: {}
 
   fast-uri@4.2.3: {}
+
+  fastify-plugin@6.0.1: {}
 
   fastify@5.12.8:
     dependencies:

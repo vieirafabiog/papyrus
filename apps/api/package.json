@@ -10,6 +10,10 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@docuflow/auth": "workspace:*",
+    "@docuflow/contracts": "workspace:*",
+    "@docuflow/domain": "workspace:*",
+    "@fastify/cookie": "^11.0.2",
     "fastify": "^5.2.1"
   },
   "devDependencies": {

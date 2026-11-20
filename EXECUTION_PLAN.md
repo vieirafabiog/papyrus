@@ -438,7 +438,7 @@ docuflow/
   - **Ação:** Gerar tokens aleatórios, armazenar somente hash, aplicar expiração, revogação e rotação conforme política definida.
   - **Verificação:** `pnpm --filter @docuflow/auth test`.
 
-- [ ] **Step 06.03 — Implementar rotas de login e logout**
+- [x] **Step 06.03 — Implementar rotas de login e logout**
   - **Arquivos:** `apps/api/src/modules/auth/auth.routes.ts`, `auth.service.ts`
   - **Ação:** Implementar login, logout e `GET /auth/me`, com cookie seguro e respostas sem dados internos.
   - **Verificação:** `pnpm --filter @docuflow/api test`.
