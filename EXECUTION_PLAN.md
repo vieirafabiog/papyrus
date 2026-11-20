@@ -561,7 +561,7 @@ docuflow/
   - **Ação:** Implementar existência, metadados, checksum conforme suporte real do provedor e exclusão idempotente.
   - **Verificação:** `pnpm --filter @docuflow/storage-s3 test`.
 
-- [ ] **Step 08.04 — Implementar upload/download assinados opcionais**
+- [x] **Step 08.04 — Implementar upload/download assinados opcionais**
   - **Arquivos:** `packages/storage-s3/src/signed-targets.ts`, testes
   - **Ação:** Gerar URL temporária para chave específica, método específico e expiração curta. Não expor credenciais nem permitir escolha arbitrária de chave pelo navegador.
   - **Verificação:** `pnpm --filter @docuflow/storage-s3 test`.

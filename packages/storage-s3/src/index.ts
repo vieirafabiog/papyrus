@@ -4,6 +4,16 @@ export const S3_STORAGE_PROVIDER_KIND = "s3" as const;
 export const S3_STORAGE_CORE_VERSION = STORAGE_CORE_VERSION;
 
 export {
+  createS3SignedTargets,
+  DEFAULT_MAX_SIGNED_EXPIRATION_SECONDS,
+  DEFAULT_MIN_SIGNED_EXPIRATION_SECONDS,
+  type S3PresignFunction,
+  type S3SignedTargetsOptions,
+  type S3SignedTargetsService,
+  sanitizeDownloadFilename,
+} from "./signed-targets.js";
+
+export {
   createS3StorageProvider,
   normalizeS3ObjectKey,
   type S3ChecksumSupportMode,

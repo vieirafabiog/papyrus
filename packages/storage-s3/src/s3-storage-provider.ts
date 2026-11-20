@@ -33,6 +33,7 @@ import {
   parseS3StorageConfig,
   validateS3EndpointResolution,
 } from "./s3-config.schema.js";
+import { type S3SignedTargetsOptions, createS3SignedTargets } from "./signed-targets.js";
 
 const SHA256_HEX_PATTERN = /^[a-f0-9]{64}$/i;
 const DOCUFLOW_SHA256_META_KEY = "docuflow-sha256";
@@ -70,16 +71,9 @@ export interface S3StorageProviderOptions {
   readonly dnsLookup?: DnsLookupAllFn | undefined;
   readonly client?: S3Client | S3CommandExecutor | undefined;
   readonly checksumSupport?: S3ChecksumSupportMode | undefined;
+  readonly enableSignedTargets?: boolean | undefined;
+  readonly signedTargetsOptions?: S3SignedTargetsOptions | undefined;
 }
-
-const S3_CAPABILITIES: StorageCapabilities = {
-  streamingRead: true,
-  streamingWrite: true,
-  signedUpload: false,
-  signedDownload: false,
-  multipartUpload: false,
-  serverSideCopy: false,
-};
 
 function hasControlChars(value: string): boolean {
   for (let i = 0; i < value.length; i += 1) {
@@ -305,7 +299,28 @@ export function createS3StorageProvider(
   };
   const client: S3CommandExecutor = options.client ?? createConfiguredS3Client(config);
   const checksumSupportMode: S3ChecksumSupportMode = options.checksumSupport ?? "auto";
+  const signedEnabled = options.enableSignedTargets ?? false;
   let nativeReadChecksumSupported = checksumSupportMode !== "metadata_only";
+
+  const capabilities: StorageCapabilities = {
+    streamingRead: true,
+    streamingWrite: true,
+    signedUpload: signedEnabled,
+    signedDownload: signedEnabled,
+    multipartUpload: false,
+    serverSideCopy: false,
+  };
+
+  const signedService = signedEnabled
+    ? createS3SignedTargets(
+        options.client instanceof S3Client ? options.client : createConfiguredS3Client(config),
+        config,
+        {
+          ...options.signedTargetsOptions,
+          normalizeKey: (raw, prefix) => normalizeS3ObjectKey(raw, prefix).bucketKey,
+        },
+      )
+    : null;
 
   const ensureEndpointResolutionSafe = async (): Promise<void> => {
     await validateS3EndpointResolution(config.endpoint, effectivePolicy, options.dnsLookup);
@@ -313,7 +328,7 @@ export function createS3StorageProvider(
 
   return {
     kind: "s3",
-    capabilities: S3_CAPABILITIES,
+    capabilities,
 
     async checkHealth() {
       throw new StorageError(
@@ -576,5 +591,12 @@ export function createS3StorageProvider(
         cleanup();
       }
     },
+
+    ...(signedService
+      ? {
+          createSignedUploadTarget: (input) => signedService.createSignedUploadTarget(input),
+          createSignedDownloadTarget: (input) => signedService.createSignedDownloadTarget(input),
+        }
+      : {}),
   };
 }
