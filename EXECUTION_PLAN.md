@@ -301,7 +301,7 @@ docuflow/
   - **Ação:** Definir transições permitidas entre estados de documento e impedir transições arbitrárias. Estado de arquivo deve permanecer separado.
   - **Verificação:** `pnpm --filter @docuflow/domain test`.
 
-- [ ] **Step 03.07 — Implementar contratos de workflow e tarefas**
+- [x] **Step 03.07 — Implementar contratos de workflow e tarefas**
   - **Arquivos:** `packages/contracts/src/workflow.schema.ts`, `packages/domain/src/workflows/workflow.types.ts`
   - **Ação:** Definir fluxo sequencial versionado, instância, tarefa, decisão e estados terminais.
   - **Verificação:** `pnpm --filter @docuflow/contracts test` e `pnpm --filter @docuflow/domain typecheck`.

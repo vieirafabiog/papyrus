@@ -85,3 +85,26 @@ export {
   fileObjectStatusSchema,
   sha256ChecksumSchema,
 } from "./document.schema.js";
+
+export {
+  type SubmitTaskDecisionInput,
+  submitTaskDecisionInputSchema,
+  type WorkflowAssigneeTarget,
+  type WorkflowDecisionRecord,
+  type WorkflowDecisionType,
+  type WorkflowDefinitionVersionRecord,
+  type WorkflowInstanceRecord,
+  type WorkflowInstanceStatus,
+  type WorkflowStepDefinition,
+  type WorkflowTaskRecord,
+  type WorkflowTaskStatus,
+  workflowAssigneeTargetSchema,
+  workflowDecisionRecordSchema,
+  workflowDecisionTypeSchema,
+  workflowDefinitionVersionSchema,
+  workflowInstanceSchema,
+  workflowInstanceStatusSchema,
+  workflowStepDefinitionSchema,
+  workflowTaskSchema,
+  workflowTaskStatusSchema,
+} from "./workflow.schema.js";

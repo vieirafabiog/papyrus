@@ -58,3 +58,21 @@ export {
   type FileObjectEntity,
   type FileObjectStatus,
 } from "./documents/document.types.js";
+
+export {
+  isTerminalInstanceStatus,
+  isTerminalTaskStatus,
+  TERMINAL_WORKFLOW_INSTANCE_STATUSES,
+  TERMINAL_WORKFLOW_TASK_STATUSES,
+  WORKFLOW_INSTANCE_STATUSES,
+  WORKFLOW_TASK_STATUSES,
+  type WorkflowAssigneeTarget,
+  type WorkflowDecisionEntity,
+  type WorkflowDecisionType,
+  type WorkflowDefinitionVersionEntity,
+  type WorkflowInstanceEntity,
+  type WorkflowInstanceStatus,
+  type WorkflowStepDefinition,
+  type WorkflowTaskEntity,
+  type WorkflowTaskStatus,
+} from "./workflows/workflow.types.js";
