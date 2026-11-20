@@ -1,5 +1,6 @@
 import { Box, Typography } from "@mui/material";
 import { Navigate, Route, Routes } from "react-router-dom";
+import { LoginPage } from "../features/auth/LoginPage.js";
 import { AppShell } from "../layout/AppShell.js";
 import { RedirectIfAuthenticated, RequireAuth } from "./route-guards.js";
 
@@ -38,15 +39,7 @@ export function AppRoutes() {
   return (
     <Routes>
       <Route element={<RedirectIfAuthenticated />}>
-        <Route
-          path="/login"
-          element={
-            <PublicRouteView
-              title="Entrar no DocuFlow"
-              description="Acesse com suas credenciais corporativas."
-            />
-          }
-        />
+        <Route path="/login" element={<LoginPage />} />
         <Route
           path="/recuperar-senha"
           element={

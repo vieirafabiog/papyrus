@@ -404,7 +404,7 @@ docuflow/
   - **Ação:** Implementar estados acessíveis, textos em pt-BR e callbacks funcionais.
   - **Verificação:** `pnpm --filter @docuflow/ui test`.
 
-- [ ] **Step 05.06 — Criar tela de login**
+- [x] **Step 05.06 — Criar tela de login**
   - **Arquivos:** `apps/web/src/features/auth/LoginPage.tsx`, componentes relacionados
   - **Ação:** Criar formulário responsivo, validação, exibição de erro, loading e prevenção de múltiplos envios.
   - **Verificação:** `pnpm --filter @docuflow/web test`.
