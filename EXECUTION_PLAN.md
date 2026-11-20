@@ -205,7 +205,7 @@ docuflow/
   - **Ação:** Criar API Fastify com inicialização tipada, encerramento gracioso e scripts de desenvolvimento, build, typecheck e teste.
   - **Verificação:** `pnpm --filter @docuflow/api typecheck` e `pnpm --filter @docuflow/api test`.
 
-- [ ] **Step 02.03 — Scaffold de `apps/worker`**
+- [x] **Step 02.03 — Scaffold de `apps/worker`**
   - **Arquivos:** `apps/worker/package.json`, `tsconfig.json`, `src/worker.ts`
   - **Ação:** Criar processo separado para jobs, com inicialização, shutdown gracioso, logger e health reporting local.
   - **Verificação:** `pnpm --filter @docuflow/worker typecheck` e `pnpm --filter @docuflow/worker test`.
