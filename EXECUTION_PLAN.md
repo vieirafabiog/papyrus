@@ -507,7 +507,7 @@ docuflow/
   - **Ação:** Resolver somente paths dentro da raiz configurada, bloquear traversal, symlink escape e nomes de objeto inesperados.
   - **Verificação:** `pnpm --filter @docuflow/storage-local test`.
 
-- [ ] **Step 07.05 — Implementar escrita local por stream**
+- [x] **Step 07.05 — Implementar escrita local por stream**
   - **Arquivos:** `packages/storage-local/src/local-storage-provider.ts`
   - **Ação:** Implementar `putObject` com stream, arquivo temporário, checksum e rename atômico quando suportado. Não usar `readFile` para arquivo de tamanho arbitrário.
   - **Verificação:** `pnpm --filter @docuflow/storage-local test`.
