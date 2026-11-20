@@ -409,7 +409,7 @@ docuflow/
   - **Ação:** Criar formulário responsivo, validação, exibição de erro, loading e prevenção de múltiplos envios.
   - **Verificação:** `pnpm --filter @docuflow/web test`.
 
-- [ ] **Step 05.07 — Criar componentes de tabela e filtros**
+- [x] **Step 05.07 — Criar componentes de tabela e filtros**
   - **Arquivos:** `packages/ui/src/components/DataTable.tsx`, `FilterBar.tsx`
   - **Ação:** Criar componentes com paginação e ordenação controladas pelo servidor, seleção acessível e estados vazios. Não implementar busca client-side sobre toda a coleção.
   - **Verificação:** `pnpm --filter @docuflow/ui test`.
