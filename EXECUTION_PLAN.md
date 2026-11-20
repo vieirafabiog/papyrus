@@ -149,42 +149,42 @@ docuflow/
   - **Ação:** Ignorar `node_modules/`, `dist/`, `build/`, `coverage/`, `.env`, `.env.*` (preservando `.env.example`), logs, arquivos temporários, dados locais, volumes, uploads de teste, relatórios e arquivos de IDE.
   - **Verificação:** Confirmar que `.gitignore` existe e que as regras não ignoram `project.md`, `EXECUTION_PLAN.md` nem `.env.example`.
 
-- [ ] **Step 01.02 — Criar `pnpm-workspace.yaml`**
+- [x] **Step 01.02 — Criar `pnpm-workspace.yaml`**
   - **Arquivo:** `pnpm-workspace.yaml`
   - **Ação:** Declarar `apps/*` e `packages/*` como workspaces.
   - **Verificação:** Validar sintaxe YAML e confirmar que o pnpm reconhece a raiz.
 
-- [ ] **Step 01.03 — Criar `package.json` da raiz**
+- [x] **Step 01.03 — Criar `package.json` da raiz**
   - **Arquivo:** `package.json`
   - **Ação:** Configurar nome `docuflow`, repositório privado, engines Node `>=22`, versão do pnpm fixada e scripts `build`, `typecheck`, `test`, `lint`, `format`, `test:integration` e `test:e2e`. Incluir TypeScript, Biome, Vitest e tipos Node como ferramentas de desenvolvimento compartilhadas.
   - **Verificação:** Executar `pnpm install` e `pnpm run` sem erro.
 
-- [ ] **Step 01.04 — Criar configuração TypeScript estrita**
+- [x] **Step 01.04 — Criar configuração TypeScript estrita**
   - **Arquivo:** `tsconfig.base.json`
   - **Ação:** Definir `strict`, `noImplicitAny`, `strictNullChecks`, `noUncheckedIndexedAccess`, `exactOptionalPropertyTypes` quando compatível, `forceConsistentCasingInFileNames`, source maps e declarações para pacotes.
   - **Verificação:** Executar `pnpm exec tsc --version` e validar o JSON de configuração.
 
-- [ ] **Step 01.05 — Configurar Biome**
+- [x] **Step 01.05 — Configurar Biome**
   - **Arquivo:** `biome.json`
   - **Ação:** Definir formatação, indentação, largura de linha, organização de imports e regras recomendadas de lint. Evitar regras que conflitem com o padrão de código TypeScript definido no projeto.
   - **Verificação:** Executar `pnpm lint`.
 
-- [ ] **Step 01.06 — Configurar workspace do Vitest**
+- [x] **Step 01.06 — Configurar workspace do Vitest**
   - **Arquivo:** `vitest.workspace.ts`
   - **Ação:** Configurar descoberta de testes em `packages/*` e `apps/*`, permitindo ambientes Node e jsdom conforme o pacote.
   - **Verificação:** Executar `pnpm test` sem testes encontrados com falha ou erro de configuração.
 
-- [ ] **Step 01.07 — Criar `.env.example` seguro**
+- [x] **Step 01.07 — Criar `.env.example` seguro**
   - **Arquivo:** `.env.example`
   - **Ação:** Documentar somente nomes de variáveis e exemplos fictícios não funcionais: `NODE_ENV`, `APP_URL`, `DATABASE_URL`, `SESSION_SECRET`, `ENCRYPTION_KEY`, `STORAGE_DEFAULT_CONNECTION`, `UPLOAD_MAX_BYTES`, `SMTP_*` e variáveis de observabilidade local. Não incluir credenciais reais.
   - **Verificação:** Validar sintaxe/estrutura e executar scanner de segredos no repositório.
 
-- [ ] **Step 01.08 — Criar pipeline básico de CI**
+- [x] **Step 01.08 — Criar pipeline básico de CI**
   - **Arquivo:** `.github/workflows/ci.yml`
   - **Ação:** Executar install com lockfile, lint, typecheck, testes e build em pull requests e branches principais. Fixar versões das actions por release estável ou SHA conforme política do repositório.
   - **Verificação:** Validar YAML e executar localmente os comandos equivalentes.
 
-- [ ] **Step 01.09 — Criar README inicial do repositório**
+- [x] **Step 01.09 — Criar README inicial do repositório**
   - **Arquivo:** `README.md`
   - **Ação:** Descrever o produto, estado do projeto, stack prevista, requisitos locais e links para os documentos mestres. Não declarar funcionalidades ainda não implementadas como disponíveis.
   - **Verificação:** Conferir links relativos e consistência com `project.md`.

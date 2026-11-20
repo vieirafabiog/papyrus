@@ -11,7 +11,7 @@ Referências mestras obrigatórias: `project.md` e `EXECUTION_PLAN.md`.
 4. Informar qual única etapa será executada.
 5. Implementar **somente** essa etapa, sem antecipar etapas futuras.
 6. Executar exatamente o comando de verificação indicado na etapa; corrigir qualquer falha e repetir até sair com código `0`. Quando contratos compartilhados mudarem, rodar também o `typecheck` dos consumidores afetados.
-7. Marcar somente a etapa concluída como `- [x]` após sucesso comprovado, resumir arquivos alterados, teste executado, resultado e próxima etapa, e parar.
+7. Marcar somente a etapa concluída como `- [x]` após sucesso comprovado, realizar o commit Git da etapa seguindo o padrão Conventional Commits (`<type>(step-XX.YY): <descrição concisa em inglês>`), resumir arquivos alterados, teste executado, resultado, hash do commit e próxima etapa, e parar.
 
 ## 2. Idioma e Convenções
 
