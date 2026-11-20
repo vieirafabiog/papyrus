@@ -512,7 +512,7 @@ docuflow/
   - **Ação:** Implementar `putObject` com stream, arquivo temporário, checksum e rename atômico quando suportado. Não usar `readFile` para arquivo de tamanho arbitrário.
   - **Verificação:** `pnpm --filter @docuflow/storage-local test`.
 
-- [ ] **Step 07.06 — Implementar leitura, head e exclusão local**
+- [x] **Step 07.06 — Implementar leitura, head e exclusão local**
   - **Arquivos:** `packages/storage-local/src/local-storage-provider.ts`, testes
   - **Ação:** Implementar `getObject`, `headObject` e `deleteObject`, diferenciando not found de falha de permissão/I/O.
   - **Verificação:** `pnpm --filter @docuflow/storage-local test`.

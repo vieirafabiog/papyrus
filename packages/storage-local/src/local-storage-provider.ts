@@ -1,12 +1,14 @@
 import { createHash, randomUUID } from "node:crypto";
-import { createWriteStream } from "node:fs";
-import { lstat, mkdir, open, rename, rm } from "node:fs/promises";
+import { type Stats, createReadStream, createWriteStream } from "node:fs";
+import { type FileHandle, lstat, mkdir, open, rename, rm, unlink } from "node:fs/promises";
 import path from "node:path";
 import { Transform } from "node:stream";
 import { pipeline } from "node:stream/promises";
 import {
   type StorageCapabilities,
+  type StorageDownload,
   StorageError,
+  type StorageObjectKey,
   type StorageObjectMetadata,
   type StorageProvider,
   type StorageUploadInput,
@@ -33,14 +35,95 @@ interface StoredObjectMetaSidecar {
   readonly etag: string;
 }
 
-const LOCAL_CAPABILITIES_WRITE_ONLY: StorageCapabilities = {
-  streamingRead: false,
+const LOCAL_CAPABILITIES: StorageCapabilities = {
+  streamingRead: true,
   streamingWrite: true,
   signedUpload: false,
   signedDownload: false,
   multipartUpload: false,
   serverSideCopy: false,
 };
+
+function isErrnoCode(error: unknown, expectedCode: string): boolean {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "code" in error &&
+    (error as { code?: unknown }).code === expectedCode
+  );
+}
+
+async function computeFileSha256Stream(filePath: string): Promise<string> {
+  const hash = createHash("sha256");
+  const stream = createReadStream(filePath);
+  for await (const chunk of stream) {
+    hash.update(chunk as Buffer);
+  }
+  return hash.digest("hex");
+}
+
+function isValidSidecarPayload(raw: unknown): raw is StoredObjectMetaSidecar {
+  if (typeof raw !== "object" || raw === null) {
+    return false;
+  }
+  const obj = raw as Record<string, unknown>;
+  return (
+    typeof obj.contentType === "string" &&
+    typeof obj.contentLength === "number" &&
+    Number.isInteger(obj.contentLength) &&
+    obj.contentLength >= 0 &&
+    typeof obj.checksumSha256 === "string" &&
+    SHA256_HEX_PATTERN.test(obj.checksumSha256) &&
+    typeof obj.etag === "string"
+  );
+}
+
+async function readMetadataSidecar(
+  rootRealPath: string,
+  normalizedKey: string,
+  actualSize: number,
+  targetPath: string,
+): Promise<StoredObjectMetaSidecar> {
+  const metaPath = path.join(rootRealPath, META_DIR_NAME, `${normalizedKey}.json`);
+  try {
+    const handle = await open(metaPath, "r");
+    try {
+      const content = await handle.readFile("utf8");
+      const parsed: unknown = JSON.parse(content);
+      if (!isValidSidecarPayload(parsed)) {
+        throw new StorageError(
+          "UNKNOWN",
+          "Arquivo de metadados do objeto local está corrompido.",
+          "local",
+        );
+      }
+      if (parsed.contentLength !== actualSize) {
+        throw new StorageError(
+          "CHECKSUM_MISMATCH",
+          "Tamanho do arquivo local diverge dos metadados armazenados.",
+          "local",
+        );
+      }
+      return parsed;
+    } finally {
+      await handle.close();
+    }
+  } catch (error) {
+    if (error instanceof StorageError) {
+      throw error;
+    }
+    if (isErrnoCode(error, "ENOENT")) {
+      const checksumSha256 = await computeFileSha256Stream(targetPath);
+      return {
+        contentType: "application/octet-stream",
+        contentLength: actualSize,
+        checksumSha256,
+        etag: checksumSha256,
+      };
+    }
+    throw normalizeStorageError(error, "local");
+  }
+}
 
 async function assertNoSymlinkParent(
   rootRealPath: string,
@@ -135,13 +218,46 @@ function validateUploadMetadata(
   return normalizedChecksum;
 }
 
+async function statLocalObjectOrNull(targetPath: string): Promise<Stats | null> {
+  let stats: Stats;
+  try {
+    stats = await lstat(targetPath);
+  } catch (error) {
+    if (isErrnoCode(error, "ENOENT")) {
+      return null;
+    }
+    throw normalizeStorageError(error, "local");
+  }
+
+  if (!stats.isFile()) {
+    throw new StorageError(
+      "INVALID_KEY",
+      "O caminho de destino no armazenamento local não é um arquivo regular.",
+      "local",
+    );
+  }
+
+  return stats;
+}
+
+async function openLocalObjectForRead(targetPath: string): Promise<FileHandle> {
+  try {
+    return await open(targetPath, "r");
+  } catch (error) {
+    if (isErrnoCode(error, "ENOENT")) {
+      throw new StorageError("NOT_FOUND", "Objeto não encontrado no armazenamento.", "local");
+    }
+    throw normalizeStorageError(error, "local");
+  }
+}
+
 export function createLocalStorageProvider(config: LocalStorageProviderConfig): StorageProvider {
   const shouldOverwrite = config.overwrite ?? true;
   const shouldFsync = config.fsync ?? true;
 
   return {
     kind: "local",
-    capabilities: LOCAL_CAPABILITIES_WRITE_ONLY,
+    capabilities: LOCAL_CAPABILITIES,
 
     async checkHealth() {
       throw new StorageError(
@@ -274,28 +390,87 @@ export function createLocalStorageProvider(config: LocalStorageProviderConfig): 
       }
     },
 
-    async getObject() {
-      throw new StorageError(
-        "CAPABILITY_NOT_SUPPORTED",
-        "Leitura local ainda não habilitada nesta versão do provedor.",
-        "local",
-      );
+    async getObject(key: StorageObjectKey): Promise<StorageDownload> {
+      const resolved = await resolveSafeLocalPath(config.rootDirectory, key.value);
+      const stats = await statLocalObjectOrNull(resolved.targetPath);
+      if (!stats) {
+        throw new StorageError("NOT_FOUND", "Objeto não encontrado no armazenamento.", "local");
+      }
+
+      const handle = await openLocalObjectForRead(resolved.targetPath);
+      try {
+        const meta = await readMetadataSidecar(
+          resolved.rootRealPath,
+          resolved.normalizedKey,
+          stats.size,
+          resolved.targetPath,
+        );
+        const body = handle.createReadStream();
+        return {
+          body,
+          metadata: {
+            contentType: meta.contentType,
+            contentLength: meta.contentLength,
+            checksumSha256: meta.checksumSha256,
+            customMetadata: meta.customMetadata,
+          },
+        };
+      } catch (error) {
+        await handle.close();
+        if (error instanceof StorageError) {
+          throw error;
+        }
+        throw normalizeStorageError(error, "local");
+      }
     },
 
-    async headObject() {
-      throw new StorageError(
-        "CAPABILITY_NOT_SUPPORTED",
-        "Inspeção local de metadados ainda não habilitada nesta versão do provedor.",
-        "local",
+    async headObject(key: StorageObjectKey): Promise<StoredObject | null> {
+      const resolved = await resolveSafeLocalPath(config.rootDirectory, key.value);
+      const stats = await statLocalObjectOrNull(resolved.targetPath);
+      if (!stats) {
+        return null;
+      }
+
+      const meta = await readMetadataSidecar(
+        resolved.rootRealPath,
+        resolved.normalizedKey,
+        stats.size,
+        resolved.targetPath,
       );
+
+      return {
+        key: { value: resolved.normalizedKey },
+        contentType: meta.contentType,
+        contentLength: meta.contentLength,
+        checksumSha256: meta.checksumSha256,
+        customMetadata: meta.customMetadata,
+        etag: meta.etag,
+      };
     },
 
-    async deleteObject() {
-      throw new StorageError(
-        "CAPABILITY_NOT_SUPPORTED",
-        "Exclusão local ainda não habilitada nesta versão do provedor.",
-        "local",
+    async deleteObject(key: StorageObjectKey): Promise<void> {
+      const resolved = await resolveSafeLocalPath(config.rootDirectory, key.value);
+
+      try {
+        await unlink(resolved.targetPath);
+      } catch (error) {
+        if (!isErrnoCode(error, "ENOENT")) {
+          throw normalizeStorageError(error, "local");
+        }
+      }
+
+      const metaPath = path.join(
+        resolved.rootRealPath,
+        META_DIR_NAME,
+        `${resolved.normalizedKey}.json`,
       );
+      try {
+        await unlink(metaPath);
+      } catch (error) {
+        if (!isErrnoCode(error, "ENOENT")) {
+          throw normalizeStorageError(error, "local");
+        }
+      }
     },
   };
 }

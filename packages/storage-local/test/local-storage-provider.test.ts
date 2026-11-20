@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { mkdtemp, readFile, readdir, rm } from "node:fs/promises";
+import { chmod, mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { Readable } from "node:stream";
@@ -8,6 +8,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { createLocalStorageProvider } from "../src/index.js";
 
 const tempDirs: string[] = [];
+const permissionRestores: Array<() => Promise<void>> = [];
 
 async function makeTempRoot(): Promise<string> {
   const dir = await mkdtemp(path.join(os.tmpdir(), "docuflow-put-"));
@@ -20,6 +21,12 @@ function sha256Hex(buffer: Buffer): string {
 }
 
 afterEach(async () => {
+  while (permissionRestores.length > 0) {
+    const restore = permissionRestores.pop();
+    if (restore) {
+      await restore();
+    }
+  }
   while (tempDirs.length > 0) {
     const dir = tempDirs.pop();
     if (dir) {
@@ -199,5 +206,137 @@ describe("LocalStorageProvider putObject streaming", () => {
         },
       }),
     ).rejects.toBeInstanceOf(StorageError);
+  });
+
+  it("reads objects via stream, inspects metadata with headObject, and deletes idempotently", async () => {
+    const rootDirectory = await makeTempRoot();
+    const provider = createLocalStorageProvider({ rootDirectory, fsync: false });
+
+    const key = { value: "org/10/documents/20/versions/1/doc-read" };
+    const payload = Buffer.from("Conteúdo binário DocuFlow para leitura em streaming.");
+    const checksum = sha256Hex(payload);
+
+    // Non-existent object behavior
+    expect(await provider.headObject(key)).toBeNull();
+    await expect(provider.getObject(key)).rejects.toMatchObject({
+      code: "NOT_FOUND",
+      providerKind: "local",
+    });
+
+    await provider.putObject({
+      key,
+      body: Readable.from([payload]),
+      metadata: {
+        contentType: "application/pdf",
+        contentLength: payload.length,
+        checksumSha256: checksum,
+        customMetadata: { documentId: "doc-20" },
+      },
+    });
+
+    const head = await provider.headObject(key);
+    expect(head).toEqual({
+      key,
+      contentType: "application/pdf",
+      contentLength: payload.length,
+      checksumSha256: checksum,
+      customMetadata: { documentId: "doc-20" },
+      etag: checksum,
+    });
+
+    const download = await provider.getObject(key);
+    expect(download.metadata).toEqual({
+      contentType: "application/pdf",
+      contentLength: payload.length,
+      checksumSha256: checksum,
+      customMetadata: { documentId: "doc-20" },
+    });
+
+    const readChunks: Buffer[] = [];
+    for await (const chunk of download.body) {
+      readChunks.push(chunk as Buffer);
+    }
+    expect(Buffer.concat(readChunks)).toEqual(payload);
+
+    // Sidecar missing fallback computes SHA-256 via stream cleanly
+    await rm(path.join(rootDirectory, ".docuflow-meta", `${key.value}.json`), { force: true });
+    const headWithoutSidecar = await provider.headObject(key);
+    expect(headWithoutSidecar?.checksumSha256).toBe(checksum);
+    expect(headWithoutSidecar?.contentLength).toBe(payload.length);
+
+    // Detect on-disk size tampering if sidecar diverges from file size
+    await provider.putObject({
+      key,
+      body: Readable.from([payload]),
+      metadata: {
+        contentType: "application/pdf",
+        contentLength: payload.length,
+        checksumSha256: checksum,
+      },
+    });
+    await writeFile(path.join(rootDirectory, key.value), Buffer.from("tampered"));
+    await expect(provider.headObject(key)).rejects.toMatchObject({
+      code: "CHECKSUM_MISMATCH",
+    });
+
+    // Idempotent delete removes object and returns cleanly when called twice
+    await provider.deleteObject(key);
+    expect(await provider.headObject(key)).toBeNull();
+    await expect(provider.deleteObject(key)).resolves.toBeUndefined();
+  });
+
+  it("distinguishes NOT_FOUND from permission/I/O failures on headObject, getObject, and deleteObject", async () => {
+    const isRoot = typeof process.getuid === "function" && process.getuid() === 0;
+    if (isRoot) {
+      return;
+    }
+
+    const rootDirectory = await makeTempRoot();
+    const provider = createLocalStorageProvider({ rootDirectory, fsync: false });
+
+    const lockedKey = { value: "org/99/documents/1/versions/1/locked-file" };
+    const payload = Buffer.from("dados-protegidos");
+    await provider.putObject({
+      key: lockedKey,
+      body: Readable.from([payload]),
+      metadata: {
+        contentType: "text/plain",
+        contentLength: payload.length,
+        checksumSha256: sha256Hex(payload),
+      },
+    });
+
+    const targetPath = path.join(rootDirectory, lockedKey.value);
+    const parentDir = path.dirname(targetPath);
+
+    // 1. Removing read permission on file makes getObject throw UNAUTHORIZED (not NOT_FOUND)
+    await chmod(targetPath, 0o000);
+    permissionRestores.push(async () => {
+      await chmod(targetPath, 0o640);
+    });
+    await expect(provider.getObject(lockedKey)).rejects.toMatchObject({
+      code: "UNAUTHORIZED",
+      providerKind: "local",
+    });
+    await chmod(targetPath, 0o640);
+
+    // 2. Removing traverse/write permissions on parent directory makes headObject, getObject, and deleteObject throw UNAUTHORIZED
+    await chmod(parentDir, 0o000);
+    permissionRestores.push(async () => {
+      await chmod(parentDir, 0o750);
+    });
+
+    await expect(provider.headObject(lockedKey)).rejects.toMatchObject({
+      code: "UNAUTHORIZED",
+      providerKind: "local",
+    });
+    await expect(provider.getObject(lockedKey)).rejects.toMatchObject({
+      code: "UNAUTHORIZED",
+      providerKind: "local",
+    });
+    await expect(provider.deleteObject(lockedKey)).rejects.toMatchObject({
+      code: "UNAUTHORIZED",
+      providerKind: "local",
+    });
   });
 });
