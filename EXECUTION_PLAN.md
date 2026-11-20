@@ -433,7 +433,7 @@ docuflow/
   - **Ação:** Implementar hash e verificação com algoritmo apropriado (preferencialmente Argon2id), parâmetros configuráveis e comparação segura.
   - **Verificação:** `pnpm --filter @docuflow/auth test`.
 
-- [ ] **Step 06.02 — Implementar serviço de sessão**
+- [x] **Step 06.02 — Implementar serviço de sessão**
   - **Arquivos:** `packages/auth/src/session-service.ts`, `session.types.ts`
   - **Ação:** Gerar tokens aleatórios, armazenar somente hash, aplicar expiração, revogação e rotação conforme política definida.
   - **Verificação:** `pnpm --filter @docuflow/auth test`.
