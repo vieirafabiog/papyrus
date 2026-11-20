@@ -200,7 +200,7 @@ docuflow/
   - **Ação:** Criar aplicação React + TypeScript + Vite com scripts `dev`, `build`, `typecheck` e `test`. Não instalar componentes de negócio nesta etapa.
   - **Verificação:** `pnpm --filter @docuflow/web typecheck` e `pnpm --filter @docuflow/web build`.
 
-- [ ] **Step 02.02 — Scaffold de `apps/api`**
+- [x] **Step 02.02 — Scaffold de `apps/api`**
   - **Arquivos:** `apps/api/package.json`, `tsconfig.json`, `src/server.ts`, `src/app.ts`
   - **Ação:** Criar API Fastify com inicialização tipada, encerramento gracioso e scripts de desenvolvimento, build, typecheck e teste.
   - **Verificação:** `pnpm --filter @docuflow/api typecheck` e `pnpm --filter @docuflow/api test`.
