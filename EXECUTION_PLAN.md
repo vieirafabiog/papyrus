@@ -227,7 +227,7 @@ docuflow/
   - **Ação:** Configurar Drizzle, cliente PostgreSQL, diretório de schema e migrations.
   - **Verificação:** `pnpm --filter @docuflow/database typecheck`.
 
-- [ ] **Step 02.07 — Scaffold de `packages/auth`**
+- [x] **Step 02.07 — Scaffold de `packages/auth`**
   - **Arquivos:** `package.json`, `tsconfig.json`, `src/index.ts`
   - **Ação:** Preparar pacote de credenciais, sessões e políticas de autorização, sem implementar ainda as regras.
   - **Verificação:** `pnpm --filter @docuflow/auth typecheck`.
