@@ -26,6 +26,20 @@ export {
 } from "./schema/identity.js";
 
 export {
+  fileObjects,
+  fileObjectStatusEnum,
+  storageConnectionKindEnum,
+  storageConnections,
+  storageConnectionStatusEnum,
+  storageOperations,
+  storageOperationStatusEnum,
+  storageOperationTypeEnum,
+  storageRoutingRules,
+  uploadSessions,
+  uploadSessionStatusEnum,
+} from "./schema/storage.js";
+
+export {
   categories,
   categoryFields,
   categoryFieldTypeEnum,

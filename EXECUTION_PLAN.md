@@ -340,7 +340,7 @@ docuflow/
   - **Ação:** Criar `folders`, `categories`, `category_fields` e `tags`, com unicidade por escopo e relações corretas.
   - **Verificação:** `pnpm --filter @docuflow/database typecheck`.
 
-- [ ] **Step 04.04 — Criar schema de storage e upload**
+- [x] **Step 04.04 — Criar schema de storage e upload**
   - **Arquivo:** `packages/database/src/schema/storage.ts`
   - **Ação:** Criar `storage_connections`, `storage_routing_rules`, `file_objects`, `upload_sessions` e `storage_operations`. Guardar segredos somente como payload criptografado ou referência segura.
   - **Verificação:** `pnpm --filter @docuflow/database typecheck`.
