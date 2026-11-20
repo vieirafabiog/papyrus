@@ -9,6 +9,15 @@ export {
 } from "./client.js";
 
 export {
+  type DocumentMetadataColumnValue,
+  documentMetadata,
+  documentStatusEnum,
+  documents,
+  documentTags,
+  documentVersions,
+} from "./schema/documents.js";
+
+export {
   accessActionEnum,
   accessEffectEnum,
   accessResourceEnum,

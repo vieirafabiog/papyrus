@@ -345,7 +345,7 @@ docuflow/
   - **Ação:** Criar `storage_connections`, `storage_routing_rules`, `file_objects`, `upload_sessions` e `storage_operations`. Guardar segredos somente como payload criptografado ou referência segura.
   - **Verificação:** `pnpm --filter @docuflow/database typecheck`.
 
-- [ ] **Step 04.05 — Criar schema documental**
+- [x] **Step 04.05 — Criar schema documental**
   - **Arquivo:** `packages/database/src/schema/documents.ts`
   - **Ação:** Criar `documents`, `document_versions`, `document_metadata` e `document_tags`; criar chaves estrangeiras sem cascatas físicas perigosas.
   - **Verificação:** `pnpm --filter @docuflow/database typecheck`.
