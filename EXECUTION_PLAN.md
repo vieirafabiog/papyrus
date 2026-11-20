@@ -546,7 +546,7 @@ docuflow/
 
 # PHASE 8 — CONECTOR S3 COMPATÍVEL
 
-- [ ] **Step 08.01 — Implementar schema de configuração S3**
+- [x] **Step 08.01 — Implementar schema de configuração S3**
   - **Arquivos:** `packages/storage-s3/src/s3-config.schema.ts`
   - **Ação:** Validar endpoint, região, bucket, estilo de path, TLS, credenciais e timeouts. Não aceitar endpoint sem validação de segurança.
   - **Verificação:** `pnpm --filter @docuflow/storage-s3 test`.
