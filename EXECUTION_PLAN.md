@@ -527,7 +527,7 @@ docuflow/
   - **Ação:** Criptografar credenciais com chave mestra externa ao banco; validar formato e falhar com erro explícito se a chave estiver ausente ou inválida.
   - **Verificação:** `pnpm --filter @docuflow/storage-core test`.
 
-- [ ] **Step 07.09 — Implementar casos de uso de conexões de storage**
+- [x] **Step 07.09 — Implementar casos de uso de conexões de storage**
   - **Arquivos:** `packages/domain/src/storage/*`
   - **Ação:** Criar, editar, ativar, desativar e testar conexão; impedir desativação quando ainda for necessária para leitura de arquivos existentes.
   - **Verificação:** `pnpm --filter @docuflow/domain test`.

@@ -99,6 +99,22 @@ export type {
   UpdateStorageConnectionInput,
 } from "./ports/storage-connection-repository.port.js";
 
+export {
+  type CreateStorageConnectionCommand,
+  createStorageConnectionAdminService,
+  type SecretEncryptorPort,
+  type StorageConnectionAdminService,
+  type StorageConnectionAdminServiceDependencies,
+  type StorageConnectionHealthCheckResult,
+  type StorageConnectionHealthOutput,
+  type StorageConnectionHealthTesterPort,
+  type StorageConnectionTargetCommand,
+  type StorageConnectionView,
+  type StorageNonSecretConfigMap,
+  toStorageConnectionView,
+  type UpdateStorageConnectionCommand,
+} from "./storage/storage-connections.js";
+
 export type {
   TransactionContext,
   TransactionManagerPort,
