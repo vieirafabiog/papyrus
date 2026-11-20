@@ -487,7 +487,7 @@ docuflow/
 
 # PHASE 7 — STORAGE CORE E CONECTOR DE FILESYSTEM LOCAL
 
-- [ ] **Step 07.01 — Implementar registry de provedores**
+- [x] **Step 07.01 — Implementar registry de provedores**
   - **Arquivos:** `packages/storage-core/src/storage-registry.ts`, testes
   - **Ação:** Registrar factories por tipo e resolver provider por conexão, sem importar drivers concretos no domínio.
   - **Verificação:** `pnpm --filter @docuflow/storage-core test`.

@@ -400,3 +400,4 @@ export function createAuthorizationRepository(db: NodePgDatabase): Authorization
     },
   };
 }
+
