@@ -286,7 +286,7 @@ docuflow/
   - **Ação:** Suportar campos extras tipados: texto, número, data, booleano, opção única e múltipla. Validar obrigatoriedade e opções permitidas no servidor.
   - **Verificação:** `pnpm --filter @docuflow/domain test`.
 
-- [ ] **Step 03.04 — Implementar contratos de storage**
+- [x] **Step 03.04 — Implementar contratos de storage**
   - **Arquivos:** `packages/storage-core/src/storage.types.ts`, `storage.errors.ts`, `storage-provider.ts`, `index.ts`
   - **Ação:** Implementar interfaces de provider, metadados, objetos, capacidades, upload/download por stream, health check e alvos temporários opcionais. Normalizar erros sem vazar segredo.
   - **Verificação:** `pnpm --filter @docuflow/storage-core test` e `pnpm --filter @docuflow/storage-core typecheck`.
