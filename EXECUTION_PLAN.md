@@ -448,7 +448,7 @@ docuflow/
   - **Ação:** Configurar cookies, CORS estrito, CSRF para mutações, headers de segurança e limitação de tentativas de login.
   - **Verificação:** `pnpm --filter @docuflow/api test`.
 
-- [ ] **Step 06.05 — Implementar criação do primeiro administrador**
+- [x] **Step 06.05 — Implementar criação do primeiro administrador**
   - **Arquivos:** `apps/api/src/modules/setup/*`, `scripts/maintenance/create-admin.ts`
   - **Ação:** Criar fluxo seguro de bootstrap que só funcione quando não existir administrador e não exponha senha em logs.
   - **Verificação:** `pnpm --filter @docuflow/api test:integration`.
