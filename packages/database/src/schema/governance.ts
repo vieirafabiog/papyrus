@@ -2,6 +2,7 @@ import { sql } from "drizzle-orm";
 import {
   boolean,
   check,
+  index,
   integer,
   jsonb,
   pgEnum,
@@ -23,21 +24,33 @@ export const outboxStatusEnum = pgEnum("outbox_status", ["PENDING", "PUBLISHED",
 
 export type AuditMetadataJson = Record<string, string | number | boolean | null>;
 
-export const auditEvents = pgTable("audit_events", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  organizationId: uuid("organization_id")
-    .notNull()
-    .references(() => organizations.id, { onDelete: "restrict" }),
-  occurredAt: timestamp("occurred_at", { withTimezone: true, mode: "date" }).notNull().defaultNow(),
-  actorUserId: uuid("actor_user_id").references(() => users.id, { onDelete: "restrict" }),
-  action: varchar("action", { length: 120 }).notNull(),
-  resourceType: varchar("resource_type", { length: 64 }).notNull(),
-  resourceId: uuid("resource_id"),
-  result: auditResultEnum("result").notNull(),
-  requestId: uuid("request_id").notNull(),
-  ipAddress: varchar("ip_address", { length: 64 }),
-  metadata: jsonb("metadata").$type<AuditMetadataJson>().notNull().default({}),
-});
+export const auditEvents = pgTable(
+  "audit_events",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "restrict" }),
+    occurredAt: timestamp("occurred_at", { withTimezone: true, mode: "date" }).notNull().defaultNow(),
+    actorUserId: uuid("actor_user_id").references(() => users.id, { onDelete: "restrict" }),
+    action: varchar("action", { length: 120 }).notNull(),
+    resourceType: varchar("resource_type", { length: 64 }).notNull(),
+    resourceId: uuid("resource_id"),
+    result: auditResultEnum("result").notNull(),
+    requestId: uuid("request_id").notNull(),
+    ipAddress: varchar("ip_address", { length: 64 }),
+    metadata: jsonb("metadata").$type<AuditMetadataJson>().notNull().default({}),
+  },
+  (table) => [
+    index("audit_events_org_occurred_idx").on(table.organizationId, table.occurredAt, table.id),
+    index("audit_events_org_actor_idx").on(
+      table.organizationId,
+      table.actorUserId,
+      table.occurredAt,
+    ),
+    index("audit_events_resource_idx").on(table.resourceType, table.resourceId),
+  ],
+);
 
 export const retentionPolicies = pgTable(
   "retention_policies",
@@ -86,6 +99,7 @@ export const documentRetentionHolds = pgTable(
     releaseReason: varchar("release_reason", { length: 500 }),
   },
   (table) => [
+    index("document_retention_holds_doc_released_idx").on(table.documentId, table.releasedAt),
     check(
       "document_retention_holds_release_after_place_chk",
       sql`${table.releasedAt} IS NULL OR ${table.releasedAt} >= ${table.placedAt}`,
@@ -113,5 +127,8 @@ export const outboxEvents = pgTable(
     lastError: varchar("last_error", { length: 500 }),
     createdAt: timestamp("created_at", { withTimezone: true, mode: "date" }).notNull().defaultNow(),
   },
-  (table) => [check("outbox_events_attempts_non_neg_chk", sql`${table.attempts} >= 0`)],
+  (table) => [
+    index("outbox_events_status_available_idx").on(table.status, table.availableAt),
+    check("outbox_events_attempts_non_neg_chk", sql`${table.attempts} >= 0`),
+  ],
 );

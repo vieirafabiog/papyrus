@@ -3,6 +3,7 @@ import {
   bigint,
   boolean,
   check,
+  index,
   integer,
   jsonb,
   pgEnum,
@@ -88,6 +89,7 @@ export const storageConnections = pgTable(
     uniqueIndex("storage_connections_org_default_unique")
       .on(table.organizationId)
       .where(sql`${table.isDefault} = true`),
+    index("storage_connections_org_status_idx").on(table.organizationId, table.status),
   ],
 );
 
@@ -137,6 +139,8 @@ export const fileObjects = pgTable(
   },
   (table) => [
     uniqueIndex("file_objects_conn_key_unique").on(table.storageConnectionId, table.objectKey),
+    index("file_objects_org_status_idx").on(table.organizationId, table.status),
+    index("file_objects_conn_idx").on(table.storageConnectionId),
     check("file_objects_size_non_neg_chk", sql`${table.sizeBytes} >= 0`),
     check(
       "file_objects_sha256_hex_chk",
@@ -176,6 +180,12 @@ export const uploadSessions = pgTable(
       table.userId,
       table.idempotencyKey,
     ),
+    index("upload_sessions_org_status_exp_idx").on(
+      table.organizationId,
+      table.status,
+      table.expiresAt,
+    ),
+    index("upload_sessions_file_obj_idx").on(table.fileObjectId),
     check("upload_sessions_size_positive_chk", sql`${table.declaredSizeBytes} > 0`),
     check("upload_sessions_expires_after_created_chk", sql`${table.expiresAt} > ${table.createdAt}`),
   ],
@@ -205,6 +215,8 @@ export const storageOperations = pgTable(
     updatedAt: timestamp("updated_at", { withTimezone: true, mode: "date" }).notNull().defaultNow(),
   },
   (table) => [
+    index("storage_operations_status_next_idx").on(table.status, table.nextAttemptAt),
+    index("storage_operations_file_obj_idx").on(table.fileObjectId),
     check("storage_operations_attempts_non_neg_chk", sql`${table.attempts} >= 0`),
     check("storage_operations_max_attempts_pos_chk", sql`${table.maxAttempts} >= 1`),
   ],

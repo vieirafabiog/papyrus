@@ -2,6 +2,7 @@ import { sql } from "drizzle-orm";
 import {
   boolean,
   check,
+  index,
   integer,
   jsonb,
   pgEnum,
@@ -123,6 +124,9 @@ export const workflowInstances = pgTable(
     completedAt: timestamp("completed_at", { withTimezone: true, mode: "date" }),
   },
   (table) => [
+    index("workflow_instances_doc_status_idx").on(table.documentId, table.status),
+    index("workflow_instances_doc_version_idx").on(table.documentVersionId),
+    index("workflow_instances_org_status_idx").on(table.organizationId, table.status),
     check("workflow_instances_step_pos_chk", sql`${table.currentStepOrder} >= 1`),
   ],
 );
@@ -156,6 +160,13 @@ export const workflowTasks = pgTable(
       table.workflowInstanceId,
       table.stepOrder,
     ),
+    index("workflow_tasks_org_status_due_idx").on(table.organizationId, table.status, table.dueAt),
+    index("workflow_tasks_assignee_status_idx").on(
+      table.assigneeType,
+      table.assigneeTargetId,
+      table.status,
+    ),
+    index("workflow_tasks_doc_idx").on(table.documentId),
     check("workflow_tasks_step_pos_chk", sql`${table.stepOrder} >= 1`),
   ],
 );
@@ -186,20 +197,30 @@ export const workflowDecisions = pgTable(
   ],
 );
 
-export const notifications = pgTable("notifications", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  organizationId: uuid("organization_id")
-    .notNull()
-    .references(() => organizations.id, { onDelete: "restrict" }),
-  recipientUserId: uuid("recipient_user_id")
-    .notNull()
-    .references(() => users.id, { onDelete: "restrict" }),
-  channel: notificationChannelEnum("channel").notNull().default("INTERNAL"),
-  title: varchar("title", { length: 200 }).notNull(),
-  body: text("body").notNull(),
-  resourceType: varchar("resource_type", { length: 64 }),
-  resourceId: uuid("resource_id"),
-  readAt: timestamp("read_at", { withTimezone: true, mode: "date" }),
-  sentAt: timestamp("sent_at", { withTimezone: true, mode: "date" }),
-  createdAt: timestamp("created_at", { withTimezone: true, mode: "date" }).notNull().defaultNow(),
-});
+export const notifications = pgTable(
+  "notifications",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "restrict" }),
+    recipientUserId: uuid("recipient_user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "restrict" }),
+    channel: notificationChannelEnum("channel").notNull().default("INTERNAL"),
+    title: varchar("title", { length: 200 }).notNull(),
+    body: text("body").notNull(),
+    resourceType: varchar("resource_type", { length: 64 }),
+    resourceId: uuid("resource_id"),
+    readAt: timestamp("read_at", { withTimezone: true, mode: "date" }),
+    sentAt: timestamp("sent_at", { withTimezone: true, mode: "date" }),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "date" }).notNull().defaultNow(),
+  },
+  (table) => [
+    index("notifications_recipient_read_created_idx").on(
+      table.recipientUserId,
+      table.readAt,
+      table.createdAt,
+    ),
+  ],
+);

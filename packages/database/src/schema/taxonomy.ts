@@ -3,6 +3,7 @@ import {
   type AnyPgColumn,
   boolean,
   check,
+  index,
   integer,
   jsonb,
   pgEnum,
@@ -49,6 +50,8 @@ export const folders = pgTable(
     uniqueIndex("folders_org_root_name_unique")
       .on(table.organizationId, table.name)
       .where(sql`${table.parentId} IS NULL`),
+    index("folders_org_parent_status_idx").on(table.organizationId, table.parentId, table.status),
+    index("folders_org_path_idx").on(table.organizationId, table.materializedPath),
     check("folders_no_self_parent_chk", sql`${table.parentId} IS NULL OR ${table.parentId} <> ${table.id}`),
   ],
 );
@@ -70,7 +73,10 @@ export const categories = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true, mode: "date" }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true, mode: "date" }).notNull().defaultNow(),
   },
-  (table) => [uniqueIndex("categories_org_name_unique").on(table.organizationId, table.name)],
+  (table) => [
+    uniqueIndex("categories_org_name_unique").on(table.organizationId, table.name),
+    index("categories_org_active_idx").on(table.organizationId, table.isActive),
+  ],
 );
 
 export const categoryFields = pgTable(
@@ -91,6 +97,7 @@ export const categoryFields = pgTable(
   },
   (table) => [
     uniqueIndex("category_fields_cat_key_unique").on(table.categoryId, table.key),
+    index("category_fields_cat_order_idx").on(table.categoryId, table.sortOrder),
     check("category_fields_sort_order_non_neg_chk", sql`${table.sortOrder} >= 0`),
   ],
 );

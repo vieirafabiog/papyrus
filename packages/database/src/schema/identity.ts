@@ -2,6 +2,7 @@ import { sql } from "drizzle-orm";
 import {
   boolean,
   check,
+  index,
   pgEnum,
   pgTable,
   text,
@@ -79,6 +80,8 @@ export const users = pgTable(
   },
   (table) => [
     uniqueIndex("users_org_email_unique").on(table.organizationId, table.email),
+    index("users_org_status_idx").on(table.organizationId, table.status),
+    index("users_org_created_idx").on(table.organizationId, table.createdAt),
     check("users_email_lowercase_chk", sql`${table.email} = lower(${table.email})`),
   ],
 );
@@ -112,7 +115,10 @@ export const userGroups = pgTable(
       .references(() => groups.id, { onDelete: "restrict" }),
     createdAt: timestamp("created_at", { withTimezone: true, mode: "date" }).notNull().defaultNow(),
   },
-  (table) => [uniqueIndex("user_groups_user_group_unique").on(table.userId, table.groupId)],
+  (table) => [
+    uniqueIndex("user_groups_user_group_unique").on(table.userId, table.groupId),
+    index("user_groups_group_idx").on(table.groupId),
+  ],
 );
 
 export const roles = pgTable(
@@ -177,6 +183,9 @@ export const userRoleScopes = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true, mode: "date" }).notNull().defaultNow(),
   },
   (table) => [
+    index("user_role_scopes_org_user_idx").on(table.organizationId, table.userId),
+    index("user_role_scopes_org_group_idx").on(table.organizationId, table.groupId),
+    index("user_role_scopes_scope_idx").on(table.scopeType, table.scopeTargetId),
     check(
       "user_role_scopes_subject_chk",
       sql`(${table.userId} IS NOT NULL AND ${table.groupId} IS NULL) OR (${table.userId} IS NULL AND ${table.groupId} IS NOT NULL)`,
@@ -206,6 +215,8 @@ export const sessions = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true, mode: "date" }).notNull().defaultNow(),
   },
   (table) => [
+    index("sessions_user_idx").on(table.userId),
+    index("sessions_expires_at_idx").on(table.expiresAt),
     check("sessions_expires_after_created_chk", sql`${table.expiresAt} > ${table.createdAt}`),
   ],
 );

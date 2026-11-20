@@ -15,6 +15,7 @@
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc --noEmit",
     "test": "vitest run --passWithNoTests",
+    "test:integration": "vitest run test/schema-constraints.test.ts",
     "db:generate": "drizzle-kit generate"
   },
   "dependencies": {
@@ -22,6 +23,7 @@
     "pg": "^8.14.1"
   },
   "devDependencies": {
+    "@testcontainers/postgresql": "^10.18.0",
     "@types/pg": "^8.11.11",
     "drizzle-kit": "^0.30.6"
   }

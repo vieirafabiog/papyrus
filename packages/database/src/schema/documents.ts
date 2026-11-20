@@ -5,6 +5,7 @@ import {
   check,
   date,
   doublePrecision,
+  index,
   integer,
   jsonb,
   pgEnum,
@@ -65,6 +66,17 @@ export const documents = pgTable(
     updatedAt: timestamp("updated_at", { withTimezone: true, mode: "date" }).notNull().defaultNow(),
   },
   (table) => [
+    index("documents_org_status_updated_idx").on(
+      table.organizationId,
+      table.status,
+      table.updatedAt,
+      table.id,
+    ),
+    index("documents_org_cat_status_idx").on(table.organizationId, table.categoryId, table.status),
+    index("documents_org_folder_status_idx").on(table.organizationId, table.folderId, table.status),
+    index("documents_org_owner_idx").on(table.organizationId, table.ownerUserId),
+    index("documents_org_expiration_idx").on(table.organizationId, table.expirationDate),
+    index("documents_org_title_idx").on(table.organizationId, table.title),
     check("documents_version_positive_chk", sql`${table.version} >= 1`),
     check(
       "documents_expiration_after_issue_chk",
@@ -92,6 +104,8 @@ export const documentVersions = pgTable(
   },
   (table) => [
     uniqueIndex("document_versions_doc_number_unique").on(table.documentId, table.versionNumber),
+    index("document_versions_file_obj_idx").on(table.fileObjectId),
+    index("document_versions_uploaded_by_idx").on(table.uploadedByUserId),
     check("document_versions_number_positive_chk", sql`${table.versionNumber} >= 1`),
   ],
 );
@@ -117,6 +131,9 @@ export const documentMetadata = pgTable(
   },
   (table) => [
     uniqueIndex("document_metadata_doc_field_unique").on(table.documentId, table.fieldId),
+    index("document_metadata_field_text_idx").on(table.fieldId, table.valueText),
+    index("document_metadata_field_date_idx").on(table.fieldId, table.valueDate),
+    index("document_metadata_field_number_idx").on(table.fieldId, table.valueNumber),
   ],
 );
 
@@ -133,5 +150,8 @@ export const documentTags = pgTable(
     createdBy: uuid("created_by").references(() => users.id, { onDelete: "restrict" }),
     createdAt: timestamp("created_at", { withTimezone: true, mode: "date" }).notNull().defaultNow(),
   },
-  (table) => [uniqueIndex("document_tags_doc_tag_unique").on(table.documentId, table.tagId)],
+  (table) => [
+    uniqueIndex("document_tags_doc_tag_unique").on(table.documentId, table.tagId),
+    index("document_tags_tag_idx").on(table.tagId),
+  ],
 );

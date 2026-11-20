@@ -360,7 +360,7 @@ docuflow/
   - **Ação:** Criar `audit_events`, `retention_policies`, `document_retention_holds` e `outbox_events`. Auditoria sem operação de update/delete na camada comum.
   - **Verificação:** `pnpm --filter @docuflow/database typecheck`.
 
-- [ ] **Step 04.08 — Criar índices e constraints de integridade**
+- [x] **Step 04.08 — Criar índices e constraints de integridade**
   - **Arquivos:** `packages/database/src/schema/*.ts`, `packages/database/test/schema-constraints.test.ts`
   - **Ação:** Adicionar índices para paginação e filtros, unicidade de versão, chave de objeto e constraints de estado/relacionamento.
   - **Verificação:** `pnpm --filter @docuflow/database test:integration`.
