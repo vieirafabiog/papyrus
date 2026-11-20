@@ -306,7 +306,7 @@ docuflow/
   - **Ação:** Definir fluxo sequencial versionado, instância, tarefa, decisão e estados terminais.
   - **Verificação:** `pnpm --filter @docuflow/contracts test` e `pnpm --filter @docuflow/domain typecheck`.
 
-- [ ] **Step 03.08 — Definir portas de repositório e serviços de domínio**
+- [x] **Step 03.08 — Definir portas de repositório e serviços de domínio**
   - **Arquivos:** `packages/domain/src/ports/*.ts`, `packages/domain/src/index.ts`
   - **Ação:** Declarar interfaces para documentos, versões, usuários, auditoria, storage connections e transações. Não importar Drizzle ou Fastify.
   - **Verificação:** `pnpm --filter @docuflow/domain typecheck`.

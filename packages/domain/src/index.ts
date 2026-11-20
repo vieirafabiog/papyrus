@@ -59,6 +59,46 @@ export {
   type FileObjectStatus,
 } from "./documents/document.types.js";
 
+export type {
+  AuditEventInput,
+  AuditEventRecord,
+  AuditListFilter,
+  AuditMetadataValue,
+  AuditRepositoryPort,
+  AuditResult,
+} from "./ports/audit-repository.port.js";
+
+export type {
+  CreateDocumentInput,
+  CreateDocumentVersionInput,
+  DocumentListFilter,
+  DocumentRepositoryPort,
+  DocumentSortField,
+  DocumentVersionRepositoryPort,
+  PaginatedResult,
+  UpdateDocumentInput,
+} from "./ports/document-repository.port.js";
+
+export type {
+  CreateStorageConnectionInput,
+  StorageConnectionEntity,
+  StorageConnectionKind,
+  StorageConnectionRepositoryPort,
+  StorageConnectionStatus,
+  UpdateStorageConnectionInput,
+} from "./ports/storage-connection-repository.port.js";
+
+export type {
+  TransactionContext,
+  TransactionManagerPort,
+} from "./ports/transaction.port.js";
+
+export type {
+  CreateUserInput,
+  UpdateUserInput,
+  UserRepositoryPort,
+} from "./ports/user-repository.port.js";
+
 export {
   isTerminalInstanceStatus,
   isTerminalTaskStatus,
