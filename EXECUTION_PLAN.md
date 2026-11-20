@@ -350,7 +350,7 @@ docuflow/
   - **Ação:** Criar `documents`, `document_versions`, `document_metadata` e `document_tags`; criar chaves estrangeiras sem cascatas físicas perigosas.
   - **Verificação:** `pnpm --filter @docuflow/database typecheck`.
 
-- [ ] **Step 04.06 — Criar schema de processos e tarefas**
+- [x] **Step 04.06 — Criar schema de processos e tarefas**
   - **Arquivo:** `packages/database/src/schema/workflows.ts`
   - **Ação:** Criar definições/versionamento de fluxo, instâncias, tarefas, decisões e notificações.
   - **Verificação:** `pnpm --filter @docuflow/database typecheck`.

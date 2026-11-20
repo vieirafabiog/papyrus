@@ -56,3 +56,18 @@ export {
   folderStatusEnum,
   tags,
 } from "./schema/taxonomy.js";
+
+export {
+  notificationChannelEnum,
+  notifications,
+  type WorkflowStepSnapshot,
+  workflowAssigneeTypeEnum,
+  workflowDecisions,
+  workflowDecisionTypeEnum,
+  workflowDefinitions,
+  workflowDefinitionVersions,
+  workflowInstances,
+  workflowInstanceStatusEnum,
+  workflowTasks,
+  workflowTaskStatusEnum,
+} from "./schema/workflows.js";
