@@ -208,6 +208,9 @@ importers:
       '@docuflow/storage-local':
         specifier: workspace:*
         version: link:../../packages/storage-local
+      '@docuflow/storage-s3':
+        specifier: workspace:*
+        version: link:../../packages/storage-s3
       '@fastify/cookie':
         specifier: ^11.0.2
         version: 11.1.5
@@ -227,6 +230,9 @@ importers:
       pg:
         specifier: ^8.14.1
         version: 8.23.1
+      testcontainers:
+        specifier: ^10.18.0
+        version: 10.28.0(bare-buffer@3.7.3)
       tsx:
         specifier: ^4.19.3
         version: 4.23.15

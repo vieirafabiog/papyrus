@@ -17,6 +17,7 @@
     "@docuflow/domain": "workspace:*",
     "@docuflow/storage-core": "workspace:*",
     "@docuflow/storage-local": "workspace:*",
+    "@docuflow/storage-s3": "workspace:*",
     "@fastify/cookie": "^11.0.2",
     "fastify": "^5.2.1",
     "zod": "^3.24.2"
@@ -25,6 +26,7 @@
     "@testcontainers/postgresql": "^10.18.0",
     "drizzle-orm": "^0.41.0",
     "pg": "^8.14.1",
+    "testcontainers": "^10.18.0",
     "tsx": "^4.19.3"
   }
 }

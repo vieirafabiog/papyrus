@@ -1,40 +1,20 @@
-import path from "node:path";
-import { type AuthMeResponse, CONTRACTS_API_PREFIX, uuidSchema } from "@docuflow/contracts";
+import {
+  type AuthMeResponse,
+  CONTRACTS_API_PREFIX,
+  createStorageConnectionContractSchema,
+  updateStorageConnectionContractSchema,
+  uuidSchema,
+} from "@docuflow/contracts";
 import { DomainError, type StorageConnectionAdminService } from "@docuflow/domain";
+import { sanitizeStorageErrorMessage } from "@docuflow/storage-core";
+import {
+  type S3EndpointSecurityPolicy,
+  type S3StorageConfigInput,
+  parseS3StorageConfig,
+} from "@docuflow/storage-s3";
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
-import { z } from "zod";
 import { SESSION_COOKIE_NAME } from "../auth/auth.routes.js";
 import type { AuthService } from "../auth/auth.service.js";
-
-const localRootDirectorySchema = z
-  .string()
-  .trim()
-  .min(2)
-  .max(512)
-  .refine((value) => path.isAbsolute(value) && value !== "/", {
-    message: "Informe um diretório absoluto válido distinto da raiz do sistema.",
-  });
-
-const createLocalStorageConnectionBodySchema = z.object({
-  name: z.string().trim().min(1).max(120),
-  kind: z.literal("local").default("local"),
-  rootDirectory: localRootDirectorySchema,
-  isDefault: z.boolean().optional(),
-  maxObjectSizeBytes: z.number().int().positive().optional(),
-  minFreeBytes: z.number().int().nonnegative().optional(),
-});
-
-const updateLocalStorageConnectionBodySchema = z
-  .object({
-    name: z.string().trim().min(1).max(120).optional(),
-    rootDirectory: localRootDirectorySchema.optional(),
-    isDefault: z.boolean().optional(),
-    maxObjectSizeBytes: z.number().int().positive().optional(),
-    minFreeBytes: z.number().int().nonnegative().optional(),
-  })
-  .refine((data) => Object.values(data).some((value) => value !== undefined), {
-    message: "Informe ao menos um campo para atualização.",
-  });
 
 function isStorageAdminAuthorized(me: AuthMeResponse): boolean {
   const hasAdminRole = me.roles.some((role) => role.key === "admin");
@@ -90,14 +70,57 @@ function mapStorageDomainError(code: string): { status: number; httpCode: string
   }
 }
 
+function readStringOrUndefined(
+  value: string | number | boolean | null | undefined,
+): string | undefined {
+  return typeof value === "string" && value.trim().length > 0 ? value.trim() : undefined;
+}
+
+function readBooleanOrDefault(
+  value: string | number | boolean | null | undefined,
+  fallback: boolean,
+): boolean {
+  return typeof value === "boolean" ? value : fallback;
+}
+
+function readIntOrDefault(
+  value: string | number | boolean | null | undefined,
+  fallback: number,
+): number {
+  return typeof value === "number" && Number.isInteger(value) ? value : fallback;
+}
+
+function buildS3NonSecretConfigRecord(
+  validated: ReturnType<typeof parseS3StorageConfig>,
+): Record<string, string | number | boolean | null> {
+  const record: Record<string, string | number | boolean | null> = {
+    endpoint: validated.endpoint,
+    region: validated.region,
+    bucket: validated.bucket,
+    forcePathStyle: validated.forcePathStyle,
+    tlsRejectUnauthorized: validated.tls.rejectUnauthorized,
+    tlsAllowInsecureHttp: validated.tls.allowInsecureHttp,
+    connectionTimeoutMs: validated.timeouts.connectionTimeoutMs,
+    requestTimeoutMs: validated.timeouts.requestTimeoutMs,
+  };
+  if (validated.keyPrefix) {
+    record.keyPrefix = validated.keyPrefix;
+  }
+  if (validated.tls.caCertificatePem) {
+    record.caCertificatePem = validated.tls.caCertificatePem;
+  }
+  return record;
+}
+
 export async function registerStorageRoutes(
   app: FastifyInstance,
   deps: {
     readonly authService: AuthService;
     readonly storageAdminService: StorageConnectionAdminService;
+    readonly s3SecurityPolicy?: S3EndpointSecurityPolicy | undefined;
   },
 ): Promise<void> {
-  const { authService, storageAdminService } = deps;
+  const { authService, storageAdminService, s3SecurityPolicy } = deps;
 
   app.get(`${CONTRACTS_API_PREFIX}/admin/storage-connections`, async (request, reply) => {
     const actor = await requireStorageAdmin(request, reply, authService);
@@ -115,36 +138,74 @@ export async function registerStorageRoutes(
       return reply;
     }
 
-    const parsed = createLocalStorageConnectionBodySchema.safeParse(request.body);
+    const parsed = createStorageConnectionContractSchema.safeParse(request.body);
     if (!parsed.success) {
       return reply.status(400).send({
         error: {
           code: "VALIDATION_ERROR",
-          message: "Dados inválidos para cadastro da conexão de armazenamento local.",
+          message: "Dados inválidos para cadastro da conexão de armazenamento.",
           requestId: request.id,
         },
       });
     }
 
     try {
-      const nonSecretConfig: Record<string, string | number | boolean | null> = {
-        rootDirectory: parsed.data.rootDirectory,
-      };
-      if (parsed.data.maxObjectSizeBytes !== undefined) {
-        nonSecretConfig.maxObjectSizeBytes = parsed.data.maxObjectSizeBytes;
+      const payload = parsed.data;
+
+      if (payload.kind === "local") {
+        const nonSecretConfig: Record<string, string | number | boolean | null> = {
+          rootDirectory: payload.rootDirectory,
+        };
+        if (payload.maxObjectSizeBytes !== undefined) {
+          nonSecretConfig.maxObjectSizeBytes = payload.maxObjectSizeBytes;
+        }
+        if (payload.minFreeBytes !== undefined) {
+          nonSecretConfig.minFreeBytes = payload.minFreeBytes;
+        }
+
+        const created = await storageAdminService.createConnection({
+          organizationId: actor.user.organizationId,
+          actorUserId: actor.user.id,
+          requestId: request.id,
+          name: payload.name,
+          kind: "local",
+          isDefault: payload.isDefault,
+          nonSecretConfig,
+        });
+        return reply.status(201).send({ data: created });
       }
-      if (parsed.data.minFreeBytes !== undefined) {
-        nonSecretConfig.minFreeBytes = parsed.data.minFreeBytes;
+
+      const validatedS3 = parseS3StorageConfig(
+        {
+          endpoint: payload.endpoint,
+          region: payload.region,
+          bucket: payload.bucket,
+          forcePathStyle: payload.forcePathStyle,
+          keyPrefix: payload.keyPrefix,
+          tls: payload.tls,
+          timeouts: payload.timeouts,
+          credentials: payload.credentials,
+        },
+        s3SecurityPolicy,
+      );
+
+      const s3Credentials: Record<string, string> = {
+        accessKeyId: validatedS3.credentials.accessKeyId,
+        secretAccessKey: validatedS3.credentials.secretAccessKey,
+      };
+      if (validatedS3.credentials.sessionToken) {
+        s3Credentials.sessionToken = validatedS3.credentials.sessionToken;
       }
 
       const created = await storageAdminService.createConnection({
         organizationId: actor.user.organizationId,
         actorUserId: actor.user.id,
         requestId: request.id,
-        name: parsed.data.name,
-        kind: "local",
-        isDefault: parsed.data.isDefault,
-        nonSecretConfig,
+        name: payload.name,
+        kind: "s3",
+        isDefault: payload.isDefault,
+        nonSecretConfig: buildS3NonSecretConfigRecord(validatedS3),
+        credentials: s3Credentials,
       });
       return reply.status(201).send({ data: created });
     } catch (error) {
@@ -153,7 +214,16 @@ export async function registerStorageRoutes(
         return reply.status(mapped.status).send({
           error: {
             code: mapped.httpCode,
-            message: error.message,
+            message: sanitizeStorageErrorMessage(error.message),
+            requestId: request.id,
+          },
+        });
+      }
+      if (error instanceof Error && error.name === "StorageError") {
+        return reply.status(400).send({
+          error: {
+            code: "VALIDATION_ERROR",
+            message: sanitizeStorageErrorMessage(error.message),
             requestId: request.id,
           },
         });
@@ -171,7 +241,7 @@ export async function registerStorageRoutes(
       }
 
       const idParsed = uuidSchema.safeParse(request.params.id);
-      const bodyParsed = updateLocalStorageConnectionBodySchema.safeParse(request.body);
+      const bodyParsed = updateStorageConnectionContractSchema.safeParse(request.body);
       if (!idParsed.success || !bodyParsed.success) {
         return reply.status(400).send({
           error: {
@@ -183,30 +253,98 @@ export async function registerStorageRoutes(
       }
 
       try {
-        const hasConfigChanges =
-          bodyParsed.data.rootDirectory !== undefined ||
-          bodyParsed.data.maxObjectSizeBytes !== undefined ||
-          bodyParsed.data.minFreeBytes !== undefined;
+        const body = bodyParsed.data;
+        const existingList = await storageAdminService.listConnections(actor.user.organizationId);
+        const current = existingList.find((item) => item.id === idParsed.data);
+        if (!current) {
+          throw new DomainError(
+            "STORAGE_CONNECTION_NOT_FOUND",
+            "Conexão de armazenamento não encontrada.",
+          );
+        }
 
         let nextConfig: Record<string, string | number | boolean | null> | undefined;
-        if (hasConfigChanges) {
-          const existingList = await storageAdminService.listConnections(actor.user.organizationId);
-          const current = existingList.find((item) => item.id === idParsed.data);
-          if (!current) {
-            throw new DomainError(
-              "STORAGE_CONNECTION_NOT_FOUND",
-              "Conexão de armazenamento não encontrada.",
-            );
+        let nextCredentials: Record<string, string> | undefined;
+
+        if (current.kind === "local") {
+          const hasLocalChanges =
+            body.rootDirectory !== undefined ||
+            body.maxObjectSizeBytes !== undefined ||
+            body.minFreeBytes !== undefined;
+
+          if (hasLocalChanges) {
+            nextConfig = { ...current.nonSecretConfig };
+            if (body.rootDirectory !== undefined) {
+              nextConfig.rootDirectory = body.rootDirectory;
+            }
+            if (body.maxObjectSizeBytes !== undefined) {
+              nextConfig.maxObjectSizeBytes = body.maxObjectSizeBytes;
+            }
+            if (body.minFreeBytes !== undefined) {
+              nextConfig.minFreeBytes = body.minFreeBytes;
+            }
           }
-          nextConfig = { ...current.nonSecretConfig };
-          if (bodyParsed.data.rootDirectory !== undefined) {
-            nextConfig.rootDirectory = bodyParsed.data.rootDirectory;
-          }
-          if (bodyParsed.data.maxObjectSizeBytes !== undefined) {
-            nextConfig.maxObjectSizeBytes = bodyParsed.data.maxObjectSizeBytes;
-          }
-          if (bodyParsed.data.minFreeBytes !== undefined) {
-            nextConfig.minFreeBytes = bodyParsed.data.minFreeBytes;
+        } else if (current.kind === "s3") {
+          const hasS3ConfigChanges =
+            body.endpoint !== undefined ||
+            body.region !== undefined ||
+            body.bucket !== undefined ||
+            body.forcePathStyle !== undefined ||
+            body.keyPrefix !== undefined ||
+            body.tls !== undefined ||
+            body.timeouts !== undefined;
+
+          if (hasS3ConfigChanges || body.credentials !== undefined) {
+            const candidateInput: S3StorageConfigInput = {
+              endpoint:
+                body.endpoint ?? readStringOrUndefined(current.nonSecretConfig.endpoint) ?? "",
+              region: body.region ?? readStringOrUndefined(current.nonSecretConfig.region) ?? "",
+              bucket: body.bucket ?? readStringOrUndefined(current.nonSecretConfig.bucket) ?? "",
+              forcePathStyle:
+                body.forcePathStyle ??
+                readBooleanOrDefault(current.nonSecretConfig.forcePathStyle, false),
+              keyPrefix:
+                body.keyPrefix === null
+                  ? undefined
+                  : (body.keyPrefix ?? readStringOrUndefined(current.nonSecretConfig.keyPrefix)),
+              tls: {
+                rejectUnauthorized:
+                  body.tls?.rejectUnauthorized ??
+                  readBooleanOrDefault(current.nonSecretConfig.tlsRejectUnauthorized, true),
+                allowInsecureHttp:
+                  body.tls?.allowInsecureHttp ??
+                  readBooleanOrDefault(current.nonSecretConfig.tlsAllowInsecureHttp, false),
+                caCertificatePem:
+                  body.tls?.caCertificatePem ??
+                  readStringOrUndefined(current.nonSecretConfig.caCertificatePem),
+              },
+              timeouts: {
+                connectionTimeoutMs:
+                  body.timeouts?.connectionTimeoutMs ??
+                  readIntOrDefault(current.nonSecretConfig.connectionTimeoutMs, 5_000),
+                requestTimeoutMs:
+                  body.timeouts?.requestTimeoutMs ??
+                  readIntOrDefault(current.nonSecretConfig.requestTimeoutMs, 30_000),
+              },
+              credentials: body.credentials ?? {
+                accessKeyId: "placeholder-keep-existing",
+                secretAccessKey: "placeholder-keep-existing",
+              },
+            };
+
+            const validatedS3 = parseS3StorageConfig(candidateInput, s3SecurityPolicy);
+            if (hasS3ConfigChanges) {
+              nextConfig = buildS3NonSecretConfigRecord(validatedS3);
+            }
+            if (body.credentials !== undefined) {
+              nextCredentials = {
+                accessKeyId: validatedS3.credentials.accessKeyId,
+                secretAccessKey: validatedS3.credentials.secretAccessKey,
+              };
+              if (validatedS3.credentials.sessionToken) {
+                nextCredentials.sessionToken = validatedS3.credentials.sessionToken;
+              }
+            }
           }
         }
 
@@ -215,9 +353,10 @@ export async function registerStorageRoutes(
           actorUserId: actor.user.id,
           requestId: request.id,
           connectionId: idParsed.data,
-          name: bodyParsed.data.name,
-          isDefault: bodyParsed.data.isDefault,
+          name: body.name,
+          isDefault: body.isDefault,
           nonSecretConfig: nextConfig,
+          credentials: nextCredentials,
         });
         return reply.status(200).send({ data: updated });
       } catch (error) {
@@ -226,7 +365,16 @@ export async function registerStorageRoutes(
           return reply.status(mapped.status).send({
             error: {
               code: mapped.httpCode,
-              message: error.message,
+              message: sanitizeStorageErrorMessage(error.message),
+              requestId: request.id,
+            },
+          });
+        }
+        if (error instanceof Error && error.name === "StorageError") {
+          return reply.status(400).send({
+            error: {
+              code: "VALIDATION_ERROR",
+              message: sanitizeStorageErrorMessage(error.message),
               requestId: request.id,
             },
           });
@@ -269,7 +417,7 @@ export async function registerStorageRoutes(
           return reply.status(mapped.status).send({
             error: {
               code: mapped.httpCode,
-              message: error.message,
+              message: sanitizeStorageErrorMessage(error.message),
               requestId: request.id,
             },
           });
@@ -312,7 +460,7 @@ export async function registerStorageRoutes(
           return reply.status(mapped.status).send({
             error: {
               code: mapped.httpCode,
-              message: error.message,
+              message: sanitizeStorageErrorMessage(error.message),
               requestId: request.id,
             },
           });
@@ -355,7 +503,7 @@ export async function registerStorageRoutes(
           return reply.status(mapped.status).send({
             error: {
               code: mapped.httpCode,
-              message: error.message,
+              message: sanitizeStorageErrorMessage(error.message),
               requestId: request.id,
             },
           });
@@ -398,7 +546,7 @@ export async function registerStorageRoutes(
           return reply.status(mapped.status).send({
             error: {
               code: mapped.httpCode,
-              message: error.message,
+              message: sanitizeStorageErrorMessage(error.message),
               requestId: request.id,
             },
           });

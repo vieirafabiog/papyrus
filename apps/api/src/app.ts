@@ -7,6 +7,7 @@ import type {
   StorageConnectionAdminService,
   UserAdministrationService,
 } from "@docuflow/domain";
+import type { S3EndpointSecurityPolicy } from "@docuflow/storage-s3";
 import cookie from "@fastify/cookie";
 import Fastify, { type FastifyInstance } from "fastify";
 import { registerAuthRoutes } from "./modules/auth/auth.routes.js";
@@ -27,6 +28,7 @@ export interface AppOptions {
   readonly userAdminService?: UserAdministrationService | undefined;
   readonly groupAdminService?: GroupAdministrationService | undefined;
   readonly storageAdminService?: StorageConnectionAdminService | undefined;
+  readonly s3SecurityPolicy?: S3EndpointSecurityPolicy | undefined;
   readonly documentDeps?:
     | {
         readonly authzRepository: AuthorizationRepository;
@@ -40,7 +42,25 @@ export interface AppOptions {
 
 export function buildApp(options: AppOptions = {}): FastifyInstance {
   const app = Fastify({
-    logger: options.logger ?? true,
+    logger: options.logger
+      ? {
+          redact: {
+            paths: [
+              "req.headers.authorization",
+              "req.headers.cookie",
+              "res.headers['set-cookie']",
+              "*.password",
+              "*.passwordHash",
+              "*.accessKeyId",
+              "*.secretAccessKey",
+              "*.sessionToken",
+              "*.encryptedSecretRef",
+              "*.encryptedSecretPayload",
+            ],
+            censor: "[REDACTED]",
+          },
+        }
+      : false,
     genReqId: () => randomUUID(),
   });
 
@@ -90,8 +110,13 @@ export function buildApp(options: AppOptions = {}): FastifyInstance {
 
     if (options.storageAdminService) {
       const storageAdminService = options.storageAdminService;
+      const s3SecurityPolicy = options.s3SecurityPolicy;
       void app.register(async (instance) => {
-        await registerStorageRoutes(instance, { authService, storageAdminService });
+        await registerStorageRoutes(instance, {
+          authService,
+          storageAdminService,
+          s3SecurityPolicy,
+        });
       });
     }
 

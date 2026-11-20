@@ -102,6 +102,29 @@ export {
 } from "./document.schema.js";
 
 export {
+  type CreateStorageConnectionContract,
+  createLocalStorageConnectionContractSchema,
+  createS3StorageConnectionContractSchema,
+  createStorageConnectionContractSchema,
+  localRootDirectoryContractSchema,
+  s3CredentialsContractSchema,
+  s3TimeoutsContractSchema,
+  s3TlsContractSchema,
+  type StorageConnectionKindContract,
+  type StorageConnectionStatusContract,
+  type StorageConnectionTestResultContract,
+  type StorageConnectionViewContract,
+  storageConnectionKindSchema,
+  storageConnectionStatusSchema,
+  storageConnectionTestResultSchema,
+  storageConnectionViewSchema,
+  storageHealthStatusSchema,
+  storageNonSecretConfigValueSchema,
+  type UpdateStorageConnectionContract,
+  updateStorageConnectionContractSchema,
+} from "./storage.schema.js";
+
+export {
   type SubmitTaskDecisionInput,
   submitTaskDecisionInputSchema,
   type WorkflowAssigneeTarget,

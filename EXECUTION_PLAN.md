@@ -576,7 +576,7 @@ docuflow/
   - **Ação:** Criar ambiente MinIO efêmero e executar suíte de contrato completa, incluindo falhas e restart.
   - **Verificação:** `pnpm --filter @docuflow/storage-s3 test:integration`.
 
-- [ ] **Step 08.07 — Implementar cadastro de conexões S3 na API**
+- [x] **Step 08.07 — Implementar cadastro de conexões S3 na API**
   - **Arquivos:** módulo storage da API e contracts
   - **Ação:** Permitir cadastrar, editar e testar conexão S3, mascarando campos secretos em respostas e logs.
   - **Verificação:** `pnpm --filter @docuflow/api test:integration`.
