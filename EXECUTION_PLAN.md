@@ -443,7 +443,7 @@ docuflow/
   - **Ação:** Implementar login, logout e `GET /auth/me`, com cookie seguro e respostas sem dados internos.
   - **Verificação:** `pnpm --filter @docuflow/api test`.
 
-- [ ] **Step 06.04 — Implementar proteção CSRF, cookies e rate limit**
+- [x] **Step 06.04 — Implementar proteção CSRF, cookies e rate limit**
   - **Arquivos:** `apps/api/src/plugins/security.ts`, testes de segurança
   - **Ação:** Configurar cookies, CORS estrito, CSRF para mutações, headers de segurança e limitação de tentativas de login.
   - **Verificação:** `pnpm --filter @docuflow/api test`.

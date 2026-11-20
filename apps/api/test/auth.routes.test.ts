@@ -93,6 +93,11 @@ describe("Auth routes (/api/v1/auth/*)", () => {
     const authService = createAuthService({ users, passwordService, sessionService });
     const app = buildApp({ logger: false, authService, secureCookies: false });
 
+    // Obtain CSRF token for mutating requests
+    const csrfRes = await app.inject({ method: "GET", url: "/api/v1/auth/csrf-token" });
+    expect(csrfRes.statusCode).toBe(200);
+    const csrfToken = csrfRes.json().data.csrfToken as string;
+
     // 1. Unauthenticated /auth/me returns 401
     const unauthMe = await app.inject({ method: "GET", url: "/api/v1/auth/me" });
     expect(unauthMe.statusCode).toBe(401);
@@ -101,6 +106,8 @@ describe("Auth routes (/api/v1/auth/*)", () => {
     const badLogin = await app.inject({
       method: "POST",
       url: "/api/v1/auth/login",
+      cookies: { docuflow_csrf: csrfToken },
+      headers: { "x-csrf-token": csrfToken },
       payload: { email: "admin@docuflow.invalid", password: "wrong" },
     });
     expect(badLogin.statusCode).toBe(401);
@@ -109,6 +116,8 @@ describe("Auth routes (/api/v1/auth/*)", () => {
     const loginRes = await app.inject({
       method: "POST",
       url: "/api/v1/auth/login",
+      cookies: { docuflow_csrf: csrfToken },
+      headers: { "x-csrf-token": csrfToken },
       payload: { email: "Admin@Docuflow.Invalid", password: "SenhaSegura123!" },
     });
     expect(loginRes.statusCode).toBe(200);
@@ -141,7 +150,11 @@ describe("Auth routes (/api/v1/auth/*)", () => {
     const logoutRes = await app.inject({
       method: "POST",
       url: "/api/v1/auth/logout",
-      cookies: { docuflow_session: sessionCookie?.value ?? "" },
+      cookies: {
+        docuflow_session: sessionCookie?.value ?? "",
+        docuflow_csrf: csrfToken,
+      },
+      headers: { "x-csrf-token": csrfToken },
     });
     expect(logoutRes.statusCode).toBe(200);
 
