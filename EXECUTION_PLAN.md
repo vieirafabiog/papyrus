@@ -365,7 +365,7 @@ docuflow/
   - **Ação:** Adicionar índices para paginação e filtros, unicidade de versão, chave de objeto e constraints de estado/relacionamento.
   - **Verificação:** `pnpm --filter @docuflow/database test:integration`.
 
-- [ ] **Step 04.09 — Criar migration inicial**
+- [x] **Step 04.09 — Criar migration inicial**
   - **Arquivos:** `packages/database/drizzle/0001_initial.sql`, `drizzle.config.ts`
   - **Ação:** Gerar migration revisável a partir dos schemas. Confirmar que a migration não depende de dados preexistentes.
   - **Verificação:** `pnpm --filter @docuflow/database db:generate` e `pnpm --filter @docuflow/database test:integration`.

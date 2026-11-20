@@ -1,8 +1,9 @@
-import { createRequire } from "node:module";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { PostgreSqlContainer, type StartedPostgreSqlContainer } from "@testcontainers/postgresql";
 import { eq } from "drizzle-orm";
-import type { pushSchema as PushSchemaFn } from "drizzle-kit/api";
 import { drizzle } from "drizzle-orm/node-postgres";
+import { migrate } from "drizzle-orm/node-postgres/migrator";
 import { Pool } from "pg";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import {
@@ -19,14 +20,10 @@ import {
   workflowInstances,
   workflowTasks,
 } from "../src/index.js";
-import * as documentSchema from "../src/schema/documents.js";
-import * as governanceSchema from "../src/schema/governance.js";
-import * as identitySchema from "../src/schema/identity.js";
-import * as storageSchema from "../src/schema/storage.js";
-import * as taxonomySchema from "../src/schema/taxonomy.js";
-import * as workflowSchema from "../src/schema/workflows.js";
 
 const VALID_SHA256 = "a".repeat(64);
+const CURRENT_DIR = path.dirname(fileURLToPath(import.meta.url));
+const MIGRATIONS_FOLDER = path.resolve(CURRENT_DIR, "../drizzle");
 
 describe("PostgreSQL schema indexes and integrity constraints", () => {
   let container: StartedPostgreSqlContainer | null = null;
@@ -44,18 +41,7 @@ describe("PostgreSQL schema indexes and integrity constraints", () => {
 
     pool = new Pool({ connectionString });
     const db = drizzle(pool);
-    const mergedSchema = {
-      ...identitySchema,
-      ...taxonomySchema,
-      ...storageSchema,
-      ...documentSchema,
-      ...workflowSchema,
-      ...governanceSchema,
-    };
-    const require = createRequire(import.meta.url);
-    const { pushSchema } = require("drizzle-kit/api") as { pushSchema: typeof PushSchemaFn };
-    const pushed = await pushSchema(mergedSchema, db);
-    await pushed.apply();
+    await migrate(db, { migrationsFolder: MIGRATIONS_FOLDER });
   }, 120_000);
 
   afterAll(async () => {

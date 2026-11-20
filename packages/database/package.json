@@ -16,7 +16,7 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run --passWithNoTests",
     "test:integration": "vitest run test/schema-constraints.test.ts",
-    "db:generate": "drizzle-kit generate"
+    "db:generate": "tsc -p tsconfig.json && drizzle-kit generate"
   },
   "dependencies": {
     "drizzle-orm": "^0.41.0",
