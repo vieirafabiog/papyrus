@@ -247,7 +247,7 @@ docuflow/
   - **Ação:** Configurar pacote isolado para S3 e SDK compatível. Evitar dependência do SDK no restante da aplicação.
   - **Verificação:** `pnpm --filter @docuflow/storage-s3 typecheck`.
 
-- [ ] **Step 02.11 — Scaffold de `packages/file-processing`**
+- [x] **Step 02.11 — Scaffold de `packages/file-processing`**
   - **Arquivos:** `package.json`, `tsconfig.json`, `src/index.ts`
   - **Ação:** Preparar validação MIME, checksum, quarentena, antivírus e geração de prévias.
   - **Verificação:** `pnpm --filter @docuflow/file-processing typecheck`.
