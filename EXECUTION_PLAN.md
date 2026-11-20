@@ -551,7 +551,7 @@ docuflow/
   - **Ação:** Validar endpoint, região, bucket, estilo de path, TLS, credenciais e timeouts. Não aceitar endpoint sem validação de segurança.
   - **Verificação:** `pnpm --filter @docuflow/storage-s3 test`.
 
-- [ ] **Step 08.02 — Implementar provider S3 com streaming**
+- [x] **Step 08.02 — Implementar provider S3 com streaming**
   - **Arquivos:** `packages/storage-s3/src/s3-storage-provider.ts`
   - **Ação:** Implementar escrita e leitura usando SDK isolado, stream e tratamento de abort/timeout.
   - **Verificação:** `pnpm --filter @docuflow/storage-s3 typecheck`.
