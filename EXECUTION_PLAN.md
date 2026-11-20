@@ -311,7 +311,7 @@ docuflow/
   - **Ação:** Declarar interfaces para documentos, versões, usuários, auditoria, storage connections e transações. Não importar Drizzle ou Fastify.
   - **Verificação:** `pnpm --filter @docuflow/domain typecheck`.
 
-- [ ] **Step 03.09 — Implementar regras de versionamento imutável**
+- [x] **Step 03.09 — Implementar regras de versionamento imutável**
   - **Arquivos:** `packages/domain/src/documents/versioning.ts`, `versioning.test.ts`
   - **Ação:** Definir criação de próxima versão, versão corrente, restauração como nova versão e vínculo de aprovação a uma versão exata.
   - **Verificação:** `pnpm --filter @docuflow/domain test`.

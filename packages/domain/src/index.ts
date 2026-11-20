@@ -59,6 +59,17 @@ export {
   type FileObjectStatus,
 } from "./documents/document.types.js";
 
+export {
+  assertApprovalMatchesVersion,
+  type BuildNextVersionInput,
+  buildNextDocumentVersion,
+  getNextVersionNumber,
+  resolveCurrentVersion,
+  type RestoreHistoricalVersionInput,
+  type RestoredVersionResult,
+  restoreHistoricalVersion,
+} from "./documents/versioning.js";
+
 export type {
   AuditEventInput,
   AuditEventRecord,
