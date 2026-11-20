@@ -428,7 +428,7 @@ docuflow/
 
 # PHASE 6 — AUTENTICAÇÃO, USUÁRIOS E AUTORIZAÇÃO
 
-- [ ] **Step 06.01 — Implementar serviço de hash de senha**
+- [x] **Step 06.01 — Implementar serviço de hash de senha**
   - **Arquivos:** `packages/auth/src/password-service.ts`, testes
   - **Ação:** Implementar hash e verificação com algoritmo apropriado (preferencialmente Argon2id), parâmetros configuráveis e comparação segura.
   - **Verificação:** `pnpm --filter @docuflow/auth test`.
