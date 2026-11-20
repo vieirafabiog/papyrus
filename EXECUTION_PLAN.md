@@ -502,7 +502,7 @@ docuflow/
   - **Ação:** Normalizar not found, unauthorized, timeout, throttling, unavailable, checksum mismatch e conflict, sem incluir credenciais.
   - **Verificação:** `pnpm --filter @docuflow/storage-core test`.
 
-- [ ] **Step 07.04 — Implementar resolução segura de diretório local**
+- [x] **Step 07.04 — Implementar resolução segura de diretório local**
   - **Arquivos:** `packages/storage-local/src/safe-path.ts`, testes
   - **Ação:** Resolver somente paths dentro da raiz configurada, bloquear traversal, symlink escape e nomes de objeto inesperados.
   - **Verificação:** `pnpm --filter @docuflow/storage-local test`.
