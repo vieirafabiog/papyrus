@@ -21,3 +21,24 @@ export {
   type Uuid,
   uuidSchema,
 } from "./common.schema.js";
+
+export {
+  type DocumentListQuery,
+  documentListQuerySchema,
+  documentListSortSchema,
+  type DocumentMetadataRecord,
+  type DocumentMetadataValue,
+  documentMetadataRecordSchema,
+  documentMetadataValueSchema,
+  type DocumentRecord,
+  documentRecordSchema,
+  type DocumentStatus,
+  documentStatusSchema,
+  type DocumentVersionRecord,
+  documentVersionRecordSchema,
+  type FileObjectRecord,
+  fileObjectRecordSchema,
+  type FileObjectStatus,
+  fileObjectStatusSchema,
+  sha256ChecksumSchema,
+} from "./document.schema.js";

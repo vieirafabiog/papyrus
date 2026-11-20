@@ -276,7 +276,7 @@ docuflow/
   - **Ação:** Criar schemas para UUID, paginação, ordenação permitida, datas ISO, códigos de erro e resposta padrão. Exportar pela API pública.
   - **Verificação:** `pnpm --filter @docuflow/contracts test`.
 
-- [ ] **Step 03.02 — Implementar tipos de documento e versão**
+- [x] **Step 03.02 — Implementar tipos de documento e versão**
   - **Arquivos:** `packages/contracts/src/document.schema.ts`, `packages/domain/src/documents/document.types.ts`
   - **Ação:** Definir estados independentes de documento, versão e objeto binário, conforme `project.md` D.4.
   - **Verificação:** `pnpm --filter @docuflow/contracts test` e `pnpm --filter @docuflow/domain typecheck`.
