@@ -571,7 +571,7 @@ docuflow/
   - **Ação:** Verificar credenciais, bucket e permissões mínimas sem listar conteúdo desnecessariamente.
   - **Verificação:** `pnpm --filter @docuflow/storage-s3 test`.
 
-- [ ] **Step 08.06 — Executar provider S3 contra MinIO**
+- [x] **Step 08.06 — Executar provider S3 contra MinIO**
   - **Arquivos:** `packages/storage-s3/test/integration/*`, configuração de teste
   - **Ação:** Criar ambiente MinIO efêmero e executar suíte de contrato completa, incluindo falhas e restart.
   - **Verificação:** `pnpm --filter @docuflow/storage-s3 test:integration`.

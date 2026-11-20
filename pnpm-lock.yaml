@@ -363,6 +363,10 @@ importers:
       zod:
         specifier: ^3.24.2
         version: 3.25.76
+    devDependencies:
+      testcontainers:
+        specifier: ^10.18.0
+        version: 10.28.0(bare-buffer@3.7.3)
 
   packages/ui:
     devDependencies:
