@@ -620,7 +620,7 @@ docuflow/
   - **Ação:** Calcular checksum sem armazenar todo o arquivo na memória e comparar com o valor esperado.
   - **Verificação:** `pnpm --filter @docuflow/file-processing test`.
 
-- [ ] **Step 09.07 — Implementar adapter ClamAV**
+- [x] **Step 09.07 — Implementar adapter ClamAV**
   - **Arquivos:** `packages/file-processing/src/antivirus/*`
   - **Ação:** Integrar scanner por protocolo/serviço configurado, com timeout, falha fechada e estado explícito quando indisponível.
   - **Verificação:** `pnpm --filter @docuflow/file-processing test`.

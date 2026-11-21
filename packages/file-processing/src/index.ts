@@ -1,6 +1,20 @@
 export const FILE_PROCESSING_VERSION = 1 as const;
 
 export {
+  type AntivirusHealthResult,
+  type AntivirusScannerPort,
+  type ClamAvScannerConfig,
+  type ClamAvTransportConfig,
+  createClamAvScanner,
+  type MalwareScanDisposition,
+  type MalwareScanInput,
+  type MalwareScanResult,
+  type MalwareScanStatus,
+  type ParsedClamdResponse,
+  parseClamdInstreamResponse,
+} from "./antivirus/index.js";
+
+export {
   calculateStreamSha256,
   type ChecksumErrorCode,
   ChecksumValidationError,
