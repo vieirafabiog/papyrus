@@ -9,17 +9,20 @@ import type {
   CreateDocumentService,
   CreateDocumentVersionService,
   DocumentRepositoryPort,
+  DocumentVersionRepositoryPort,
   FolderRepositoryPort,
   FolderService,
   GroupAdministrationService,
   MoveDocumentService,
   StorageConnectionAdminService,
+  StorageConnectionRepositoryPort,
   TagService,
   TrashDocumentService,
   UploadSessionRepositoryPort,
   UploadSessionService,
   UserAdministrationService,
 } from "@docuflow/domain";
+import type { StorageProviderRegistry } from "@docuflow/storage-core";
 import type { S3EndpointSecurityPolicy } from "@docuflow/storage-s3";
 import cookie from "@fastify/cookie";
 import Fastify, { type FastifyInstance } from "fastify";
@@ -27,6 +30,7 @@ import { registerAuthRoutes } from "./modules/auth/auth.routes.js";
 import type { AuthService } from "./modules/auth/auth.service.js";
 import { registerCategoryRoutes } from "./modules/categories/categories.routes.js";
 import { registerDocumentRoutes } from "./modules/documents/documents.routes.js";
+import { registerDocumentPreviewRoutes } from "./modules/documents/preview.routes.js";
 import { registerDocumentSearchRoutes } from "./modules/documents/search.routes.js";
 import { registerFolderRoutes } from "./modules/folders/folders.routes.js";
 import { registerGroupRoutes } from "./modules/groups/groups.routes.js";
@@ -67,6 +71,10 @@ export interface AppOptions {
         readonly moveDocumentService?: MoveDocumentService | undefined;
         readonly archiveDocumentService?: ArchiveDocumentService | undefined;
         readonly trashDocumentService?: TrashDocumentService | undefined;
+        readonly documentVersionRepository?: DocumentVersionRepositoryPort | undefined;
+        readonly uploadRepository?: UploadSessionRepositoryPort | undefined;
+        readonly storageConnections?: StorageConnectionRepositoryPort | undefined;
+        readonly storageRegistry?: StorageProviderRegistry | undefined;
       }
     | undefined;
   readonly folderDeps?:
@@ -197,6 +205,21 @@ export function buildApp(options: AppOptions = {}): FastifyInstance {
           await registerDocumentSearchRoutes(instance, {
             guard,
             documentSearchRepository: documentDeps.documentSearchRepository,
+          });
+        }
+        if (
+          documentDeps.documentVersionRepository &&
+          documentDeps.uploadRepository &&
+          documentDeps.storageConnections &&
+          documentDeps.storageRegistry
+        ) {
+          await registerDocumentPreviewRoutes(instance, {
+            guard,
+            documentVersionRepository: documentDeps.documentVersionRepository,
+            uploadRepository: documentDeps.uploadRepository,
+            storageConnections: documentDeps.storageConnections,
+            storageRegistry: documentDeps.storageRegistry,
+            auditRepository: documentDeps.auditRepository,
           });
         }
         await registerDocumentRoutes(instance, {

@@ -738,7 +738,7 @@ docuflow/
   - **Ação:** Exibir filtros por categoria, pasta, status, responsável e vencimento; paginação e ordenação controladas pela API.
   - **Verificação:** `pnpm --filter @docuflow/web test`.
 
-- [ ] **Step 11.05 — Implementar preview de PDF autorizado**
+- [x] **Step 11.05 — Implementar preview de PDF autorizado**
   - **Arquivos:** `apps/api` endpoint de preview e `apps/web` PDF viewer
   - **Ação:** Entregar stream ou URL curta após autorização. Definir CSP e impedir cache público indevido.
   - **Verificação:** `pnpm --filter @docuflow/api test:integration` e `pnpm --filter @docuflow/web test`.

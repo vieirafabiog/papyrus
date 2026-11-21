@@ -112,11 +112,15 @@ export async function registerSecurityPlugin(
 
   app.addHook("onSend", async (_request, reply, payload) => {
     reply.header("X-Content-Type-Options", "nosniff");
-    reply.header("X-Frame-Options", "DENY");
+    if (!reply.hasHeader("X-Frame-Options")) {
+      reply.header("X-Frame-Options", "DENY");
+    }
     reply.header("Referrer-Policy", "strict-origin-when-cross-origin");
     reply.header("X-XSS-Protection", "0");
     reply.header("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
-    reply.header("Content-Security-Policy", "default-src 'none'; frame-ancestors 'none'");
+    if (!reply.hasHeader("Content-Security-Policy")) {
+      reply.header("Content-Security-Policy", "default-src 'none'; frame-ancestors 'none'");
+    }
     if (options.secureCookies) {
       reply.header("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
     }

@@ -192,6 +192,12 @@ describe("DocumentDetailsPage", () => {
           { status: 200, headers: { "Content-Type": "application/json" } },
         );
       }
+      if (url.startsWith(`/api/v1/documents/${DOC_ID}/preview`)) {
+        return new Response(new Blob(["%PDF-1.4\n%%EOF"], { type: "application/pdf" }), {
+          status: 200,
+          headers: { "Content-Type": "application/pdf" },
+        });
+      }
       if (url.startsWith("/api/v1/tags")) {
         return new Response(
           JSON.stringify({

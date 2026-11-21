@@ -16,6 +16,7 @@ import { DocumentTagsField } from "../tags/DocumentTagsField.js";
 import { DocumentLifecycleActions } from "./DocumentLifecycleActions.js";
 import { DocumentMetadataForm } from "./DocumentMetadataForm.js";
 import { DocumentFileAvailabilityPanel } from "./FileProcessingStatus.js";
+import { PdfPreviewPanel } from "./PdfPreviewPanel.js";
 import { UploadDialog } from "./UploadDialog.js";
 import { VersionHistory } from "./VersionHistory.js";
 import {
@@ -426,6 +427,10 @@ export function DocumentDetailsPage() {
               <DocumentTagsField documentId={doc.id} canEdit={doc.permissions.canUpdate} />
             </Paper>
           </Stack>
+        </Grid>
+
+        <Grid size={{ xs: 12 }}>
+          <PdfPreviewPanel document={doc} />
         </Grid>
 
         <Grid size={{ xs: 12 }}>
