@@ -82,6 +82,10 @@ export interface UploadSessionRepositoryPort {
     fileObjectId: string,
     tx?: TransactionContext,
   ): Promise<FileObjectEntity | null>;
+  findFileObjectOrganizationId?(
+    fileObjectId: string,
+    tx?: TransactionContext,
+  ): Promise<string | null>;
   createSessionWithFileObject(
     input: CreateUploadSessionWithFileObjectInput,
     tx?: TransactionContext,

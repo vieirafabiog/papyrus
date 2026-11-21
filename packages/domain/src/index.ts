@@ -75,6 +75,14 @@ export {
 } from "./documents/create-document.js";
 
 export {
+  type CreatedDocumentVersionResult,
+  type CreateDocumentVersionService,
+  type CreateDocumentVersionServiceDependencies,
+  createDocumentVersionUseCase,
+  type CreateNewDocumentVersionCommand,
+} from "./documents/create-version.js";
+
+export {
   assertApprovalMatchesVersion,
   type BuildNextVersionInput,
   buildNextDocumentVersion,

@@ -93,6 +93,19 @@ export function createUploadSessionRepository(db: NodePgDatabase): UploadSession
       return row ? toFileObjectEntity(row) : null;
     },
 
+    async findFileObjectOrganizationId(
+      fileObjectId: string,
+      tx?: TransactionContext,
+    ): Promise<string | null> {
+      const executor = resolveDbExecutor(db, tx);
+      const [row] = await executor
+        .select({ organizationId: fileObjects.organizationId })
+        .from(fileObjects)
+        .where(eq(fileObjects.id, fileObjectId))
+        .limit(1);
+      return row?.organizationId ?? null;
+    },
+
     async createSessionWithFileObject(
       input: CreateUploadSessionWithFileObjectInput,
       tx?: TransactionContext,

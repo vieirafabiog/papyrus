@@ -4,6 +4,7 @@ import {
   CONTRACTS_API_PREFIX,
   type ErrorCode,
   createDocumentRequestSchema,
+  createDocumentVersionRequestSchema,
   documentListQuerySchema,
   documentMetadataRecordSchema,
   isoDateSchema,
@@ -16,6 +17,7 @@ import {
   type CategoryFieldDefinition,
   type CategoryRepositoryPort,
   type CreateDocumentService,
+  type CreateDocumentVersionService,
   type DocumentListItemEntity,
   type DocumentMetadataMap,
   type DocumentRepositoryPort,
@@ -39,10 +41,13 @@ function mapCreateDocumentDomainErrorStatus(code: string): {
     case "OWNER_USER_NOT_FOUND":
     case "UPLOAD_SESSION_NOT_FOUND":
     case "FILE_OBJECT_NOT_FOUND":
+    case "DOCUMENT_NOT_FOUND":
       return { status: 404, apiCode: "NOT_FOUND" };
     case "UPLOAD_SESSION_FORBIDDEN":
       return { status: 403, apiCode: "FORBIDDEN" };
     case "FILE_ALREADY_LINKED_TO_DOCUMENT":
+    case "FILE_OBJECT_NOT_AVAILABLE":
+    case "INVALID_DOCUMENT_STATE":
     case "UPLOAD_NOT_FINALIZED":
     case "DOCUMENT_NOT_READY_FOR_REVIEW":
     case "CATEGORY_INACTIVE":
@@ -122,6 +127,7 @@ export async function registerDocumentRoutes(
     readonly auditRepository: AuditRepositoryPort;
     readonly categoryRepository?: CategoryRepositoryPort | undefined;
     readonly createDocumentService?: CreateDocumentService | undefined;
+    readonly createDocumentVersionService?: CreateDocumentVersionService | undefined;
   },
 ): Promise<void> {
   const {
@@ -131,6 +137,7 @@ export async function registerDocumentRoutes(
     auditRepository,
     categoryRepository,
     createDocumentService,
+    createDocumentVersionService,
   } = deps;
 
   app.get(`${CONTRACTS_API_PREFIX}/documents`, async (request, reply) => {
@@ -557,6 +564,66 @@ export async function registerDocumentRoutes(
       });
 
       return reply.status(200).send({ data: updated });
+    },
+  );
+
+  app.post<{ Params: { id: string } }>(
+    `${CONTRACTS_API_PREFIX}/documents/:id/versions`,
+    async (request, reply) => {
+      if (!createDocumentVersionService) {
+        return reply.status(501).send({
+          error: {
+            code: "INTERNAL_ERROR",
+            message: "Serviço de versionamento não configurado.",
+            requestId: request.id,
+          },
+        });
+      }
+
+      const ctx = await guard.requireSubject(request, reply);
+      if (!ctx) {
+        return reply;
+      }
+
+      const idParsed = uuidSchema.safeParse(request.params.id);
+      const bodyParsed = createDocumentVersionRequestSchema.safeParse(request.body);
+      if (!idParsed.success || !bodyParsed.success) {
+        return reply.status(400).send({
+          error: {
+            code: "VALIDATION_ERROR",
+            message: bodyParsed.success
+              ? "Identificador de documento inválido."
+              : (bodyParsed.error.issues[0]?.message ??
+                  "Dados inválidos para criação de nova versão."),
+            requestId: request.id,
+          },
+        });
+      }
+
+      const doc = await guard.authorizeDocument(ctx, idParsed.data, "UPLOAD", reply, request.id);
+      if (!doc) {
+        return reply;
+      }
+
+      try {
+        const result = await createDocumentVersionService.createVersion({
+          organizationId: ctx.me.user.organizationId,
+          actorUserId: ctx.me.user.id,
+          requestId: request.id,
+          documentId: doc.id,
+          expectedVersion: bodyParsed.data.expectedVersion,
+          fileObjectId: bodyParsed.data.fileObjectId,
+          uploadSessionId: bodyParsed.data.uploadSessionId,
+          changeNote: bodyParsed.data.changeNote,
+        });
+
+        return reply.status(201).send({
+          data: result.version,
+          document: result.document,
+        });
+      } catch (error) {
+        return handleDocumentDomainError(error, request, reply);
+      }
     },
   );
 }

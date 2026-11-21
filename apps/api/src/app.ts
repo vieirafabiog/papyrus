@@ -6,6 +6,7 @@ import type {
   CategoryRepositoryPort,
   CategoryService,
   CreateDocumentService,
+  CreateDocumentVersionService,
   DocumentRepositoryPort,
   FolderRepositoryPort,
   FolderService,
@@ -57,6 +58,7 @@ export interface AppOptions {
         readonly auditRepository: AuditRepositoryPort;
         readonly categoryRepository?: CategoryRepositoryPort | undefined;
         readonly createDocumentService?: CreateDocumentService | undefined;
+        readonly createDocumentVersionService?: CreateDocumentVersionService | undefined;
       }
     | undefined;
   readonly folderDeps?:
@@ -190,6 +192,7 @@ export function buildApp(options: AppOptions = {}): FastifyInstance {
           auditRepository: documentDeps.auditRepository,
           categoryRepository: documentDeps.categoryRepository,
           createDocumentService: documentDeps.createDocumentService,
+          createDocumentVersionService: documentDeps.createDocumentVersionService,
         });
       });
     }

@@ -198,6 +198,32 @@ export type DocumentDetail = z.infer<typeof documentDetailSchema>;
 export const documentDetailResponseSchema = createApiResponseSchema(documentDetailSchema);
 export type DocumentDetailResponse = z.infer<typeof documentDetailResponseSchema>;
 
+export const createDocumentVersionRequestSchema = z
+  .object({
+    expectedVersion: z.number().int().min(1),
+    fileObjectId: uuidSchema.optional(),
+    uploadSessionId: uuidSchema.optional(),
+    changeNote: z
+      .string()
+      .trim()
+      .max(1000, "A observação da versão deve ter no máximo 1000 caracteres.")
+      .nullable()
+      .optional(),
+  })
+  .refine(
+    (payload) => payload.fileObjectId !== undefined || payload.uploadSessionId !== undefined,
+    {
+      message: "Informe o identificador do arquivo disponível ou sessão de upload finalizada.",
+    },
+  );
+export type CreateDocumentVersionRequest = z.infer<typeof createDocumentVersionRequestSchema>;
+
+export const createDocumentVersionResponseSchema = z.object({
+  data: documentVersionRecordSchema,
+  document: documentRecordSchema,
+});
+export type CreateDocumentVersionResponse = z.infer<typeof createDocumentVersionResponseSchema>;
+
 export const createDocumentRequestSchema = z
   .object({
     title: z

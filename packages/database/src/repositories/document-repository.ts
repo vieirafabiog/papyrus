@@ -1,17 +1,18 @@
-import type {
-  CreateDocumentInput,
-  CreateDocumentVersionInput,
-  DocumentEntity,
-  DocumentListFilter,
-  DocumentMetadataMap,
-  DocumentRepositoryPort,
-  DocumentSortField,
-  DocumentStatus,
-  DocumentVersionEntity,
-  DocumentVersionRepositoryPort,
-  PaginatedResult,
-  TransactionContext,
-  UpdateDocumentInput,
+import {
+  type CreateDocumentInput,
+  type CreateDocumentVersionInput,
+  type DocumentEntity,
+  type DocumentListFilter,
+  type DocumentMetadataMap,
+  type DocumentRepositoryPort,
+  type DocumentSortField,
+  type DocumentStatus,
+  type DocumentVersionEntity,
+  type DocumentVersionRepositoryPort,
+  DomainError,
+  type PaginatedResult,
+  type TransactionContext,
+  type UpdateDocumentInput,
 } from "@docuflow/domain";
 import { type SQL, and, asc, count, desc, eq, ilike, ne } from "drizzle-orm";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
@@ -335,22 +336,37 @@ export function createDocumentVersionRepository(db: NodePgDatabase): DocumentVer
       tx?: TransactionContext,
     ): Promise<DocumentVersionEntity> {
       const executor = resolveDbExecutor(db, tx);
-      const [row] = await executor
-        .insert(documentVersions)
-        .values({
-          id: input.id,
-          documentId: input.documentId,
-          versionNumber: input.versionNumber,
-          fileObjectId: input.fileObjectId,
-          uploadedByUserId: input.uploadedByUserId,
-          changeNote: input.changeNote,
-        })
-        .returning();
+      try {
+        const [row] = await executor
+          .insert(documentVersions)
+          .values({
+            id: input.id,
+            documentId: input.documentId,
+            versionNumber: input.versionNumber,
+            fileObjectId: input.fileObjectId,
+            uploadedByUserId: input.uploadedByUserId,
+            changeNote: input.changeNote,
+          })
+          .returning();
 
-      if (!row) {
-        throw new Error("Failed to insert document version record.");
+        if (!row) {
+          throw new Error("Failed to insert document version record.");
+        }
+        return toDocumentVersionEntity(row);
+      } catch (error) {
+        const pgCode =
+          typeof error === "object" && error !== null
+            ? ((error as { code?: unknown }).code ??
+              (error as { cause?: { code?: unknown } }).cause?.code)
+            : undefined;
+        if (pgCode === "23505") {
+          throw new DomainError(
+            "DOCUMENT_VERSION_CONFLICT",
+            "Concorrência detectada ao registrar nova versão documental.",
+          );
+        }
+        throw error;
       }
-      return toDocumentVersionEntity(row);
     },
   };
 }

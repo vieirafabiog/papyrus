@@ -694,7 +694,7 @@ docuflow/
   - **Ação:** Renderizar campos conforme schema da categoria, validar no cliente e no servidor e apresentar erros próximos dos campos.
   - **Verificação:** `pnpm --filter @docuflow/web test`.
 
-- [ ] **Step 10.09 — Implementar criação de nova versão**
+- [x] **Step 10.09 — Implementar criação de nova versão**
   - **Arquivos:** `packages/domain/src/documents/create-version.ts`, API
   - **Ação:** Criar nova versão append-only vinculada a um novo file object disponível; usar controle de concorrência para impedir número duplicado.
   - **Verificação:** `pnpm --filter @docuflow/domain test` e `pnpm --filter @docuflow/api test:integration`.

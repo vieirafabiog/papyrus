@@ -83,6 +83,10 @@ export {
 export {
   type CreateDocumentRequest,
   createDocumentRequestSchema,
+  type CreateDocumentVersionRequest,
+  createDocumentVersionRequestSchema,
+  type CreateDocumentVersionResponse,
+  createDocumentVersionResponseSchema,
   type DocumentDetail,
   type DocumentDetailFileObject,
   documentDetailFileObjectSchema,
