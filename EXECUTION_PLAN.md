@@ -797,7 +797,7 @@ docuflow/
   - **Ação:** Implementar aprovar, rejeitar, solicitar alteração e cancelar. Usar transação/controle de versão para decisão única; retornos repetidos devem ser idempotentes quando a mesma requisição for repetida.
   - **Verificação:** `pnpm --filter @docuflow/domain test`.
 
-- [ ] **Step 12.06 — Implementar UI de Minhas tarefas**
+- [x] **Step 12.06 — Implementar UI de Minhas tarefas**
   - **Arquivos:** `apps/web/src/features/tasks/TaskInboxPage.tsx`
   - **Ação:** Criar lista com filtros, contagem e acesso ao documento relacionado sem permitir acesso além do escopo da tarefa.
   - **Verificação:** `pnpm --filter @docuflow/web test`.
