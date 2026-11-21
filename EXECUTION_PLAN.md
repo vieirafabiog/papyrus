@@ -625,7 +625,7 @@ docuflow/
   - **Ação:** Integrar scanner por protocolo/serviço configurado, com timeout, falha fechada e estado explícito quando indisponível.
   - **Verificação:** `pnpm --filter @docuflow/file-processing test`.
 
-- [ ] **Step 09.08 — Implementar worker de processamento de arquivo**
+- [x] **Step 09.08 — Implementar worker de processamento de arquivo**
   - **Arquivos:** `apps/worker/src/jobs/process-upload.ts`
   - **Ação:** Consumir job persistido, executar MIME, checksum e scanner, e atualizar estado de objeto/documento em transação coerente.
   - **Verificação:** `pnpm --filter @docuflow/worker test:integration`.

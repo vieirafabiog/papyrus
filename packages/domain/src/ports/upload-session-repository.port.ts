@@ -63,6 +63,13 @@ export interface FinalizeUploadToQuarantineInput {
   readonly finalizedAt: Date;
 }
 
+export interface MarkFileObjectProcessedInput {
+  readonly fileObjectId: string;
+  readonly status: "AVAILABLE" | "REJECTED" | "MISSING";
+  readonly detectedContentType?: string | undefined;
+  readonly rejectionReason?: string | null | undefined;
+}
+
 export interface UploadSessionRepositoryPort {
   findById(id: string, tx?: TransactionContext): Promise<UploadSessionEntity | null>;
   findByIdempotencyKey(
@@ -87,5 +94,9 @@ export interface UploadSessionRepositoryPort {
     input: FinalizeUploadToQuarantineInput,
     tx?: TransactionContext,
   ): Promise<CreatedUploadSessionRecords | null>;
+  markFileObjectProcessed(
+    input: MarkFileObjectProcessedInput,
+    tx?: TransactionContext,
+  ): Promise<FileObjectEntity | null>;
   markSessionExpired(sessionId: string, tx?: TransactionContext): Promise<void>;
 }

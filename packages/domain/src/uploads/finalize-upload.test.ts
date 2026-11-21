@@ -167,6 +167,19 @@ function createHarness(initial?: Partial<TestHarnessState>) {
         });
       }
     },
+    async markFileObjectProcessed(input) {
+      const existing = state.fileObjects.get(input.fileObjectId);
+      if (!existing || existing.status !== "QUARANTINED") {
+        return null;
+      }
+      const next: FileObjectEntity = {
+        ...existing,
+        status: input.status,
+        detectedContentType: input.detectedContentType ?? existing.detectedContentType,
+      };
+      state.fileObjects.set(existing.id, next);
+      return next;
+    },
   };
 
   const documents: DocumentRepositoryPort = {

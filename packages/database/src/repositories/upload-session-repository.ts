@@ -3,6 +3,7 @@ import type {
   CreatedUploadSessionRecords,
   FileObjectEntity,
   FinalizeUploadToQuarantineInput,
+  MarkFileObjectProcessedInput,
   MarkUploadReceivedInput,
   TransactionContext,
   UploadSessionEntity,
@@ -179,6 +180,30 @@ export function createUploadSessionRepository(db: NodePgDatabase): UploadSession
         .update(uploadSessions)
         .set({ status: "EXPIRED", updatedAt: new Date() })
         .where(and(eq(uploadSessions.id, sessionId), eq(uploadSessions.status, "PENDING")));
+    },
+
+    async markFileObjectProcessed(
+      input: MarkFileObjectProcessedInput,
+      tx?: TransactionContext,
+    ): Promise<FileObjectEntity | null> {
+      const executor = resolveDbExecutor(db, tx);
+      const now = new Date();
+      const [updated] = await executor
+        .update(fileObjects)
+        .set({
+          status: input.status,
+          ...(input.detectedContentType !== undefined
+            ? { detectedContentType: input.detectedContentType }
+            : {}),
+          ...(input.rejectionReason !== undefined
+            ? { rejectionReason: input.rejectionReason }
+            : {}),
+          updatedAt: now,
+        })
+        .where(and(eq(fileObjects.id, input.fileObjectId), eq(fileObjects.status, "QUARANTINED")))
+        .returning();
+
+      return updated ? toFileObjectEntity(updated) : null;
     },
   };
 }

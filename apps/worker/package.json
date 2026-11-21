@@ -7,9 +7,23 @@
     "dev": "tsx watch src/worker.ts",
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "vitest run test/*.test.ts",
+    "test:integration": "vitest run test/integration"
+  },
+  "dependencies": {
+    "@docuflow/contracts": "workspace:*",
+    "@docuflow/database": "workspace:*",
+    "@docuflow/domain": "workspace:*",
+    "@docuflow/file-processing": "workspace:*",
+    "@docuflow/storage-core": "workspace:*",
+    "@docuflow/storage-local": "workspace:*",
+    "@docuflow/storage-s3": "workspace:*",
+    "zod": "^3.24.2"
   },
   "devDependencies": {
+    "@testcontainers/postgresql": "^10.18.0",
+    "drizzle-orm": "^0.41.0",
+    "pg": "^8.14.1",
     "tsx": "^4.19.3"
   }
 }

@@ -23,6 +23,15 @@ export {
 } from "./repositories/document-repository.js";
 export { createGroupRepository } from "./repositories/group-repository.js";
 export {
+  type ClaimOutboxJobOptions,
+  createOutboxRepository,
+  type EnqueueOutboxEventInput,
+  type OutboxJobRecord,
+  type OutboxRepository,
+  type RetryOrFailOutboxJobInput,
+  UPLOAD_PROCESSING_EVENT_TYPE,
+} from "./repositories/outbox-repository.js";
+export {
   createStorageConnectionRepository,
   createStorageRoutingRuleRepository,
 } from "./repositories/storage-connection-repository.js";

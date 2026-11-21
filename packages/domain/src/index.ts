@@ -147,6 +147,7 @@ export {
   type CreatedUploadSessionRecords,
   type CreateUploadSessionWithFileObjectInput,
   type FinalizeUploadToQuarantineInput,
+  type MarkFileObjectProcessedInput,
   type MarkUploadReceivedInput,
   UPLOAD_SESSION_STATUSES,
   type UploadSessionEntity,
