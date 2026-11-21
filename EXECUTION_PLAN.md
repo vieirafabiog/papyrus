@@ -758,7 +758,7 @@ docuflow/
   - **Ação:** Exibir totais de documentos, pendências, vencimentos e armazenamento com agregações autorizadas no banco. Não calcular métricas em coleções completas no navegador.
   - **Verificação:** `pnpm --filter @docuflow/api test:integration` e `pnpm --filter @docuflow/web test`.
 
-- [ ] **Step 11.09 — Implementar breadcrumbs e navegação por pastas**
+- [x] **Step 11.09 — Implementar breadcrumbs e navegação por pastas**
   - **Arquivos:** hooks e componentes de pastas
   - **Ação:** Exibir caminho hierárquico com autorização em cada navegação e tratamento de pasta removida/arquivada.
   - **Verificação:** `pnpm --filter @docuflow/web test`.

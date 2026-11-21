@@ -267,9 +267,20 @@ export function DocumentDetailsPage() {
                         Pasta
                       </Typography>
                     </Stack>
-                    <Typography variant="body1" fontWeight={500}>
-                      {doc.folder ? doc.folder.name : "Sem pasta (raiz)"}
-                    </Typography>
+                    {doc.folder ? (
+                      <Button
+                        variant="text"
+                        size="small"
+                        sx={{ justifyContent: "flex-start", px: 0, textTransform: "none" }}
+                        onClick={() => void navigate(`/pastas/${doc.folder?.id}`)}
+                      >
+                        {doc.folder.name}
+                      </Button>
+                    ) : (
+                      <Typography variant="body1" fontWeight={500}>
+                        Sem pasta (raiz)
+                      </Typography>
+                    )}
                   </Stack>
                 </Grid>
 
