@@ -21,6 +21,7 @@ import type { SetupService } from "./modules/setup/setup.service.js";
 import { registerStorageRoutes } from "./modules/storage/storage.routes.js";
 import {
   type LocalStreamUploadDependencies,
+  type StorageUploadDependencies,
   registerUploadRoutes,
 } from "./modules/uploads/upload.routes.js";
 import { registerUserRoutes } from "./modules/users/users.routes.js";
@@ -48,6 +49,7 @@ export interface AppOptions {
         readonly documentRepository: DocumentRepositoryPort;
         readonly uploadRepository: UploadSessionRepositoryPort;
         readonly uploadSessionService: UploadSessionService;
+        readonly storageUploadDeps?: StorageUploadDependencies | undefined;
         readonly localUploadDeps?: LocalStreamUploadDependencies | undefined;
       }
     | undefined;
@@ -164,6 +166,7 @@ export function buildApp(options: AppOptions = {}): FastifyInstance {
           guard: uploadGuard,
           uploadSessionService: uploadDeps.uploadSessionService,
           uploadRepository: uploadDeps.uploadRepository,
+          storageUploadDeps: uploadDeps.storageUploadDeps,
           localUploadDeps: uploadDeps.localUploadDeps,
         });
       });

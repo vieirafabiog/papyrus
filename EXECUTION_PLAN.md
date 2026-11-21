@@ -600,7 +600,7 @@ docuflow/
   - **Ação:** Receber multipart/stream com limite e backpressure, persistir em objeto temporário e responder com progresso/estado documentado.
   - **Verificação:** `pnpm --filter @docuflow/api test:integration`.
 
-- [ ] **Step 09.03 — Implementar upload direto assinado para S3**
+- [x] **Step 09.03 — Implementar upload direto assinado para S3**
   - **Arquivos:** módulo upload da API e integração storage-s3
   - **Ação:** Emitir destino temporário apenas para upload session autorizada; exigir finalização na API.
   - **Verificação:** `pnpm --filter @docuflow/api test:integration`.

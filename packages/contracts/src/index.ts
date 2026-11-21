@@ -125,8 +125,14 @@ export {
 } from "./storage.schema.js";
 
 export {
+  type CreateSignedUploadTargetRequestContract,
+  createSignedUploadTargetRequestSchema,
   type CreateUploadSessionRequestContract,
   createUploadSessionRequestSchema,
+  type SignedUploadTargetContract,
+  signedUploadTargetSchema,
+  type SignedUploadTargetResponseContract,
+  signedUploadTargetResponseSchema,
   type UploadContentResponseContract,
   uploadContentResponseSchema,
   type UploadSessionRecordContract,

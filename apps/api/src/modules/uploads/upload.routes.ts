@@ -7,29 +7,43 @@ import { Readable, Transform } from "node:stream";
 import { pipeline } from "node:stream/promises";
 import {
   CONTRACTS_API_PREFIX,
+  type SignedUploadTargetResponseContract,
   type UploadContentResponseContract,
   type UploadSessionRecordContract,
+  createSignedUploadTargetRequestSchema,
   createUploadSessionRequestSchema,
   uuidSchema,
 } from "@docuflow/contracts";
 import {
   type AuditRepositoryPort,
   DomainError,
+  type FileObjectEntity,
+  type StorageConnectionEntity,
   type StorageConnectionRepositoryPort,
   type TransactionManagerPort,
+  type UploadSessionEntity,
   type UploadSessionRepositoryPort,
   type UploadSessionService,
 } from "@docuflow/domain";
 import {
   StorageError,
   type StorageProviderRegistry,
+  hasStorageCapability,
+  requireSignedUploadTargetProvider,
   resolveUploadMode,
 } from "@docuflow/storage-core";
 import { Busboy } from "@fastify/busboy";
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
-import type { DocumentAuthorizationGuard } from "../../plugins/authorization.js";
+import {
+  type AuthenticatedAuthorizationContext,
+  type DocumentAuthorizationGuard,
+  buildDocumentQueryScope,
+} from "../../plugins/authorization.js";
 
 const DEFAULT_MAX_UPLOAD_BYTES = 50 * 1024 * 1024;
+const DEFAULT_SIGNED_TARGET_TTL_SECONDS = 300;
+const MIN_SIGNED_TARGET_TTL_SECONDS = 10;
+const MAX_SIGNED_TARGET_TTL_SECONDS = 900;
 const PLACEHOLDER_PENDING_CHECKSUM = "0".repeat(64);
 
 class UploadPayloadTooLargeError extends Error {
@@ -46,15 +60,19 @@ class UploadPayloadValidationError extends Error {
   }
 }
 
-export interface LocalStreamUploadDependencies {
+export interface StorageUploadDependencies {
   readonly connections: StorageConnectionRepositoryPort;
   readonly storageRegistry: StorageProviderRegistry;
   readonly transactions: TransactionManagerPort;
   readonly auditRepository: AuditRepositoryPort;
   readonly maxUploadBytes?: number | undefined;
   readonly tempBaseDirectory?: string | undefined;
+  readonly defaultSignedTargetTtlSeconds?: number | undefined;
+  readonly maxSignedTargetTtlSeconds?: number | undefined;
   readonly now?: (() => Date) | undefined;
 }
+
+export type LocalStreamUploadDependencies = StorageUploadDependencies;
 
 interface StreamedTempUploadResult {
   readonly bytesReceived: number;
@@ -243,12 +261,18 @@ export async function registerUploadRoutes(
     readonly guard: DocumentAuthorizationGuard;
     readonly uploadSessionService: UploadSessionService;
     readonly uploadRepository: UploadSessionRepositoryPort;
+    readonly storageUploadDeps?: StorageUploadDependencies | undefined;
     readonly localUploadDeps?: LocalStreamUploadDependencies | undefined;
   },
 ): Promise<void> {
-  const { guard, uploadSessionService, uploadRepository, localUploadDeps } = deps;
-  const maxUploadBytes = localUploadDeps?.maxUploadBytes ?? DEFAULT_MAX_UPLOAD_BYTES;
-  const nowFn = localUploadDeps?.now ?? (() => new Date());
+  const { guard, uploadSessionService, uploadRepository } = deps;
+  const uploadStorageDeps = deps.storageUploadDeps ?? deps.localUploadDeps;
+  const maxUploadBytes = uploadStorageDeps?.maxUploadBytes ?? DEFAULT_MAX_UPLOAD_BYTES;
+  const nowFn = uploadStorageDeps?.now ?? (() => new Date());
+  const defaultSignedTargetTtlSeconds =
+    uploadStorageDeps?.defaultSignedTargetTtlSeconds ?? DEFAULT_SIGNED_TARGET_TTL_SECONDS;
+  const maxSignedTargetTtlSeconds =
+    uploadStorageDeps?.maxSignedTargetTtlSeconds ?? MAX_SIGNED_TARGET_TTL_SECONDS;
 
   // Pass raw stream directly for multipart and binary uploads inside this encapsulated plugin
   // without buffering the whole payload into memory.
@@ -409,84 +433,134 @@ export async function registerUploadRoutes(
     },
   );
 
-  if (localUploadDeps) {
-    const handleStreamContentUpload = async (
+  if (uploadStorageDeps) {
+    interface AuthorizedPendingUpload {
+      readonly ctx: AuthenticatedAuthorizationContext;
+      readonly session: UploadSessionEntity;
+      readonly fileObject: FileObjectEntity;
+      readonly connection: StorageConnectionEntity;
+    }
+
+    const loadAuthorizedPendingUpload = async (
       request: FastifyRequest<{ Params: { id: string } }>,
       reply: FastifyReply,
-    ): Promise<FastifyReply> => {
+    ): Promise<AuthorizedPendingUpload | null> => {
       const ctx = await guard.requireSubject(request, reply);
       if (!ctx) {
-        return reply;
+        return null;
       }
 
       const idParsed = uuidSchema.safeParse(request.params.id);
       if (!idParsed.success) {
-        return reply.status(400).send({
+        void reply.status(400).send({
           error: {
             code: "VALIDATION_ERROR",
             message: "Identificador de sessão de upload inválido.",
             requestId: request.id,
           },
         });
+        return null;
       }
 
       const session = await uploadRepository.findById(idParsed.data);
+      const uploadScope = buildDocumentQueryScope(ctx.loaded, ctx.rolePermissions, "UPLOAD");
+      const hasAnyUploadGrant =
+        !uploadScope.hasGlobalDeny &&
+        (uploadScope.hasGlobalAllow ||
+          uploadScope.allowedCategoryIds.length > 0 ||
+          uploadScope.allowedFolderIds.length > 0 ||
+          uploadScope.allowedDocumentIds.length > 0);
+
       if (
         !session ||
         session.organizationId !== ctx.me.user.organizationId ||
-        session.userId !== ctx.me.user.id
+        session.userId !== ctx.me.user.id ||
+        !hasAnyUploadGrant
       ) {
-        return reply.status(403).send({
+        void reply.status(403).send({
           error: {
             code: "FORBIDDEN",
-            message: "Você não possui permissão para enviar arquivos para esta sessão.",
+            message: "Você não possui permissão para operar esta sessão de upload.",
             requestId: request.id,
           },
         });
+        return null;
       }
 
       if (new Date(session.expiresAt).getTime() <= nowFn().getTime()) {
         await uploadRepository.markSessionExpired(session.id);
-        return reply.status(409).send({
+        void reply.status(409).send({
           error: {
             code: "CONFLICT",
             message: "A sessão de upload expirou.",
             requestId: request.id,
           },
         });
+        return null;
       }
 
       if (session.status !== "PENDING") {
-        return reply.status(409).send({
+        void reply.status(409).send({
           error: {
             code: "CONFLICT",
             message: "A sessão de upload não está mais pendente para envio.",
             requestId: request.id,
           },
         });
+        return null;
       }
 
       const fileObject = await uploadRepository.findFileObjectById(session.fileObjectId);
       if (!fileObject) {
-        return reply.status(404).send({
+        void reply.status(404).send({
           error: {
             code: "NOT_FOUND",
             message: "Objeto temporário da sessão não encontrado.",
             requestId: request.id,
           },
         });
+        return null;
       }
 
-      const connection = await localUploadDeps.connections.findById(session.storageConnectionId);
-      if (!connection || connection.organizationId !== ctx.me.user.organizationId) {
-        return reply.status(503).send({
+      if (fileObject.status !== "UPLOADING") {
+        void reply.status(409).send({
+          error: {
+            code: "CONFLICT",
+            message: "O objeto associado a esta sessão não aceita mais envio.",
+            requestId: request.id,
+          },
+        });
+        return null;
+      }
+
+      const connection = await uploadStorageDeps.connections.findById(session.storageConnectionId);
+      if (
+        !connection ||
+        connection.organizationId !== ctx.me.user.organizationId ||
+        connection.status !== "ACTIVE"
+      ) {
+        void reply.status(503).send({
           error: {
             code: "STORAGE_UNAVAILABLE",
             message: "Conexão de armazenamento de destino indisponível.",
             requestId: request.id,
           },
         });
+        return null;
       }
+
+      return { ctx, session, fileObject, connection };
+    };
+
+    const handleStreamContentUpload = async (
+      request: FastifyRequest<{ Params: { id: string } }>,
+      reply: FastifyReply,
+    ): Promise<FastifyReply> => {
+      const authorized = await loadAuthorizedPendingUpload(request, reply);
+      if (!authorized) {
+        return reply;
+      }
+      const { ctx, session, fileObject, connection } = authorized;
 
       if (connection.kind !== "local") {
         return reply.status(409).send({
@@ -514,11 +588,11 @@ export async function registerUploadRoutes(
 
       let tempDir: string | null = null;
       try {
-        const provider = await localUploadDeps.storageRegistry.resolveProvider(connection);
+        const provider = await uploadStorageDeps.storageRegistry.resolveProvider(connection);
         resolveUploadMode(provider, false);
 
         tempDir = await mkdtemp(
-          path.join(localUploadDeps.tempBaseDirectory ?? os.tmpdir(), "docuflow-api-upload-"),
+          path.join(uploadStorageDeps.tempBaseDirectory ?? os.tmpdir(), "docuflow-api-upload-"),
         );
         const tempFilePath = path.join(tempDir, `${session.id}.bin`);
 
@@ -575,7 +649,7 @@ export async function registerUploadRoutes(
           },
         });
 
-        const updatedRecords = await localUploadDeps.transactions.runInTransaction(async (tx) => {
+        const updatedRecords = await uploadStorageDeps.transactions.runInTransaction(async (tx) => {
           const marked = await uploadRepository.markUploadReceived(
             {
               sessionId: session.id,
@@ -589,7 +663,7 @@ export async function registerUploadRoutes(
             return null;
           }
 
-          await localUploadDeps.auditRepository.append(
+          await uploadStorageDeps.auditRepository.append(
             {
               organizationId: ctx.me.user.organizationId,
               actorUserId: ctx.me.user.id,
@@ -670,8 +744,158 @@ export async function registerUploadRoutes(
       }
     };
 
+    const handleIssueSignedUploadTarget = async (
+      request: FastifyRequest<{ Params: { id: string } }>,
+      reply: FastifyReply,
+    ): Promise<FastifyReply> => {
+      const authorized = await loadAuthorizedPendingUpload(request, reply);
+      if (!authorized) {
+        return reply;
+      }
+      const { ctx, session, fileObject, connection } = authorized;
+
+      const parsedBody = createSignedUploadTargetRequestSchema.safeParse(request.body ?? {});
+      if (!parsedBody.success) {
+        return reply.status(400).send({
+          error: {
+            code: "VALIDATION_ERROR",
+            message: "Parâmetros inválidos para emissão de destino temporário de upload.",
+            requestId: request.id,
+          },
+        });
+      }
+
+      if (session.declaredSizeBytes > maxUploadBytes) {
+        return reply.status(413).send({
+          error: {
+            code: "UPLOAD_TOO_LARGE",
+            message: "O tamanho declarado da sessão excede o limite atual de upload.",
+            requestId: request.id,
+          },
+        });
+      }
+
+      const remainingSessionSeconds = Math.floor(
+        (new Date(session.expiresAt).getTime() - nowFn().getTime()) / 1000,
+      );
+      if (remainingSessionSeconds < MIN_SIGNED_TARGET_TTL_SECONDS) {
+        return reply.status(409).send({
+          error: {
+            code: "CONFLICT",
+            message:
+              "Tempo restante da sessão de upload insuficiente para emitir destino temporário seguro.",
+            requestId: request.id,
+          },
+        });
+      }
+
+      const requestedTtl = parsedBody.data.expiresInSeconds ?? defaultSignedTargetTtlSeconds;
+      const effectiveTtl = Math.min(
+        requestedTtl,
+        maxSignedTargetTtlSeconds,
+        remainingSessionSeconds,
+      );
+
+      try {
+        const provider = await uploadStorageDeps.storageRegistry.resolveProvider(connection);
+        if (
+          !hasStorageCapability(provider, "signedUpload") ||
+          resolveUploadMode(provider, true) !== "SIGNED_UPLOAD"
+        ) {
+          return reply.status(409).send({
+            error: {
+              code: "CONFLICT",
+              message:
+                "Esta conexão de armazenamento não suporta upload direto assinado; utilize streaming pela API.",
+              requestId: request.id,
+            },
+          });
+        }
+
+        const signedProvider = requireSignedUploadTargetProvider(provider);
+        const signedTarget = await signedProvider.createSignedUploadTarget({
+          key: { value: fileObject.objectKey },
+          contentType: session.declaredContentType,
+          contentLength: session.declaredSizeBytes,
+          expiresInSeconds: effectiveTtl,
+        });
+        if (signedTarget.method !== "PUT") {
+          throw new StorageError(
+            "CAPABILITY_NOT_SUPPORTED",
+            "Método HTTP inválido retornado para destino temporário de upload.",
+            connection.kind,
+          );
+        }
+
+        await uploadStorageDeps.auditRepository.append({
+          organizationId: ctx.me.user.organizationId,
+          actorUserId: ctx.me.user.id,
+          action: "UPLOAD_SIGNED_TARGET_ISSUED",
+          resourceType: "UPLOAD_SESSION",
+          resourceId: session.id,
+          result: "SUCCESS",
+          requestId: request.id,
+          metadata: {
+            storageConnectionId: connection.id,
+            declaredSizeBytes: session.declaredSizeBytes,
+            ttlSeconds: effectiveTtl,
+            targetExpiresAt: signedTarget.expiresAt.toISOString(),
+          },
+        });
+
+        const responseData: SignedUploadTargetResponseContract = {
+          sessionId: session.id,
+          fileObjectId: fileObject.id,
+          storageConnectionId: session.storageConnectionId,
+          uploadMode: "SIGNED_UPLOAD",
+          finalizationRequired: true,
+          status: session.status,
+          fileObjectStatus: fileObject.status,
+          target: {
+            url: signedTarget.url,
+            method: signedTarget.method,
+            headers: signedTarget.headers,
+            expiresAt: signedTarget.expiresAt.toISOString(),
+          },
+        };
+
+        return reply
+          .header("Cache-Control", "private, no-store")
+          .header("Pragma", "no-cache")
+          .status(200)
+          .send({ data: responseData });
+      } catch (error) {
+        if (error instanceof StorageError) {
+          const status =
+            error.code === "UNAVAILABLE" || error.code === "TIMEOUT"
+              ? 503
+              : error.code === "CONFLICT" || error.code === "CAPABILITY_NOT_SUPPORTED"
+                ? 409
+                : 400;
+          const code =
+            status === 503
+              ? "STORAGE_UNAVAILABLE"
+              : status === 409
+                ? "CONFLICT"
+                : "VALIDATION_ERROR";
+          return reply.status(status).send({
+            error: {
+              code,
+              message: error.message,
+              requestId: request.id,
+            },
+          });
+        }
+        throw error;
+      }
+    };
+
     const streamBodyLimit = Math.max(maxUploadBytes * 2, 100 * 1024 * 1024);
 
+    app.post<{ Params: { id: string } }>(
+      `${CONTRACTS_API_PREFIX}/uploads/sessions/:id/signed-target`,
+      handleIssueSignedUploadTarget,
+    );
     app.post<{ Params: { id: string } }>(
       `${CONTRACTS_API_PREFIX}/uploads/sessions/:id/content`,
       { bodyLimit: streamBodyLimit },

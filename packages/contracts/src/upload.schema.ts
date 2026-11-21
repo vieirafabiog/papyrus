@@ -56,3 +56,32 @@ export const uploadContentResponseSchema = z.object({
   checksumSha256: sha256ChecksumSchema,
 });
 export type UploadContentResponseContract = z.infer<typeof uploadContentResponseSchema>;
+
+export const createSignedUploadTargetRequestSchema = z
+  .object({
+    expiresInSeconds: z.number().int().min(10).max(900).optional(),
+  })
+  .strict();
+export type CreateSignedUploadTargetRequestContract = z.infer<
+  typeof createSignedUploadTargetRequestSchema
+>;
+
+export const signedUploadTargetSchema = z.object({
+  url: z.string().url(),
+  method: z.literal("PUT"),
+  headers: z.record(z.string(), z.string()),
+  expiresAt: isoDateTimeSchema,
+});
+export type SignedUploadTargetContract = z.infer<typeof signedUploadTargetSchema>;
+
+export const signedUploadTargetResponseSchema = z.object({
+  sessionId: uuidSchema,
+  fileObjectId: uuidSchema,
+  storageConnectionId: uuidSchema,
+  uploadMode: z.literal("SIGNED_UPLOAD"),
+  finalizationRequired: z.literal(true),
+  status: uploadSessionStatusSchema,
+  fileObjectStatus: fileObjectStatusSchema,
+  target: signedUploadTargetSchema,
+});
+export type SignedUploadTargetResponseContract = z.infer<typeof signedUploadTargetResponseSchema>;
