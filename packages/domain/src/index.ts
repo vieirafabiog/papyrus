@@ -350,8 +350,11 @@ export type {
 } from "./ports/workflow-instance-repository.port.js";
 
 export type {
+  CreateWorkflowDecisionRecordInput,
   CreateWorkflowTaskIdempotentInput,
   CreateWorkflowTaskRecordResult,
+  TransitionWorkflowTaskFromPendingInput,
+  WorkflowDecisionRepositoryPort,
   WorkflowTaskRepositoryPort,
 } from "./ports/workflow-task-repository.port.js";
 
@@ -363,6 +366,15 @@ export {
   type GenerateWorkflowStepTaskCommand,
   type WorkflowAssigneeAuthorizationPort,
 } from "./workflows/create-tasks.js";
+
+export {
+  createDecideTaskUseCase,
+  type DecideTaskAction,
+  type DecideTaskCommand,
+  type DecideTaskDependencies,
+  type DecideTaskService,
+  type DecidedTaskResult,
+} from "./workflows/decide-task.js";
 
 export {
   createStartWorkflowUseCase,

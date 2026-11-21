@@ -68,6 +68,7 @@ export { createUploadSessionRepository } from "./repositories/upload-session-rep
 export { createUserRepository } from "./repositories/user-repository.js";
 export {
   createWorkflowAssigneeVerifier,
+  createWorkflowDecisionRepository,
   createWorkflowDefinitionRepository,
   createWorkflowInstanceRepository,
   createWorkflowTaskRepository,

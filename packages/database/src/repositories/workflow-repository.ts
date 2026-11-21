@@ -1,5 +1,6 @@
 import {
   type AccessScope,
+  type CreateWorkflowDecisionRecordInput,
   type CreateWorkflowDefinitionRecordInput,
   type CreateWorkflowInstanceRecordInput,
   type CreateWorkflowTaskIdempotentInput,
@@ -8,10 +9,13 @@ import {
   DomainError,
   type PublishWorkflowDefinitionVersionInput,
   type TransactionContext,
+  type TransitionWorkflowTaskFromPendingInput,
   type UpdateWorkflowDefinitionInput,
   type UpdateWorkflowInstanceProgressInput,
   type WorkflowAssigneeAuthorizationPort,
   type WorkflowAssigneeTarget,
+  type WorkflowDecisionEntity,
+  type WorkflowDecisionRepositoryPort,
   type WorkflowDefinitionEntity,
   type WorkflowDefinitionRepositoryPort,
   type WorkflowDefinitionVersionEntity,
@@ -36,6 +40,7 @@ import {
 import { folders } from "../schema/taxonomy.js";
 import {
   type WorkflowStepSnapshot,
+  workflowDecisions,
   workflowDefinitionVersions,
   workflowDefinitions,
   workflowInstances,
@@ -566,6 +571,112 @@ export function createWorkflowTaskRepository(db: NodePgDatabase): WorkflowTaskRe
       }
 
       return { task: existing, created: false };
+    },
+
+    async transitionFromPending(
+      input: TransitionWorkflowTaskFromPendingInput,
+      tx?: TransactionContext,
+    ): Promise<WorkflowTaskEntity | null> {
+      const executor = resolveDbExecutor(db, tx);
+      const [updated] = await executor
+        .update(workflowTasks)
+        .set({
+          status: input.nextStatus,
+          decidedAt: input.decidedAt,
+        })
+        .where(
+          and(eq(workflowTasks.id, input.taskId), eq(workflowTasks.status, input.expectedStatus)),
+        )
+        .returning();
+
+      return updated ? toWorkflowTaskEntity(updated) : null;
+    },
+
+    async cancelPendingByInstanceId(
+      workflowInstanceId: string,
+      cancelledAt: Date,
+      tx?: TransactionContext,
+    ): Promise<number> {
+      const executor = resolveDbExecutor(db, tx);
+      const updated = await executor
+        .update(workflowTasks)
+        .set({
+          status: "CANCELLED",
+          decidedAt: cancelledAt,
+        })
+        .where(
+          and(
+            eq(workflowTasks.workflowInstanceId, workflowInstanceId),
+            eq(workflowTasks.status, "PENDING"),
+          ),
+        )
+        .returning({ id: workflowTasks.id });
+
+      return updated.length;
+    },
+  };
+}
+
+export function createWorkflowDecisionRepository(
+  db: NodePgDatabase,
+): WorkflowDecisionRepositoryPort {
+  return {
+    async findByTaskId(
+      taskId: string,
+      tx?: TransactionContext,
+    ): Promise<WorkflowDecisionEntity | null> {
+      const executor = resolveDbExecutor(db, tx);
+      const [row] = await executor
+        .select()
+        .from(workflowDecisions)
+        .where(eq(workflowDecisions.taskId, taskId))
+        .limit(1);
+
+      if (!row) {
+        return null;
+      }
+
+      return {
+        id: row.id,
+        taskId: row.taskId,
+        actorUserId: row.actorUserId,
+        decision: row.decision,
+        comment: row.comment,
+        createdAt: row.createdAt.toISOString(),
+      };
+    },
+
+    async create(
+      input: CreateWorkflowDecisionRecordInput,
+      tx?: TransactionContext,
+    ): Promise<WorkflowDecisionEntity> {
+      const executor = resolveDbExecutor(db, tx);
+      const [row] = await executor
+        .insert(workflowDecisions)
+        .values({
+          id: input.id,
+          organizationId: input.organizationId,
+          taskId: input.taskId,
+          actorUserId: input.actorUserId,
+          decision: input.decision,
+          comment: input.comment,
+          createdAt: input.createdAt,
+        })
+        .returning();
+
+      if (!row) {
+        throw new Error("Failed to insert workflow decision record.");
+      }
+
+      return {
+        id: row.id,
+        taskId: row.taskId,
+        actorUserId: row.actorUserId,
+        decision: row.decision,
+        comment: row.comment,
+        idempotencyKey: input.idempotencyKey ?? null,
+        createdAt: row.createdAt.toISOString(),
+      };
     },
   };
 }

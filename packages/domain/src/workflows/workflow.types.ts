@@ -107,6 +107,7 @@ export interface WorkflowDecisionEntity {
   readonly actorUserId: string;
   readonly decision: WorkflowDecisionType;
   readonly comment: string | null;
+  readonly idempotencyKey?: string | null | undefined;
   readonly createdAt: string;
 }
 

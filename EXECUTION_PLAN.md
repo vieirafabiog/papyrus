@@ -792,7 +792,7 @@ docuflow/
   - **Ação:** Listar tarefas do usuário/grupos, com filtros, paginação e autorização.
   - **Verificação:** `pnpm --filter @docuflow/api test:integration`.
 
-- [ ] **Step 12.05 — Implementar decisão concorrente de tarefa**
+- [x] **Step 12.05 — Implementar decisão concorrente de tarefa**
   - **Arquivos:** `packages/domain/src/workflows/decide-task.ts`
   - **Ação:** Implementar aprovar, rejeitar, solicitar alteração e cancelar. Usar transação/controle de versão para decisão única; retornos repetidos devem ser idempotentes quando a mesma requisição for repetida.
   - **Verificação:** `pnpm --filter @docuflow/domain test`.
