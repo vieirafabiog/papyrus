@@ -28,6 +28,7 @@ import type {
   RetentionGovernanceService,
   StorageConnectionAdminService,
   StorageConnectionRepositoryPort,
+  StorageRouterService,
   TagService,
   TrashDocumentService,
   UploadSessionRepositoryPort,
@@ -81,6 +82,7 @@ export interface AppOptions {
   readonly groupAdminService?: GroupAdministrationService | undefined;
   readonly permissionAdminService?: PermissionAdministrationService | undefined;
   readonly storageAdminService?: StorageConnectionAdminService | undefined;
+  readonly storageRouterService?: StorageRouterService | undefined;
   readonly auditRepository?: AuditRepositoryPort | undefined;
   readonly s3SecurityPolicy?: S3EndpointSecurityPolicy | undefined;
   readonly documentDeps?:
@@ -251,11 +253,13 @@ export function buildApp(options: AppOptions = {}): FastifyInstance {
 
     if (options.storageAdminService) {
       const storageAdminService = options.storageAdminService;
+      const storageRouterService = options.storageRouterService;
       const s3SecurityPolicy = options.s3SecurityPolicy;
       void app.register(async (instance) => {
         await registerStorageRoutes(instance, {
           authService,
           storageAdminService,
+          storageRouterService,
           s3SecurityPolicy,
         });
       });

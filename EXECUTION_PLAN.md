@@ -890,7 +890,7 @@ docuflow/
   - **Ação:** Apresentar matriz compreensível de permissões, herança e exceções; não expor expressões SQL ou detalhes internos.
   - **Verificação:** `pnpm --filter @docuflow/web test`.
 
-- [ ] **Step 14.04 — Implementar UI de conexões de storage**
+- [x] **Step 14.04 — Implementar UI de conexões de storage**
   - **Arquivos:** `apps/web/src/features/admin/StorageSettingsPage.tsx`
   - **Ação:** Cadastrar local/S3, editar configurações, testar saúde, mascarar credenciais, escolher destino padrão e regras por categoria.
   - **Verificação:** `pnpm --filter @docuflow/web test`.

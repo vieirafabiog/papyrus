@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { isoDateTimeSchema, uuidSchema } from "./common.schema.js";
+import { createApiResponseSchema, isoDateTimeSchema, uuidSchema } from "./common.schema.js";
 
 export const storageConnectionKindSchema = z.enum(["local", "s3", "azure_blob", "google_cloud"]);
 export type StorageConnectionKindContract = z.infer<typeof storageConnectionKindSchema>;
@@ -122,3 +122,48 @@ export const updateStorageConnectionContractSchema = z
     message: "Informe ao menos um campo para atualização.",
   });
 export type UpdateStorageConnectionContract = z.infer<typeof updateStorageConnectionContractSchema>;
+
+export const storageConnectionResponseSchema = createApiResponseSchema(storageConnectionViewSchema);
+export type StorageConnectionResponseContract = z.infer<typeof storageConnectionResponseSchema>;
+
+export const storageConnectionListResponseSchema = createApiResponseSchema(
+  z.array(storageConnectionViewSchema),
+);
+export type StorageConnectionListResponseContract = z.infer<
+  typeof storageConnectionListResponseSchema
+>;
+
+export const storageConnectionTestResponseSchema = createApiResponseSchema(
+  storageConnectionTestResultSchema,
+);
+export type StorageConnectionTestResponseContract = z.infer<
+  typeof storageConnectionTestResponseSchema
+>;
+
+export const storageRoutingRuleViewSchema = z.object({
+  id: uuidSchema,
+  organizationId: uuidSchema,
+  categoryId: uuidSchema.nullable(),
+  storageConnectionId: uuidSchema,
+  createdAt: isoDateTimeSchema,
+  updatedAt: isoDateTimeSchema,
+});
+export type StorageRoutingRuleViewContract = z.infer<typeof storageRoutingRuleViewSchema>;
+
+export const storageRoutingRuleListResponseSchema = createApiResponseSchema(
+  z.array(storageRoutingRuleViewSchema),
+);
+export type StorageRoutingRuleListResponseContract = z.infer<
+  typeof storageRoutingRuleListResponseSchema
+>;
+
+export const storageRoutingRuleResponseSchema = createApiResponseSchema(
+  storageRoutingRuleViewSchema,
+);
+export type StorageRoutingRuleResponseContract = z.infer<typeof storageRoutingRuleResponseSchema>;
+
+export const upsertStorageRoutingRuleRequestSchema = z.object({
+  categoryId: uuidSchema.nullable(),
+  storageConnectionId: uuidSchema,
+});
+export type UpsertStorageRoutingRuleRequest = z.infer<typeof upsertStorageRoutingRuleRequestSchema>;

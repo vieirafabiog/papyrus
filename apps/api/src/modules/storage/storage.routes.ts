@@ -3,9 +3,14 @@ import {
   CONTRACTS_API_PREFIX,
   createStorageConnectionContractSchema,
   updateStorageConnectionContractSchema,
+  upsertStorageRoutingRuleRequestSchema,
   uuidSchema,
 } from "@docuflow/contracts";
-import { DomainError, type StorageConnectionAdminService } from "@docuflow/domain";
+import {
+  DomainError,
+  type StorageConnectionAdminService,
+  type StorageRouterService,
+} from "@docuflow/domain";
 import { sanitizeStorageErrorMessage } from "@docuflow/storage-core";
 import {
   type S3EndpointSecurityPolicy,
@@ -117,10 +122,11 @@ export async function registerStorageRoutes(
   deps: {
     readonly authService: AuthService;
     readonly storageAdminService: StorageConnectionAdminService;
+    readonly storageRouterService?: StorageRouterService | undefined;
     readonly s3SecurityPolicy?: S3EndpointSecurityPolicy | undefined;
   },
 ): Promise<void> {
-  const { authService, storageAdminService, s3SecurityPolicy } = deps;
+  const { authService, storageAdminService, storageRouterService, s3SecurityPolicy } = deps;
 
   app.get(`${CONTRACTS_API_PREFIX}/admin/storage-connections`, async (request, reply) => {
     const actor = await requireStorageAdmin(request, reply, authService);
@@ -553,6 +559,108 @@ export async function registerStorageRoutes(
         }
         throw error;
       }
+    },
+  );
+
+  app.get(`${CONTRACTS_API_PREFIX}/admin/storage-routing-rules`, async (request, reply) => {
+    const actor = await requireStorageAdmin(request, reply, authService);
+    if (!actor) {
+      return reply;
+    }
+
+    const rules = storageRouterService
+      ? await storageRouterService.listRules(actor.user.organizationId)
+      : [];
+    return reply.status(200).send({ data: rules });
+  });
+
+  app.put(`${CONTRACTS_API_PREFIX}/admin/storage-routing-rules`, async (request, reply) => {
+    if (!storageRouterService) {
+      return reply.status(501).send({
+        error: {
+          code: "INTERNAL_ERROR",
+          message: "Serviço de roteamento de armazenamento não configurado.",
+          requestId: request.id,
+        },
+      });
+    }
+
+    const actor = await requireStorageAdmin(request, reply, authService);
+    if (!actor) {
+      return reply;
+    }
+
+    const parsed = upsertStorageRoutingRuleRequestSchema.safeParse(request.body);
+    if (!parsed.success) {
+      return reply.status(400).send({
+        error: {
+          code: "VALIDATION_ERROR",
+          message: "Dados inválidos para regra de roteamento de armazenamento.",
+          requestId: request.id,
+        },
+      });
+    }
+
+    try {
+      const saved = await storageRouterService.setRoutingRule({
+        organizationId: actor.user.organizationId,
+        actorUserId: actor.user.id,
+        requestId: request.id,
+        categoryId: parsed.data.categoryId,
+        storageConnectionId: parsed.data.storageConnectionId,
+      });
+      return reply.status(200).send({ data: saved });
+    } catch (error) {
+      if (error instanceof DomainError) {
+        const mapped = mapStorageDomainError(error.code);
+        return reply.status(mapped.status).send({
+          error: {
+            code: mapped.httpCode,
+            message: sanitizeStorageErrorMessage(error.message),
+            requestId: request.id,
+          },
+        });
+      }
+      throw error;
+    }
+  });
+
+  app.delete<{ Params: { categoryId: string } }>(
+    `${CONTRACTS_API_PREFIX}/admin/storage-routing-rules/categories/:categoryId`,
+    async (request, reply) => {
+      if (!storageRouterService) {
+        return reply.status(501).send({
+          error: {
+            code: "INTERNAL_ERROR",
+            message: "Serviço de roteamento de armazenamento não configurado.",
+            requestId: request.id,
+          },
+        });
+      }
+
+      const actor = await requireStorageAdmin(request, reply, authService);
+      if (!actor) {
+        return reply;
+      }
+
+      const categoryParsed = uuidSchema.safeParse(request.params.categoryId);
+      if (!categoryParsed.success) {
+        return reply.status(400).send({
+          error: {
+            code: "VALIDATION_ERROR",
+            message: "Identificador de categoria inválido.",
+            requestId: request.id,
+          },
+        });
+      }
+
+      const removed = await storageRouterService.clearCategoryRule({
+        organizationId: actor.user.organizationId,
+        actorUserId: actor.user.id,
+        requestId: request.id,
+        categoryId: categoryParsed.data,
+      });
+      return reply.status(200).send({ data: { removed } });
     },
   );
 }
