@@ -16,6 +16,7 @@ import { DocumentTagsField } from "../tags/DocumentTagsField.js";
 import { DocumentLifecycleActions } from "./DocumentLifecycleActions.js";
 import { DocumentMetadataForm } from "./DocumentMetadataForm.js";
 import { DocumentPreviewPanel } from "./DocumentPreviewPanel.js";
+import { DocumentWorkflowTimeline } from "./DocumentWorkflowTimeline.js";
 import { DocumentFileAvailabilityPanel } from "./FileProcessingStatus.js";
 import { UploadDialog } from "./UploadDialog.js";
 import { VersionHistory } from "./VersionHistory.js";
@@ -451,6 +452,10 @@ export function DocumentDetailsPage() {
               doc.permissions.canUpload ? () => setUploadNewVersionOpen(true) : undefined
             }
           />
+        </Grid>
+
+        <Grid size={{ xs: 12 }}>
+          <DocumentWorkflowTimeline documentId={doc.id} />
         </Grid>
       </Grid>
 

@@ -176,3 +176,52 @@ export const submitTaskDecisionResponseSchema = createApiResponseSchema(
   submitTaskDecisionResultSchema,
 );
 export type SubmitTaskDecisionResponse = z.infer<typeof submitTaskDecisionResponseSchema>;
+
+export const workflowTimelineDecisionSchema = z.object({
+  id: uuidSchema,
+  decision: workflowDecisionTypeSchema,
+  actorDisplayName: z.string().trim().min(1).max(160),
+  comment: z.string().trim().max(2000).nullable(),
+  createdAt: isoDateTimeSchema,
+});
+export type WorkflowTimelineDecision = z.infer<typeof workflowTimelineDecisionSchema>;
+
+export const workflowTimelineStepSchema = z.object({
+  stepOrder: z.number().int().min(1),
+  stepName: z.string().trim().min(1).max(120),
+  assigneeType: z.enum(["USER", "GROUP", "ROLE"]),
+  assigneeDisplayName: z.string().trim().min(1).max(160),
+  taskId: uuidSchema.nullable(),
+  taskStatus: workflowTaskStatusSchema.nullable(),
+  createdAt: isoDateTimeSchema.nullable(),
+  dueAt: isoDateTimeSchema.nullable(),
+  decidedAt: isoDateTimeSchema.nullable(),
+  decision: workflowTimelineDecisionSchema.nullable(),
+});
+export type WorkflowTimelineStep = z.infer<typeof workflowTimelineStepSchema>;
+
+export const documentWorkflowTimelineInstanceSchema = z.object({
+  id: uuidSchema,
+  documentId: uuidSchema,
+  documentVersionId: uuidSchema,
+  documentVersionNumber: z.number().int().min(1),
+  workflowDefinitionId: uuidSchema,
+  workflowDefinitionName: z.string().trim().min(1).max(120),
+  workflowDefinitionVersionNumber: z.number().int().min(1),
+  status: workflowInstanceStatusSchema,
+  currentStepOrder: z.number().int().min(1),
+  startedByDisplayName: z.string().trim().min(1).max(160),
+  startedAt: isoDateTimeSchema,
+  completedAt: isoDateTimeSchema.nullable(),
+  steps: z.array(workflowTimelineStepSchema).min(1),
+});
+export type DocumentWorkflowTimelineInstance = z.infer<
+  typeof documentWorkflowTimelineInstanceSchema
+>;
+
+export const documentWorkflowTimelineResponseSchema = createApiResponseSchema(
+  z.array(documentWorkflowTimelineInstanceSchema),
+);
+export type DocumentWorkflowTimelineResponse = z.infer<
+  typeof documentWorkflowTimelineResponseSchema
+>;

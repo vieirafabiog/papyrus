@@ -253,6 +253,10 @@ export {
 } from "./tag.schema.js";
 
 export {
+  type DocumentWorkflowTimelineInstance,
+  documentWorkflowTimelineInstanceSchema,
+  type DocumentWorkflowTimelineResponse,
+  documentWorkflowTimelineResponseSchema,
   type SubmitTaskDecisionInput,
   submitTaskDecisionInputSchema,
   type SubmitTaskDecisionResponse,
@@ -279,6 +283,10 @@ export {
   type WorkflowStepDefinition,
   type WorkflowTaskRecord,
   type WorkflowTaskStatus,
+  type WorkflowTimelineDecision,
+  workflowTimelineDecisionSchema,
+  type WorkflowTimelineStep,
+  workflowTimelineStepSchema,
   workflowAssigneeTargetSchema,
   workflowDecisionRecordSchema,
   workflowDecisionTypeSchema,

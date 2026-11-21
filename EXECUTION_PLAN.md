@@ -807,7 +807,7 @@ docuflow/
   - **Ação:** Exibir versão exata, metadados, histórico e caixa de comentário; desabilitar ação durante envio e atualizar estado somente após confirmação da API.
   - **Verificação:** `pnpm --filter @docuflow/web test`.
 
-- [ ] **Step 12.08 — Implementar linha do tempo do processo**
+- [x] **Step 12.08 — Implementar linha do tempo do processo**
   - **Arquivos:** componente de workflow no detalhe documental
   - **Ação:** Exibir etapas, responsáveis, decisões e horários de forma somente leitura para usuários autorizados.
   - **Verificação:** `pnpm --filter @docuflow/web test`.
