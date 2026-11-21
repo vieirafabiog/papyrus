@@ -283,4 +283,53 @@ describe("createDocumentVersionUseCase", () => {
       }),
     ).rejects.toMatchObject({ code: "DOCUMENT_VERSION_CONFLICT" });
   });
+
+  it("restores a historical version by creating an append-only new version without rewriting history", async () => {
+    const h = createVersionTestHarness();
+
+    const v2 = await h.service.createVersion({
+      organizationId: h.orgId,
+      actorUserId: h.userId,
+      requestId: "req-create-v2",
+      documentId: h.docId,
+      expectedVersion: 2,
+      fileObjectId: "file-2",
+      changeNote: "Segunda versão",
+    });
+
+    // Cannot restore current version
+    await expect(
+      h.service.restoreVersion({
+        organizationId: h.orgId,
+        actorUserId: h.userId,
+        requestId: "req-restore-current",
+        documentId: h.docId,
+        targetVersionId: v2.version.id,
+        expectedVersion: 3,
+      }),
+    ).rejects.toMatchObject({ code: "VERSION_ALREADY_CURRENT" });
+
+    // Restoring v1 creates v3 linked to file-1 and preserves v1 + v2 untouched
+    const v3 = await h.service.restoreVersion({
+      organizationId: h.orgId,
+      actorUserId: h.userId,
+      requestId: "req-restore-v1",
+      documentId: h.docId,
+      targetVersionId: "ver-1",
+      expectedVersion: 3,
+    });
+
+    expect(v3.version.versionNumber).toBe(3);
+    expect(v3.version.fileObjectId).toBe("file-1");
+    expect(v3.version.changeNote).toBe("Restauração lógica da versão 1");
+    expect(v3.document.currentVersionId).toBe(v3.version.id);
+    expect(v3.document.version).toBe(4);
+    expect(h.versions.size).toBe(3);
+    expect(h.versions.get("ver-1")?.versionNumber).toBe(1);
+    expect(h.versions.get(v2.version.id)?.versionNumber).toBe(2);
+    expect(h.auditEvents.map((e) => e.action)).toEqual([
+      "DOCUMENT_VERSION_CREATED",
+      "DOCUMENT_VERSION_RESTORED",
+    ]);
+  });
 });

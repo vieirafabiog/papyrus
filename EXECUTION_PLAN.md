@@ -699,7 +699,7 @@ docuflow/
   - **Ação:** Criar nova versão append-only vinculada a um novo file object disponível; usar controle de concorrência para impedir número duplicado.
   - **Verificação:** `pnpm --filter @docuflow/domain test` e `pnpm --filter @docuflow/api test:integration`.
 
-- [ ] **Step 10.10 — Implementar histórico de versões na UI**
+- [x] **Step 10.10 — Implementar histórico de versões na UI**
   - **Arquivos:** `apps/web/src/features/documents/VersionHistory.tsx`
   - **Ação:** Exibir número, data, autor, observação e ações permitidas; restaurar versão antiga deve criar nova versão, não reescrever histórico.
   - **Verificação:** `pnpm --filter @docuflow/web test`.

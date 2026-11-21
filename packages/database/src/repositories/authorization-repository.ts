@@ -9,6 +9,7 @@ import type {
   DocumentListItemEntity,
   DocumentMetadataMap,
   DocumentSortField,
+  DocumentVersionHistoryQueryItem,
   PaginatedResult,
 } from "@docuflow/domain";
 import {
@@ -149,6 +150,9 @@ export interface AuthorizationRepository {
     scope: AuthorizedDocumentQueryScope,
   ): Promise<PaginatedResult<DocumentListItemEntity>>;
   loadDocumentDetailView?(document: DocumentEntity): Promise<DocumentDetailQueryData | null>;
+  listDocumentVersionHistory?(
+    document: DocumentEntity,
+  ): Promise<readonly DocumentVersionHistoryQueryItem[]>;
 }
 
 export function createAuthorizationRepository(db: NodePgDatabase): AuthorizationRepository {
@@ -544,6 +548,50 @@ export function createAuthorizationRepository(db: NodePgDatabase): Authorization
           createdAt: row.tag.createdAt.toISOString(),
         })),
       };
+    },
+
+    async listDocumentVersionHistory(
+      document: DocumentEntity,
+    ): Promise<readonly DocumentVersionHistoryQueryItem[]> {
+      const rows = await db
+        .select({
+          version: documentVersions,
+          author: {
+            id: users.id,
+            fullName: users.fullName,
+            email: users.email,
+          },
+          fileObject: {
+            id: fileObjects.id,
+            originalFileName: fileObjects.originalFileName,
+            detectedContentType: fileObjects.detectedContentType,
+            sizeBytes: fileObjects.sizeBytes,
+            checksumSha256: fileObjects.checksumSha256,
+            status: fileObjects.status,
+          },
+        })
+        .from(documentVersions)
+        .innerJoin(users, eq(documentVersions.uploadedByUserId, users.id))
+        .leftJoin(fileObjects, eq(documentVersions.fileObjectId, fileObjects.id))
+        .where(
+          and(
+            eq(documentVersions.documentId, document.id),
+            eq(users.organizationId, document.organizationId),
+          ),
+        )
+        .orderBy(desc(documentVersions.versionNumber), desc(documentVersions.id));
+
+      return rows.map((row) => ({
+        id: row.version.id,
+        documentId: row.version.documentId,
+        versionNumber: row.version.versionNumber,
+        fileObjectId: row.version.fileObjectId,
+        uploadedByUserId: row.version.uploadedByUserId,
+        uploadedByUser: row.author,
+        changeNote: row.version.changeNote,
+        createdAt: row.version.createdAt.toISOString(),
+        fileObject: row.fileObject,
+      }));
     },
   };
 

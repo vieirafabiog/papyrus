@@ -58,6 +58,7 @@ export {
   type DocumentMetadataValue,
   type DocumentStatus,
   type DocumentVersionEntity,
+  type DocumentVersionHistoryQueryItem,
   FILE_OBJECT_STATUSES,
   type FileObjectEntity,
   type FileObjectStatus,
@@ -80,6 +81,7 @@ export {
   type CreateDocumentVersionServiceDependencies,
   createDocumentVersionUseCase,
   type CreateNewDocumentVersionCommand,
+  type RestoreDocumentVersionCommand,
 } from "./documents/create-version.js";
 
 export {

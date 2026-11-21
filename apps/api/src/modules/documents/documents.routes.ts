@@ -8,6 +8,7 @@ import {
   documentListQuerySchema,
   documentMetadataRecordSchema,
   isoDateSchema,
+  restoreDocumentVersionRequestSchema,
   updateDocumentRequestSchema,
   uuidSchema,
 } from "@docuflow/contracts";
@@ -42,6 +43,7 @@ function mapCreateDocumentDomainErrorStatus(code: string): {
     case "UPLOAD_SESSION_NOT_FOUND":
     case "FILE_OBJECT_NOT_FOUND":
     case "DOCUMENT_NOT_FOUND":
+    case "VERSION_NOT_FOUND":
       return { status: 404, apiCode: "NOT_FOUND" };
     case "UPLOAD_SESSION_FORBIDDEN":
       return { status: 403, apiCode: "FORBIDDEN" };
@@ -52,6 +54,7 @@ function mapCreateDocumentDomainErrorStatus(code: string): {
     case "DOCUMENT_NOT_READY_FOR_REVIEW":
     case "CATEGORY_INACTIVE":
     case "FOLDER_ARCHIVED":
+    case "VERSION_ALREADY_CURRENT":
       return { status: 409, apiCode: "CONFLICT" };
     case "DOCUMENT_VERSION_CONFLICT":
       return { status: 409, apiCode: "DOCUMENT_VERSION_CONFLICT" };
@@ -567,6 +570,75 @@ export async function registerDocumentRoutes(
     },
   );
 
+  app.get<{ Params: { id: string } }>(
+    `${CONTRACTS_API_PREFIX}/documents/:id/versions`,
+    async (request, reply) => {
+      const ctx = await guard.requireSubject(request, reply);
+      if (!ctx) {
+        return reply;
+      }
+
+      const idParsed = uuidSchema.safeParse(request.params.id);
+      if (!idParsed.success) {
+        return reply.status(400).send({
+          error: {
+            code: "VALIDATION_ERROR",
+            message: "Identificador de documento inválido.",
+            requestId: request.id,
+          },
+        });
+      }
+
+      const doc = await guard.authorizeDocument(ctx, idParsed.data, "READ", reply, request.id);
+      if (!doc) {
+        return reply;
+      }
+
+      const folderAncestorIds = await authzRepository.loadFolderAncestorIds(
+        ctx.me.user.organizationId,
+        doc.folderId,
+      );
+      const scopeContext = {
+        documentId: doc.id,
+        categoryId: doc.categoryId,
+        folderAncestorIds,
+      };
+      const canDownloadDoc = evaluateDocumentAuthorization(
+        ctx.subject,
+        "DOWNLOAD",
+        scopeContext,
+        ctx.rolePermissions,
+      ).allowed;
+      const canUploadDoc = evaluateDocumentAuthorization(
+        ctx.subject,
+        "UPLOAD",
+        scopeContext,
+        ctx.rolePermissions,
+      ).allowed;
+
+      const historyRows = authzRepository.listDocumentVersionHistory
+        ? await authzRepository.listDocumentVersionHistory(doc)
+        : [];
+
+      const items = historyRows.map((item) => {
+        const isCurrent = item.id === doc.currentVersionId;
+        const isFileAvailable = item.fileObject?.status === "AVAILABLE";
+        const isEditableDocument = doc.status !== "DELETED" && doc.status !== "ARCHIVED";
+
+        return {
+          ...item,
+          isCurrent,
+          permissions: {
+            canDownload: canDownloadDoc && isFileAvailable,
+            canRestore: canUploadDoc && !isCurrent && isEditableDocument && isFileAvailable,
+          },
+        };
+      });
+
+      return reply.status(200).send({ data: items });
+    },
+  );
+
   app.post<{ Params: { id: string } }>(
     `${CONTRACTS_API_PREFIX}/documents/:id/versions`,
     async (request, reply) => {
@@ -594,7 +666,7 @@ export async function registerDocumentRoutes(
             message: bodyParsed.success
               ? "Identificador de documento inválido."
               : (bodyParsed.error.issues[0]?.message ??
-                  "Dados inválidos para criação de nova versão."),
+                "Dados inválidos para criação de nova versão."),
             requestId: request.id,
           },
         });
@@ -614,6 +686,70 @@ export async function registerDocumentRoutes(
           expectedVersion: bodyParsed.data.expectedVersion,
           fileObjectId: bodyParsed.data.fileObjectId,
           uploadSessionId: bodyParsed.data.uploadSessionId,
+          changeNote: bodyParsed.data.changeNote,
+        });
+
+        return reply.status(201).send({
+          data: result.version,
+          document: result.document,
+        });
+      } catch (error) {
+        return handleDocumentDomainError(error, request, reply);
+      }
+    },
+  );
+
+  app.post<{ Params: { id: string; versionId: string } }>(
+    `${CONTRACTS_API_PREFIX}/documents/:id/versions/:versionId/restore`,
+    async (request, reply) => {
+      if (!createDocumentVersionService) {
+        return reply.status(501).send({
+          error: {
+            code: "INTERNAL_ERROR",
+            message: "Serviço de versionamento não configurado.",
+            requestId: request.id,
+          },
+        });
+      }
+
+      const ctx = await guard.requireSubject(request, reply);
+      if (!ctx) {
+        return reply;
+      }
+
+      const idParsed = uuidSchema.safeParse(request.params.id);
+      const versionIdParsed = uuidSchema.safeParse(request.params.versionId);
+      const bodyParsed = restoreDocumentVersionRequestSchema.safeParse(request.body);
+      if (!idParsed.success || !versionIdParsed.success || !bodyParsed.success) {
+        return reply.status(400).send({
+          error: {
+            code: "VALIDATION_ERROR",
+            message: !idParsed.success
+              ? "Identificador de documento inválido."
+              : !versionIdParsed.success
+                ? "Identificador de versão inválido."
+                : !bodyParsed.success
+                  ? (bodyParsed.error.issues[0]?.message ??
+                    "Dados inválidos para restauração de versão.")
+                  : "Dados inválidos para restauração de versão.",
+            requestId: request.id,
+          },
+        });
+      }
+
+      const doc = await guard.authorizeDocument(ctx, idParsed.data, "UPLOAD", reply, request.id);
+      if (!doc) {
+        return reply;
+      }
+
+      try {
+        const result = await createDocumentVersionService.restoreVersion({
+          organizationId: ctx.me.user.organizationId,
+          actorUserId: ctx.me.user.id,
+          requestId: request.id,
+          documentId: doc.id,
+          targetVersionId: versionIdParsed.data,
+          expectedVersion: bodyParsed.data.expectedVersion,
           changeNote: bodyParsed.data.changeNote,
         });
 

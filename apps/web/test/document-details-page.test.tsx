@@ -156,6 +156,42 @@ describe("DocumentDetailsPage", () => {
           { status: 200 },
         );
       }
+      if (url === `/api/v1/documents/${DOC_ID}/versions`) {
+        return new Response(
+          JSON.stringify({
+            data: [
+              {
+                id: VER_ID,
+                documentId: DOC_ID,
+                versionNumber: 1,
+                fileObjectId: FILE_ID,
+                uploadedByUserId: OWNER_ID,
+                uploadedByUser: {
+                  id: OWNER_ID,
+                  fullName: "Ana Souza",
+                  email: "ana.souza@docuflow.local",
+                },
+                changeNote: "Versão assinada",
+                createdAt: "2026-01-10T12:00:00Z",
+                isCurrent: true,
+                fileObject: {
+                  id: FILE_ID,
+                  originalFileName: "contrato-acme.pdf",
+                  detectedContentType: "application/pdf",
+                  sizeBytes: 2048,
+                  checksumSha256: "a".repeat(64),
+                  status: "AVAILABLE",
+                },
+                permissions: {
+                  canDownload: true,
+                  canRestore: false,
+                },
+              },
+            ],
+          }),
+          { status: 200, headers: { "Content-Type": "application/json" } },
+        );
+      }
       if (url.startsWith("/api/v1/tags")) {
         return new Response(
           JSON.stringify({
@@ -176,14 +212,15 @@ describe("DocumentDetailsPage", () => {
     expect(screen.getByText("Aprovado")).toBeInTheDocument();
     expect(screen.getByText("Contratos")).toBeInTheDocument();
     expect(screen.getByText("Jurídico")).toBeInTheDocument();
-    expect(screen.getByText("Ana Souza")).toBeInTheDocument();
+    expect(screen.getAllByText("Ana Souza").length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText("10/01/2026")).toBeInTheDocument();
     expect(screen.getByText("31/12/2026")).toBeInTheDocument();
     expect(screen.getByText("ACME Serviços")).toBeInTheDocument();
     expect(screen.getByText("Cláusula de Sigilo")).toBeInTheDocument();
     expect(screen.getByText("Sim")).toBeInTheDocument();
-    expect(screen.getByText("contrato-acme.pdf")).toBeInTheDocument();
-    expect(await screen.findByText("Vigente")).toBeInTheDocument();
+    expect(screen.getAllByText(/contrato-acme\.pdf/i).length).toBeGreaterThanOrEqual(1);
+    expect(await screen.findByText("Versão assinada")).toBeInTheDocument();
+    expect((await screen.findAllByText("Vigente")).length).toBeGreaterThanOrEqual(2);
   });
 
   it("renders authorization error when server denies document detail access (403)", async () => {

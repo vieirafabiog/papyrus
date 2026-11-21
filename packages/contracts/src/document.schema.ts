@@ -164,6 +164,45 @@ export const documentDetailVersionSchema = z.object({
 });
 export type DocumentDetailVersion = z.infer<typeof documentDetailVersionSchema>;
 
+export const documentVersionAuthorSchema = z.object({
+  id: uuidSchema,
+  fullName: z.string().trim().min(1).max(150),
+  email: z.string().email(),
+});
+export type DocumentVersionAuthor = z.infer<typeof documentVersionAuthorSchema>;
+
+export const documentVersionPermissionsSchema = z.object({
+  canDownload: z.boolean(),
+  canRestore: z.boolean(),
+});
+export type DocumentVersionPermissions = z.infer<typeof documentVersionPermissionsSchema>;
+
+export const documentVersionHistoryItemSchema = documentDetailVersionSchema.extend({
+  documentId: uuidSchema,
+  isCurrent: z.boolean(),
+  uploadedByUser: documentVersionAuthorSchema,
+  permissions: documentVersionPermissionsSchema,
+});
+export type DocumentVersionHistoryItem = z.infer<typeof documentVersionHistoryItemSchema>;
+
+export const documentVersionHistoryListResponseSchema = createApiResponseSchema(
+  z.array(documentVersionHistoryItemSchema),
+);
+export type DocumentVersionHistoryListResponse = z.infer<
+  typeof documentVersionHistoryListResponseSchema
+>;
+
+export const restoreDocumentVersionRequestSchema = z.object({
+  expectedVersion: z.number().int().min(1),
+  changeNote: z
+    .string()
+    .trim()
+    .max(1000, "A observação da restauração deve ter no máximo 1000 caracteres.")
+    .nullable()
+    .optional(),
+});
+export type RestoreDocumentVersionRequest = z.infer<typeof restoreDocumentVersionRequestSchema>;
+
 export const documentDetailSchema = documentRecordSchema.extend({
   category: z.object({
     id: uuidSchema,

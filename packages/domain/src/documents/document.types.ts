@@ -132,3 +132,26 @@ export interface DocumentDetailQueryData {
     readonly createdAt: string;
   }[];
 }
+
+export interface DocumentVersionHistoryQueryItem {
+  readonly id: string;
+  readonly documentId: string;
+  readonly versionNumber: number;
+  readonly fileObjectId: string;
+  readonly uploadedByUserId: string;
+  readonly uploadedByUser: {
+    readonly id: string;
+    readonly fullName: string;
+    readonly email: string;
+  };
+  readonly changeNote: string | null;
+  readonly createdAt: string;
+  readonly fileObject: {
+    readonly id: string;
+    readonly originalFileName: string;
+    readonly detectedContentType: string;
+    readonly sizeBytes: number;
+    readonly checksumSha256: string;
+    readonly status: FileObjectStatus;
+  } | null;
+}

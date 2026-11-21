@@ -519,11 +519,67 @@ describe("Append-only document version creation and concurrency control integrat
     });
     expect(viewerRes.statusCode).toBe(403);
 
+    // 6. List version history for collaborator (canRestore true on non-current) and viewer (canRestore false)
+    const historyCollabRes = await app.inject({
+      method: "GET",
+      url: `/api/v1/documents/${docId}/versions`,
+      cookies,
+    });
+    expect(historyCollabRes.statusCode).toBe(200);
+    const historyCollabBody = historyCollabRes.json() as {
+      data: {
+        id: string;
+        versionNumber: number;
+        isCurrent: boolean;
+        permissions: { canDownload: boolean; canRestore: boolean };
+      }[];
+    };
+    expect(historyCollabBody.data.map((v) => v.versionNumber)).toEqual([3, 2, 1]);
+    expect(historyCollabBody.data[0]?.isCurrent).toBe(true);
+    expect(historyCollabBody.data[0]?.permissions.canRestore).toBe(false);
+    expect(historyCollabBody.data[2]?.permissions.canRestore).toBe(true);
+
+    const historyViewerRes = await app.inject({
+      method: "GET",
+      url: `/api/v1/documents/${docId}/versions`,
+      cookies: { [SESSION_COOKIE_NAME]: viewerCookie, [CSRF_COOKIE_NAME]: csrfToken },
+    });
+    expect(historyViewerRes.statusCode).toBe(200);
+    const historyViewerBody = historyViewerRes.json() as {
+      data: { permissions: { canRestore: boolean } }[];
+    };
+    expect(historyViewerBody.data.every((v) => v.permissions.canRestore === false)).toBe(true);
+
+    // 7. Restoring historical v1 creates append-only v4 preserving v1, v2, v3
+    const restoreRes = await app.inject({
+      method: "POST",
+      url: `/api/v1/documents/${docId}/versions/${ver1Id}/restore`,
+      cookies,
+      headers: { [CSRF_HEADER_NAME]: csrfToken },
+      payload: { expectedVersion: 4, changeNote: "Retorno à v1" },
+    });
+    expect(restoreRes.statusCode).toBe(201);
+    const restoreBody = restoreRes.json() as {
+      data: { id: string; versionNumber: number; fileObjectId: string; changeNote: string | null };
+      document: { currentVersionId: string; version: number };
+    };
+    expect(restoreBody.data.versionNumber).toBe(4);
+    expect(restoreBody.data.fileObjectId).toBe(fileV1Id);
+    expect(restoreBody.document.currentVersionId).toBe(restoreBody.data.id);
+
+    const versionsAfterRestore = await db
+      .select()
+      .from(documentVersions)
+      .where(eq(documentVersions.documentId, docId))
+      .orderBy(asc(documentVersions.versionNumber));
+    expect(versionsAfterRestore.map((v) => v.versionNumber)).toEqual([1, 2, 3, 4]);
+
     const recordedAudit = await db
       .select()
       .from(auditEvents)
       .where(eq(auditEvents.organizationId, orgId));
     expect(recordedAudit.map((row) => row.action)).toContain("DOCUMENT_VERSION_CREATED");
+    expect(recordedAudit.map((row) => row.action)).toContain("DOCUMENT_VERSION_RESTORED");
 
     await app.close();
   }, 60_000);

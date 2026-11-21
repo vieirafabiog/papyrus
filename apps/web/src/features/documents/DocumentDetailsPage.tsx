@@ -9,13 +9,19 @@ import FolderOutlinedIcon from "@mui/icons-material/FolderOutlined";
 import PersonOutlineOutlinedIcon from "@mui/icons-material/PersonOutlineOutlined";
 import UploadFileOutlinedIcon from "@mui/icons-material/UploadFileOutlined";
 import { Alert, Box, Button, Chip, Divider, Grid, Paper, Stack, Typography } from "@mui/material";
+import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { DocumentTagsField } from "../tags/DocumentTagsField.js";
 import { DocumentMetadataForm } from "./DocumentMetadataForm.js";
 import { DocumentFileAvailabilityPanel } from "./FileProcessingStatus.js";
 import { UploadDialog } from "./UploadDialog.js";
-import { useDocumentDetailsQuery } from "./useDocumentDetails.js";
+import { VersionHistory } from "./VersionHistory.js";
+import {
+  documentDetailsQueryKey,
+  documentVersionsQueryKey,
+  useDocumentDetailsQuery,
+} from "./useDocumentDetails.js";
 
 const DOCUMENT_STATUS_LABELS: Readonly<
   Record<
@@ -87,6 +93,7 @@ function formatFileSizePtBr(sizeBytes: number): string {
 export function DocumentDetailsPage() {
   const { id = "" } = useParams();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [uploadNewVersionOpen, setUploadNewVersionOpen] = useState(false);
   const [editingMetadata, setEditingMetadata] = useState(false);
 
@@ -404,11 +411,26 @@ export function DocumentDetailsPage() {
             </Paper>
           </Stack>
         </Grid>
+
+        <Grid size={{ xs: 12 }}>
+          <VersionHistory
+            document={doc}
+            onUploadNewVersion={
+              doc.permissions.canUpload ? () => setUploadNewVersionOpen(true) : undefined
+            }
+          />
+        </Grid>
       </Grid>
 
       <UploadDialog
         open={uploadNewVersionOpen}
         documentId={doc.id}
+        onUploadBatchFinished={() => {
+          void Promise.all([
+            queryClient.invalidateQueries({ queryKey: documentDetailsQueryKey(doc.id) }),
+            queryClient.invalidateQueries({ queryKey: documentVersionsQueryKey(doc.id) }),
+          ]);
+        }}
         onClose={() => setUploadNewVersionOpen(false)}
       />
     </Stack>
