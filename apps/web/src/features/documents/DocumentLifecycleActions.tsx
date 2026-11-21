@@ -1,6 +1,7 @@
-import type { DocumentDetail } from "@docuflow/contracts";
+import type { DocumentDetail, RestoreTrashedDocumentTargetStatus } from "@docuflow/contracts";
 import ArchiveOutlinedIcon from "@mui/icons-material/ArchiveOutlined";
 import DriveFileMoveOutlinedIcon from "@mui/icons-material/DriveFileMoveOutlined";
+import RestoreFromTrashOutlinedIcon from "@mui/icons-material/RestoreFromTrashOutlined";
 import {
   Alert,
   Button,
@@ -18,6 +19,7 @@ import {
   useArchiveDocumentMutation,
   useAvailableFoldersQuery,
   useMoveDocumentMutation,
+  useRestoreTrashedDocumentMutation,
 } from "./useDocumentDetails.js";
 
 export interface DocumentLifecycleActionsProps {
@@ -39,6 +41,8 @@ export function DocumentLifecycleActions({
   const moveDescId = useId();
   const archiveTitleId = useId();
   const archiveDescId = useId();
+  const restoreTitleId = useId();
+  const restoreDescId = useId();
 
   const [moveOpen, setMoveOpen] = useState(false);
   const [selectedFolderId, setSelectedFolderId] = useState<string>(document.folderId ?? "");
@@ -48,11 +52,143 @@ export function DocumentLifecycleActions({
   const [archiveReason, setArchiveReason] = useState("");
   const [archiveError, setArchiveError] = useState<string | null>(null);
 
+  const [restoreOpen, setRestoreOpen] = useState(false);
+  const [restoreTargetStatus, setRestoreTargetStatus] =
+    useState<RestoreTrashedDocumentTargetStatus>("DRAFT");
+  const [restoreReason, setRestoreReason] = useState("");
+  const [restoreError, setRestoreError] = useState<string | null>(null);
+
   const foldersQuery = useAvailableFoldersQuery(moveOpen);
   const moveMutation = useMoveDocumentMutation(document.id);
   const archiveMutation = useArchiveDocumentMutation(document.id);
+  const restoreMutation = useRestoreTrashedDocumentMutation(document.id);
 
-  if (!document.permissions.canUpdate || document.status === "DELETED") {
+  if (document.status === "DELETED") {
+    if (!document.permissions.canDelete) {
+      return null;
+    }
+
+    const handleOpenRestore = (): void => {
+      setRestoreError(null);
+      setRestoreTargetStatus("DRAFT");
+      setRestoreReason("");
+      setRestoreOpen(true);
+    };
+
+    const handleCloseRestore = (): void => {
+      if (restoreMutation.isPending) {
+        return;
+      }
+      setRestoreOpen(false);
+      setRestoreError(null);
+    };
+
+    const handleConfirmRestore = async (): Promise<void> => {
+      setRestoreError(null);
+      const trimmedReason = restoreReason.trim();
+      try {
+        const restored = await restoreMutation.mutateAsync({
+          documentId: document.id,
+          payload: {
+            expectedVersion: document.version,
+            targetStatus: restoreTargetStatus,
+            ...(trimmedReason.length > 0 ? { reason: trimmedReason } : {}),
+          },
+        });
+        onActionFeedback?.({
+          severity: "success",
+          message: `Documento restaurado da lixeira como ${
+            restored.status === "ARCHIVED" ? "Arquivado" : "Rascunho"
+          }.`,
+        });
+        setRestoreOpen(false);
+      } catch (error) {
+        setRestoreError(
+          error instanceof Error ? error.message : "Não foi possível restaurar o documento.",
+        );
+      }
+    };
+
+    return (
+      <>
+        <Button
+          variant="contained"
+          startIcon={<RestoreFromTrashOutlinedIcon />}
+          onClick={handleOpenRestore}
+        >
+          Restaurar da lixeira
+        </Button>
+
+        <Dialog
+          open={restoreOpen}
+          onClose={handleCloseRestore}
+          aria-labelledby={restoreTitleId}
+          aria-describedby={restoreDescId}
+          maxWidth="xs"
+          fullWidth
+        >
+          <DialogTitle id={restoreTitleId}>Restaurar documento da lixeira</DialogTitle>
+          <DialogContent>
+            <Stack spacing={2} sx={{ pt: 0.5 }}>
+              <DialogContentText id={restoreDescId}>
+                O documento "{document.title}" retornará ao repositório preservando versões e
+                permissões, caso ainda esteja dentro da janela configurada.
+              </DialogContentText>
+
+              {restoreError ? (
+                <Alert severity="error" role="alert">
+                  {restoreError}
+                </Alert>
+              ) : null}
+
+              <TextField
+                select
+                label="Status após restauração"
+                value={restoreTargetStatus}
+                onChange={(event) =>
+                  setRestoreTargetStatus(event.target.value as RestoreTrashedDocumentTargetStatus)
+                }
+                fullWidth
+                disabled={restoreMutation.isPending}
+              >
+                <MenuItem value="DRAFT">Rascunho</MenuItem>
+                <MenuItem value="ARCHIVED">Arquivado</MenuItem>
+              </TextField>
+
+              <TextField
+                label="Motivo da restauração (opcional)"
+                value={restoreReason}
+                onChange={(event) => setRestoreReason(event.target.value)}
+                fullWidth
+                multiline
+                minRows={2}
+                inputProps={{ maxLength: 500 }}
+                disabled={restoreMutation.isPending}
+              />
+            </Stack>
+          </DialogContent>
+          <DialogActions sx={{ px: 3, pb: 2 }}>
+            <Button
+              onClick={handleCloseRestore}
+              disabled={restoreMutation.isPending}
+              variant="text"
+            >
+              Cancelar
+            </Button>
+            <Button
+              onClick={() => void handleConfirmRestore()}
+              disabled={restoreMutation.isPending}
+              variant="contained"
+            >
+              {restoreMutation.isPending ? "Restaurando..." : "Confirmar restauração"}
+            </Button>
+          </DialogActions>
+        </Dialog>
+      </>
+    );
+  }
+
+  if (!document.permissions.canUpdate) {
     return null;
   }
 

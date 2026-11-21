@@ -11,11 +11,13 @@ import {
   isoDateSchema,
   moveDocumentRequestSchema,
   restoreDocumentVersionRequestSchema,
+  restoreTrashedDocumentRequestSchema,
   trashDocumentRequestSchema,
+  trashDocumentsQuerySchema,
   updateDocumentRequestSchema,
   uuidSchema,
 } from "@docuflow/contracts";
-import type { AuthorizationRepository } from "@docuflow/database";
+import type { AuthorizationRepository, DocumentTrashRepository } from "@docuflow/database";
 import {
   type ArchiveDocumentService,
   type AuditRepositoryPort,
@@ -28,6 +30,7 @@ import {
   type DocumentRepositoryPort,
   DomainError,
   type MoveDocumentService,
+  type RestoreDocumentService,
   type TrashDocumentService,
   createAuditWriter,
   validateDocumentMetadata,
@@ -63,6 +66,7 @@ function mapCreateDocumentDomainErrorStatus(code: string): {
     case "FOLDER_ARCHIVED":
     case "VERSION_ALREADY_CURRENT":
     case "INVALID_DOCUMENT_TRANSITION":
+    case "RESTORE_WINDOW_EXPIRED":
       return { status: 409, apiCode: "CONFLICT" };
     case "DOCUMENT_VERSION_CONFLICT":
       return { status: 409, apiCode: "DOCUMENT_VERSION_CONFLICT" };
@@ -142,6 +146,9 @@ export async function registerDocumentRoutes(
     readonly moveDocumentService?: MoveDocumentService | undefined;
     readonly archiveDocumentService?: ArchiveDocumentService | undefined;
     readonly trashDocumentService?: TrashDocumentService | undefined;
+    readonly restoreDocumentService?: RestoreDocumentService | undefined;
+    readonly documentTrashRepository?: DocumentTrashRepository | undefined;
+    readonly trashNow?: (() => Date) | undefined;
   },
 ): Promise<void> {
   const {
@@ -155,6 +162,9 @@ export async function registerDocumentRoutes(
     moveDocumentService,
     archiveDocumentService,
     trashDocumentService,
+    restoreDocumentService,
+    documentTrashRepository,
+    trashNow,
   } = deps;
   const auditWriter = createAuditWriter({ repository: auditRepository });
 
@@ -333,6 +343,62 @@ export async function registerDocumentRoutes(
     });
 
     return reply.status(201).send({ data: created });
+  });
+
+  app.get(`${CONTRACTS_API_PREFIX}/documents/trash`, async (request, reply) => {
+    if (!documentTrashRepository) {
+      return reply.status(501).send({
+        error: {
+          code: "INTERNAL_ERROR",
+          message: "Listagem da lixeira documental não configurada.",
+          requestId: request.id,
+        },
+      });
+    }
+
+    const ctx = await guard.requireSubject(request, reply);
+    if (!ctx) {
+      return reply;
+    }
+
+    const parsed = trashDocumentsQuerySchema.safeParse(request.query);
+    if (!parsed.success) {
+      return reply.status(400).send({
+        error: {
+          code: "VALIDATION_ERROR",
+          message:
+            parsed.error.issues[0]?.message ?? "Parâmetros de listagem da lixeira inválidos.",
+          requestId: request.id,
+        },
+      });
+    }
+
+    // Visualização e restauração na lixeira exige permissão DELETE efetiva no escopo.
+    const scope = buildDocumentQueryScope(ctx.loaded, ctx.rolePermissions, "DELETE");
+    const result = await documentTrashRepository.listAuthorizedTrash(
+      {
+        organizationId: ctx.me.user.organizationId,
+        search: parsed.data.search,
+        categoryId: parsed.data.categoryId,
+        folderId: parsed.data.folderId,
+        page: parsed.data.page,
+        pageSize: parsed.data.pageSize,
+        sortBy: parsed.data.sortBy,
+        sortDirection: parsed.data.sortDirection,
+        referenceNow: trashNow?.(),
+      },
+      scope,
+    );
+
+    return reply.status(200).send({
+      items: result.items,
+      pagination: {
+        page: result.page,
+        pageSize: result.pageSize,
+        totalItems: result.totalItems,
+        totalPages: result.totalPages,
+      },
+    });
   });
 
   app.get<{ Params: { id: string } }>(
@@ -1004,5 +1070,70 @@ export async function registerDocumentRoutes(
   app.delete<{ Params: { id: string } }>(
     `${CONTRACTS_API_PREFIX}/documents/:id`,
     handleTrashRequest,
+  );
+
+  app.post<{ Params: { id: string } }>(
+    `${CONTRACTS_API_PREFIX}/documents/:id/restore`,
+    async (request, reply) => {
+      if (!restoreDocumentService) {
+        return reply.status(501).send({
+          error: {
+            code: "INTERNAL_ERROR",
+            message: "Serviço de restauração da lixeira não configurado.",
+            requestId: request.id,
+          },
+        });
+      }
+
+      const ctx = await guard.requireSubject(request, reply);
+      if (!ctx) {
+        return reply;
+      }
+
+      const idParsed = uuidSchema.safeParse(request.params.id);
+      const bodyParsed = restoreTrashedDocumentRequestSchema.safeParse(request.body);
+      if (!idParsed.success || !bodyParsed.success) {
+        return reply.status(400).send({
+          error: {
+            code: "VALIDATION_ERROR",
+            message: !idParsed.success
+              ? "Identificador de documento inválido."
+              : !bodyParsed.success
+                ? (bodyParsed.error.issues[0]?.message ??
+                  "Dados inválidos para restauração do documento.")
+                : "Dados inválidos para restauração do documento.",
+            requestId: request.id,
+          },
+        });
+      }
+
+      const doc = await guard.authorizeDocument(
+        ctx,
+        idParsed.data,
+        "DELETE",
+        reply,
+        request.id,
+        request.ip,
+      );
+      if (!doc) {
+        return reply;
+      }
+
+      try {
+        const restored = await restoreDocumentService.restoreDocument({
+          organizationId: ctx.me.user.organizationId,
+          actorUserId: ctx.me.user.id,
+          requestId: request.id,
+          documentId: doc.id,
+          expectedVersion: bodyParsed.data.expectedVersion,
+          targetStatus: bodyParsed.data.targetStatus,
+          reason: bodyParsed.data.reason,
+        });
+
+        return reply.status(200).send({ data: restored });
+      } catch (error) {
+        return handleDocumentDomainError(error, request, reply);
+      }
+    },
   );
 }

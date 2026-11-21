@@ -212,6 +212,7 @@ export function DocumentListPage() {
         onUpdateFilters={updateFilters}
         onClearFilters={clearFilters}
         onOpenUpload={() => setUploadOpen(true)}
+        onOpenTrash={() => void navigate("/lixeira")}
       />
 
       <DataTable

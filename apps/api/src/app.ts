@@ -4,6 +4,7 @@ import type {
   DashboardRepository,
   DocumentExpirationRepository,
   DocumentSearchRepository,
+  DocumentTrashRepository,
   TaskInboxRepository,
 } from "@docuflow/database";
 import type {
@@ -22,6 +23,7 @@ import type {
   GroupAdministrationService,
   MoveDocumentService,
   PermissionAdministrationService,
+  RestoreDocumentService,
   RetentionGovernanceService,
   StorageConnectionAdminService,
   StorageConnectionRepositoryPort,
@@ -93,6 +95,9 @@ export interface AppOptions {
         readonly moveDocumentService?: MoveDocumentService | undefined;
         readonly archiveDocumentService?: ArchiveDocumentService | undefined;
         readonly trashDocumentService?: TrashDocumentService | undefined;
+        readonly restoreDocumentService?: RestoreDocumentService | undefined;
+        readonly documentTrashRepository?: DocumentTrashRepository | undefined;
+        readonly trashNow?: (() => Date) | undefined;
         readonly documentVersionRepository?: DocumentVersionRepositoryPort | undefined;
         readonly uploadRepository?: UploadSessionRepositoryPort | undefined;
         readonly storageConnections?: StorageConnectionRepositoryPort | undefined;
@@ -311,6 +316,9 @@ export function buildApp(options: AppOptions = {}): FastifyInstance {
           moveDocumentService: documentDeps.moveDocumentService,
           archiveDocumentService: documentDeps.archiveDocumentService,
           trashDocumentService: documentDeps.trashDocumentService,
+          restoreDocumentService: documentDeps.restoreDocumentService,
+          documentTrashRepository: documentDeps.documentTrashRepository,
+          trashNow: documentDeps.trashNow,
         });
       });
     }

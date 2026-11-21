@@ -33,6 +33,13 @@ export {
   type DocumentExpirationSortField,
 } from "./repositories/document-expiration-repository.js";
 export {
+  createDocumentTrashRepository,
+  type DocumentTrashFilter,
+  type DocumentTrashListItemRecord,
+  type DocumentTrashRepository,
+  type DocumentTrashSortField,
+} from "./repositories/document-trash-repository.js";
+export {
   createDashboardRepository,
   type DashboardRecentActivityRecord,
   type DashboardRepository,

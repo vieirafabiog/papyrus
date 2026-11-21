@@ -7,6 +7,10 @@ import {
   type FolderRecord,
   type MoveDocumentRequest,
   type RestoreDocumentVersionRequest,
+  type RestoreTrashedDocumentRequest,
+  type TrashDocumentListItem,
+  type TrashDocumentsListResponse,
+  type TrashDocumentsQuery,
   type UpdateDocumentRequest,
   apiErrorResponseSchema,
   archiveDocumentRequestSchema,
@@ -18,6 +22,8 @@ import {
   folderListResponseSchema,
   moveDocumentRequestSchema,
   restoreDocumentVersionRequestSchema,
+  restoreTrashedDocumentRequestSchema,
+  trashDocumentsListResponseSchema,
   updateDocumentRequestSchema,
 } from "@docuflow/contracts";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -428,3 +434,113 @@ export function useArchiveDocumentMutation(documentId: string) {
     },
   });
 }
+
+export function trashDocumentsQueryKey(filters?: Partial<TrashDocumentsQuery>) {
+  return ["documents", "trash", filters ?? {}] as const;
+}
+
+export async function fetchTrashDocuments(
+  filters: Partial<TrashDocumentsQuery> = {},
+): Promise<TrashDocumentsListResponse> {
+  const params = new URLSearchParams();
+  if (filters.page !== undefined) {
+    params.set("page", String(filters.page));
+  }
+  if (filters.pageSize !== undefined) {
+    params.set("pageSize", String(filters.pageSize));
+  }
+  if (filters.search && filters.search.trim().length > 0) {
+    params.set("search", filters.search.trim());
+  }
+  if (filters.categoryId) {
+    params.set("categoryId", filters.categoryId);
+  }
+  if (filters.folderId) {
+    params.set("folderId", filters.folderId);
+  }
+  if (filters.sortBy) {
+    params.set("sortBy", filters.sortBy);
+  }
+  if (filters.sortDirection) {
+    params.set("sortDirection", filters.sortDirection);
+  }
+
+  const queryString = params.toString();
+  const url = `${CONTRACTS_API_PREFIX}/documents/trash${queryString.length > 0 ? `?${queryString}` : ""}`;
+  const response = await fetch(url, {
+    method: "GET",
+    credentials: "include",
+    headers: { Accept: "application/json" },
+  });
+
+  if (!response.ok) {
+    throw await parseErrorResponse(response, "Falha ao carregar documentos na lixeira");
+  }
+
+  const rawJson: unknown = await response.json();
+  const parsed = trashDocumentsListResponseSchema.safeParse(rawJson);
+  if (!parsed.success) {
+    throw new DocumentDetailFetchError(500, "Resposta inválida recebida da lixeira documental.");
+  }
+
+  return parsed.data;
+}
+
+export function useTrashDocumentsQuery(filters: Partial<TrashDocumentsQuery>) {
+  return useQuery<TrashDocumentsListResponse, DocumentDetailFetchError>({
+    queryKey: trashDocumentsQueryKey(filters),
+    queryFn: () => fetchTrashDocuments(filters),
+  });
+}
+
+export async function restoreTrashedDocument(
+  documentId: string,
+  payload: RestoreTrashedDocumentRequest,
+) {
+  const validated = restoreTrashedDocumentRequestSchema.parse(payload);
+  const csrfToken = await resolveCsrfToken();
+
+  const response = await fetch(`${CONTRACTS_API_PREFIX}/documents/${documentId}/restore`, {
+    method: "POST",
+    credentials: "include",
+    headers: {
+      "Content-Type": "application/json",
+      Accept: "application/json",
+      ...(csrfToken ? { [CSRF_HEADER_NAME]: csrfToken } : {}),
+    },
+    body: JSON.stringify(validated),
+  });
+
+  if (!response.ok) {
+    throw await parseErrorResponse(response, "Falha ao restaurar documento da lixeira");
+  }
+
+  const rawJson: unknown = await response.json();
+  const parsed = updatedDocumentEnvelopeSchema.safeParse(rawJson);
+  if (!parsed.success) {
+    throw new DocumentDetailFetchError(500, "Resposta inválida recebida ao restaurar documento.");
+  }
+
+  return parsed.data.data;
+}
+
+export function useRestoreTrashedDocumentMutation(documentId?: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (params: {
+      readonly documentId: string;
+      readonly payload: RestoreTrashedDocumentRequest;
+    }) => restoreTrashedDocument(params.documentId, params.payload),
+    onSuccess: async (_data, variables) => {
+      const targetId = documentId ?? variables.documentId;
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["documents", "trash"] }),
+        queryClient.invalidateQueries({ queryKey: ["documents", "search"] }),
+        queryClient.invalidateQueries({ queryKey: documentDetailsQueryKey(targetId) }),
+        queryClient.invalidateQueries({ queryKey: documentVersionsQueryKey(targetId) }),
+      ]);
+    },
+  });
+}
+
+export type { TrashDocumentListItem };

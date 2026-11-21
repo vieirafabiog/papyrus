@@ -645,3 +645,42 @@ export const documentExpirationsResponseSchema = createApiResponseSchema(
   documentExpirationsListDataSchema,
 );
 export type DocumentExpirationsResponse = z.infer<typeof documentExpirationsResponseSchema>;
+
+export const restoreTrashedDocumentTargetStatusSchema = z.enum(["DRAFT", "ARCHIVED"]);
+export type RestoreTrashedDocumentTargetStatus = z.infer<
+  typeof restoreTrashedDocumentTargetStatusSchema
+>;
+
+export const restoreTrashedDocumentRequestSchema = z.object({
+  expectedVersion: z.number().int().positive(),
+  targetStatus: restoreTrashedDocumentTargetStatusSchema.default("DRAFT"),
+  reason: z.string().trim().max(500).nullable().optional(),
+});
+export type RestoreTrashedDocumentRequest = z.infer<typeof restoreTrashedDocumentRequestSchema>;
+
+export const trashDocumentsSortFieldSchema = z.enum(["deletedAt", "title", "updatedAt"]);
+export type TrashDocumentsSortField = z.infer<typeof trashDocumentsSortFieldSchema>;
+
+export const trashDocumentsQuerySchema = paginationQuerySchema.extend({
+  search: z.string().trim().max(200).optional(),
+  categoryId: uuidSchema.optional(),
+  folderId: uuidSchema.optional(),
+  sortBy: trashDocumentsSortFieldSchema.default("deletedAt"),
+  sortDirection: sortDirectionSchema.default("desc"),
+});
+export type TrashDocumentsQuery = z.infer<typeof trashDocumentsQuerySchema>;
+
+export const trashDocumentListItemSchema = documentListItemSchema.extend({
+  categoryName: z.string().nullable().optional(),
+  ownerName: z.string().nullable().optional(),
+  deletedAt: isoDateTimeSchema.nullable(),
+  trashGraceDays: z.number().int().min(0),
+  restoreDeadlineAt: isoDateTimeSchema.nullable(),
+  canRestore: z.boolean(),
+});
+export type TrashDocumentListItem = z.infer<typeof trashDocumentListItemSchema>;
+
+export const trashDocumentsListResponseSchema = createPaginatedResponseSchema(
+  trashDocumentListItemSchema,
+);
+export type TrashDocumentsListResponse = z.infer<typeof trashDocumentsListResponseSchema>;

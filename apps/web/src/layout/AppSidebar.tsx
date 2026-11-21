@@ -6,6 +6,7 @@ import {
 import AssessmentOutlinedIcon from "@mui/icons-material/AssessmentOutlined";
 import CategoryOutlinedIcon from "@mui/icons-material/CategoryOutlined";
 import DashboardOutlinedIcon from "@mui/icons-material/DashboardOutlined";
+import DeleteOutlineOutlinedIcon from "@mui/icons-material/DeleteOutlineOutlined";
 import DescriptionOutlinedIcon from "@mui/icons-material/DescriptionOutlined";
 import EventAvailableOutlinedIcon from "@mui/icons-material/EventAvailableOutlined";
 import FolderOutlinedIcon from "@mui/icons-material/FolderOutlined";
@@ -41,6 +42,7 @@ interface NavItem {
 const PRIMARY_NAV_ITEMS: readonly NavItem[] = [
   { label: "Visão geral", to: "/", icon: <DashboardOutlinedIcon fontSize="small" /> },
   { label: "Documentos", to: "/documentos", icon: <DescriptionOutlinedIcon fontSize="small" /> },
+  { label: "Lixeira", to: "/lixeira", icon: <DeleteOutlineOutlinedIcon fontSize="small" /> },
   { label: "Pastas", to: "/pastas", icon: <FolderOutlinedIcon fontSize="small" /> },
   {
     label: "Categorias e campos",

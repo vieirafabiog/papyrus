@@ -856,7 +856,7 @@ docuflow/
   - **Ação:** Permitir regras configuráveis e bloqueio de expurgo por hold. Não fornecer prazos legais universais pré-cadastrados como orientação jurídica.
   - **Verificação:** `pnpm --filter @docuflow/domain test`.
 
-- [ ] **Step 13.07 — Implementar restauração da lixeira**
+- [x] **Step 13.07 — Implementar restauração da lixeira**
   - **Arquivos:** `packages/domain/src/documents/restore-document.ts`, rotas e UI
   - **Ação:** Restaurar documento enquanto permitido, preservando histórico e permissões; registrar auditoria.
   - **Verificação:** `pnpm --filter @docuflow/api test:integration`.

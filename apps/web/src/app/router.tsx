@@ -5,6 +5,7 @@ import { LoginPage } from "../features/auth/LoginPage.js";
 import { DashboardPage } from "../features/dashboard/DashboardPage.js";
 import { DocumentDetailsPage } from "../features/documents/DocumentDetailsPage.js";
 import { DocumentListPage } from "../features/documents/DocumentListPage.js";
+import { TrashDocumentsPage } from "../features/documents/TrashDocumentsPage.js";
 import { ExpirationsPage } from "../features/expirations/ExpirationsPage.js";
 import { FoldersPage } from "../features/folders/FoldersPage.js";
 import { TagsPage } from "../features/tags/TagsPage.js";
@@ -65,6 +66,7 @@ export function AppRoutes() {
           <Route path="/" element={<DashboardPage />} />
           <Route path="/documentos" element={<DocumentListPage />} />
           <Route path="/documentos/:id" element={<DocumentDetailsPage />} />
+          <Route path="/lixeira" element={<TrashDocumentsPage />} />
           <Route path="/pastas" element={<FoldersPage />} />
           <Route path="/pastas/:folderId" element={<FoldersPage />} />
           <Route

@@ -1,6 +1,7 @@
 import type { CategorySummaryRecord, DocumentStatus, FolderRecord } from "@docuflow/contracts";
 import { DOCUFLOW_COLOR_TOKENS, FilterBar, type FilterBarSelect } from "@docuflow/ui";
 import CloudUploadOutlinedIcon from "@mui/icons-material/CloudUploadOutlined";
+import DeleteSweepOutlinedIcon from "@mui/icons-material/DeleteSweepOutlined";
 import { Alert, Button, Paper, Stack, TextField, Typography } from "@mui/material";
 import {
   type DocumentListFiltersState,
@@ -28,6 +29,7 @@ export interface DocumentFiltersBarProps {
   readonly onUpdateFilters: (patch: Partial<DocumentListFiltersState>) => void;
   readonly onClearFilters: () => void;
   readonly onOpenUpload: () => void;
+  readonly onOpenTrash?: (() => void) | undefined;
 }
 
 /**
@@ -42,6 +44,7 @@ export function DocumentFiltersBar({
   onUpdateFilters,
   onClearFilters,
   onOpenUpload,
+  onOpenTrash,
 }: DocumentFiltersBarProps) {
   const hasActiveFilters =
     filters.search.trim().length > 0 ||
@@ -104,13 +107,24 @@ export function DocumentFiltersBar({
         hasActiveFilters={hasActiveFilters}
         onClearFilters={onClearFilters}
         actions={
-          <Button
-            variant="contained"
-            startIcon={<CloudUploadOutlinedIcon />}
-            onClick={onOpenUpload}
-          >
-            Enviar documentos
-          </Button>
+          <Stack direction="row" spacing={1}>
+            {onOpenTrash ? (
+              <Button
+                variant="outlined"
+                startIcon={<DeleteSweepOutlinedIcon />}
+                onClick={onOpenTrash}
+              >
+                Lixeira
+              </Button>
+            ) : null}
+            <Button
+              variant="contained"
+              startIcon={<CloudUploadOutlinedIcon />}
+              onClick={onOpenUpload}
+            >
+              Enviar documentos
+            </Button>
+          </Stack>
         }
       />
 

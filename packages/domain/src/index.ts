@@ -136,6 +136,15 @@ export {
 } from "./documents/trash-document.js";
 
 export {
+  evaluateTrashRestoreWindow,
+  type RestorableDocumentTargetStatus,
+  type RestoreDocumentCommand,
+  type RestoreDocumentService,
+  type RestoreDocumentServiceDependencies,
+  restoreDocumentUseCase,
+} from "./documents/restore-document.js";
+
+export {
   assertApprovalMatchesVersion,
   type BuildNextVersionInput,
   buildNextDocumentVersion,
