@@ -763,7 +763,7 @@ docuflow/
   - **Ação:** Exibir caminho hierárquico com autorização em cada navegação e tratamento de pasta removida/arquivada.
   - **Verificação:** `pnpm --filter @docuflow/web test`.
 
-- [ ] **Step 11.10 — Implementar busca por texto extraído como extensão opcional**
+- [x] **Step 11.10 — Implementar busca por texto extraído como extensão opcional**
   - **Arquivos:** `packages/file-processing/src/text-extraction/*`
   - **Ação:** Somente executar após PoC de extração, limites e qualidade; salvar texto extraído separado do binário e indexar no PostgreSQL. Deve ser possível desativar o recurso.
   - **Verificação:** `pnpm --filter @docuflow/file-processing test`.

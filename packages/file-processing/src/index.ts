@@ -48,3 +48,27 @@ export {
   SAFE_REJECTION_MAX_LENGTH,
   type SafeRejectionRecorderPort,
 } from "./content-detection.js";
+
+export {
+  createExtractedTextIndexRepository,
+  createTextExtractionPolicy,
+  DEFAULT_TEXT_EXTRACTION_MIME_TYPES,
+  DEFAULT_TEXT_EXTRACTION_POLICY,
+  evaluateAndNormalizeExtractedText,
+  extractAndIndexDocumentVersionText,
+  type ExtractedTextIndexRepository,
+  type ExtractedTextIndexSaveResult,
+  type ExtractedTextSearchHit,
+  type ExtractedTextSearchResult,
+  extractTextFromBuffer,
+  extractTextFromStream,
+  type PostgresFtsConfig,
+  type PostgresSqlExecutor,
+  type SaveExtractedTextInput,
+  type SearchExtractedTextQuery,
+  type SupportedTextExtractionMime,
+  type TextExtractionOutcome,
+  type TextExtractionPolicy,
+  type TextExtractorKind,
+  type TextQualityEvaluationResult,
+} from "./text-extraction/index.js";

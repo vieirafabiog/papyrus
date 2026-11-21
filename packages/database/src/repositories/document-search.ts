@@ -22,6 +22,7 @@ import {
 } from "drizzle-orm";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 import {
+  documentExtractedTexts,
   documentMetadata,
   documentTags,
   documentVersions,
@@ -95,6 +96,7 @@ export type DocumentMetadataSearchFilter =
 export interface DocumentSearchFilter {
   readonly organizationId: string;
   readonly search?: string | undefined;
+  readonly includeExtractedText?: boolean | undefined;
   readonly categoryId?: string | undefined;
   readonly folderId?: string | undefined;
   readonly includeSubfolders?: boolean | undefined;
@@ -230,11 +232,21 @@ function buildMetadataFilterCondition(
   return inArray(documents.id, matchingDocIds);
 }
 
+export interface DocumentSearchRepositoryOptions {
+  readonly enableExtractedTextSearch?: boolean | undefined;
+  readonly ftsConfig?: "portuguese" | "simple" | "english" | undefined;
+}
+
 /**
  * Builds the advanced PostgreSQL document search repository, enforcing server-side
  * authorization scope before counting, sorting, and paginating results.
  */
-export function createDocumentSearchRepository(db: NodePgDatabase): DocumentSearchRepository {
+export function createDocumentSearchRepository(
+  db: NodePgDatabase,
+  options: DocumentSearchRepositoryOptions = {},
+): DocumentSearchRepository {
+  const enableExtractedTextSearch = options.enableExtractedTextSearch ?? false;
+  const ftsConfig = options.ftsConfig ?? "portuguese";
   return {
     async searchAuthorizedDocuments(
       filter: DocumentSearchFilter,
@@ -336,7 +348,8 @@ export function createDocumentSearchRepository(db: NodePgDatabase): DocumentSear
       }
 
       if (filter.search !== undefined && filter.search.trim().length > 0) {
-        const pattern = `%${escapeLikePattern(filter.search.trim())}%`;
+        const trimmedSearch = filter.search.trim();
+        const pattern = `%${escapeLikePattern(trimmedSearch)}%`;
         const matchingByFileNameVersionIds = db
           .select({ versionId: documentVersions.id })
           .from(documentVersions)
@@ -348,10 +361,27 @@ export function createDocumentSearchRepository(db: NodePgDatabase): DocumentSear
             ),
           );
 
-        const searchClause = or(
+        const searchPredicates: SQL[] = [
           ilike(documents.title, pattern),
           inArray(documents.currentVersionId, matchingByFileNameVersionIds),
-        );
+        ];
+
+        if (enableExtractedTextSearch && filter.includeExtractedText !== false) {
+          const matchingByExtractedTextVersionIds = db
+            .select({ versionId: documentExtractedTexts.documentVersionId })
+            .from(documentExtractedTexts)
+            .where(
+              and(
+                eq(documentExtractedTexts.organizationId, filter.organizationId),
+                sql`${documentExtractedTexts.searchVector} @@ websearch_to_tsquery(${ftsConfig}::regconfig, ${trimmedSearch})`,
+              ),
+            );
+          searchPredicates.push(
+            inArray(documents.currentVersionId, matchingByExtractedTextVersionIds),
+          );
+        }
+
+        const searchClause = or(...searchPredicates);
         if (searchClause) {
           conditions.push(searchClause);
         }

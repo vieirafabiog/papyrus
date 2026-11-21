@@ -3,6 +3,7 @@ import {
   type AnyPgColumn,
   boolean,
   check,
+  customType,
   date,
   doublePrecision,
   index,
@@ -16,6 +17,12 @@ import {
   uuid,
   varchar,
 } from "drizzle-orm/pg-core";
+
+const tsvector = customType<{ data: string }>({
+  dataType() {
+    return "tsvector";
+  },
+});
 import { organizations, users } from "./identity.js";
 import { fileObjects } from "./storage.js";
 import { categories, categoryFields, folders, tags } from "./taxonomy.js";
@@ -153,5 +160,37 @@ export const documentTags = pgTable(
   (table) => [
     uniqueIndex("document_tags_doc_tag_unique").on(table.documentId, table.tagId),
     index("document_tags_tag_idx").on(table.tagId),
+  ],
+);
+
+export const documentExtractedTexts = pgTable(
+  "document_extracted_texts",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "restrict" }),
+    documentId: uuid("document_id")
+      .notNull()
+      .references(() => documents.id, { onDelete: "restrict" }),
+    documentVersionId: uuid("document_version_id")
+      .notNull()
+      .references(() => documentVersions.id, { onDelete: "restrict" }),
+    fileObjectId: uuid("file_object_id")
+      .notNull()
+      .references(() => fileObjects.id, { onDelete: "restrict" }),
+    extractorKind: varchar("extractor_kind", { length: 32 }).notNull(),
+    languageConfig: varchar("language_config", { length: 32 }).notNull().default("portuguese"),
+    charCount: integer("char_count").notNull(),
+    truncated: boolean("truncated").notNull().default(false),
+    extractedText: text("extracted_text").notNull(),
+    searchVector: tsvector("search_vector").notNull(),
+    indexedAt: timestamp("indexed_at", { withTimezone: true, mode: "date" }).notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("document_extracted_texts_version_unique").on(table.documentVersionId),
+    index("document_extracted_texts_org_doc_idx").on(table.organizationId, table.documentId),
+    index("document_extracted_texts_search_gin_idx").using("gin", table.searchVector),
+    check("document_extracted_texts_char_non_neg_chk", sql`${table.charCount} >= 0`),
   ],
 );

@@ -60,6 +60,7 @@ export { createUploadSessionRepository } from "./repositories/upload-session-rep
 export { createUserRepository } from "./repositories/user-repository.js";
 
 export {
+  documentExtractedTexts,
   type DocumentMetadataColumnValue,
   documentMetadata,
   documentStatusEnum,
