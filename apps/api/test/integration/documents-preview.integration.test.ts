@@ -224,6 +224,8 @@ describe("Authorized PDF preview streaming, CSP, anti-cache and quarantine gate 
 
     const pdfBytes = Buffer.from("%PDF-1.4\n1 0 obj\n<<>>\nendobj\ntrailer\n<<>>\n%%EOF\n");
     const pdfHash = createHash("sha256").update(pdfBytes).digest("hex");
+    const pngBytes = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+    const pngHash = createHash("sha256").update(pngBytes).digest("hex");
 
     const docPdfId = randomUUID();
     const docQuarantinedId = randomUUID();
@@ -237,8 +239,9 @@ describe("Authorized PDF preview streaming, CSP, anti-cache and quarantine gate 
     const verImageId = randomUUID();
 
     const pdfObjectKey = `org/${orgId}/documents/${docPdfId}/versions/${verPdfId}/${filePdfId}`;
+    const pngObjectKey = `org/${orgId}/documents/${docImageId}/versions/${verImageId}/${fileImageId}`;
 
-    // Write actual PDF binary to local storage provider
+    // Write actual PDF and PNG binaries to local storage provider
     const localProvider = createLocalStorageProvider({ rootDirectory: tempStorageDir });
     await localProvider.putObject({
       key: { value: pdfObjectKey },
@@ -247,6 +250,15 @@ describe("Authorized PDF preview streaming, CSP, anti-cache and quarantine gate 
         contentType: "application/pdf",
         contentLength: pdfBytes.length,
         checksumSha256: pdfHash,
+      },
+    });
+    await localProvider.putObject({
+      key: { value: pngObjectKey },
+      body: Readable.from(pngBytes),
+      metadata: {
+        contentType: "image/png",
+        contentLength: pngBytes.length,
+        checksumSha256: pngHash,
       },
     });
 
@@ -277,11 +289,11 @@ describe("Authorized PDF preview streaming, CSP, anti-cache and quarantine gate 
         id: fileImageId,
         organizationId: orgId,
         storageConnectionId: storageId,
-        objectKey: `org/${orgId}/image/${fileImageId}`,
+        objectKey: pngObjectKey,
         originalFileName: "foto.png",
         detectedContentType: "image/png",
-        sizeBytes: 512,
-        checksumSha256: "c".repeat(64),
+        sizeBytes: pngBytes.length,
+        checksumSha256: pngHash,
         status: "AVAILABLE",
       },
     ]);
@@ -512,6 +524,20 @@ describe("Authorized PDF preview streaming, CSP, anti-cache and quarantine gate 
     expect(previewRes.headers["content-security-policy"]).toContain("default-src 'none'");
     expect(previewRes.headers["x-content-type-options"]).toBe("nosniff");
     expect(previewRes.rawPayload.equals(pdfBytes)).toBe(true);
+
+    // 6. Authorized PNG content preview streams bytes with restrictive CSP & private no-store headers
+    const contentImageRes = await app.inject({
+      method: "GET",
+      url: `/api/v1/documents/${docImageId}/content`,
+      cookies: readerCookies,
+    });
+    expect(contentImageRes.statusCode).toBe(200);
+    expect(contentImageRes.headers["content-type"]).toContain("image/png");
+    expect(contentImageRes.headers["cache-control"]).toContain("private");
+    expect(contentImageRes.headers["cache-control"]).toContain("no-store");
+    expect(contentImageRes.headers["content-security-policy"]).toContain("default-src 'none'");
+    expect(contentImageRes.headers["x-content-type-options"]).toBe("nosniff");
+    expect(contentImageRes.rawPayload.equals(pngBytes)).toBe(true);
 
     const events = await db.select().from(auditEvents).where(eq(auditEvents.organizationId, orgId));
     expect(events.map((e) => e.action)).toContain("DOCUMENT_PREVIEWED");

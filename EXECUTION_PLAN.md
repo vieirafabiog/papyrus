@@ -743,7 +743,7 @@ docuflow/
   - **Ação:** Entregar stream ou URL curta após autorização. Definir CSP e impedir cache público indevido.
   - **Verificação:** `pnpm --filter @docuflow/api test:integration` e `pnpm --filter @docuflow/web test`.
 
-- [ ] **Step 11.06 — Implementar preview de imagens**
+- [x] **Step 11.06 — Implementar preview de imagens**
   - **Arquivos:** componente de preview e endpoint de conteúdo
   - **Ação:** Renderizar formatos de imagem permitidos, respeitando tamanho e autorização; outros formatos devem oferecer download.
   - **Verificação:** `pnpm --filter @docuflow/web test`.

@@ -15,8 +15,8 @@ import { useNavigate, useParams } from "react-router-dom";
 import { DocumentTagsField } from "../tags/DocumentTagsField.js";
 import { DocumentLifecycleActions } from "./DocumentLifecycleActions.js";
 import { DocumentMetadataForm } from "./DocumentMetadataForm.js";
+import { DocumentPreviewPanel } from "./DocumentPreviewPanel.js";
 import { DocumentFileAvailabilityPanel } from "./FileProcessingStatus.js";
-import { PdfPreviewPanel } from "./PdfPreviewPanel.js";
 import { UploadDialog } from "./UploadDialog.js";
 import { VersionHistory } from "./VersionHistory.js";
 import {
@@ -430,7 +430,7 @@ export function DocumentDetailsPage() {
         </Grid>
 
         <Grid size={{ xs: 12 }}>
-          <PdfPreviewPanel document={doc} />
+          <DocumentPreviewPanel document={doc} />
         </Grid>
 
         <Grid size={{ xs: 12 }}>
