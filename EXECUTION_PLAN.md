@@ -640,7 +640,7 @@ docuflow/
   - **Ação:** Upload múltiplo, barra de progresso, formulário de metadados inicial, cancelamento e resultado individual por arquivo.
   - **Verificação:** `pnpm --filter @docuflow/web test`.
 
-- [ ] **Step 09.11 — Implementar feedback de quarentena e rejeição**
+- [x] **Step 09.11 — Implementar feedback de quarentena e rejeição**
   - **Arquivos:** componentes de status documental na UI
   - **Ação:** Mostrar “Em análise”, “Disponível” ou “Rejeitado” sem expor detalhes técnicos ou liberar preview antes da aprovação do processamento.
   - **Verificação:** `pnpm --filter @docuflow/web test`.

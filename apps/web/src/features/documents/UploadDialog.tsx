@@ -29,6 +29,10 @@ import {
 } from "@mui/material";
 import { type ChangeEvent, type DragEvent, type FormEvent, useId, useRef, useState } from "react";
 import {
+  getFileProcessingDescriptor,
+  sanitizeUserFacingRejectionMessage,
+} from "./FileProcessingStatus.js";
+import {
   type BinaryUploadExecutor,
   type UploadMetadataFormValues,
   type UploadQueueItem,
@@ -90,24 +94,30 @@ function getStatusChipProps(status: UploadQueueItem["status"]): {
         color: "info",
         icon: <HourglassEmptyOutlinedIcon fontSize="small" />,
       };
-    case "QUARANTINED":
+    case "QUARANTINED": {
+      const descriptor = getFileProcessingDescriptor("QUARANTINED");
       return {
-        label: "Em análise",
-        color: "warning",
+        label: descriptor.label,
+        color: descriptor.chipColor,
         icon: <HourglassEmptyOutlinedIcon fontSize="small" />,
       };
-    case "AVAILABLE":
+    }
+    case "AVAILABLE": {
+      const descriptor = getFileProcessingDescriptor("AVAILABLE");
       return {
-        label: "Disponível",
-        color: "success",
+        label: descriptor.label,
+        color: descriptor.chipColor,
         icon: <CheckCircleOutlineIcon fontSize="small" />,
       };
-    case "REJECTED":
+    }
+    case "REJECTED": {
+      const descriptor = getFileProcessingDescriptor("REJECTED");
       return {
-        label: "Rejeitado",
-        color: "error",
+        label: descriptor.label,
+        color: descriptor.chipColor,
         icon: <ErrorOutlineIcon fontSize="small" />,
       };
+    }
     case "CANCELLED":
       return {
         label: "Cancelado",
@@ -543,7 +553,9 @@ export function UploadDialog({
 
                         {item.errorMessage ? (
                           <Typography variant="caption" color="error" role="alert">
-                            {item.errorMessage}
+                            {item.status === "REJECTED"
+                              ? sanitizeUserFacingRejectionMessage(item.errorMessage)
+                              : item.errorMessage}
                           </Typography>
                         ) : null}
                       </ListItem>
