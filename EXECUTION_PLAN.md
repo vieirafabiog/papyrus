@@ -635,7 +635,7 @@ docuflow/
   - **Ação:** Expirar sessões incompletas, excluir temporários após janela de segurança e registrar falha de remoção para reconciliação.
   - **Verificação:** `pnpm --filter @docuflow/worker test`.
 
-- [ ] **Step 09.10 — Implementar componente de upload na UI**
+- [x] **Step 09.10 — Implementar componente de upload na UI**
   - **Arquivos:** `apps/web/src/features/documents/UploadDialog.tsx`, hooks
   - **Ação:** Upload múltiplo, barra de progresso, formulário de metadados inicial, cancelamento e resultado individual por arquivo.
   - **Verificação:** `pnpm --filter @docuflow/web test`.

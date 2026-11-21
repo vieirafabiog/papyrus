@@ -1,7 +1,10 @@
-import { Box, Typography } from "@mui/material";
+import CloudUploadOutlinedIcon from "@mui/icons-material/CloudUploadOutlined";
+import { Box, Button, Stack, Typography } from "@mui/material";
+import { useState } from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
 import { LoginPage } from "../features/auth/LoginPage.js";
 import { DashboardPage } from "../features/dashboard/DashboardPage.js";
+import { UploadDialog } from "../features/documents/UploadDialog.js";
 import { AppShell } from "../layout/AppShell.js";
 import { RedirectIfAuthenticated, RequireAuth } from "./route-guards.js";
 
@@ -36,6 +39,42 @@ function PublicRouteView({ title, description }: RouteSectionProps) {
   );
 }
 
+function DocumentsEntryView() {
+  const [uploadOpen, setUploadOpen] = useState(false);
+
+  return (
+    <Stack spacing={2.5}>
+      <Box
+        sx={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 2,
+          flexWrap: "wrap",
+        }}
+      >
+        <Box>
+          <Typography variant="h1" gutterBottom>
+            Documentos
+          </Typography>
+          <Typography variant="body1" color="text.secondary">
+            Pesquisa, filtros e gestão de versões documentais.
+          </Typography>
+        </Box>
+        <Button
+          variant="contained"
+          startIcon={<CloudUploadOutlinedIcon />}
+          onClick={() => setUploadOpen(true)}
+        >
+          Enviar documentos
+        </Button>
+      </Box>
+
+      <UploadDialog open={uploadOpen} onClose={() => setUploadOpen(false)} />
+    </Stack>
+  );
+}
+
 export function AppRoutes() {
   return (
     <Routes>
@@ -55,15 +94,7 @@ export function AppRoutes() {
       <Route element={<RequireAuth />}>
         <Route element={<AppShell />}>
           <Route path="/" element={<DashboardPage />} />
-          <Route
-            path="/documentos"
-            element={
-              <RouteSectionView
-                title="Documentos"
-                description="Pesquisa, filtros e gestão de versões documentais."
-              />
-            }
-          />
+          <Route path="/documentos" element={<DocumentsEntryView />} />
           <Route
             path="/pastas"
             element={
