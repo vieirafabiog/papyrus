@@ -19,10 +19,13 @@ import { registerGroupRoutes } from "./modules/groups/groups.routes.js";
 import { registerSetupRoutes } from "./modules/setup/setup.routes.js";
 import type { SetupService } from "./modules/setup/setup.service.js";
 import { registerStorageRoutes } from "./modules/storage/storage.routes.js";
-import { registerUploadRoutes } from "./modules/uploads/upload.routes.js";
+import {
+  type LocalStreamUploadDependencies,
+  registerUploadRoutes,
+} from "./modules/uploads/upload.routes.js";
 import { registerUserRoutes } from "./modules/users/users.routes.js";
 import { createDocumentAuthorizationGuard } from "./plugins/authorization.js";
-import { registerSecurityPlugin, type SecurityPluginOptions } from "./plugins/security.js";
+import { type SecurityPluginOptions, registerSecurityPlugin } from "./plugins/security.js";
 
 export interface AppOptions {
   readonly logger?: boolean | undefined;
@@ -45,6 +48,7 @@ export interface AppOptions {
         readonly documentRepository: DocumentRepositoryPort;
         readonly uploadRepository: UploadSessionRepositoryPort;
         readonly uploadSessionService: UploadSessionService;
+        readonly localUploadDeps?: LocalStreamUploadDependencies | undefined;
       }
     | undefined;
   readonly secureCookies?: boolean | undefined;
@@ -160,6 +164,7 @@ export function buildApp(options: AppOptions = {}): FastifyInstance {
           guard: uploadGuard,
           uploadSessionService: uploadDeps.uploadSessionService,
           uploadRepository: uploadDeps.uploadRepository,
+          localUploadDeps: uploadDeps.localUploadDeps,
         });
       });
     }

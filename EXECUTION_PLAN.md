@@ -595,7 +595,7 @@ docuflow/
   - **Ação:** Criar sessão com usuário, destino, tamanho declarado, expiração e chave de idempotência; não criar versão disponível ainda.
   - **Verificação:** `pnpm --filter @docuflow/api test:integration`.
 
-- [ ] **Step 09.02 — Implementar upload via API para storage local**
+- [x] **Step 09.02 — Implementar upload via API para storage local**
   - **Arquivos:** `apps/api/src/modules/uploads/upload.routes.ts`
   - **Ação:** Receber multipart/stream com limite e backpressure, persistir em objeto temporário e responder com progresso/estado documentado.
   - **Verificação:** `pnpm --filter @docuflow/api test:integration`.

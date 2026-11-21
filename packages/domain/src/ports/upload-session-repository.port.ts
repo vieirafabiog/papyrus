@@ -48,6 +48,13 @@ export interface CreatedUploadSessionRecords {
   readonly fileObject: FileObjectEntity;
 }
 
+export interface MarkUploadReceivedInput {
+  readonly sessionId: string;
+  readonly fileObjectId: string;
+  readonly sizeBytes: number;
+  readonly checksumSha256: string;
+}
+
 export interface UploadSessionRepositoryPort {
   findById(id: string, tx?: TransactionContext): Promise<UploadSessionEntity | null>;
   findByIdempotencyKey(
@@ -64,4 +71,9 @@ export interface UploadSessionRepositoryPort {
     input: CreateUploadSessionWithFileObjectInput,
     tx?: TransactionContext,
   ): Promise<CreatedUploadSessionRecords>;
+  markUploadReceived(
+    input: MarkUploadReceivedInput,
+    tx?: TransactionContext,
+  ): Promise<CreatedUploadSessionRecords | null>;
+  markSessionExpired(sessionId: string, tx?: TransactionContext): Promise<void>;
 }

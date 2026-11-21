@@ -2,6 +2,7 @@ import type {
   CreateUploadSessionWithFileObjectInput,
   CreatedUploadSessionRecords,
   FileObjectEntity,
+  MarkUploadReceivedInput,
   TransactionContext,
   UploadSessionEntity,
   UploadSessionRepositoryPort,
@@ -138,6 +139,54 @@ export function createUploadSessionRepository(db: NodePgDatabase): UploadSession
         session: toUploadSessionEntity(sessionRow),
         fileObject: toFileObjectEntity(fileObjectRow),
       };
+    },
+
+    async markUploadReceived(
+      input: MarkUploadReceivedInput,
+      tx?: TransactionContext,
+    ): Promise<CreatedUploadSessionRecords | null> {
+      const executor = resolveDbExecutor(db, tx);
+      const now = new Date();
+
+      const [updatedSession] = await executor
+        .update(uploadSessions)
+        .set({
+          status: "UPLOADED",
+          updatedAt: now,
+        })
+        .where(and(eq(uploadSessions.id, input.sessionId), eq(uploadSessions.status, "PENDING")))
+        .returning();
+
+      if (!updatedSession) {
+        return null;
+      }
+
+      const [updatedFileObject] = await executor
+        .update(fileObjects)
+        .set({
+          sizeBytes: input.sizeBytes,
+          checksumSha256: input.checksumSha256,
+          updatedAt: now,
+        })
+        .where(eq(fileObjects.id, input.fileObjectId))
+        .returning();
+
+      if (!updatedFileObject) {
+        throw new Error("Failed to update file object checksum after upload.");
+      }
+
+      return {
+        session: toUploadSessionEntity(updatedSession),
+        fileObject: toFileObjectEntity(updatedFileObject),
+      };
+    },
+
+    async markSessionExpired(sessionId: string, tx?: TransactionContext): Promise<void> {
+      const executor = resolveDbExecutor(db, tx);
+      await executor
+        .update(uploadSessions)
+        .set({ status: "EXPIRED", updatedAt: new Date() })
+        .where(and(eq(uploadSessions.id, sessionId), eq(uploadSessions.status, "PENDING")));
     },
   };
 }

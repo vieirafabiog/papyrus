@@ -127,6 +127,8 @@ export {
 export {
   type CreateUploadSessionRequestContract,
   createUploadSessionRequestSchema,
+  type UploadContentResponseContract,
+  uploadContentResponseSchema,
   type UploadSessionRecordContract,
   uploadSessionRecordSchema,
   type UploadSessionStatusContract,

@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { isoDateTimeSchema, uuidSchema } from "./common.schema.js";
-import { sha256ChecksumSchema } from "./document.schema.js";
+import { fileObjectStatusSchema, sha256ChecksumSchema } from "./document.schema.js";
 
 export const uploadSessionStatusSchema = z.enum([
   "PENDING",
@@ -43,3 +43,16 @@ export const uploadSessionRecordSchema = z.object({
   updatedAt: isoDateTimeSchema,
 });
 export type UploadSessionRecordContract = z.infer<typeof uploadSessionRecordSchema>;
+
+export const uploadContentResponseSchema = z.object({
+  sessionId: uuidSchema,
+  fileObjectId: uuidSchema,
+  storageConnectionId: uuidSchema,
+  status: uploadSessionStatusSchema,
+  fileObjectStatus: fileObjectStatusSchema,
+  bytesReceived: z.number().int().positive(),
+  expectedBytes: z.number().int().positive(),
+  progressPercent: z.number().int().min(0).max(100),
+  checksumSha256: sha256ChecksumSchema,
+});
+export type UploadContentResponseContract = z.infer<typeof uploadContentResponseSchema>;

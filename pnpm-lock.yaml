@@ -211,6 +211,9 @@ importers:
       '@docuflow/storage-s3':
         specifier: workspace:*
         version: link:../../packages/storage-s3
+      '@fastify/busboy':
+        specifier: ^2.1.1
+        version: 2.1.1
       '@fastify/cookie':
         specifier: ^11.0.2
         version: 11.1.5

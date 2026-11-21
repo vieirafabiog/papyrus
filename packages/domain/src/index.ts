@@ -146,6 +146,7 @@ export type {
 export {
   type CreatedUploadSessionRecords,
   type CreateUploadSessionWithFileObjectInput,
+  type MarkUploadReceivedInput,
   UPLOAD_SESSION_STATUSES,
   type UploadSessionEntity,
   type UploadSessionRepositoryPort,
