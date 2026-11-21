@@ -58,6 +58,12 @@ export {
 } from "./repositories/transaction-manager.js";
 export { createUploadSessionRepository } from "./repositories/upload-session-repository.js";
 export { createUserRepository } from "./repositories/user-repository.js";
+export {
+  createWorkflowAssigneeVerifier,
+  createWorkflowDefinitionRepository,
+  createWorkflowInstanceRepository,
+  createWorkflowTaskRepository,
+} from "./repositories/workflow-repository.js";
 
 export {
   documentExtractedTexts,

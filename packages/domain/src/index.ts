@@ -349,6 +349,21 @@ export type {
   WorkflowInstanceRepositoryPort,
 } from "./ports/workflow-instance-repository.port.js";
 
+export type {
+  CreateWorkflowTaskIdempotentInput,
+  CreateWorkflowTaskRecordResult,
+  WorkflowTaskRepositoryPort,
+} from "./ports/workflow-task-repository.port.js";
+
+export {
+  type CreateWorkflowTasksDependencies,
+  type CreateWorkflowTasksService,
+  createWorkflowTasksUseCase,
+  type GeneratedWorkflowTaskResult,
+  type GenerateWorkflowStepTaskCommand,
+  type WorkflowAssigneeAuthorizationPort,
+} from "./workflows/create-tasks.js";
+
 export {
   createStartWorkflowUseCase,
   type StartWorkflowCommand,

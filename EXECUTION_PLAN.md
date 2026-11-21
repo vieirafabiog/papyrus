@@ -782,7 +782,7 @@ docuflow/
   - **Ação:** Criar instância apontando para a versão imutável da definição e para `document_version_id` específico.
   - **Verificação:** `pnpm --filter @docuflow/domain test`.
 
-- [ ] **Step 12.03 — Implementar geração de tarefas**
+- [x] **Step 12.03 — Implementar geração de tarefas**
   - **Arquivos:** `packages/domain/src/workflows/create-tasks.ts`, repositories
   - **Ação:** Gerar tarefas para usuários/grupos autorizados sem duplicidade em retries.
   - **Verificação:** `pnpm --filter @docuflow/api test:integration`.
