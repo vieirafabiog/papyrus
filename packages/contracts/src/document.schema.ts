@@ -6,7 +6,9 @@ import {
   createSortSchema,
   isoDateSchema,
   isoDateTimeSchema,
+  paginationMetaSchema,
   paginationQuerySchema,
+  sortDirectionSchema,
   uuidSchema,
 } from "./common.schema.js";
 import { tagRecordSchema } from "./tag.schema.js";
@@ -564,3 +566,82 @@ export type TrashDocumentRequest = z.infer<typeof trashDocumentRequestSchema>;
 
 export const documentMutationResponseSchema = createApiResponseSchema(documentRecordSchema);
 export type DocumentMutationResponse = z.infer<typeof documentMutationResponseSchema>;
+
+export const expirationStateSchema = z.enum(["EXPIRED", "EXPIRING_SOON", "UP_TO_DATE", "NO_DATE"]);
+export type ExpirationState = z.infer<typeof expirationStateSchema>;
+
+export const expirationBucketSchema = z.enum([
+  "ALL",
+  "EXPIRED",
+  "EXPIRING_SOON",
+  "UP_TO_DATE",
+  "NO_DATE",
+]);
+export type ExpirationBucket = z.infer<typeof expirationBucketSchema>;
+
+export const ianaTimezoneSchema = z
+  .string()
+  .trim()
+  .min(1)
+  .max(64)
+  .refine((value) => {
+    try {
+      new Intl.DateTimeFormat("en-US", { timeZone: value });
+      return true;
+    } catch {
+      return false;
+    }
+  }, "Fuso horário IANA inválido.");
+
+export const documentExpirationsSortFieldSchema = z.enum([
+  "expirationDate",
+  "title",
+  "status",
+  "updatedAt",
+]);
+export type DocumentExpirationsSortField = z.infer<typeof documentExpirationsSortFieldSchema>;
+
+export const documentExpirationsQuerySchema = paginationQuerySchema.extend({
+  bucket: expirationBucketSchema.default("ALL"),
+  windowDays: z.coerce.number().int().min(1).max(365).default(30),
+  timezone: ianaTimezoneSchema.optional(),
+  categoryId: uuidSchema.optional(),
+  folderId: uuidSchema.optional(),
+  ownerUserId: uuidSchema.optional(),
+  search: z.string().trim().max(200).optional(),
+  includeArchived: z.coerce.boolean().default(false),
+  sortBy: documentExpirationsSortFieldSchema.default("expirationDate"),
+  sortDirection: sortDirectionSchema.default("asc"),
+});
+export type DocumentExpirationsQuery = z.infer<typeof documentExpirationsQuerySchema>;
+
+export const documentExpirationItemSchema = documentListItemSchema.extend({
+  expirationState: expirationStateSchema,
+  daysUntilExpiration: z.number().int().nullable(),
+  categoryName: z.string().nullable().optional(),
+  ownerName: z.string().nullable().optional(),
+});
+export type DocumentExpirationItem = z.infer<typeof documentExpirationItemSchema>;
+
+export const documentExpirationSummarySchema = z.object({
+  expiredCount: z.number().int().min(0),
+  expiringSoonCount: z.number().int().min(0),
+  upToDateCount: z.number().int().min(0),
+  noExpirationCount: z.number().int().min(0),
+});
+export type DocumentExpirationSummary = z.infer<typeof documentExpirationSummarySchema>;
+
+export const documentExpirationsListDataSchema = z.object({
+  items: z.array(documentExpirationItemSchema),
+  pagination: paginationMetaSchema,
+  summary: documentExpirationSummarySchema,
+  timezone: z.string().min(1),
+  referenceDate: isoDateSchema,
+  windowDays: z.number().int().min(1),
+});
+export type DocumentExpirationsListData = z.infer<typeof documentExpirationsListDataSchema>;
+
+export const documentExpirationsResponseSchema = createApiResponseSchema(
+  documentExpirationsListDataSchema,
+);
+export type DocumentExpirationsResponse = z.infer<typeof documentExpirationsResponseSchema>;

@@ -24,6 +24,15 @@ export {
   createDocumentVersionRepository,
 } from "./repositories/document-repository.js";
 export {
+  createDocumentExpirationRepository,
+  type DocumentExpirationListItemRecord,
+  type DocumentExpirationRepository,
+  type DocumentExpirationsFilter,
+  type DocumentExpirationsQueryResult,
+  type DocumentExpirationsSummaryRecord,
+  type DocumentExpirationSortField,
+} from "./repositories/document-expiration-repository.js";
+export {
   createDashboardRepository,
   type DashboardRecentActivityRecord,
   type DashboardRepository,

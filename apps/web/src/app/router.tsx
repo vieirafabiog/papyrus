@@ -5,6 +5,7 @@ import { LoginPage } from "../features/auth/LoginPage.js";
 import { DashboardPage } from "../features/dashboard/DashboardPage.js";
 import { DocumentDetailsPage } from "../features/documents/DocumentDetailsPage.js";
 import { DocumentListPage } from "../features/documents/DocumentListPage.js";
+import { ExpirationsPage } from "../features/expirations/ExpirationsPage.js";
 import { FoldersPage } from "../features/folders/FoldersPage.js";
 import { TagsPage } from "../features/tags/TagsPage.js";
 import { TaskInboxPage } from "../features/tasks/TaskInboxPage.js";
@@ -87,15 +88,7 @@ export function AppRoutes() {
           />
           <Route path="/tarefas" element={<TaskInboxPage />} />
           <Route path="/tarefas/:id" element={<TaskReviewPage />} />
-          <Route
-            path="/vencimentos"
-            element={
-              <RouteSectionView
-                title="Vencimentos"
-                description="Acompanhamento de documentos próximos do vencimento."
-              />
-            }
-          />
+          <Route path="/vencimentos" element={<ExpirationsPage />} />
           <Route
             path="/relatorios"
             element={

@@ -841,7 +841,7 @@ docuflow/
   - **Ação:** Filtrar por usuário, ação, recurso e período; limitar exportações a usuários autorizados.
   - **Verificação:** `pnpm --filter @docuflow/api test:integration` e `pnpm --filter @docuflow/web test`.
 
-- [ ] **Step 13.04 — Implementar listagem de vencimentos**
+- [x] **Step 13.04 — Implementar listagem de vencimentos**
   - **Arquivos:** endpoint de vencimentos e `ExpirationsPage.tsx`
   - **Ação:** Filtrar documentos vencidos, próximos do vencimento e sem data, respeitando fuso horário e permissões.
   - **Verificação:** `pnpm --filter @docuflow/api test:integration`.

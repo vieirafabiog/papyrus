@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import type {
   AuthorizationRepository,
   DashboardRepository,
+  DocumentExpirationRepository,
   DocumentSearchRepository,
   TaskInboxRepository,
 } from "@docuflow/database";
@@ -34,14 +35,15 @@ import type { StorageProviderRegistry } from "@docuflow/storage-core";
 import type { S3EndpointSecurityPolicy } from "@docuflow/storage-s3";
 import cookie from "@fastify/cookie";
 import Fastify, { type FastifyInstance } from "fastify";
-import { registerPermissionRoutes } from "./modules/access/permissions.routes.js";
 import { registerAuditRoutes } from "./modules/audit/audit.routes.js";
 import { registerAuthRoutes } from "./modules/auth/auth.routes.js";
 import type { AuthService } from "./modules/auth/auth.service.js";
+import { registerPermissionRoutes } from "./modules/access/permissions.routes.js";
 import { registerCategoryRoutes } from "./modules/categories/categories.routes.js";
 import { registerDashboardRoutes } from "./modules/dashboard/dashboard.routes.js";
 import { registerDocumentRoutes } from "./modules/documents/documents.routes.js";
 import { registerDocumentDownloadRoutes } from "./modules/documents/download.routes.js";
+import { registerDocumentExpirationRoutes } from "./modules/documents/expirations.routes.js";
 import { registerDocumentPreviewRoutes } from "./modules/documents/preview.routes.js";
 import { registerDocumentSearchRoutes } from "./modules/documents/search.routes.js";
 import { registerFolderRoutes } from "./modules/folders/folders.routes.js";
@@ -81,6 +83,8 @@ export interface AppOptions {
         readonly documentRepository: DocumentRepositoryPort;
         readonly auditRepository: AuditRepositoryPort;
         readonly documentSearchRepository?: DocumentSearchRepository | undefined;
+        readonly documentExpirationRepository?: DocumentExpirationRepository | undefined;
+        readonly expirationsNow?: (() => Date) | undefined;
         readonly categoryRepository?: CategoryRepositoryPort | undefined;
         readonly createDocumentService?: CreateDocumentService | undefined;
         readonly createDocumentVersionService?: CreateDocumentVersionService | undefined;
@@ -248,6 +252,13 @@ export function buildApp(options: AppOptions = {}): FastifyInstance {
           await registerDocumentSearchRoutes(instance, {
             guard,
             documentSearchRepository: documentDeps.documentSearchRepository,
+          });
+        }
+        if (documentDeps.documentExpirationRepository) {
+          await registerDocumentExpirationRoutes(instance, {
+            guard,
+            documentExpirationRepository: documentDeps.documentExpirationRepository,
+            now: documentDeps.expirationsNow,
           });
         }
         if (documentDeps.dashboardRepository) {

@@ -64,6 +64,21 @@ export {
 } from "./documents/document-state.js";
 
 export {
+  addCalendarDays,
+  classifyExpirationState,
+  DEFAULT_EXPIRATION_TIMEZONE,
+  DEFAULT_EXPIRATION_WINDOW_DAYS,
+  diffCalendarDays,
+  DOCUMENT_EXPIRATION_BUCKETS,
+  DOCUMENT_EXPIRATION_STATES,
+  type DocumentExpirationBucket,
+  type DocumentExpirationState,
+  isValidIanaTimeZone,
+  MAX_EXPIRATION_WINDOW_DAYS,
+  resolveLocalCalendarDate,
+} from "./documents/expiration.js";
+
+export {
   DOCUMENT_STATUSES,
   type DocumentDetailCategoryFieldSummary,
   type DocumentDetailQueryData,
