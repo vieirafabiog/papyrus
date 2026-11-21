@@ -846,7 +846,7 @@ docuflow/
   - **Ação:** Filtrar documentos vencidos, próximos do vencimento e sem data, respeitando fuso horário e permissões.
   - **Verificação:** `pnpm --filter @docuflow/api test:integration`.
 
-- [ ] **Step 13.05 — Implementar job de alertas de vencimento**
+- [x] **Step 13.05 — Implementar job de alertas de vencimento**
   - **Arquivos:** `apps/worker/src/jobs/expiration-notifications.ts`
   - **Ação:** Agendar notificações com idempotência para evitar alertas duplicados em retries e mudanças de data.
   - **Verificação:** `pnpm --filter @docuflow/worker test`.

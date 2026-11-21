@@ -315,6 +315,9 @@ importers:
       '@docuflow/file-processing':
         specifier: workspace:*
         version: link:../../packages/file-processing
+      '@docuflow/notifications':
+        specifier: workspace:*
+        version: link:../../packages/notifications
       '@docuflow/storage-core':
         specifier: workspace:*
         version: link:../../packages/storage-core

@@ -15,6 +15,7 @@
     "@docuflow/database": "workspace:*",
     "@docuflow/domain": "workspace:*",
     "@docuflow/file-processing": "workspace:*",
+    "@docuflow/notifications": "workspace:*",
     "@docuflow/storage-core": "workspace:*",
     "@docuflow/storage-local": "workspace:*",
     "@docuflow/storage-s3": "workspace:*",
