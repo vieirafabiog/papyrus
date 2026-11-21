@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
 import { LoginPage } from "../features/auth/LoginPage.js";
 import { DashboardPage } from "../features/dashboard/DashboardPage.js";
+import { DocumentDetailsPage } from "../features/documents/DocumentDetailsPage.js";
 import { UploadDialog } from "../features/documents/UploadDialog.js";
 import { TagsPage } from "../features/tags/TagsPage.js";
 import { AppShell } from "../layout/AppShell.js";
@@ -96,6 +97,7 @@ export function AppRoutes() {
         <Route element={<AppShell />}>
           <Route path="/" element={<DashboardPage />} />
           <Route path="/documentos" element={<DocumentsEntryView />} />
+          <Route path="/documentos/:id" element={<DocumentDetailsPage />} />
           <Route
             path="/pastas"
             element={

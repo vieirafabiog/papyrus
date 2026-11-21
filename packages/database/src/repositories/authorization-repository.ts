@@ -3,6 +3,7 @@ import type {
   AccessEffect,
   AccessResource,
   AccessScope,
+  DocumentDetailQueryData,
   DocumentEntity,
   DocumentListFilter,
   DocumentListItemEntity,
@@ -27,15 +28,17 @@ import {
   sql,
 } from "drizzle-orm";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
-import { documentTags, documents } from "../schema/documents.js";
+import { documentTags, documentVersions, documents } from "../schema/documents.js";
 import {
   permissions,
   rolePermissions,
   roles,
   userGroups,
   userRoleScopes,
+  users,
 } from "../schema/identity.js";
-import { folders } from "../schema/taxonomy.js";
+import { fileObjects } from "../schema/storage.js";
+import { categories, categoryFields, folders, tags } from "../schema/taxonomy.js";
 
 export interface LoadedRoleAssignment {
   readonly roleId: string;
@@ -145,6 +148,7 @@ export interface AuthorizationRepository {
     filter: DocumentListFilter,
     scope: AuthorizedDocumentQueryScope,
   ): Promise<PaginatedResult<DocumentListItemEntity>>;
+  loadDocumentDetailView?(document: DocumentEntity): Promise<DocumentDetailQueryData | null>;
 }
 
 export function createAuthorizationRepository(db: NodePgDatabase): AuthorizationRepository {
@@ -401,6 +405,144 @@ export function createAuthorizationRepository(db: NodePgDatabase): Authorization
         pageSize: filter.pageSize,
         totalItems,
         totalPages,
+      };
+    },
+
+    async loadDocumentDetailView(
+      document: DocumentEntity,
+    ): Promise<DocumentDetailQueryData | null> {
+      const [categoryRow] = await db
+        .select()
+        .from(categories)
+        .where(
+          and(
+            eq(categories.id, document.categoryId),
+            eq(categories.organizationId, document.organizationId),
+          ),
+        )
+        .limit(1);
+
+      if (!categoryRow) {
+        return null;
+      }
+
+      const [fieldRows, folderRows, ownerRows, versionRows, tagRows] = await Promise.all([
+        db
+          .select()
+          .from(categoryFields)
+          .where(eq(categoryFields.categoryId, categoryRow.id))
+          .orderBy(asc(categoryFields.sortOrder), asc(categoryFields.key), asc(categoryFields.id)),
+        document.folderId !== null
+          ? db
+              .select({
+                id: folders.id,
+                name: folders.name,
+                materializedPath: folders.materializedPath,
+              })
+              .from(folders)
+              .where(
+                and(
+                  eq(folders.id, document.folderId),
+                  eq(folders.organizationId, document.organizationId),
+                ),
+              )
+              .limit(1)
+          : Promise.resolve([]),
+        db
+          .select({
+            id: users.id,
+            fullName: users.fullName,
+            email: users.email,
+          })
+          .from(users)
+          .where(
+            and(
+              eq(users.id, document.ownerUserId),
+              eq(users.organizationId, document.organizationId),
+            ),
+          )
+          .limit(1),
+        document.currentVersionId !== null
+          ? db
+              .select({
+                version: documentVersions,
+                fileObject: {
+                  id: fileObjects.id,
+                  originalFileName: fileObjects.originalFileName,
+                  detectedContentType: fileObjects.detectedContentType,
+                  sizeBytes: fileObjects.sizeBytes,
+                  checksumSha256: fileObjects.checksumSha256,
+                  status: fileObjects.status,
+                },
+              })
+              .from(documentVersions)
+              .leftJoin(fileObjects, eq(documentVersions.fileObjectId, fileObjects.id))
+              .where(
+                and(
+                  eq(documentVersions.id, document.currentVersionId),
+                  eq(documentVersions.documentId, document.id),
+                ),
+              )
+              .limit(1)
+          : Promise.resolve([]),
+        db
+          .select({ tag: tags })
+          .from(documentTags)
+          .innerJoin(tags, eq(documentTags.tagId, tags.id))
+          .where(
+            and(
+              eq(documentTags.documentId, document.id),
+              eq(tags.organizationId, document.organizationId),
+            ),
+          )
+          .orderBy(asc(tags.name), asc(tags.id)),
+      ]);
+
+      const ownerRow = ownerRows[0];
+      if (!ownerRow) {
+        return null;
+      }
+
+      const folderRow = folderRows[0] ?? null;
+      const versionJoined = versionRows[0] ?? null;
+
+      return {
+        category: {
+          id: categoryRow.id,
+          name: categoryRow.name,
+          color: categoryRow.color,
+          icon: categoryRow.icon,
+          fields: fieldRows.map((field) => ({
+            id: field.id,
+            key: field.key,
+            label: field.label,
+            type: field.type,
+            required: field.required,
+            options: field.options ?? undefined,
+            sortOrder: field.sortOrder,
+          })),
+        },
+        folder: folderRow,
+        owner: ownerRow,
+        currentVersion: versionJoined
+          ? {
+              id: versionJoined.version.id,
+              versionNumber: versionJoined.version.versionNumber,
+              fileObjectId: versionJoined.version.fileObjectId,
+              uploadedByUserId: versionJoined.version.uploadedByUserId,
+              changeNote: versionJoined.version.changeNote,
+              createdAt: versionJoined.version.createdAt.toISOString(),
+              fileObject: versionJoined.fileObject,
+            }
+          : null,
+        tags: tagRows.map((row) => ({
+          id: row.tag.id,
+          organizationId: row.tag.organizationId,
+          name: row.tag.name,
+          normalizedName: row.tag.normalizedName,
+          color: row.tag.color,
+          createdAt: row.tag.createdAt.toISOString(),
+        })),
       };
     },
   };

@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { evaluateDocumentAuthorization } from "@docuflow/auth";
 import {
   CONTRACTS_API_PREFIX,
   type ErrorCode,
@@ -312,7 +313,72 @@ export async function registerDocumentRoutes(
         return reply;
       }
 
-      return reply.status(200).send({ data: doc });
+      const folderAncestorIds = await authzRepository.loadFolderAncestorIds(
+        ctx.me.user.organizationId,
+        doc.folderId,
+      );
+      const scopeContext = {
+        documentId: doc.id,
+        categoryId: doc.categoryId,
+        folderAncestorIds,
+      };
+      const permissions = {
+        canUpdate: evaluateDocumentAuthorization(
+          ctx.subject,
+          "UPDATE",
+          scopeContext,
+          ctx.rolePermissions,
+        ).allowed,
+        canDelete: evaluateDocumentAuthorization(
+          ctx.subject,
+          "DELETE",
+          scopeContext,
+          ctx.rolePermissions,
+        ).allowed,
+        canUpload: evaluateDocumentAuthorization(
+          ctx.subject,
+          "UPLOAD",
+          scopeContext,
+          ctx.rolePermissions,
+        ).allowed,
+        canDownload: evaluateDocumentAuthorization(
+          ctx.subject,
+          "DOWNLOAD",
+          scopeContext,
+          ctx.rolePermissions,
+        ).allowed,
+      };
+
+      const details = authzRepository.loadDocumentDetailView
+        ? await authzRepository.loadDocumentDetailView(doc)
+        : null;
+
+      await auditRepository.append({
+        organizationId: ctx.me.user.organizationId,
+        actorUserId: ctx.me.user.id,
+        action: "DOCUMENT_VIEWED",
+        resourceType: "DOCUMENT",
+        resourceId: doc.id,
+        result: "SUCCESS",
+        requestId: request.id,
+      });
+
+      if (!details) {
+        return reply.status(200).send({
+          data: {
+            ...doc,
+            permissions,
+          },
+        });
+      }
+
+      return reply.status(200).send({
+        data: {
+          ...doc,
+          ...details,
+          permissions,
+        },
+      });
     },
   );
 

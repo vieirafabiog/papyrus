@@ -50,6 +50,8 @@ export {
 
 export {
   DOCUMENT_STATUSES,
+  type DocumentDetailCategoryFieldSummary,
+  type DocumentDetailQueryData,
   type DocumentEntity,
   type DocumentListItemEntity,
   type DocumentMetadataMap,

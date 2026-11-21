@@ -684,7 +684,7 @@ docuflow/
   - **Ação:** Filtrar e paginar no PostgreSQL, aplicar autorização antes de count e retornar DTO mínimo.
   - **Verificação:** `pnpm --filter @docuflow/api test:integration`.
 
-- [ ] **Step 10.07 — Implementar detalhe do documento**
+- [x] **Step 10.07 — Implementar detalhe do documento**
   - **Arquivos:** rota de detalhe, queries e `DocumentDetailsPage.tsx`
   - **Ação:** Exibir metadados, categoria, pasta, status, responsável e datas, respeitando autorização.
   - **Verificação:** `pnpm --filter @docuflow/web test` e `pnpm --filter @docuflow/api test:integration`.

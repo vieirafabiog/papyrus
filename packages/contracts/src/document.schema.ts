@@ -1,5 +1,7 @@
 import { z } from "zod";
+import { categoryFieldDefinitionSchema, categoryHexColorSchema } from "./category.schema.js";
 import {
+  createApiResponseSchema,
   createPaginatedResponseSchema,
   createSortSchema,
   isoDateSchema,
@@ -7,6 +9,7 @@ import {
   paginationQuerySchema,
   uuidSchema,
 } from "./common.schema.js";
+import { tagRecordSchema } from "./tag.schema.js";
 
 export const documentStatusSchema = z.enum([
   "DRAFT",
@@ -139,6 +142,61 @@ export type DocumentListQuery = z.infer<typeof documentListQuerySchema>;
 
 export const documentListResponseSchema = createPaginatedResponseSchema(documentListItemSchema);
 export type DocumentListResponse = z.infer<typeof documentListResponseSchema>;
+
+export const documentDetailFileObjectSchema = z.object({
+  id: uuidSchema,
+  originalFileName: z.string().min(1).max(255),
+  detectedContentType: z.string().min(1).max(255),
+  sizeBytes: z.number().int().nonnegative(),
+  checksumSha256: sha256ChecksumSchema,
+  status: fileObjectStatusSchema,
+});
+export type DocumentDetailFileObject = z.infer<typeof documentDetailFileObjectSchema>;
+
+export const documentDetailVersionSchema = z.object({
+  id: uuidSchema,
+  versionNumber: z.number().int().min(1),
+  fileObjectId: uuidSchema,
+  uploadedByUserId: uuidSchema,
+  changeNote: z.string().trim().max(1000).nullable(),
+  createdAt: isoDateTimeSchema,
+  fileObject: documentDetailFileObjectSchema.nullable(),
+});
+export type DocumentDetailVersion = z.infer<typeof documentDetailVersionSchema>;
+
+export const documentDetailSchema = documentRecordSchema.extend({
+  category: z.object({
+    id: uuidSchema,
+    name: z.string().trim().min(1).max(120),
+    color: categoryHexColorSchema.nullable(),
+    icon: z.string().trim().min(1).max(64).nullable(),
+    fields: z.array(categoryFieldDefinitionSchema),
+  }),
+  folder: z
+    .object({
+      id: uuidSchema,
+      name: z.string().trim().min(1).max(120),
+      materializedPath: z.string().min(1),
+    })
+    .nullable(),
+  owner: z.object({
+    id: uuidSchema,
+    fullName: z.string().trim().min(1).max(150),
+    email: z.string().email(),
+  }),
+  currentVersion: documentDetailVersionSchema.nullable(),
+  tags: z.array(tagRecordSchema),
+  permissions: z.object({
+    canUpdate: z.boolean(),
+    canDelete: z.boolean(),
+    canUpload: z.boolean(),
+    canDownload: z.boolean(),
+  }),
+});
+export type DocumentDetail = z.infer<typeof documentDetailSchema>;
+
+export const documentDetailResponseSchema = createApiResponseSchema(documentDetailSchema);
+export type DocumentDetailResponse = z.infer<typeof documentDetailResponseSchema>;
 
 export const createDocumentRequestSchema = z
   .object({
