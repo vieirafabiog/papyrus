@@ -587,127 +587,147 @@ export async function registerUploadRoutes(
       const isMultipart = /^multipart\/form-data/i.test(contentTypeHeader);
 
       let tempDir: string | null = null;
+      const cleanupTempDir = async (): Promise<void> => {
+        if (tempDir) {
+          const target = tempDir;
+          tempDir = null;
+          await rm(target, { recursive: true, force: true });
+        }
+      };
+
+      let outcomeStatus = 200;
+      let outcomeBody: unknown;
+
       try {
-        const provider = await uploadStorageDeps.storageRegistry.resolveProvider(connection);
-        resolveUploadMode(provider, false);
+        try {
+          const provider = await uploadStorageDeps.storageRegistry.resolveProvider(connection);
+          resolveUploadMode(provider, false);
 
-        tempDir = await mkdtemp(
-          path.join(uploadStorageDeps.tempBaseDirectory ?? os.tmpdir(), "docuflow-api-upload-"),
-        );
-        const tempFilePath = path.join(tempDir, `${session.id}.bin`);
-
-        const streamed = isMultipart
-          ? await streamMultipartFileToTempFile(
-              request.body,
-              contentTypeHeader,
-              tempFilePath,
-              effectiveLimit,
-            )
-          : await streamRawBodyToTempFile(request.body, tempFilePath, effectiveLimit);
-
-        if (streamed.bytesReceived <= 0) {
-          return reply.status(400).send({
-            error: {
-              code: "VALIDATION_ERROR",
-              message: "Arquivo vazio não é permitido nesta sessão de upload.",
-              requestId: request.id,
-            },
-          });
-        }
-
-        if (streamed.bytesReceived !== session.declaredSizeBytes) {
-          return reply.status(400).send({
-            error: {
-              code: "VALIDATION_ERROR",
-              message: "O tamanho recebido diverge do tamanho declarado na sessão.",
-              requestId: request.id,
-            },
-          });
-        }
-
-        if (
-          fileObject.checksumSha256 !== PLACEHOLDER_PENDING_CHECKSUM &&
-          fileObject.checksumSha256.toLowerCase() !== streamed.checksumSha256
-        ) {
-          return reply.status(400).send({
-            error: {
-              code: "VALIDATION_ERROR",
-              message: "O checksum SHA-256 recebido diverge do checksum declarado na sessão.",
-              requestId: request.id,
-            },
-          });
-        }
-
-        const providerInputStream = createReadStream(tempFilePath);
-        await provider.putObject({
-          key: { value: fileObject.objectKey },
-          body: providerInputStream,
-          metadata: {
-            contentType: session.declaredContentType,
-            contentLength: streamed.bytesReceived,
-            checksumSha256: streamed.checksumSha256,
-          },
-        });
-
-        const updatedRecords = await uploadStorageDeps.transactions.runInTransaction(async (tx) => {
-          const marked = await uploadRepository.markUploadReceived(
-            {
-              sessionId: session.id,
-              fileObjectId: fileObject.id,
-              sizeBytes: streamed.bytesReceived,
-              checksumSha256: streamed.checksumSha256,
-            },
-            tx,
+          tempDir = await mkdtemp(
+            path.join(uploadStorageDeps.tempBaseDirectory ?? os.tmpdir(), "docuflow-api-upload-"),
           );
-          if (!marked) {
-            return null;
-          }
+          const tempFilePath = path.join(tempDir, `${session.id}.bin`);
 
-          await uploadStorageDeps.auditRepository.append(
-            {
-              organizationId: ctx.me.user.organizationId,
-              actorUserId: ctx.me.user.id,
-              action: "UPLOAD_BINARY_RECEIVED",
-              resourceType: "UPLOAD_SESSION",
-              resourceId: session.id,
-              result: "SUCCESS",
-              requestId: request.id,
-              metadata: {
-                storageConnectionId: session.storageConnectionId,
-                bytesReceived: streamed.bytesReceived,
-                progressPercent: 100,
+          const streamed = isMultipart
+            ? await streamMultipartFileToTempFile(
+                request.body,
+                contentTypeHeader,
+                tempFilePath,
+                effectiveLimit,
+              )
+            : await streamRawBodyToTempFile(request.body, tempFilePath, effectiveLimit);
+
+          if (streamed.bytesReceived <= 0) {
+            outcomeStatus = 400;
+            outcomeBody = {
+              error: {
+                code: "VALIDATION_ERROR",
+                message: "Arquivo vazio não é permitido nesta sessão de upload.",
+                requestId: request.id,
               },
-            },
-            tx,
-          );
+            };
+          } else if (streamed.bytesReceived !== session.declaredSizeBytes) {
+            outcomeStatus = 400;
+            outcomeBody = {
+              error: {
+                code: "VALIDATION_ERROR",
+                message: "O tamanho recebido diverge do tamanho declarado na sessão.",
+                requestId: request.id,
+              },
+            };
+          } else if (
+            fileObject.checksumSha256 !== PLACEHOLDER_PENDING_CHECKSUM &&
+            fileObject.checksumSha256.toLowerCase() !== streamed.checksumSha256
+          ) {
+            outcomeStatus = 400;
+            outcomeBody = {
+              error: {
+                code: "VALIDATION_ERROR",
+                message: "O checksum SHA-256 recebido diverge do checksum declarado na sessão.",
+                requestId: request.id,
+              },
+            };
+          } else {
+            const providerInputStream = createReadStream(tempFilePath);
+            await provider.putObject({
+              key: { value: fileObject.objectKey },
+              body: providerInputStream,
+              metadata: {
+                contentType: session.declaredContentType,
+                contentLength: streamed.bytesReceived,
+                checksumSha256: streamed.checksumSha256,
+              },
+            });
 
-          return marked;
-        });
+            const updatedRecords = await uploadStorageDeps.transactions.runInTransaction(
+              async (tx) => {
+                const marked = await uploadRepository.markUploadReceived(
+                  {
+                    sessionId: session.id,
+                    fileObjectId: fileObject.id,
+                    sizeBytes: streamed.bytesReceived,
+                    checksumSha256: streamed.checksumSha256,
+                  },
+                  tx,
+                );
+                if (!marked) {
+                  return null;
+                }
 
-        if (!updatedRecords) {
-          return reply.status(409).send({
-            error: {
-              code: "CONFLICT",
-              message: "A sessão de upload já recebeu o binário ou não está mais pendente.",
-              requestId: request.id,
-            },
-          });
+                await uploadStorageDeps.auditRepository.append(
+                  {
+                    organizationId: ctx.me.user.organizationId,
+                    actorUserId: ctx.me.user.id,
+                    action: "UPLOAD_BINARY_RECEIVED",
+                    resourceType: "UPLOAD_SESSION",
+                    resourceId: session.id,
+                    result: "SUCCESS",
+                    requestId: request.id,
+                    metadata: {
+                      storageConnectionId: session.storageConnectionId,
+                      bytesReceived: streamed.bytesReceived,
+                      progressPercent: 100,
+                    },
+                  },
+                  tx,
+                );
+
+                return marked;
+              },
+            );
+
+            if (!updatedRecords) {
+              outcomeStatus = 409;
+              outcomeBody = {
+                error: {
+                  code: "CONFLICT",
+                  message: "A sessão de upload já recebeu o binário ou não está mais pendente.",
+                  requestId: request.id,
+                },
+              };
+            } else {
+              const responseData: UploadContentResponseContract = {
+                sessionId: updatedRecords.session.id,
+                fileObjectId: updatedRecords.fileObject.id,
+                storageConnectionId: updatedRecords.session.storageConnectionId,
+                status: updatedRecords.session.status,
+                fileObjectStatus: updatedRecords.fileObject.status,
+                bytesReceived: streamed.bytesReceived,
+                expectedBytes: updatedRecords.session.declaredSizeBytes,
+                progressPercent: 100,
+                checksumSha256: streamed.checksumSha256,
+              };
+              outcomeStatus = 200;
+              outcomeBody = { data: responseData };
+            }
+          }
+        } finally {
+          await cleanupTempDir();
         }
 
-        const responseData: UploadContentResponseContract = {
-          sessionId: updatedRecords.session.id,
-          fileObjectId: updatedRecords.fileObject.id,
-          storageConnectionId: updatedRecords.session.storageConnectionId,
-          status: updatedRecords.session.status,
-          fileObjectStatus: updatedRecords.fileObject.status,
-          bytesReceived: streamed.bytesReceived,
-          expectedBytes: updatedRecords.session.declaredSizeBytes,
-          progressPercent: 100,
-          checksumSha256: streamed.checksumSha256,
-        };
-
-        return reply.status(200).send({ data: responseData });
+        return reply.status(outcomeStatus).send(outcomeBody);
       } catch (error) {
+        await cleanupTempDir();
         if (error instanceof UploadPayloadTooLargeError) {
           return reply.status(413).send({
             error: {
@@ -737,10 +757,6 @@ export async function registerUploadRoutes(
           });
         }
         throw error;
-      } finally {
-        if (tempDir) {
-          await rm(tempDir, { recursive: true, force: true });
-        }
       }
     };
 

@@ -645,7 +645,7 @@ docuflow/
   - **Ação:** Mostrar “Em análise”, “Disponível” ou “Rejeitado” sem expor detalhes técnicos ou liberar preview antes da aprovação do processamento.
   - **Verificação:** `pnpm --filter @docuflow/web test`.
 
-- [ ] **Step 09.12 — Criar testes de abuso de upload**
+- [x] **Step 09.12 — Criar testes de abuso de upload**
   - **Arquivos:** testes de segurança de upload
   - **Ação:** Cobrir tamanho excedido, MIME falso, nome malicioso, arquivo vazio, interrupção, repetição, timeout e scanner indisponível.
   - **Verificação:** `pnpm --filter @docuflow/api test:security`.

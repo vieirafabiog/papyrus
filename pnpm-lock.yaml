@@ -224,6 +224,9 @@ importers:
         specifier: ^3.24.2
         version: 3.25.76
     devDependencies:
+      '@docuflow/file-processing':
+        specifier: workspace:*
+        version: link:../../packages/file-processing
       '@testcontainers/postgresql':
         specifier: ^10.18.0
         version: 10.28.0(bare-buffer@3.7.3)

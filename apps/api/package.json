@@ -8,6 +8,7 @@
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc --noEmit",
     "test": "vitest run test/*.test.ts test/security/*.test.ts",
+    "test:security": "vitest run test/security",
     "test:integration": "vitest run test/integration"
   },
   "dependencies": {
@@ -24,6 +25,7 @@
     "zod": "^3.24.2"
   },
   "devDependencies": {
+    "@docuflow/file-processing": "workspace:*",
     "@testcontainers/postgresql": "^10.18.0",
     "drizzle-orm": "^0.41.0",
     "pg": "^8.14.1",
