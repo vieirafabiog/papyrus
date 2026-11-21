@@ -22,6 +22,12 @@ export {
   createDocumentRepository,
   createDocumentVersionRepository,
 } from "./repositories/document-repository.js";
+export {
+  createDocumentSearchRepository,
+  type DocumentMetadataSearchFilter,
+  type DocumentSearchFilter,
+  type DocumentSearchRepository,
+} from "./repositories/document-search.js";
 export { createFolderRepository } from "./repositories/folder-repository.js";
 export { createGroupRepository } from "./repositories/group-repository.js";
 export {

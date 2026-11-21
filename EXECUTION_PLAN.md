@@ -718,7 +718,7 @@ docuflow/
 
 # PHASE 11 — PESQUISA, VISUALIZAÇÃO, DOWNLOAD E DASHBOARD
 
-- [ ] **Step 11.01 — Implementar filtros avançados no repositório**
+- [x] **Step 11.01 — Implementar filtros avançados no repositório**
   - **Arquivos:** `packages/database/src/repositories/document-search.ts`
   - **Ação:** Implementar filtros para nome, categoria, pasta, status, autor, responsável, datas, tags e metadados suportados, com ordenação permitida.
   - **Verificação:** `pnpm --filter @docuflow/database test:integration`.
