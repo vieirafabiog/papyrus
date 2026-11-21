@@ -351,5 +351,16 @@ export const archiveDocumentRequestSchema = z.object({
 });
 export type ArchiveDocumentRequest = z.infer<typeof archiveDocumentRequestSchema>;
 
+export const trashDocumentRequestSchema = z.object({
+  expectedVersion: z.number().int().min(1),
+  reason: z
+    .string()
+    .trim()
+    .max(500, "O motivo da exclusão deve ter no máximo 500 caracteres.")
+    .nullable()
+    .optional(),
+});
+export type TrashDocumentRequest = z.infer<typeof trashDocumentRequestSchema>;
+
 export const documentMutationResponseSchema = createApiResponseSchema(documentRecordSchema);
 export type DocumentMutationResponse = z.infer<typeof documentMutationResponseSchema>;

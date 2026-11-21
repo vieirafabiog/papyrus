@@ -133,6 +133,8 @@ export {
   type RestoreDocumentVersionRequest,
   restoreDocumentVersionRequestSchema,
   sha256ChecksumSchema,
+  type TrashDocumentRequest,
+  trashDocumentRequestSchema,
   type UpdateDocumentRequest,
   updateDocumentRequestSchema,
 } from "./document.schema.js";

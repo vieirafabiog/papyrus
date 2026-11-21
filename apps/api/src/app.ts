@@ -15,6 +15,7 @@ import type {
   MoveDocumentService,
   StorageConnectionAdminService,
   TagService,
+  TrashDocumentService,
   UploadSessionRepositoryPort,
   UploadSessionService,
   UserAdministrationService,
@@ -63,6 +64,7 @@ export interface AppOptions {
         readonly createDocumentVersionService?: CreateDocumentVersionService | undefined;
         readonly moveDocumentService?: MoveDocumentService | undefined;
         readonly archiveDocumentService?: ArchiveDocumentService | undefined;
+        readonly trashDocumentService?: TrashDocumentService | undefined;
       }
     | undefined;
   readonly folderDeps?:
@@ -199,6 +201,7 @@ export function buildApp(options: AppOptions = {}): FastifyInstance {
           createDocumentVersionService: documentDeps.createDocumentVersionService,
           moveDocumentService: documentDeps.moveDocumentService,
           archiveDocumentService: documentDeps.archiveDocumentService,
+          trashDocumentService: documentDeps.trashDocumentService,
         });
       });
     }

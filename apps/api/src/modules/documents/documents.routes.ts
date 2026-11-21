@@ -11,6 +11,7 @@ import {
   isoDateSchema,
   moveDocumentRequestSchema,
   restoreDocumentVersionRequestSchema,
+  trashDocumentRequestSchema,
   updateDocumentRequestSchema,
   uuidSchema,
 } from "@docuflow/contracts";
@@ -27,6 +28,7 @@ import {
   type DocumentRepositoryPort,
   DomainError,
   type MoveDocumentService,
+  type TrashDocumentService,
   validateDocumentMetadata,
 } from "@docuflow/domain";
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
@@ -138,6 +140,7 @@ export async function registerDocumentRoutes(
     readonly createDocumentVersionService?: CreateDocumentVersionService | undefined;
     readonly moveDocumentService?: MoveDocumentService | undefined;
     readonly archiveDocumentService?: ArchiveDocumentService | undefined;
+    readonly trashDocumentService?: TrashDocumentService | undefined;
   },
 ): Promise<void> {
   const {
@@ -150,6 +153,7 @@ export async function registerDocumentRoutes(
     createDocumentVersionService,
     moveDocumentService,
     archiveDocumentService,
+    trashDocumentService,
   } = deps;
 
   app.get(`${CONTRACTS_API_PREFIX}/documents`, async (request, reply) => {
@@ -165,6 +169,19 @@ export async function registerDocumentRoutes(
           code: "VALIDATION_ERROR",
           message: "Parâmetros de pesquisa inválidos.",
           requestId: request.id,
+        },
+      });
+    }
+
+    // Listagem comum nunca expõe documentos enviados à lixeira lógica.
+    if (parsed.data.status === "DELETED") {
+      return reply.status(200).send({
+        items: [],
+        pagination: {
+          page: parsed.data.page,
+          pageSize: parsed.data.pageSize,
+          totalItems: 0,
+          totalPages: 0,
         },
       });
     }
@@ -896,5 +913,71 @@ export async function registerDocumentRoutes(
         return handleDocumentDomainError(error, request, reply);
       }
     },
+  );
+
+  const handleTrashRequest = async (
+    request: FastifyRequest<{ Params: { id: string } }>,
+    reply: FastifyReply,
+  ): Promise<FastifyReply> => {
+    if (!trashDocumentService) {
+      return reply.status(501).send({
+        error: {
+          code: "INTERNAL_ERROR",
+          message: "Serviço de lixeira documental não configurado.",
+          requestId: request.id,
+        },
+      });
+    }
+
+    const ctx = await guard.requireSubject(request, reply);
+    if (!ctx) {
+      return reply;
+    }
+
+    const idParsed = uuidSchema.safeParse(request.params.id);
+    const bodyParsed = trashDocumentRequestSchema.safeParse(request.body);
+    if (!idParsed.success || !bodyParsed.success) {
+      return reply.status(400).send({
+        error: {
+          code: "VALIDATION_ERROR",
+          message: !idParsed.success
+            ? "Identificador de documento inválido."
+            : !bodyParsed.success
+              ? (bodyParsed.error.issues[0]?.message ??
+                "Dados inválidos para envio do documento à lixeira.")
+              : "Dados inválidos para envio do documento à lixeira.",
+          requestId: request.id,
+        },
+      });
+    }
+
+    const doc = await guard.authorizeDocument(ctx, idParsed.data, "DELETE", reply, request.id);
+    if (!doc) {
+      return reply;
+    }
+
+    try {
+      const trashed = await trashDocumentService.trashDocument({
+        organizationId: ctx.me.user.organizationId,
+        actorUserId: ctx.me.user.id,
+        requestId: request.id,
+        documentId: doc.id,
+        expectedVersion: bodyParsed.data.expectedVersion,
+        reason: bodyParsed.data.reason,
+      });
+
+      return reply.status(200).send({ data: trashed });
+    } catch (error) {
+      return handleDocumentDomainError(error, request, reply);
+    }
+  };
+
+  app.post<{ Params: { id: string } }>(
+    `${CONTRACTS_API_PREFIX}/documents/:id/trash`,
+    handleTrashRequest,
+  );
+  app.delete<{ Params: { id: string } }>(
+    `${CONTRACTS_API_PREFIX}/documents/:id`,
+    handleTrashRequest,
   );
 }

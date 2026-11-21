@@ -99,6 +99,13 @@ export {
 } from "./documents/move-document.js";
 
 export {
+  type TrashDocumentCommand,
+  type TrashDocumentService,
+  type TrashDocumentServiceDependencies,
+  trashDocumentUseCase,
+} from "./documents/trash-document.js";
+
+export {
   assertApprovalMatchesVersion,
   type BuildNextVersionInput,
   buildNextDocumentVersion,

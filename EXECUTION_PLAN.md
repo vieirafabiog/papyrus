@@ -709,7 +709,7 @@ docuflow/
   - **Ação:** Mover documento entre pastas e arquivar com validação de permissão e registro de auditoria.
   - **Verificação:** `pnpm --filter @docuflow/api test:integration`.
 
-- [ ] **Step 10.12 — Implementar lixeira lógica**
+- [x] **Step 10.12 — Implementar lixeira lógica**
   - **Arquivos:** `packages/domain/src/documents/trash-document.ts`, rotas
   - **Ação:** Marcar documento como excluído logicamente, ocultar das listagens comuns e preservar versões/auditoria até expurgo autorizado.
   - **Verificação:** `pnpm --filter @docuflow/domain test`.
