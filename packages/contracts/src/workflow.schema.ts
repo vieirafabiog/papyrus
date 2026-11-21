@@ -1,5 +1,13 @@
 import { z } from "zod";
-import { isoDateTimeSchema, uuidSchema } from "./common.schema.js";
+import {
+  createApiResponseSchema,
+  createPaginatedResponseSchema,
+  createSortSchema,
+  isoDateTimeSchema,
+  paginationQuerySchema,
+  uuidSchema,
+} from "./common.schema.js";
+import { documentStatusSchema } from "./document.schema.js";
 
 export const workflowTaskStatusSchema = z.enum([
   "PENDING",
@@ -21,11 +29,7 @@ export const workflowInstanceStatusSchema = z.enum([
 ]);
 export type WorkflowInstanceStatus = z.infer<typeof workflowInstanceStatusSchema>;
 
-export const workflowDecisionTypeSchema = z.enum([
-  "APPROVE",
-  "REJECT",
-  "REQUEST_CHANGES",
-]);
+export const workflowDecisionTypeSchema = z.enum(["APPROVE", "REJECT", "REQUEST_CHANGES"]);
 export type WorkflowDecisionType = z.infer<typeof workflowDecisionTypeSchema>;
 
 export const workflowAssigneeTargetSchema = z.discriminatedUnion("type", [
@@ -106,3 +110,55 @@ export const workflowDecisionRecordSchema = z.object({
   createdAt: isoDateTimeSchema,
 });
 export type WorkflowDecisionRecord = z.infer<typeof workflowDecisionRecordSchema>;
+
+export const workflowStepCommentRulesSchema = z.object({
+  requireOnApprove: z.boolean(),
+  requireOnReject: z.literal(true),
+  requireOnRequestChanges: z.literal(true),
+});
+export type WorkflowStepCommentRulesContract = z.infer<typeof workflowStepCommentRulesSchema>;
+
+export const taskInboxSortSchema = createSortSchema([
+  "dueAt",
+  "createdAt",
+  "status",
+  "stepOrder",
+  "id",
+]);
+
+const taskQueryBooleanSchema = z.preprocess((value) => {
+  if (value === "true" || value === true) {
+    return true;
+  }
+  if (value === "false" || value === false) {
+    return false;
+  }
+  return value;
+}, z.boolean());
+
+export const taskInboxQuerySchema = paginationQuerySchema.merge(taskInboxSortSchema).extend({
+  status: workflowTaskStatusSchema.optional(),
+  documentId: uuidSchema.optional(),
+  assigneeType: z.enum(["USER", "GROUP", "ROLE"]).optional(),
+  overdueOnly: taskQueryBooleanSchema.optional(),
+});
+export type TaskInboxQuery = z.infer<typeof taskInboxQuerySchema>;
+
+export const taskInboxItemSchema = workflowTaskSchema.extend({
+  stepName: z.string().min(1).max(120),
+  documentTitle: z.string().min(1).max(255),
+  documentStatus: documentStatusSchema,
+  documentVersionNumber: z.number().int().min(1),
+  workflowDefinitionName: z.string().min(1).max(120),
+  isOverdue: z.boolean(),
+  commentRules: workflowStepCommentRulesSchema,
+});
+export type TaskInboxItem = z.infer<typeof taskInboxItemSchema>;
+
+export const taskInboxListResponseSchema = createApiResponseSchema(
+  createPaginatedResponseSchema(taskInboxItemSchema),
+);
+export type TaskInboxListResponse = z.infer<typeof taskInboxListResponseSchema>;
+
+export const taskDetailResponseSchema = createApiResponseSchema(taskInboxItemSchema);
+export type TaskDetailResponse = z.infer<typeof taskDetailResponseSchema>;

@@ -787,7 +787,7 @@ docuflow/
   - **Ação:** Gerar tarefas para usuários/grupos autorizados sem duplicidade em retries.
   - **Verificação:** `pnpm --filter @docuflow/api test:integration`.
 
-- [ ] **Step 12.04 — Implementar caixa de tarefas da API**
+- [x] **Step 12.04 — Implementar caixa de tarefas da API**
   - **Arquivos:** `apps/api/src/modules/tasks/*`
   - **Ação:** Listar tarefas do usuário/grupos, com filtros, paginação e autorização.
   - **Verificação:** `pnpm --filter @docuflow/api test:integration`.

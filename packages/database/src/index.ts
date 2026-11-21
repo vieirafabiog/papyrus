@@ -52,6 +52,14 @@ export {
 } from "./repositories/storage-connection-repository.js";
 export { createTagRepository } from "./repositories/tag-repository.js";
 export {
+  createTaskInboxRepository,
+  type TaskDetailLookupOutcome,
+  type TaskInboxFilter,
+  type TaskInboxRecord,
+  type TaskInboxRepository,
+  type TaskInboxSortField,
+} from "./repositories/task-inbox-repository.js";
+export {
   createTransactionManager,
   type DrizzleDbExecutor,
   resolveDbExecutor,

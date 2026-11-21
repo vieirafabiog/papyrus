@@ -3,6 +3,7 @@ import type {
   AuthorizationRepository,
   DashboardRepository,
   DocumentSearchRepository,
+  TaskInboxRepository,
 } from "@docuflow/database";
 import type {
   ArchiveDocumentService,
@@ -44,6 +45,7 @@ import { registerSetupRoutes } from "./modules/setup/setup.routes.js";
 import type { SetupService } from "./modules/setup/setup.service.js";
 import { registerStorageRoutes } from "./modules/storage/storage.routes.js";
 import { registerTagRoutes } from "./modules/tags/tags.routes.js";
+import { registerTaskRoutes } from "./modules/tasks/index.js";
 import {
   type LocalStreamUploadDependencies,
   type StorageUploadDependencies,
@@ -115,6 +117,14 @@ export interface AppOptions {
         readonly uploadSessionService: UploadSessionService;
         readonly storageUploadDeps?: StorageUploadDependencies | undefined;
         readonly localUploadDeps?: LocalStreamUploadDependencies | undefined;
+      }
+    | undefined;
+  readonly taskDeps?:
+    | {
+        readonly authzRepository: AuthorizationRepository;
+        readonly documentRepository: DocumentRepositoryPort;
+        readonly taskInboxRepository: TaskInboxRepository;
+        readonly now?: (() => Date) | undefined;
       }
     | undefined;
   readonly secureCookies?: boolean | undefined;
@@ -320,6 +330,22 @@ export function buildApp(options: AppOptions = {}): FastifyInstance {
         await registerTagRoutes(instance, {
           documentGuard: tagDocGuard,
           tagService: tagDeps.tagService,
+        });
+      });
+    }
+
+    if (options.taskDeps) {
+      const taskDeps = options.taskDeps;
+      const taskGuard = createDocumentAuthorizationGuard({
+        authService,
+        authzRepository: taskDeps.authzRepository,
+        documentRepository: taskDeps.documentRepository,
+      });
+      void app.register(async (instance) => {
+        await registerTaskRoutes(instance, {
+          guard: taskGuard,
+          taskInboxRepository: taskDeps.taskInboxRepository,
+          now: taskDeps.now,
         });
       });
     }
