@@ -21,6 +21,10 @@ export interface DocumentListFilter {
   readonly search?: string | undefined;
   readonly categoryId?: string | undefined;
   readonly folderId?: string | undefined;
+  readonly ownerUserId?: string | undefined;
+  readonly tagId?: string | undefined;
+  readonly expirationFrom?: string | undefined;
+  readonly expirationTo?: string | undefined;
   readonly status?: DocumentStatus | undefined;
   readonly page: number;
   readonly pageSize: number;

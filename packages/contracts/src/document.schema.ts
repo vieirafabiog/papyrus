@@ -1,5 +1,6 @@
 import { z } from "zod";
 import {
+  createPaginatedResponseSchema,
   createSortSchema,
   isoDateSchema,
   isoDateTimeSchema,
@@ -96,13 +97,48 @@ export const documentListSortSchema = createSortSchema([
   "id",
 ]);
 
-export const documentListQuerySchema = paginationQuerySchema.merge(documentListSortSchema).extend({
-  search: z.string().trim().max(200).optional(),
-  categoryId: uuidSchema.optional(),
-  folderId: uuidSchema.optional(),
-  status: documentStatusSchema.optional(),
+export const documentListItemSchema = z.object({
+  id: uuidSchema,
+  title: z.string().trim().min(1).max(255),
+  categoryId: uuidSchema,
+  folderId: uuidSchema.nullable(),
+  status: documentStatusSchema,
+  currentVersionId: uuidSchema.nullable(),
+  ownerUserId: uuidSchema,
+  issueDate: isoDateSchema.nullable(),
+  expirationDate: isoDateSchema.nullable(),
+  version: z.number().int().min(1),
+  createdAt: isoDateTimeSchema,
+  updatedAt: isoDateTimeSchema,
 });
+export type DocumentListItem = z.infer<typeof documentListItemSchema>;
+
+export const documentListQuerySchema = paginationQuerySchema
+  .merge(documentListSortSchema)
+  .extend({
+    search: z.string().trim().max(200).optional(),
+    categoryId: uuidSchema.optional(),
+    folderId: uuidSchema.optional(),
+    ownerUserId: uuidSchema.optional(),
+    tagId: uuidSchema.optional(),
+    expirationFrom: isoDateSchema.optional(),
+    expirationTo: isoDateSchema.optional(),
+    status: documentStatusSchema.optional(),
+  })
+  .refine(
+    (query) =>
+      query.expirationFrom === undefined ||
+      query.expirationTo === undefined ||
+      query.expirationTo >= query.expirationFrom,
+    {
+      path: ["expirationTo"],
+      message: "A data final de vencimento deve ser maior ou igual à data inicial.",
+    },
+  );
 export type DocumentListQuery = z.infer<typeof documentListQuerySchema>;
+
+export const documentListResponseSchema = createPaginatedResponseSchema(documentListItemSchema);
+export type DocumentListResponse = z.infer<typeof documentListResponseSchema>;
 
 export const createDocumentRequestSchema = z
   .object({

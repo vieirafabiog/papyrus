@@ -5,26 +5,29 @@ import type {
   AccessScope,
   DocumentEntity,
   DocumentListFilter,
+  DocumentListItemEntity,
   DocumentMetadataMap,
   DocumentSortField,
   PaginatedResult,
 } from "@docuflow/domain";
 import {
+  type SQL,
   and,
   asc,
   count,
   desc,
   eq,
+  gte,
   ilike,
   inArray,
+  lte,
   ne,
   not,
   or,
   sql,
-  type SQL,
 } from "drizzle-orm";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
-import { documents } from "../schema/documents.js";
+import { documentTags, documents } from "../schema/documents.js";
 import {
   permissions,
   rolePermissions,
@@ -126,7 +129,10 @@ function toDocumentEntity(row: typeof documents.$inferSelect): DocumentEntity {
 
 export interface AuthorizationRepository {
   loadSubject(organizationId: string, userId: string): Promise<LoadedAuthorizationSubject>;
-  loadFolderAncestorIds(organizationId: string, folderId: string | null): Promise<readonly string[]>;
+  loadFolderAncestorIds(
+    organizationId: string,
+    folderId: string | null,
+  ): Promise<readonly string[]>;
   expandFolderSubtreeIds(
     organizationId: string,
     rootFolderIds: readonly string[],
@@ -135,14 +141,15 @@ export interface AuthorizationRepository {
     filter: DocumentListFilter,
     scope: AuthorizedDocumentQueryScope,
   ): Promise<PaginatedResult<DocumentEntity>>;
+  listAuthorizedDocumentSummaries?(
+    filter: DocumentListFilter,
+    scope: AuthorizedDocumentQueryScope,
+  ): Promise<PaginatedResult<DocumentListItemEntity>>;
 }
 
 export function createAuthorizationRepository(db: NodePgDatabase): AuthorizationRepository {
   return {
-    async loadSubject(
-      organizationId: string,
-      userId: string,
-    ): Promise<LoadedAuthorizationSubject> {
+    async loadSubject(organizationId: string, userId: string): Promise<LoadedAuthorizationSubject> {
       const membershipRows = await db
         .select({ groupId: userGroups.groupId })
         .from(userGroups)
@@ -291,13 +298,8 @@ export function createAuthorizationRepository(db: NodePgDatabase): Authorization
       filter: DocumentListFilter,
       scope: AuthorizedDocumentQueryScope,
     ): Promise<PaginatedResult<DocumentEntity>> {
-      const hasAnyAllow =
-        scope.hasGlobalAllow ||
-        scope.allowedCategoryIds.length > 0 ||
-        scope.allowedFolderIds.length > 0 ||
-        scope.allowedDocumentIds.length > 0;
-
-      if (scope.hasGlobalDeny || !hasAnyAllow) {
+      const whereClause = await buildAuthorizedWhereClause(filter, scope, this);
+      if (!whereClause) {
         return {
           items: [],
           page: filter.page,
@@ -307,71 +309,6 @@ export function createAuthorizationRepository(db: NodePgDatabase): Authorization
         };
       }
 
-      const expandedAllowedFolders = await this.expandFolderSubtreeIds(
-        filter.organizationId,
-        scope.allowedFolderIds,
-      );
-      const expandedDeniedFolders = await this.expandFolderSubtreeIds(
-        filter.organizationId,
-        scope.deniedFolderIds,
-      );
-
-      const conditions: SQL[] = [eq(documents.organizationId, filter.organizationId)];
-
-      if (filter.status !== undefined) {
-        conditions.push(eq(documents.status, filter.status));
-      } else {
-        conditions.push(ne(documents.status, "DELETED"));
-      }
-      if (filter.categoryId !== undefined) {
-        conditions.push(eq(documents.categoryId, filter.categoryId));
-      }
-      if (filter.folderId !== undefined) {
-        conditions.push(eq(documents.folderId, filter.folderId));
-      }
-      if (filter.search !== undefined && filter.search.trim().length > 0) {
-        conditions.push(ilike(documents.title, `%${filter.search.trim()}%`));
-      }
-
-      if (!scope.hasGlobalAllow) {
-        const allowPredicates: SQL[] = [];
-        if (scope.allowedCategoryIds.length > 0) {
-          allowPredicates.push(inArray(documents.categoryId, [...scope.allowedCategoryIds]));
-        }
-        if (expandedAllowedFolders.length > 0) {
-          allowPredicates.push(inArray(documents.folderId, [...expandedAllowedFolders]));
-        }
-        if (scope.allowedDocumentIds.length > 0) {
-          allowPredicates.push(inArray(documents.id, [...scope.allowedDocumentIds]));
-        }
-        if (allowPredicates.length === 0) {
-          return {
-            items: [],
-            page: filter.page,
-            pageSize: filter.pageSize,
-            totalItems: 0,
-            totalPages: 0,
-          };
-        }
-        const combinedAllow = or(...allowPredicates);
-        if (combinedAllow) {
-          conditions.push(combinedAllow);
-        }
-      }
-
-      if (scope.deniedCategoryIds.length > 0) {
-        conditions.push(not(inArray(documents.categoryId, [...scope.deniedCategoryIds])));
-      }
-      if (expandedDeniedFolders.length > 0) {
-        conditions.push(
-          sql`(${documents.folderId} IS NULL OR ${not(inArray(documents.folderId, [...expandedDeniedFolders]))})`,
-        );
-      }
-      if (scope.deniedDocumentIds.length > 0) {
-        conditions.push(not(inArray(documents.id, [...scope.deniedDocumentIds])));
-      }
-
-      const whereClause = and(...conditions);
       const sortColumn = SORT_COLUMNS[filter.sortBy];
       const primaryOrder = filter.sortDirection === "asc" ? asc(sortColumn) : desc(sortColumn);
       const tiebreakerOrder =
@@ -398,6 +335,161 @@ export function createAuthorizationRepository(db: NodePgDatabase): Authorization
         totalPages,
       };
     },
-  };
-}
 
+    async listAuthorizedDocumentSummaries(
+      filter: DocumentListFilter,
+      scope: AuthorizedDocumentQueryScope,
+    ): Promise<PaginatedResult<DocumentListItemEntity>> {
+      const whereClause = await buildAuthorizedWhereClause(filter, scope, this);
+      if (!whereClause) {
+        return {
+          items: [],
+          page: filter.page,
+          pageSize: filter.pageSize,
+          totalItems: 0,
+          totalPages: 0,
+        };
+      }
+
+      const sortColumn = SORT_COLUMNS[filter.sortBy];
+      const primaryOrder = filter.sortDirection === "asc" ? asc(sortColumn) : desc(sortColumn);
+      const tiebreakerOrder =
+        filter.sortDirection === "asc" ? asc(documents.id) : desc(documents.id);
+      const offset = (filter.page - 1) * filter.pageSize;
+
+      const [countRow] = await db.select({ total: count() }).from(documents).where(whereClause);
+      const totalItems = Number(countRow?.total ?? 0);
+      const totalPages = totalItems === 0 ? 0 : Math.ceil(totalItems / filter.pageSize);
+
+      const rows = await db
+        .select({
+          id: documents.id,
+          title: documents.title,
+          categoryId: documents.categoryId,
+          folderId: documents.folderId,
+          status: documents.status,
+          currentVersionId: documents.currentVersionId,
+          ownerUserId: documents.ownerUserId,
+          issueDate: documents.issueDate,
+          expirationDate: documents.expirationDate,
+          version: documents.version,
+          createdAt: documents.createdAt,
+          updatedAt: documents.updatedAt,
+        })
+        .from(documents)
+        .where(whereClause)
+        .orderBy(primaryOrder, tiebreakerOrder)
+        .limit(filter.pageSize)
+        .offset(offset);
+
+      return {
+        items: rows.map((row) => ({
+          id: row.id,
+          title: row.title,
+          categoryId: row.categoryId,
+          folderId: row.folderId,
+          status: row.status,
+          currentVersionId: row.currentVersionId,
+          ownerUserId: row.ownerUserId,
+          issueDate: row.issueDate,
+          expirationDate: row.expirationDate,
+          version: row.version,
+          createdAt: row.createdAt.toISOString(),
+          updatedAt: row.updatedAt.toISOString(),
+        })),
+        page: filter.page,
+        pageSize: filter.pageSize,
+        totalItems,
+        totalPages,
+      };
+    },
+  };
+
+  async function buildAuthorizedWhereClause(
+    filter: DocumentListFilter,
+    scope: AuthorizedDocumentQueryScope,
+    repo: Pick<AuthorizationRepository, "expandFolderSubtreeIds">,
+  ): Promise<SQL | undefined | null> {
+    const hasAnyAllow =
+      scope.hasGlobalAllow ||
+      scope.allowedCategoryIds.length > 0 ||
+      scope.allowedFolderIds.length > 0 ||
+      scope.allowedDocumentIds.length > 0;
+
+    if (scope.hasGlobalDeny || !hasAnyAllow) {
+      return null;
+    }
+
+    const [expandedAllowedFolders, expandedDeniedFolders] = await Promise.all([
+      repo.expandFolderSubtreeIds(filter.organizationId, scope.allowedFolderIds),
+      repo.expandFolderSubtreeIds(filter.organizationId, scope.deniedFolderIds),
+    ]);
+
+    const conditions: SQL[] = [eq(documents.organizationId, filter.organizationId)];
+
+    if (filter.status !== undefined) {
+      conditions.push(eq(documents.status, filter.status));
+    } else {
+      conditions.push(ne(documents.status, "DELETED"));
+    }
+    if (filter.categoryId !== undefined) {
+      conditions.push(eq(documents.categoryId, filter.categoryId));
+    }
+    if (filter.folderId !== undefined) {
+      conditions.push(eq(documents.folderId, filter.folderId));
+    }
+    if (filter.ownerUserId !== undefined) {
+      conditions.push(eq(documents.ownerUserId, filter.ownerUserId));
+    }
+    if (filter.expirationFrom !== undefined) {
+      conditions.push(gte(documents.expirationDate, filter.expirationFrom));
+    }
+    if (filter.expirationTo !== undefined) {
+      conditions.push(lte(documents.expirationDate, filter.expirationTo));
+    }
+    if (filter.tagId !== undefined) {
+      const taggedDocIds = db
+        .select({ documentId: documentTags.documentId })
+        .from(documentTags)
+        .where(eq(documentTags.tagId, filter.tagId));
+      conditions.push(inArray(documents.id, taggedDocIds));
+    }
+    if (filter.search !== undefined && filter.search.trim().length > 0) {
+      conditions.push(ilike(documents.title, `%${filter.search.trim()}%`));
+    }
+
+    if (!scope.hasGlobalAllow) {
+      const allowPredicates: SQL[] = [];
+      if (scope.allowedCategoryIds.length > 0) {
+        allowPredicates.push(inArray(documents.categoryId, [...scope.allowedCategoryIds]));
+      }
+      if (expandedAllowedFolders.length > 0) {
+        allowPredicates.push(inArray(documents.folderId, [...expandedAllowedFolders]));
+      }
+      if (scope.allowedDocumentIds.length > 0) {
+        allowPredicates.push(inArray(documents.id, [...scope.allowedDocumentIds]));
+      }
+      if (allowPredicates.length === 0) {
+        return null;
+      }
+      const combinedAllow = or(...allowPredicates);
+      if (combinedAllow) {
+        conditions.push(combinedAllow);
+      }
+    }
+
+    if (scope.deniedCategoryIds.length > 0) {
+      conditions.push(not(inArray(documents.categoryId, [...scope.deniedCategoryIds])));
+    }
+    if (expandedDeniedFolders.length > 0) {
+      conditions.push(
+        sql`(${documents.folderId} IS NULL OR ${not(inArray(documents.folderId, [...expandedDeniedFolders]))})`,
+      );
+    }
+    if (scope.deniedDocumentIds.length > 0) {
+      conditions.push(not(inArray(documents.id, [...scope.deniedDocumentIds])));
+    }
+
+    return and(...conditions);
+  }
+}

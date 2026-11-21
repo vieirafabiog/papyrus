@@ -83,8 +83,12 @@ export {
 export {
   type CreateDocumentRequest,
   createDocumentRequestSchema,
+  type DocumentListItem,
+  documentListItemSchema,
   type DocumentListQuery,
   documentListQuerySchema,
+  type DocumentListResponse,
+  documentListResponseSchema,
   documentListSortSchema,
   type DocumentMetadataRecord,
   type DocumentMetadataValue,

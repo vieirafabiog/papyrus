@@ -42,6 +42,21 @@ export interface DocumentEntity {
   readonly updatedAt: string;
 }
 
+export interface DocumentListItemEntity {
+  readonly id: string;
+  readonly title: string;
+  readonly categoryId: string;
+  readonly folderId: string | null;
+  readonly status: DocumentStatus;
+  readonly currentVersionId: string | null;
+  readonly ownerUserId: string;
+  readonly issueDate: string | null;
+  readonly expirationDate: string | null;
+  readonly version: number;
+  readonly createdAt: string;
+  readonly updatedAt: string;
+}
+
 export interface DocumentVersionEntity {
   readonly id: string;
   readonly documentId: string;

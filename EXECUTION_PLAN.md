@@ -679,7 +679,7 @@ docuflow/
   - **Ação:** Criar documento com categoria, pasta, responsável, metadados e vínculo ao upload finalizado. Não permitir status aprovado no envio inicial.
   - **Verificação:** `pnpm --filter @docuflow/domain test`.
 
-- [ ] **Step 10.06 — Implementar listagem paginada de documentos**
+- [x] **Step 10.06 — Implementar listagem paginada de documentos**
   - **Arquivos:** repository, API `GET /documents` e contracts
   - **Ação:** Filtrar e paginar no PostgreSQL, aplicar autorização antes de count e retornar DTO mínimo.
   - **Verificação:** `pnpm --filter @docuflow/api test:integration`.

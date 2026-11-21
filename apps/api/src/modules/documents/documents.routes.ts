@@ -12,6 +12,7 @@ import type { AuthorizationRepository } from "@docuflow/database";
 import {
   type AuditRepositoryPort,
   type CreateDocumentService,
+  type DocumentListItemEntity,
   type DocumentRepositoryPort,
   DomainError,
 } from "@docuflow/domain";
@@ -86,6 +87,36 @@ const updateDocumentBodySchema = z.object({
   metadata: documentMetadataRecordSchema.optional(),
 });
 
+function toMinimalDocumentListItem(doc: {
+  readonly id: string;
+  readonly title: string;
+  readonly categoryId: string;
+  readonly folderId: string | null;
+  readonly status: DocumentListItemEntity["status"];
+  readonly currentVersionId: string | null;
+  readonly ownerUserId: string;
+  readonly issueDate: string | null;
+  readonly expirationDate: string | null;
+  readonly version: number;
+  readonly createdAt: string;
+  readonly updatedAt: string;
+}): DocumentListItemEntity {
+  return {
+    id: doc.id,
+    title: doc.title,
+    categoryId: doc.categoryId,
+    folderId: doc.folderId,
+    status: doc.status,
+    currentVersionId: doc.currentVersionId,
+    ownerUserId: doc.ownerUserId,
+    issueDate: doc.issueDate,
+    expirationDate: doc.expirationDate,
+    version: doc.version,
+    createdAt: doc.createdAt,
+    updatedAt: doc.updatedAt,
+  };
+}
+
 export async function registerDocumentRoutes(
   app: FastifyInstance,
   deps: {
@@ -117,20 +148,31 @@ export async function registerDocumentRoutes(
     }
 
     const scope = buildDocumentQueryScope(ctx.loaded, ctx.rolePermissions, "READ");
-    const result = await authzRepository.listAuthorizedDocuments(
-      {
-        organizationId: ctx.me.user.organizationId,
-        search: parsed.data.search,
-        categoryId: parsed.data.categoryId,
-        folderId: parsed.data.folderId,
-        status: parsed.data.status,
-        page: parsed.data.page,
-        pageSize: parsed.data.pageSize,
-        sortBy: parsed.data.sortBy ?? "updatedAt",
-        sortDirection: parsed.data.sortDirection,
-      },
-      scope,
-    );
+    const filter = {
+      organizationId: ctx.me.user.organizationId,
+      search: parsed.data.search,
+      categoryId: parsed.data.categoryId,
+      folderId: parsed.data.folderId,
+      ownerUserId: parsed.data.ownerUserId,
+      tagId: parsed.data.tagId,
+      expirationFrom: parsed.data.expirationFrom,
+      expirationTo: parsed.data.expirationTo,
+      status: parsed.data.status,
+      page: parsed.data.page,
+      pageSize: parsed.data.pageSize,
+      sortBy: parsed.data.sortBy ?? "updatedAt",
+      sortDirection: parsed.data.sortDirection,
+    };
+
+    const result = authzRepository.listAuthorizedDocumentSummaries
+      ? await authzRepository.listAuthorizedDocumentSummaries(filter, scope)
+      : await (async () => {
+          const full = await authzRepository.listAuthorizedDocuments(filter, scope);
+          return {
+            ...full,
+            items: full.items.map(toMinimalDocumentListItem),
+          };
+        })();
 
     return reply.status(200).send({
       items: result.items,

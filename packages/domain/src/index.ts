@@ -51,6 +51,7 @@ export {
 export {
   DOCUMENT_STATUSES,
   type DocumentEntity,
+  type DocumentListItemEntity,
   type DocumentMetadataMap,
   type DocumentMetadataValue,
   type DocumentStatus,
