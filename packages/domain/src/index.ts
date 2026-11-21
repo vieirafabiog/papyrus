@@ -147,12 +147,16 @@ export {
 } from "./audit/audit-writer.js";
 
 export type {
+  AuditActorSummary,
   AuditEventInput,
   AuditEventRecord,
+  AuditExportFilter,
+  AuditFacetsRecord,
   AuditListFilter,
   AuditMetadataValue,
   AuditRepositoryPort,
   AuditResult,
+  AuditSortField,
 } from "./ports/audit-repository.port.js";
 
 export type {

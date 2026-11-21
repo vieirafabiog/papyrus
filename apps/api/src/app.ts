@@ -35,6 +35,7 @@ import type { S3EndpointSecurityPolicy } from "@docuflow/storage-s3";
 import cookie from "@fastify/cookie";
 import Fastify, { type FastifyInstance } from "fastify";
 import { registerPermissionRoutes } from "./modules/access/permissions.routes.js";
+import { registerAuditRoutes } from "./modules/audit/audit.routes.js";
 import { registerAuthRoutes } from "./modules/auth/auth.routes.js";
 import type { AuthService } from "./modules/auth/auth.service.js";
 import { registerCategoryRoutes } from "./modules/categories/categories.routes.js";
@@ -132,6 +133,13 @@ export interface AppOptions {
         readonly documentRepository: DocumentRepositoryPort;
         readonly taskInboxRepository: TaskInboxRepository;
         readonly decideTaskService?: DecideTaskService | undefined;
+        readonly now?: (() => Date) | undefined;
+      }
+    | undefined;
+  readonly auditDeps?:
+    | {
+        readonly authzRepository: AuthorizationRepository;
+        readonly auditRepository: AuditRepositoryPort;
         readonly now?: (() => Date) | undefined;
       }
     | undefined;
@@ -378,6 +386,24 @@ export function buildApp(options: AppOptions = {}): FastifyInstance {
         await registerNotificationRoutes(instance, {
           authService,
           notificationService,
+        });
+      });
+    }
+
+    const resolvedAuditAuthzRepo =
+      options.auditDeps?.authzRepository ?? options.documentDeps?.authzRepository;
+    const resolvedAuditRepo =
+      options.auditDeps?.auditRepository ??
+      options.auditRepository ??
+      options.documentDeps?.auditRepository;
+    if (resolvedAuditAuthzRepo && resolvedAuditRepo) {
+      const auditNow = options.auditDeps?.now;
+      void app.register(async (instance) => {
+        await registerAuditRoutes(instance, {
+          authService,
+          authzRepository: resolvedAuditAuthzRepo,
+          auditRepository: resolvedAuditRepo,
+          now: auditNow,
         });
       });
     }

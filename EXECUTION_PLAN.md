@@ -836,7 +836,7 @@ docuflow/
   - **Ação:** Registrar eventos definidos em `project.md` C.10 sem duplicidade nem conteúdo sensível.
   - **Verificação:** `pnpm --filter @docuflow/api test:integration`.
 
-- [ ] **Step 13.03 — Implementar consulta de auditoria**
+- [x] **Step 13.03 — Implementar consulta de auditoria**
   - **Arquivos:** API e `apps/web/src/features/audit/AuditPage.tsx`
   - **Ação:** Filtrar por usuário, ação, recurso e período; limitar exportações a usuários autorizados.
   - **Verificação:** `pnpm --filter @docuflow/api test:integration` e `pnpm --filter @docuflow/web test`.

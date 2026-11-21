@@ -38,6 +38,33 @@ export {
 } from "./access.schema.js";
 
 export {
+  type AuditActorOption,
+  type AuditEventRecord,
+  type AuditEventsExportQuery,
+  type AuditEventsFilterFields,
+  type AuditEventsListResponse,
+  type AuditEventsQuery,
+  type AuditExportFormat,
+  type AuditFacets,
+  type AuditFacetsResponse,
+  type AuditListSortField,
+  type AuditMetadataValue,
+  type AuditResult,
+  auditActorOptionSchema,
+  auditEventRecordSchema,
+  auditEventsExportQuerySchema,
+  auditEventsFilterFieldsSchema,
+  auditEventsListResponseSchema,
+  auditEventsQuerySchema,
+  auditExportFormatSchema,
+  auditFacetsResponseSchema,
+  auditFacetsSchema,
+  auditListSortFieldSchema,
+  auditMetadataValueSchema,
+  auditResultSchema,
+} from "./audit.schema.js";
+
+export {
   type CategoryFieldDefinition,
   type CategoryFieldType,
   type CategoryRecord,
