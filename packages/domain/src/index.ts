@@ -335,6 +335,41 @@ export {
   type UserAdministrationServiceDependencies,
 } from "./users/user-management.js";
 
+export type {
+  CreatedWorkflowDefinitionRecords,
+  CreateWorkflowDefinitionRecordInput,
+  PublishWorkflowDefinitionVersionInput,
+  UpdateWorkflowDefinitionInput,
+  WorkflowDefinitionRepositoryPort,
+} from "./ports/workflow-definition-repository.port.js";
+
+export {
+  calculateStepDueAt,
+  cloneAndValidateWorkflowAssignee,
+  type CreateWorkflowDefinitionCommand,
+  createWorkflowDefinitionService,
+  MAX_WORKFLOW_DECISION_COMMENT_LENGTH,
+  MAX_WORKFLOW_DEFINITION_DESCRIPTION_LENGTH,
+  MAX_WORKFLOW_DEFINITION_NAME_LENGTH,
+  MAX_WORKFLOW_STEP_DUE_DAYS,
+  MAX_WORKFLOW_STEP_NAME_LENGTH,
+  MAX_WORKFLOW_STEPS,
+  normalizeWorkflowDefinitionDescription,
+  normalizeWorkflowDefinitionName,
+  normalizeWorkflowStepName,
+  type PublishWorkflowDefinitionVersionCommand,
+  requiresCommentForDecision,
+  resolveStepCommentRules,
+  type UpdateWorkflowDefinitionStatusCommand,
+  validateDecisionComment,
+  validateSequentialWorkflowSteps,
+  type WorkflowDefinitionService,
+  type WorkflowDefinitionServiceDependencies,
+  type WorkflowDefinitionWithVersions,
+  type WorkflowStepCommentRulesInput,
+  type WorkflowStepDefinitionInput,
+} from "./workflows/definitions/index.js";
+
 export {
   isTerminalInstanceStatus,
   isTerminalTaskStatus,
@@ -345,9 +380,11 @@ export {
   type WorkflowAssigneeTarget,
   type WorkflowDecisionEntity,
   type WorkflowDecisionType,
+  type WorkflowDefinitionEntity,
   type WorkflowDefinitionVersionEntity,
   type WorkflowInstanceEntity,
   type WorkflowInstanceStatus,
+  type WorkflowStepCommentRules,
   type WorkflowStepDefinition,
   type WorkflowTaskEntity,
   type WorkflowTaskStatus,

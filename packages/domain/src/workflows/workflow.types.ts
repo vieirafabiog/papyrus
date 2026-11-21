@@ -43,11 +43,29 @@ export type WorkflowAssigneeTarget =
   | { readonly type: "GROUP"; readonly groupId: string }
   | { readonly type: "ROLE"; readonly roleId: string };
 
+export interface WorkflowStepCommentRules {
+  readonly requireOnApprove: boolean;
+  readonly requireOnReject: true;
+  readonly requireOnRequestChanges: true;
+}
+
 export interface WorkflowStepDefinition {
   readonly stepOrder: number;
   readonly name: string;
   readonly assignee: WorkflowAssigneeTarget;
   readonly dueDays: number | null;
+  readonly commentRules?: WorkflowStepCommentRules | undefined;
+}
+
+export interface WorkflowDefinitionEntity {
+  readonly id: string;
+  readonly organizationId: string;
+  readonly name: string;
+  readonly description: string | null;
+  readonly isActive: boolean;
+  readonly latestVersionNumber: number;
+  readonly createdAt: string;
+  readonly updatedAt: string;
 }
 
 export interface WorkflowDefinitionVersionEntity {

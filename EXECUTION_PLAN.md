@@ -772,7 +772,7 @@ docuflow/
 
 # PHASE 12 — WORKFLOWS, TAREFAS E NOTIFICAÇÕES
 
-- [ ] **Step 12.01 — Implementar definições versionadas de fluxo**
+- [x] **Step 12.01 — Implementar definições versionadas de fluxo**
   - **Arquivos:** `packages/domain/src/workflows/definitions/*`
   - **Ação:** Criar fluxo sequencial com etapas, grupos/papéis aprovadores, prazos e regras de comentário obrigatório.
   - **Verificação:** `pnpm --filter @docuflow/domain test`.
