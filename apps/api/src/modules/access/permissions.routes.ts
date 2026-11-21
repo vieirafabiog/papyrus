@@ -92,6 +92,18 @@ export async function registerPermissionRoutes(
 ): Promise<void> {
   const { authService, permissionAdminService } = deps;
 
+  app.get(`${CONTRACTS_API_PREFIX}/admin/permissions/roles`, async (request, reply) => {
+    const actor = await requirePermissionAdmin(request, reply, authService);
+    if (!actor) {
+      return reply;
+    }
+
+    const items = permissionAdminService.listRoles
+      ? await permissionAdminService.listRoles(actor.user.organizationId)
+      : [];
+    return reply.status(200).send({ data: items });
+  });
+
   app.get(`${CONTRACTS_API_PREFIX}/admin/permissions/scopes`, async (request, reply) => {
     const actor = await requirePermissionAdmin(request, reply, authService);
     if (!actor) {

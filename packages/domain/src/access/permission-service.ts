@@ -8,6 +8,7 @@ import type { GroupRepositoryPort } from "../ports/group-repository.port.js";
 import type {
   PermissionScopeRepositoryPort,
   RoleScopeAssignmentRecord,
+  RoleWithPermissionsRecord,
 } from "../ports/permission-repository.port.js";
 import type { TransactionContext, TransactionManagerPort } from "../ports/transaction.port.js";
 import type { UserRepositoryPort } from "../ports/user-repository.port.js";
@@ -47,6 +48,7 @@ export interface RevokeRoleScopeCommand {
 }
 
 export interface PermissionAdministrationService {
+  listRoles?(organizationId: string): Promise<readonly RoleWithPermissionsRecord[]>;
   listAssignments(organizationId: string): Promise<readonly RoleScopeAssignmentRecord[]>;
   assignRoleScope(command: AssignRoleScopeCommand): Promise<RoleScopeAssignmentRecord>;
   revokeRoleScope(command: RevokeRoleScopeCommand): Promise<RoleScopeAssignmentRecord>;
@@ -104,6 +106,12 @@ export function createPermissionAdministrationService(
   const auditWriter = createAuditWriter({ repository: deps.audit });
 
   return {
+    listRoles(organizationId: string): Promise<readonly RoleWithPermissionsRecord[]> {
+      return deps.permissionScopes.listRolesWithPermissions
+        ? deps.permissionScopes.listRolesWithPermissions(organizationId)
+        : Promise.resolve([]);
+    },
+
     listAssignments(organizationId: string): Promise<readonly RoleScopeAssignmentRecord[]> {
       return deps.permissionScopes.listAssignmentsForOrganization(organizationId);
     },

@@ -885,7 +885,7 @@ docuflow/
   - **Ação:** Criar, editar, desativar, associar e filtrar usuários/grupos conforme permissões.
   - **Verificação:** `pnpm --filter @docuflow/web test`.
 
-- [ ] **Step 14.03 — Implementar UI de papéis e escopos**
+- [x] **Step 14.03 — Implementar UI de papéis e escopos**
   - **Arquivos:** `apps/web/src/features/admin/PermissionsPage.tsx`
   - **Ação:** Apresentar matriz compreensível de permissões, herança e exceções; não expor expressões SQL ou detalhes internos.
   - **Verificação:** `pnpm --filter @docuflow/web test`.

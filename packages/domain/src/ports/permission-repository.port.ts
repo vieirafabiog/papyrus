@@ -1,5 +1,14 @@
-import type { AccessEffect, AccessScopeType, RoleEntity } from "../access/access.types.js";
+import type {
+  AccessEffect,
+  AccessScopeType,
+  PermissionEntity,
+  RoleEntity,
+} from "../access/access.types.js";
 import type { TransactionContext } from "./transaction.port.js";
+
+export interface RoleWithPermissionsRecord extends RoleEntity {
+  readonly permissions: readonly PermissionEntity[];
+}
 
 export type PermissionSubjectType = "USER" | "GROUP";
 
@@ -68,4 +77,8 @@ export interface PermissionScopeRepositoryPort {
     assignmentId: string,
     tx?: TransactionContext,
   ): Promise<RoleScopeAssignmentRecord | null>;
+  listRolesWithPermissions?(
+    organizationId: string,
+    tx?: TransactionContext,
+  ): Promise<readonly RoleWithPermissionsRecord[]>;
 }

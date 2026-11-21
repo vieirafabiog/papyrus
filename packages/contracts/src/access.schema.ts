@@ -144,3 +144,51 @@ export type GroupListResponse = z.infer<typeof groupListResponseSchema>;
 
 export const groupResponseSchema = createApiResponseSchema(groupSummarySchema);
 export type GroupResponse = z.infer<typeof groupResponseSchema>;
+
+export const roleWithPermissionsSchema = roleSummarySchema.extend({
+  permissions: z.array(permissionSchema),
+});
+export type RoleWithPermissions = z.infer<typeof roleWithPermissionsSchema>;
+
+export const roleCatalogListResponseSchema = createApiResponseSchema(
+  z.array(roleWithPermissionsSchema),
+);
+export type RoleCatalogListResponse = z.infer<typeof roleCatalogListResponseSchema>;
+
+export const permissionScopeAssignmentItemSchema = z.object({
+  id: uuidSchema,
+  organizationId: uuidSchema,
+  userId: uuidSchema.nullable(),
+  groupId: uuidSchema.nullable(),
+  roleId: uuidSchema,
+  scopeType: accessScopeTypeSchema,
+  scopeTargetId: uuidSchema.nullable(),
+  effect: accessEffectSchema,
+  createdBy: uuidSchema.nullable(),
+  createdAt: isoDateTimeSchema,
+});
+export type PermissionScopeAssignmentItem = z.infer<typeof permissionScopeAssignmentItemSchema>;
+
+export const permissionScopeAssignmentListResponseSchema = createApiResponseSchema(
+  z.array(permissionScopeAssignmentItemSchema),
+);
+export type PermissionScopeAssignmentListResponse = z.infer<
+  typeof permissionScopeAssignmentListResponseSchema
+>;
+
+export const permissionScopeAssignmentResponseSchema = createApiResponseSchema(
+  permissionScopeAssignmentItemSchema,
+);
+export type PermissionScopeAssignmentResponse = z.infer<
+  typeof permissionScopeAssignmentResponseSchema
+>;
+
+export const assignPermissionScopeRequestSchema = z.object({
+  subjectType: z.enum(["USER", "GROUP"]),
+  subjectId: uuidSchema,
+  roleId: uuidSchema,
+  scopeType: accessScopeTypeSchema,
+  scopeTargetId: uuidSchema.nullable().optional(),
+  effect: accessEffectSchema.default("ALLOW"),
+});
+export type AssignPermissionScopeRequest = z.infer<typeof assignPermissionScopeRequestSchema>;

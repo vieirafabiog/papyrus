@@ -75,6 +75,7 @@ export type {
   PermissionScopeRepositoryPort,
   PermissionSubjectType,
   RoleScopeAssignmentRecord,
+  RoleWithPermissionsRecord,
 } from "./ports/permission-repository.port.js";
 
 export {

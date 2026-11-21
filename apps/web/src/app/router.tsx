@@ -2,6 +2,7 @@ import { Box, Typography } from "@mui/material";
 import { Navigate, Route, Routes } from "react-router-dom";
 import { GroupsPage } from "../features/admin/GroupsPage.js";
 import { OrganizationSettingsPage } from "../features/admin/OrganizationSettingsPage.js";
+import { PermissionsPage } from "../features/admin/PermissionsPage.js";
 import { UsersPage } from "../features/admin/UsersPage.js";
 import { AuditPage } from "../features/audit/AuditPage.js";
 import { LoginPage } from "../features/auth/LoginPage.js";
@@ -105,15 +106,7 @@ export function AppRoutes() {
           />
           <Route path="/admin/usuarios" element={<UsersPage />} />
           <Route path="/admin/grupos" element={<GroupsPage />} />
-          <Route
-            path="/admin/permissoes"
-            element={
-              <RouteSectionView
-                title="Papéis e permissões"
-                description="Matriz de ações e escopos de autorização."
-              />
-            }
-          />
+          <Route path="/admin/permissoes" element={<PermissionsPage />} />
           <Route
             path="/admin/armazenamento"
             element={

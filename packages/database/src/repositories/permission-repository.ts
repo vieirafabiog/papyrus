@@ -2,14 +2,16 @@ import type {
   AccessEffect,
   AccessScopeType,
   CreateRoleScopeAssignmentInput,
+  PermissionEntity,
   PermissionScopeRepositoryPort,
   RoleEntity,
   RoleScopeAssignmentRecord,
+  RoleWithPermissionsRecord,
   TransactionContext,
 } from "@docuflow/domain";
-import { and, asc, eq, isNull } from "drizzle-orm";
+import { and, asc, eq, inArray, isNull } from "drizzle-orm";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
-import { roles, userRoleScopes } from "../schema/identity.js";
+import { permissions, rolePermissions, roles, userRoleScopes } from "../schema/identity.js";
 import { resolveDbExecutor } from "./transaction-manager.js";
 
 function toRoleEntity(row: typeof roles.$inferSelect): RoleEntity {
@@ -173,6 +175,51 @@ export function createPermissionScopeRepository(db: NodePgDatabase): PermissionS
         )
         .returning();
       return deleted ? toAssignmentRecord(deleted) : null;
+    },
+
+    async listRolesWithPermissions(
+      organizationId: string,
+      tx?: TransactionContext,
+    ): Promise<readonly RoleWithPermissionsRecord[]> {
+      const executor = resolveDbExecutor(db, tx);
+      const roleRows = await executor
+        .select()
+        .from(roles)
+        .where(eq(roles.organizationId, organizationId))
+        .orderBy(asc(roles.name), asc(roles.id));
+
+      if (roleRows.length === 0) {
+        return [];
+      }
+
+      const roleIds = roleRows.map((role) => role.id);
+      const permRows = await executor
+        .select({
+          roleId: rolePermissions.roleId,
+          id: permissions.id,
+          action: permissions.action,
+          resource: permissions.resource,
+        })
+        .from(rolePermissions)
+        .innerJoin(permissions, eq(permissions.id, rolePermissions.permissionId))
+        .where(inArray(rolePermissions.roleId, roleIds))
+        .orderBy(asc(permissions.resource), asc(permissions.action));
+
+      const permsByRole = new Map<string, PermissionEntity[]>();
+      for (const perm of permRows) {
+        const list = permsByRole.get(perm.roleId) ?? [];
+        list.push({
+          id: perm.id,
+          action: perm.action,
+          resource: perm.resource,
+        });
+        permsByRole.set(perm.roleId, list);
+      }
+
+      return roleRows.map((row) => ({
+        ...toRoleEntity(row),
+        permissions: permsByRole.get(row.id) ?? [],
+      }));
     },
   };
 }
