@@ -2,6 +2,8 @@ import { randomUUID } from "node:crypto";
 import type { AuthorizationRepository } from "@docuflow/database";
 import type {
   AuditRepositoryPort,
+  CategoryRepositoryPort,
+  CategoryService,
   DocumentRepositoryPort,
   FolderRepositoryPort,
   FolderService,
@@ -16,6 +18,7 @@ import cookie from "@fastify/cookie";
 import Fastify, { type FastifyInstance } from "fastify";
 import { registerAuthRoutes } from "./modules/auth/auth.routes.js";
 import type { AuthService } from "./modules/auth/auth.service.js";
+import { registerCategoryRoutes } from "./modules/categories/categories.routes.js";
 import { registerDocumentRoutes } from "./modules/documents/documents.routes.js";
 import { registerFolderRoutes } from "./modules/folders/folders.routes.js";
 import { registerGroupRoutes } from "./modules/groups/groups.routes.js";
@@ -29,6 +32,7 @@ import {
 } from "./modules/uploads/upload.routes.js";
 import { registerUserRoutes } from "./modules/users/users.routes.js";
 import {
+  createCategoryAuthorizationGuard,
   createDocumentAuthorizationGuard,
   createFolderAuthorizationGuard,
 } from "./plugins/authorization.js";
@@ -54,6 +58,13 @@ export interface AppOptions {
         readonly authzRepository: AuthorizationRepository;
         readonly folderRepository: FolderRepositoryPort;
         readonly folderService: FolderService;
+      }
+    | undefined;
+  readonly categoryDeps?:
+    | {
+        readonly authzRepository: AuthorizationRepository;
+        readonly categoryRepository: CategoryRepositoryPort;
+        readonly categoryService: CategoryService;
       }
     | undefined;
   readonly uploadDeps?:
@@ -196,6 +207,21 @@ export function buildApp(options: AppOptions = {}): FastifyInstance {
         await registerFolderRoutes(instance, {
           guard: folderGuard,
           folderService: folderDeps.folderService,
+        });
+      });
+    }
+
+    if (options.categoryDeps) {
+      const categoryDeps = options.categoryDeps;
+      const categoryGuard = createCategoryAuthorizationGuard({
+        authService,
+        authzRepository: categoryDeps.authzRepository,
+        categoryRepository: categoryDeps.categoryRepository,
+      });
+      void app.register(async (instance) => {
+        await registerCategoryRoutes(instance, {
+          guard: categoryGuard,
+          categoryService: categoryDeps.categoryService,
         });
       });
     }

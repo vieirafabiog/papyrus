@@ -10,10 +10,13 @@ export {
 } from "./authorization/authorizer.js";
 
 export {
+  type CategoryScopeContext,
   type DocumentScopeContext,
+  evaluateCategoryAuthorization,
   evaluateDocumentAuthorization,
   evaluateFolderAuthorization,
   type FolderScopeContext,
+  resolveApplicableScopesForCategory,
   resolveApplicableScopesForDocument,
   resolveApplicableScopesForFolder,
 } from "./authorization/scope-resolver.js";

@@ -6,8 +6,8 @@ import type {
 } from "@docuflow/domain";
 import {
   type AuthorizationSubjectContext,
-  doesScopeMatch,
   type RolePermissionsLookup,
+  doesScopeMatch,
 } from "./authorizer.js";
 import { roleGrantsPermission } from "./role-catalog.js";
 
@@ -20,6 +20,16 @@ export interface DocumentScopeContext {
 export interface FolderScopeContext {
   readonly folderId: string;
   readonly ancestorFolderIds: readonly string[];
+}
+
+export interface CategoryScopeContext {
+  readonly categoryId: string;
+}
+
+export function resolveApplicableScopesForCategory(
+  context: CategoryScopeContext,
+): readonly AccessScope[] {
+  return [{ type: "GLOBAL" }, { type: "CATEGORY", categoryId: context.categoryId }];
 }
 
 export function resolveApplicableScopesForDocument(
@@ -132,10 +142,20 @@ export function evaluateFolderAuthorization(
   rolePermissions: RolePermissionsLookup,
 ): AuthorizationDecision {
   const applicableScopes = resolveApplicableScopesForFolder(context);
+  return evaluateWithApplicableScopes(subject, action, "FOLDER", applicableScopes, rolePermissions);
+}
+
+export function evaluateCategoryAuthorization(
+  subject: AuthorizationSubjectContext,
+  action: AccessAction,
+  context: CategoryScopeContext,
+  rolePermissions: RolePermissionsLookup,
+): AuthorizationDecision {
+  const applicableScopes = resolveApplicableScopesForCategory(context);
   return evaluateWithApplicableScopes(
     subject,
     action,
-    "FOLDER",
+    "CATEGORY",
     applicableScopes,
     rolePermissions,
   );

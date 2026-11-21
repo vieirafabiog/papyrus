@@ -5,6 +5,7 @@ import {
   SYSTEM_ROLE_DEFINITIONS,
   type SystemRoleKey,
   evaluateAuthorization,
+  evaluateCategoryAuthorization,
   evaluateDocumentAuthorization,
   evaluateFolderAuthorization,
   roleGrantsPermission,
@@ -18,7 +19,10 @@ import type {
 import type {
   AccessAction,
   AccessScope,
+  AuthorizedCategoryQueryScope,
   AuthorizedFolderQueryScope,
+  CategoryEntity,
+  CategoryRepositoryPort,
   DocumentEntity,
   DocumentRepositoryPort,
   FolderEntity,
@@ -173,6 +177,52 @@ export function buildFolderQueryScope(
     hasGlobalAllow,
     allowedFolderIds: Array.from(allowedFolders),
     deniedFolderIds: Array.from(deniedFolders),
+  };
+}
+
+export function buildCategoryQueryScope(
+  loaded: LoadedAuthorizationSubject,
+  rolePermissions: RolePermissionsLookup,
+  action: AccessAction,
+): AuthorizedCategoryQueryScope {
+  let hasGlobalDeny = false;
+  let hasGlobalAllow = false;
+  const allowedCategories = new Set<string>();
+  const deniedCategories = new Set<string>();
+
+  for (const assignment of loaded.assignments) {
+    const perms = rolePermissions.get(assignment.roleId);
+    if (!perms || !roleGrantsPermission(perms, action, "CATEGORY")) {
+      continue;
+    }
+
+    const isDeny = assignment.effect === "DENY";
+    switch (assignment.scope.type) {
+      case "GLOBAL":
+        if (isDeny) {
+          hasGlobalDeny = true;
+        } else {
+          hasGlobalAllow = true;
+        }
+        break;
+      case "CATEGORY":
+        if (isDeny) {
+          deniedCategories.add(assignment.scope.categoryId);
+        } else {
+          allowedCategories.add(assignment.scope.categoryId);
+        }
+        break;
+      case "FOLDER":
+      case "DOCUMENT":
+        break;
+    }
+  }
+
+  return {
+    hasGlobalDeny,
+    hasGlobalAllow,
+    allowedCategoryIds: Array.from(allowedCategories),
+    deniedCategoryIds: Array.from(deniedCategories),
   };
 }
 
@@ -613,6 +663,143 @@ export function createFolderAuthorizationGuard(deps: {
       }
 
       return { subject: ctx, folder };
+    },
+  };
+}
+
+export interface CategoryAuthorizationGuard {
+  requireSubject(
+    request: FastifyRequest,
+    reply: FastifyReply,
+  ): Promise<AuthenticatedAuthorizationContext | null>;
+  authorizeCreateScope(
+    request: FastifyRequest,
+    reply: FastifyReply,
+  ): Promise<AuthenticatedAuthorizationContext | null>;
+  authorizeCategory(
+    request: FastifyRequest,
+    reply: FastifyReply,
+    action: AccessAction,
+    categoryId: string,
+  ): Promise<{
+    readonly subject: AuthenticatedAuthorizationContext;
+    readonly category: CategoryEntity;
+  } | null>;
+}
+
+/**
+ * Creates the server-side authorization guard for category routes.
+ */
+export function createCategoryAuthorizationGuard(deps: {
+  readonly authService: AuthService;
+  readonly authzRepository: AuthorizationRepository;
+  readonly categoryRepository: CategoryRepositoryPort;
+}): CategoryAuthorizationGuard {
+  return {
+    requireSubject(
+      request: FastifyRequest,
+      reply: FastifyReply,
+    ): Promise<AuthenticatedAuthorizationContext | null> {
+      return resolveAuthenticatedSubject(request, reply, deps.authService, deps.authzRepository);
+    },
+
+    async authorizeCreateScope(
+      request: FastifyRequest,
+      reply: FastifyReply,
+    ): Promise<AuthenticatedAuthorizationContext | null> {
+      const ctx = await resolveAuthenticatedSubject(
+        request,
+        reply,
+        deps.authService,
+        deps.authzRepository,
+      );
+      if (!ctx) {
+        return null;
+      }
+
+      const decision = evaluateAuthorization(
+        ctx.subject,
+        { action: "CREATE", resource: "CATEGORY", scope: { type: "GLOBAL" } },
+        ctx.rolePermissions,
+      );
+      if (!decision.allowed) {
+        void reply.status(403).send({
+          error: {
+            code: "FORBIDDEN",
+            message: "Você não possui permissão para criar categorias.",
+            requestId: request.id,
+          },
+        });
+        return null;
+      }
+
+      return ctx;
+    },
+
+    async authorizeCategory(
+      request: FastifyRequest,
+      reply: FastifyReply,
+      action: AccessAction,
+      categoryId: string,
+    ): Promise<{
+      readonly subject: AuthenticatedAuthorizationContext;
+      readonly category: CategoryEntity;
+    } | null> {
+      const ctx = await resolveAuthenticatedSubject(
+        request,
+        reply,
+        deps.authService,
+        deps.authzRepository,
+      );
+      if (!ctx) {
+        return null;
+      }
+
+      const category = await deps.categoryRepository.findById(categoryId);
+      if (!category || category.organizationId !== ctx.me.user.organizationId) {
+        const globalDecision = evaluateAuthorization(
+          ctx.subject,
+          { action, resource: "CATEGORY", scope: { type: "GLOBAL" } },
+          ctx.rolePermissions,
+        );
+        if (!globalDecision.allowed) {
+          void reply.status(403).send({
+            error: {
+              code: "FORBIDDEN",
+              message: "Você não possui permissão para acessar esta categoria.",
+              requestId: request.id,
+            },
+          });
+          return null;
+        }
+        void reply.status(404).send({
+          error: {
+            code: "NOT_FOUND",
+            message: "Categoria não encontrada.",
+            requestId: request.id,
+          },
+        });
+        return null;
+      }
+
+      const decision = evaluateCategoryAuthorization(
+        ctx.subject,
+        action,
+        { categoryId: category.id },
+        ctx.rolePermissions,
+      );
+      if (!decision.allowed) {
+        void reply.status(403).send({
+          error: {
+            code: "FORBIDDEN",
+            message: "Você não possui permissão para executar esta operação nesta categoria.",
+            requestId: request.id,
+          },
+        });
+        return null;
+      }
+
+      return { subject: ctx, category };
     },
   };
 }

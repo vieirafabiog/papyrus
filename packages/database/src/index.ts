@@ -17,6 +17,7 @@ export {
   type LoadedRoleAssignment,
   type LoadedRolePermission,
 } from "./repositories/authorization-repository.js";
+export { createCategoryRepository } from "./repositories/category-repository.js";
 export {
   createDocumentRepository,
   createDocumentVersionRepository,

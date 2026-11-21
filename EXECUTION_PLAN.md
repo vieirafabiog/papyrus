@@ -659,7 +659,7 @@ docuflow/
   - **Ação:** Criar, renomear, mover e arquivar pastas; impedir ciclo na hierarquia e validar permissões herdadas.
   - **Verificação:** `pnpm --filter @docuflow/api test:integration`.
 
-- [ ] **Step 10.02 — Implementar CRUD de categorias**
+- [x] **Step 10.02 — Implementar CRUD de categorias**
   - **Arquivos:** `packages/domain/src/categories/*`, API
   - **Ação:** Criar, editar, desativar e listar categorias, com validação contra documentos existentes.
   - **Verificação:** `pnpm --filter @docuflow/api test:integration`.

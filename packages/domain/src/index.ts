@@ -176,6 +176,33 @@ export {
 } from "./uploads/upload-sessions.js";
 
 export {
+  type CategoryService,
+  type CategoryServiceDependencies,
+  type CreateCategoryCommand,
+  createCategoryService,
+  type DeactivateCategoryCommand,
+  MAX_CATEGORY_DESCRIPTION_LENGTH,
+  MAX_CATEGORY_ICON_LENGTH,
+  MAX_CATEGORY_NAME_LENGTH,
+  normalizeCategoryColor,
+  normalizeCategoryDescription,
+  normalizeCategoryIcon,
+  normalizeCategoryName,
+  type UpdateCategoryCommand,
+} from "./categories/category-service.js";
+export type {
+  AuthorizedCategoryQueryScope,
+  CategoryEntity,
+  CategoryListFilter,
+  CategorySortField,
+} from "./categories/category.types.js";
+export type {
+  CategoryRepositoryPort,
+  CreateCategoryInput,
+  UpdateCategoryInput,
+} from "./ports/category-repository.port.js";
+
+export {
   buildFolderMaterializedPath,
   type ArchiveFolderCommand,
   type CreateFolderCommand,

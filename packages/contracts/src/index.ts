@@ -142,6 +142,19 @@ export {
 } from "./upload.schema.js";
 
 export {
+  categoryHexColorSchema,
+  type CategoryListQuery,
+  categoryListQuerySchema,
+  type CategoryListResponse,
+  categoryListResponseSchema,
+  categoryListSortSchema,
+  type CategorySummaryRecord,
+  type CategorySummaryResponse,
+  categorySummaryResponseSchema,
+  categorySummarySchema,
+} from "./category.schema.js";
+
+export {
   type CreateFolderRequest,
   createFolderRequestSchema,
   type FolderListQuery,
