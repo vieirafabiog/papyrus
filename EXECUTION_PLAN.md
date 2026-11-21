@@ -615,7 +615,7 @@ docuflow/
   - **Ação:** Detectar tipo pelo conteúdo, comparar extensão e tipo declarado, aplicar allowlist configurável e registrar rejeição segura.
   - **Verificação:** `pnpm --filter @docuflow/file-processing test`.
 
-- [ ] **Step 09.06 — Implementar cálculo e validação SHA-256 por stream**
+- [x] **Step 09.06 — Implementar cálculo e validação SHA-256 por stream**
   - **Arquivos:** `packages/file-processing/src/checksum.ts`, testes
   - **Ação:** Calcular checksum sem armazenar todo o arquivo na memória e comparar com o valor esperado.
   - **Verificação:** `pnpm --filter @docuflow/file-processing test`.

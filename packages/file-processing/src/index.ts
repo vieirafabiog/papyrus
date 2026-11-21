@@ -1,6 +1,22 @@
 export const FILE_PROCESSING_VERSION = 1 as const;
 
 export {
+  calculateStreamSha256,
+  type ChecksumErrorCode,
+  ChecksumValidationError,
+  createSha256HashingTransform,
+  isChecksumEqualConstantTime,
+  normalizeSha256Hex,
+  PLACEHOLDER_SHA256_HEX,
+  type Sha256HashingTransformOptions,
+  type StreamChecksumOptions,
+  type StreamChecksumResult,
+  type StreamChecksumVerificationResult,
+  type VerifyStreamSha256Options,
+  verifyStreamSha256,
+} from "./checksum.js";
+
+export {
   type ContentDetectionPolicy,
   type ContentRejectionCode,
   type ContentRejectionRecord,
