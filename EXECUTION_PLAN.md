@@ -630,7 +630,7 @@ docuflow/
   - **Ação:** Consumir job persistido, executar MIME, checksum e scanner, e atualizar estado de objeto/documento em transação coerente.
   - **Verificação:** `pnpm --filter @docuflow/worker test:integration`.
 
-- [ ] **Step 09.09 — Implementar limpeza de uploads abandonados**
+- [x] **Step 09.09 — Implementar limpeza de uploads abandonados**
   - **Arquivos:** `apps/worker/src/jobs/cleanup-uploads.ts`
   - **Ação:** Expirar sessões incompletas, excluir temporários após janela de segurança e registrar falha de remoção para reconciliação.
   - **Verificação:** `pnpm --filter @docuflow/worker test`.
