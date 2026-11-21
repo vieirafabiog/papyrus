@@ -65,6 +65,7 @@ export {
   UPLOAD_PROCESSING_EVENT_TYPE,
 } from "./repositories/outbox-repository.js";
 export { createOrganizationRepository } from "./repositories/organization-repository.js";
+export { createUploadPolicyRepository } from "./repositories/upload-policy-repository.js";
 export {
   createDocumentRetentionHoldRepository,
   createRetentionPolicyRepository,

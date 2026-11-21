@@ -62,6 +62,10 @@ export type ProcessUploadOutcome =
       readonly diagnosticCode: string;
     };
 
+export interface WorkerResolvedUploadPolicy extends ContentDetectionPolicy {
+  readonly maxFileSizeBytes?: number | undefined;
+}
+
 export interface ProcessUploadJobDependencies {
   readonly outbox: OutboxRepository;
   readonly uploads: UploadSessionRepositoryPort;
@@ -73,6 +77,10 @@ export interface ProcessUploadJobDependencies {
   readonly storageRegistry: StorageProviderRegistry;
   readonly scanner: AntivirusScannerPort;
   readonly contentPolicy?: ContentDetectionPolicy | undefined;
+  readonly maxUploadBytes?: number | undefined;
+  readonly resolveUploadPolicy?:
+    | ((organizationId: string) => Promise<WorkerResolvedUploadPolicy>)
+    | undefined;
   readonly maxAttempts?: number | undefined;
   readonly visibilityTimeoutMs?: number | undefined;
   readonly retryDelayMs?: number | undefined;
@@ -395,11 +403,38 @@ export function createProcessUploadJobHandler(
         scanner: deps.scanner,
       });
 
+      const orgPolicy = deps.resolveUploadPolicy
+        ? await deps.resolveUploadPolicy(job.organizationId)
+        : undefined;
+      const effectivePolicy: ContentDetectionPolicy = orgPolicy
+        ? {
+            ...deps.contentPolicy,
+            ...orgPolicy,
+          }
+        : (deps.contentPolicy ?? {});
+
+      const effectiveMaxBytes =
+        orgPolicy?.maxFileSizeBytes !== undefined && deps.maxUploadBytes !== undefined
+          ? Math.min(orgPolicy.maxFileSizeBytes, deps.maxUploadBytes)
+          : (orgPolicy?.maxFileSizeBytes ?? deps.maxUploadBytes);
+
       const sizeMatches = inspected.bytesRead > 0 && inspected.bytesRead === fileObject.sizeBytes;
+      const withinConfiguredLimit =
+        effectiveMaxBytes === undefined || inspected.bytesRead <= effectiveMaxBytes;
       const checksumMatches = isChecksumEqualConstantTime(
         inspected.checksumSha256,
         fileObject.checksumSha256,
       );
+
+      if (!withinConfiguredLimit) {
+        return rejectFileObject({
+          job,
+          fileObjectId: fileObject.id,
+          safeReason: "O arquivo enviado ultrapassa o limite máximo de tamanho configurado.",
+          diagnosticCode: "WORKER_UPLOAD_TOO_LARGE",
+          detectedMime: null,
+        });
+      }
 
       if (!sizeMatches || !checksumMatches) {
         return rejectFileObject({
@@ -417,7 +452,7 @@ export function createProcessUploadJobHandler(
           originalFileName: fileObject.originalFileName,
           declaredContentType: fileObject.detectedContentType,
         },
-        deps.contentPolicy,
+        effectivePolicy,
       );
 
       if (!contentResult.accepted) {

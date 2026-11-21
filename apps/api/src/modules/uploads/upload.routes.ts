@@ -17,6 +17,7 @@ import {
 import {
   type AuditRepositoryPort,
   DomainError,
+  type EffectiveUploadPolicy,
   type FileObjectEntity,
   type StorageConnectionEntity,
   type StorageConnectionRepositoryPort,
@@ -24,6 +25,7 @@ import {
   type UploadSessionEntity,
   type UploadSessionRepositoryPort,
   type UploadSessionService,
+  extractNormalizedFileExtension,
 } from "@docuflow/domain";
 import {
   StorageError,
@@ -66,6 +68,12 @@ export interface StorageUploadDependencies {
   readonly transactions: TransactionManagerPort;
   readonly auditRepository: AuditRepositoryPort;
   readonly maxUploadBytes?: number | undefined;
+  readonly proxyMaxBodyBytes?: number | undefined;
+  readonly resolveUploadPolicy?:
+    | ((
+        organizationId: string,
+      ) => Promise<Pick<EffectiveUploadPolicy, "maxFileSizeBytes" | "allowedExtensions">>)
+    | undefined;
   readonly tempBaseDirectory?: string | undefined;
   readonly defaultSignedTargetTtlSeconds?: number | undefined;
   readonly maxSignedTargetTtlSeconds?: number | undefined;
@@ -83,6 +91,9 @@ function mapUploadDomainError(code: string): { status: number; httpCode: string 
   switch (code) {
     case "UPLOAD_TOO_LARGE":
       return { status: 413, httpCode: "UPLOAD_TOO_LARGE" };
+    case "EXTENSION_NOT_ALLOWED":
+    case "MIME_NOT_ALLOWED":
+      return { status: 400, httpCode: "VALIDATION_ERROR" };
     case "IDEMPOTENCY_CONFLICT":
       return { status: 409, httpCode: "CONFLICT" };
     case "DOCUMENT_NOT_FOUND":
@@ -268,6 +279,9 @@ export async function registerUploadRoutes(
   const { guard, uploadSessionService, uploadRepository } = deps;
   const uploadStorageDeps = deps.storageUploadDeps ?? deps.localUploadDeps;
   const maxUploadBytes = uploadStorageDeps?.maxUploadBytes ?? DEFAULT_MAX_UPLOAD_BYTES;
+  const proxyMaxBodyBytes =
+    uploadStorageDeps?.proxyMaxBodyBytes ?? Math.max(maxUploadBytes * 2, 100 * 1024 * 1024);
+  const resolveUploadPolicy = uploadStorageDeps?.resolveUploadPolicy;
   const nowFn = uploadStorageDeps?.now ?? (() => new Date());
   const defaultSignedTargetTtlSeconds =
     uploadStorageDeps?.defaultSignedTargetTtlSeconds ?? DEFAULT_SIGNED_TARGET_TTL_SECONDS;
@@ -582,7 +596,52 @@ export async function registerUploadRoutes(
         });
       }
 
-      const effectiveLimit = Math.min(maxUploadBytes, session.declaredSizeBytes);
+      const activePolicy = resolveUploadPolicy
+        ? await resolveUploadPolicy(ctx.me.user.organizationId)
+        : null;
+      const effectivePolicyMaxBytes = activePolicy
+        ? Math.min(maxUploadBytes, proxyMaxBodyBytes, activePolicy.maxFileSizeBytes)
+        : Math.min(maxUploadBytes, proxyMaxBodyBytes);
+
+      const contentLengthHeader = request.headers["content-length"];
+      if (typeof contentLengthHeader === "string") {
+        const parsedContentLength = Number.parseInt(contentLengthHeader, 10);
+        if (Number.isFinite(parsedContentLength) && parsedContentLength > proxyMaxBodyBytes) {
+          return reply.status(413).send({
+            error: {
+              code: "UPLOAD_TOO_LARGE",
+              message:
+                "O corpo da requisição excede o limite máximo configurado entre proxy e API.",
+              requestId: request.id,
+            },
+          });
+        }
+      }
+
+      if (session.declaredSizeBytes > effectivePolicyMaxBytes) {
+        return reply.status(413).send({
+          error: {
+            code: "UPLOAD_TOO_LARGE",
+            message: "O tamanho da sessão excede o limite atual configurado para upload.",
+            requestId: request.id,
+          },
+        });
+      }
+
+      if (activePolicy) {
+        const ext = extractNormalizedFileExtension(fileObject.originalFileName);
+        if (!ext || !activePolicy.allowedExtensions.includes(ext)) {
+          return reply.status(400).send({
+            error: {
+              code: "VALIDATION_ERROR",
+              message: "A extensão do arquivo não é permitida pela política de upload atual.",
+              requestId: request.id,
+            },
+          });
+        }
+      }
+
+      const effectiveLimit = Math.min(effectivePolicyMaxBytes, session.declaredSizeBytes);
       const contentTypeHeader = request.headers["content-type"] ?? "";
       const isMultipart = /^multipart\/form-data/i.test(contentTypeHeader);
 
@@ -781,7 +840,14 @@ export async function registerUploadRoutes(
         });
       }
 
-      if (session.declaredSizeBytes > maxUploadBytes) {
+      const activePolicy = resolveUploadPolicy
+        ? await resolveUploadPolicy(ctx.me.user.organizationId)
+        : null;
+      const effectivePolicyMaxBytes = activePolicy
+        ? Math.min(maxUploadBytes, proxyMaxBodyBytes, activePolicy.maxFileSizeBytes)
+        : Math.min(maxUploadBytes, proxyMaxBodyBytes);
+
+      if (session.declaredSizeBytes > effectivePolicyMaxBytes) {
         return reply.status(413).send({
           error: {
             code: "UPLOAD_TOO_LARGE",
@@ -789,6 +855,19 @@ export async function registerUploadRoutes(
             requestId: request.id,
           },
         });
+      }
+
+      if (activePolicy) {
+        const ext = extractNormalizedFileExtension(fileObject.originalFileName);
+        if (!ext || !activePolicy.allowedExtensions.includes(ext)) {
+          return reply.status(400).send({
+            error: {
+              code: "VALIDATION_ERROR",
+              message: "A extensão do arquivo não é permitida pela política de upload atual.",
+              requestId: request.id,
+            },
+          });
+        }
       }
 
       const remainingSessionSeconds = Math.floor(
@@ -906,7 +985,7 @@ export async function registerUploadRoutes(
       }
     };
 
-    const streamBodyLimit = Math.max(maxUploadBytes * 2, 100 * 1024 * 1024);
+    const streamBodyLimit = proxyMaxBodyBytes;
 
     app.post<{ Params: { id: string } }>(
       `${CONTRACTS_API_PREFIX}/uploads/sessions/:id/signed-target`,

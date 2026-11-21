@@ -8,6 +8,11 @@ import type {
   UploadSessionRepositoryPort,
 } from "../ports/upload-session-repository.port.js";
 import type { StorageRouterService } from "../storage/storage-router.js";
+import {
+  type EffectiveUploadPolicy,
+  extractNormalizedFileExtension,
+  normalizeDeclaredUploadMimeType,
+} from "./upload-policy.js";
 
 const DEFAULT_MAX_UPLOAD_BYTES = 50 * 1024 * 1024;
 const DEFAULT_EXPIRATION_SECONDS = 900;
@@ -45,6 +50,19 @@ export interface UploadSessionServiceDependencies {
   readonly audit: AuditRepositoryPort;
   readonly generateId: () => string;
   readonly maxUploadBytes?: number | undefined;
+  readonly resolveUploadPolicy?:
+    | ((
+        organizationId: string,
+      ) => Promise<
+        Pick<
+          EffectiveUploadPolicy,
+          | "maxFileSizeBytes"
+          | "allowedExtensions"
+          | "allowedMimeTypes"
+          | "enforceDeclaredExtensionMatch"
+        >
+      >)
+    | undefined;
   readonly defaultExpirationSeconds?: number | undefined;
   readonly now?: (() => Date) | undefined;
 }
@@ -109,10 +127,17 @@ export function createUploadSessionService(
         );
       }
 
-      if (command.declaredSizeBytes > maxUploadBytes) {
+      const activePolicy = deps.resolveUploadPolicy
+        ? await deps.resolveUploadPolicy(command.organizationId)
+        : null;
+      const effectiveMaxUploadBytes = activePolicy
+        ? Math.min(maxUploadBytes, activePolicy.maxFileSizeBytes)
+        : maxUploadBytes;
+
+      if (command.declaredSizeBytes > effectiveMaxUploadBytes) {
         throw new DomainError(
           "UPLOAD_TOO_LARGE",
-          "O tamanho declarado excede o limite máximo permitido para upload.",
+          `O tamanho declarado excede o limite máximo permitido para upload (${effectiveMaxUploadBytes} bytes).`,
         );
       }
 
@@ -122,6 +147,29 @@ export function createUploadSessionService(
       }
 
       const originalFileName = sanitizeOriginalFileName(command.originalFileName);
+
+      if (activePolicy) {
+        const ext = extractNormalizedFileExtension(originalFileName);
+        if (!ext || !activePolicy.allowedExtensions.includes(ext)) {
+          throw new DomainError(
+            "EXTENSION_NOT_ALLOWED",
+            "A extensão do arquivo não é permitida pela política de upload configurada.",
+          );
+        }
+
+        const normalizedMime = normalizeDeclaredUploadMimeType(declaredContentType);
+        if (
+          activePolicy.enforceDeclaredExtensionMatch &&
+          normalizedMime &&
+          normalizedMime !== "application/octet-stream" &&
+          !activePolicy.allowedMimeTypes.includes(normalizedMime)
+        ) {
+          throw new DomainError(
+            "MIME_NOT_ALLOWED",
+            "O formato declarado do arquivo não é permitido pela política de upload configurada.",
+          );
+        }
+      }
 
       let initialChecksum = PLACEHOLDER_PENDING_CHECKSUM;
       if (command.declaredChecksumSha256 !== undefined) {

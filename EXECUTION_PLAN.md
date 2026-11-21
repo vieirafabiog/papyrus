@@ -900,7 +900,7 @@ docuflow/
   - **Ação:** Gerenciar categoria, campos personalizados, opções e política de storage por categoria.
   - **Verificação:** `pnpm --filter @docuflow/web test`.
 
-- [ ] **Step 14.06 — Implementar configurações de limites de upload**
+- [x] **Step 14.06 — Implementar configurações de limites de upload**
   - **Arquivos:** módulo de configuração e UI administrativa
   - **Ação:** Configurar limites de tamanho e extensões permitidas com validação consistente no proxy, API e worker.
   - **Verificação:** `pnpm --filter @docuflow/api test`.

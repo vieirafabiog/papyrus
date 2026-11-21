@@ -65,6 +65,19 @@ export function createOrganizationRepository(db: NodePgDatabase): OrganizationRe
       tx?: TransactionContext,
     ): Promise<OrganizationEntity | null> {
       const executor = resolveDbExecutor(db, tx);
+      let nextPreferencesJson: OrganizationPreferencesJson | undefined;
+      if (input.preferences !== undefined) {
+        const [existingRow] = await executor
+          .select({ preferences: organizations.preferences })
+          .from(organizations)
+          .where(eq(organizations.id, organizationId))
+          .limit(1);
+        nextPreferencesJson = {
+          ...(existingRow?.preferences ?? {}),
+          ...toOrganizationPreferencesJson(input.preferences),
+        };
+      }
+
       const [updated] = await executor
         .update(organizations)
         .set({
@@ -73,9 +86,7 @@ export function createOrganizationRepository(db: NodePgDatabase): OrganizationRe
             ? { defaultLanguage: input.defaultLanguage }
             : {}),
           ...(input.timezone !== undefined ? { timezone: input.timezone } : {}),
-          ...(input.preferences !== undefined
-            ? { preferences: toOrganizationPreferencesJson(input.preferences) }
-            : {}),
+          ...(nextPreferencesJson !== undefined ? { preferences: nextPreferencesJson } : {}),
           updatedAt: input.updatedAt,
         })
         .where(eq(organizations.id, organizationId))

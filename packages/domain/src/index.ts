@@ -565,3 +565,25 @@ export {
   type WorkflowTaskEntity,
   type WorkflowTaskStatus,
 } from "./workflows/workflow.types.js";
+
+export {
+  createUploadLimitsService,
+  DOMAIN_DEFAULT_PROXY_MAX_BODY_BYTES,
+  DOMAIN_DEFAULT_UPLOAD_ALLOWED_EXTENSIONS,
+  DOMAIN_DEFAULT_UPLOAD_MAX_BYTES,
+  DOMAIN_MAX_SYSTEM_UPLOAD_BYTES,
+  DOMAIN_MIN_UPLOAD_MAX_BYTES,
+  DOMAIN_SAFE_UPLOAD_FORMAT_CATALOG,
+  type EffectiveUploadPolicy,
+  extractNormalizedFileExtension,
+  normalizeDeclaredUploadMimeType,
+  resolveMimeTypesForExtensions,
+  type SafeDomainFormatRule,
+  type StoredUploadLimitsRecord,
+  type UpdateUploadLimitsCommand,
+  type UploadLimitsConfig,
+  type UploadLimitsService,
+  type UploadLimitsServiceDependencies,
+  type UploadLimitsView,
+  type UploadPolicyRepositoryPort,
+} from "./uploads/upload-policy.js";

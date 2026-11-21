@@ -23,6 +23,7 @@ import {
   Typography,
 } from "@mui/material";
 import { type FormEvent, useEffect, useState } from "react";
+import { UploadLimitsSettingsSection } from "./UploadLimitsSettingsSection.js";
 import {
   useOrganizationSettingsQuery,
   useUpdateOrganizationSettingsMutation,
@@ -468,6 +469,8 @@ export function OrganizationSettingsPage() {
           </Stack>
         </Stack>
       </Paper>
+
+      <UploadLimitsSettingsSection />
     </Stack>
   );
 }

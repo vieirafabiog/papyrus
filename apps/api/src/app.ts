@@ -31,6 +31,7 @@ import type {
   StorageRouterService,
   TagService,
   TrashDocumentService,
+  UploadLimitsService,
   UploadSessionRepositoryPort,
   UploadSessionService,
   UserAdministrationService,
@@ -61,6 +62,7 @@ import type { SetupService } from "./modules/setup/setup.service.js";
 import { registerStorageRoutes } from "./modules/storage/storage.routes.js";
 import { registerTagRoutes } from "./modules/tags/tags.routes.js";
 import { registerTaskRoutes } from "./modules/tasks/index.js";
+import { registerUploadLimitsRoutes } from "./modules/uploads/upload-limits.routes.js";
 import {
   type LocalStreamUploadDependencies,
   type StorageUploadDependencies,
@@ -169,6 +171,12 @@ export interface AppOptions {
     | {
         readonly authzRepository: AuthorizationRepository;
         readonly organizationService: OrganizationService;
+      }
+    | undefined;
+  readonly uploadLimitsDeps?:
+    | {
+        readonly authzRepository: AuthorizationRepository;
+        readonly uploadLimitsService: UploadLimitsService;
       }
     | undefined;
   readonly notificationService?: InAppNotificationService | undefined;
@@ -477,6 +485,17 @@ export function buildApp(options: AppOptions = {}): FastifyInstance {
           authService,
           authzRepository: organizationDeps.authzRepository,
           organizationService: organizationDeps.organizationService,
+        });
+      });
+    }
+
+    if (options.uploadLimitsDeps) {
+      const uploadLimitsDeps = options.uploadLimitsDeps;
+      void app.register(async (instance) => {
+        await registerUploadLimitsRoutes(instance, {
+          authService,
+          authzRepository: uploadLimitsDeps.authzRepository,
+          uploadLimitsService: uploadLimitsDeps.uploadLimitsService,
         });
       });
     }

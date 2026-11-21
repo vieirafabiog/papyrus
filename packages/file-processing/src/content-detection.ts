@@ -21,6 +21,7 @@ export type ContentRejectionCode =
   | "EMPTY_CONTENT"
   | "INVALID_FILENAME"
   | "DANGEROUS_EXTENSION"
+  | "EXTENSION_NOT_ALLOWED"
   | "POLYGLOT_DETECTED"
   | "DANGEROUS_CONTENT"
   | "ARCHIVE_EXPANSION_RISK"
@@ -33,6 +34,7 @@ const SAFE_REJECTION_MESSAGES: Readonly<Record<ContentRejectionCode, string>> = 
   EMPTY_CONTENT: "O arquivo enviado está vazio e não pode ser aceito.",
   INVALID_FILENAME: "O nome do arquivo contém caracteres ou estrutura não permitida.",
   DANGEROUS_EXTENSION: "A extensão do arquivo é bloqueada pela política de segurança.",
+  EXTENSION_NOT_ALLOWED: "A extensão do arquivo não faz parte dos formatos permitidos.",
   POLYGLOT_DETECTED: "O arquivo apresenta assinaturas incompatíveis ou conteúdo híbrido suspeito.",
   DANGEROUS_CONTENT: "Conteúdo executável ou ativo bloqueado pela política de segurança.",
   ARCHIVE_EXPANSION_RISK: "Arquivo compactado rejeitado por risco de expansão excessiva.",
@@ -142,6 +144,7 @@ export interface FileContentInspectionInput {
 
 export interface ContentDetectionPolicy {
   readonly allowedMimeTypes?: readonly string[] | undefined;
+  readonly allowedExtensions?: readonly string[] | undefined;
   readonly requireExtensionMatch?: boolean | undefined;
   readonly requireDeclaredTypeMatch?: boolean | undefined;
   readonly allowGenericOctetStreamDeclaration?: boolean | undefined;
@@ -713,6 +716,23 @@ export function inspectFileContent(
       .map((item) => normalizeDeclaredMimeType(item))
       .filter((item): item is string => item !== null),
   );
+
+  if (policy.allowedExtensions && policy.allowedExtensions.length > 0) {
+    const allowedExtSet = new Set(
+      policy.allowedExtensions.map((ext) => {
+        const lower = ext.trim().toLowerCase();
+        return lower.startsWith(".") ? lower : `.${lower}`;
+      }),
+    );
+    if (!nameInfo.extension || !allowedExtSet.has(nameInfo.extension)) {
+      return buildSafeRejection(
+        "EXTENSION_NOT_ALLOWED",
+        effectiveMime,
+        declaredMime,
+        nameInfo.extension || null,
+      );
+    }
+  }
 
   if (!allowedSet.has(effectiveMime)) {
     return buildSafeRejection(
