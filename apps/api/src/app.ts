@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import type { AuthorizationRepository } from "@docuflow/database";
+import type { AuthorizationRepository, DocumentSearchRepository } from "@docuflow/database";
 import type {
   ArchiveDocumentService,
   AuditRepositoryPort,
@@ -27,6 +27,7 @@ import { registerAuthRoutes } from "./modules/auth/auth.routes.js";
 import type { AuthService } from "./modules/auth/auth.service.js";
 import { registerCategoryRoutes } from "./modules/categories/categories.routes.js";
 import { registerDocumentRoutes } from "./modules/documents/documents.routes.js";
+import { registerDocumentSearchRoutes } from "./modules/documents/search.routes.js";
 import { registerFolderRoutes } from "./modules/folders/folders.routes.js";
 import { registerGroupRoutes } from "./modules/groups/groups.routes.js";
 import { registerSetupRoutes } from "./modules/setup/setup.routes.js";
@@ -59,6 +60,7 @@ export interface AppOptions {
         readonly authzRepository: AuthorizationRepository;
         readonly documentRepository: DocumentRepositoryPort;
         readonly auditRepository: AuditRepositoryPort;
+        readonly documentSearchRepository?: DocumentSearchRepository | undefined;
         readonly categoryRepository?: CategoryRepositoryPort | undefined;
         readonly createDocumentService?: CreateDocumentService | undefined;
         readonly createDocumentVersionService?: CreateDocumentVersionService | undefined;
@@ -191,6 +193,12 @@ export function buildApp(options: AppOptions = {}): FastifyInstance {
         documentRepository: documentDeps.documentRepository,
       });
       void app.register(async (instance) => {
+        if (documentDeps.documentSearchRepository) {
+          await registerDocumentSearchRoutes(instance, {
+            guard,
+            documentSearchRepository: documentDeps.documentSearchRepository,
+          });
+        }
         await registerDocumentRoutes(instance, {
           guard,
           authzRepository: documentDeps.authzRepository,

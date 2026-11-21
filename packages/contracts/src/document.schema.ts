@@ -143,6 +143,206 @@ export type DocumentListQuery = z.infer<typeof documentListQuerySchema>;
 export const documentListResponseSchema = createPaginatedResponseSchema(documentListItemSchema);
 export type DocumentListResponse = z.infer<typeof documentListResponseSchema>;
 
+export const isoDateOrDateTimeSchema = z.union([isoDateSchema, isoDateTimeSchema]);
+
+export const documentMetadataSearchFilterSchema = z
+  .discriminatedUnion("type", [
+    z.object({
+      fieldKey: z.string().trim().min(1).max(64),
+      type: z.literal("TEXT"),
+      value: z.string().trim().min(1).max(255),
+      matchMode: z.enum(["contains", "exact"]).optional(),
+    }),
+    z.object({
+      fieldKey: z.string().trim().min(1).max(64),
+      type: z.literal("SINGLE_SELECT"),
+      value: z.string().trim().min(1).max(255),
+    }),
+    z.object({
+      fieldKey: z.string().trim().min(1).max(64),
+      type: z.literal("NUMBER"),
+      equals: z.number().finite().optional(),
+      min: z.number().finite().optional(),
+      max: z.number().finite().optional(),
+    }),
+    z.object({
+      fieldKey: z.string().trim().min(1).max(64),
+      type: z.literal("DATE"),
+      equals: isoDateSchema.optional(),
+      from: isoDateSchema.optional(),
+      to: isoDateSchema.optional(),
+    }),
+    z.object({
+      fieldKey: z.string().trim().min(1).max(64),
+      type: z.literal("BOOLEAN"),
+      value: z.boolean(),
+    }),
+    z.object({
+      fieldKey: z.string().trim().min(1).max(64),
+      type: z.literal("MULTI_SELECT"),
+      values: z.array(z.string().trim().min(1).max(120)).min(1).max(20),
+    }),
+  ])
+  .superRefine((filter, ctx) => {
+    if (filter.type === "NUMBER") {
+      if (filter.equals === undefined && filter.min === undefined && filter.max === undefined) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Informe ao menos um critério numérico (igual, mínimo ou máximo).",
+        });
+      }
+      if (filter.min !== undefined && filter.max !== undefined && filter.max < filter.min) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["max"],
+          message: "O valor máximo do filtro numérico deve ser maior ou igual ao mínimo.",
+        });
+      }
+    }
+    if (filter.type === "DATE") {
+      if (filter.equals === undefined && filter.from === undefined && filter.to === undefined) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Informe ao menos uma data ou intervalo para o filtro de metadados.",
+        });
+      }
+      if (filter.from !== undefined && filter.to !== undefined && filter.to < filter.from) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["to"],
+          message: "A data final do metadado deve ser maior ou igual à data inicial.",
+        });
+      }
+    }
+  });
+export type DocumentMetadataSearchFilterContract = z.infer<
+  typeof documentMetadataSearchFilterSchema
+>;
+
+function validateSearchDateRanges(
+  q: {
+    readonly issueDateFrom?: string | undefined;
+    readonly issueDateTo?: string | undefined;
+    readonly expirationFrom?: string | undefined;
+    readonly expirationTo?: string | undefined;
+    readonly createdFrom?: string | undefined;
+    readonly createdTo?: string | undefined;
+    readonly updatedFrom?: string | undefined;
+    readonly updatedTo?: string | undefined;
+  },
+  ctx: z.RefinementCtx,
+): void {
+  if (
+    q.issueDateFrom !== undefined &&
+    q.issueDateTo !== undefined &&
+    q.issueDateTo < q.issueDateFrom
+  ) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["issueDateTo"],
+      message: "A data final de emissão deve ser maior ou igual à inicial.",
+    });
+  }
+  if (
+    q.expirationFrom !== undefined &&
+    q.expirationTo !== undefined &&
+    q.expirationTo < q.expirationFrom
+  ) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["expirationTo"],
+      message: "A data final de vencimento deve ser maior ou igual à data inicial.",
+    });
+  }
+  if (
+    q.createdFrom !== undefined &&
+    q.createdTo !== undefined &&
+    new Date(q.createdTo).getTime() < new Date(q.createdFrom).getTime()
+  ) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["createdTo"],
+      message: "A data final de criação deve ser maior ou igual à inicial.",
+    });
+  }
+  if (
+    q.updatedFrom !== undefined &&
+    q.updatedTo !== undefined &&
+    new Date(q.updatedTo).getTime() < new Date(q.updatedFrom).getTime()
+  ) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["updatedTo"],
+      message: "A data final de atualização deve ser maior ou igual à inicial.",
+    });
+  }
+}
+
+const searchQueryBooleanSchema = z.preprocess((value) => {
+  if (value === "true" || value === true) {
+    return true;
+  }
+  if (value === "false" || value === false) {
+    return false;
+  }
+  return value;
+}, z.boolean());
+
+const searchQueryTagIdsSchema = z.preprocess((value) => {
+  if (typeof value === "string") {
+    return value
+      .split(",")
+      .map((item) => item.trim())
+      .filter((item) => item.length > 0);
+  }
+  return value;
+}, z.array(uuidSchema).max(20));
+
+const searchQueryMetadataFiltersSchema = z.preprocess((value) => {
+  if (typeof value === "string") {
+    try {
+      return JSON.parse(value) as unknown;
+    } catch {
+      return null;
+    }
+  }
+  return value;
+}, z.array(documentMetadataSearchFilterSchema).max(20));
+
+const documentSearchBaseObjectSchema = paginationQuerySchema.merge(documentListSortSchema).extend({
+  search: z.string().trim().max(200).optional(),
+  categoryId: uuidSchema.optional(),
+  folderId: uuidSchema.optional(),
+  includeSubfolders: z.boolean().optional(),
+  status: documentStatusSchema.optional(),
+  authorUserId: uuidSchema.optional(),
+  ownerUserId: uuidSchema.optional(),
+  issueDateFrom: isoDateSchema.optional(),
+  issueDateTo: isoDateSchema.optional(),
+  expirationFrom: isoDateSchema.optional(),
+  expirationTo: isoDateSchema.optional(),
+  createdFrom: isoDateOrDateTimeSchema.optional(),
+  createdTo: isoDateOrDateTimeSchema.optional(),
+  updatedFrom: isoDateOrDateTimeSchema.optional(),
+  updatedTo: isoDateOrDateTimeSchema.optional(),
+  tagId: uuidSchema.optional(),
+  tagIds: z.array(uuidSchema).max(20).optional(),
+  metadataFilters: z.array(documentMetadataSearchFilterSchema).max(20).optional(),
+});
+
+export const documentSearchRequestSchema =
+  documentSearchBaseObjectSchema.superRefine(validateSearchDateRanges);
+export type DocumentSearchRequest = z.infer<typeof documentSearchRequestSchema>;
+
+export const documentSearchQuerySchema = documentSearchBaseObjectSchema
+  .extend({
+    includeSubfolders: searchQueryBooleanSchema.optional(),
+    tagIds: searchQueryTagIdsSchema.optional(),
+    metadataFilters: searchQueryMetadataFiltersSchema.optional(),
+  })
+  .superRefine(validateSearchDateRanges);
+export type DocumentSearchQuery = z.infer<typeof documentSearchQuerySchema>;
+
 export const documentDetailFileObjectSchema = z.object({
   id: uuidSchema,
   originalFileName: z.string().min(1).max(255),

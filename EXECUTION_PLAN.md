@@ -723,7 +723,7 @@ docuflow/
   - **Ação:** Implementar filtros para nome, categoria, pasta, status, autor, responsável, datas, tags e metadados suportados, com ordenação permitida.
   - **Verificação:** `pnpm --filter @docuflow/database test:integration`.
 
-- [ ] **Step 11.02 — Implementar endpoint de pesquisa**
+- [x] **Step 11.02 — Implementar endpoint de pesquisa**
   - **Arquivos:** `apps/api/src/modules/documents/search.routes.ts`
   - **Ação:** Validar filtros, paginação, ordenação e escopo; aplicar permissão antes de contagens e resultados.
   - **Verificação:** `pnpm --filter @docuflow/api test:integration`.
