@@ -333,3 +333,23 @@ export const updateDocumentRequestSchema = z
     }
   });
 export type UpdateDocumentRequest = z.infer<typeof updateDocumentRequestSchema>;
+
+export const moveDocumentRequestSchema = z.object({
+  expectedVersion: z.number().int().min(1),
+  targetFolderId: uuidSchema.nullable(),
+});
+export type MoveDocumentRequest = z.infer<typeof moveDocumentRequestSchema>;
+
+export const archiveDocumentRequestSchema = z.object({
+  expectedVersion: z.number().int().min(1),
+  reason: z
+    .string()
+    .trim()
+    .max(500, "O motivo do arquivamento deve ter no máximo 500 caracteres.")
+    .nullable()
+    .optional(),
+});
+export type ArchiveDocumentRequest = z.infer<typeof archiveDocumentRequestSchema>;
+
+export const documentMutationResponseSchema = createApiResponseSchema(documentRecordSchema);
+export type DocumentMutationResponse = z.infer<typeof documentMutationResponseSchema>;

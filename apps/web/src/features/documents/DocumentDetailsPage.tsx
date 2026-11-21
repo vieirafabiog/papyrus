@@ -13,6 +13,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { DocumentTagsField } from "../tags/DocumentTagsField.js";
+import { DocumentLifecycleActions } from "./DocumentLifecycleActions.js";
 import { DocumentMetadataForm } from "./DocumentMetadataForm.js";
 import { DocumentFileAvailabilityPanel } from "./FileProcessingStatus.js";
 import { UploadDialog } from "./UploadDialog.js";
@@ -96,6 +97,10 @@ export function DocumentDetailsPage() {
   const queryClient = useQueryClient();
   const [uploadNewVersionOpen, setUploadNewVersionOpen] = useState(false);
   const [editingMetadata, setEditingMetadata] = useState(false);
+  const [lifecycleFeedback, setLifecycleFeedback] = useState<{
+    readonly severity: "success" | "error";
+    readonly message: string;
+  } | null>(null);
 
   const query = useDocumentDetailsQuery(id);
 
@@ -188,7 +193,7 @@ export function DocumentDetailsPage() {
           </Stack>
         </Stack>
 
-        <Stack direction="row" spacing={1} alignItems="center">
+        <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
           {doc.permissions.canUpdate && !editingMetadata ? (
             <Button
               variant="outlined"
@@ -199,7 +204,12 @@ export function DocumentDetailsPage() {
             </Button>
           ) : null}
 
-          {doc.permissions.canUpload ? (
+          <DocumentLifecycleActions
+            document={doc}
+            onActionFeedback={(feedback) => setLifecycleFeedback(feedback)}
+          />
+
+          {doc.permissions.canUpload && doc.status !== "ARCHIVED" && doc.status !== "DELETED" ? (
             <Button
               variant="contained"
               startIcon={<UploadFileOutlinedIcon />}
@@ -210,6 +220,12 @@ export function DocumentDetailsPage() {
           ) : null}
         </Stack>
       </Box>
+
+      {lifecycleFeedback ? (
+        <Alert severity={lifecycleFeedback.severity} onClose={() => setLifecycleFeedback(null)}>
+          {lifecycleFeedback.message}
+        </Alert>
+      ) : null}
 
       <Grid container spacing={2.5}>
         <Grid size={{ xs: 12, lg: 7 }}>

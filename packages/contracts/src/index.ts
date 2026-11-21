@@ -81,6 +81,8 @@ export {
 } from "./dashboard.schema.js";
 
 export {
+  type ArchiveDocumentRequest,
+  archiveDocumentRequestSchema,
   type CreateDocumentRequest,
   createDocumentRequestSchema,
   type CreateDocumentVersionRequest,
@@ -106,6 +108,8 @@ export {
   type DocumentMetadataValue,
   documentMetadataRecordSchema,
   documentMetadataValueSchema,
+  type DocumentMutationResponse,
+  documentMutationResponseSchema,
   type DocumentRecord,
   documentRecordSchema,
   type DocumentStatus,
@@ -124,6 +128,8 @@ export {
   fileObjectRecordSchema,
   type FileObjectStatus,
   fileObjectStatusSchema,
+  type MoveDocumentRequest,
+  moveDocumentRequestSchema,
   type RestoreDocumentVersionRequest,
   restoreDocumentVersionRequestSchema,
   sha256ChecksumSchema,

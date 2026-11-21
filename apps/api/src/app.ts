@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import type { AuthorizationRepository } from "@docuflow/database";
 import type {
+  ArchiveDocumentService,
   AuditRepositoryPort,
   CategoryFieldService,
   CategoryRepositoryPort,
@@ -11,6 +12,7 @@ import type {
   FolderRepositoryPort,
   FolderService,
   GroupAdministrationService,
+  MoveDocumentService,
   StorageConnectionAdminService,
   TagService,
   UploadSessionRepositoryPort,
@@ -59,6 +61,8 @@ export interface AppOptions {
         readonly categoryRepository?: CategoryRepositoryPort | undefined;
         readonly createDocumentService?: CreateDocumentService | undefined;
         readonly createDocumentVersionService?: CreateDocumentVersionService | undefined;
+        readonly moveDocumentService?: MoveDocumentService | undefined;
+        readonly archiveDocumentService?: ArchiveDocumentService | undefined;
       }
     | undefined;
   readonly folderDeps?:
@@ -193,6 +197,8 @@ export function buildApp(options: AppOptions = {}): FastifyInstance {
           categoryRepository: documentDeps.categoryRepository,
           createDocumentService: documentDeps.createDocumentService,
           createDocumentVersionService: documentDeps.createDocumentVersionService,
+          moveDocumentService: documentDeps.moveDocumentService,
+          archiveDocumentService: documentDeps.archiveDocumentService,
         });
       });
     }

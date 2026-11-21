@@ -3,17 +3,20 @@ import { evaluateDocumentAuthorization } from "@docuflow/auth";
 import {
   CONTRACTS_API_PREFIX,
   type ErrorCode,
+  archiveDocumentRequestSchema,
   createDocumentRequestSchema,
   createDocumentVersionRequestSchema,
   documentListQuerySchema,
   documentMetadataRecordSchema,
   isoDateSchema,
+  moveDocumentRequestSchema,
   restoreDocumentVersionRequestSchema,
   updateDocumentRequestSchema,
   uuidSchema,
 } from "@docuflow/contracts";
 import type { AuthorizationRepository } from "@docuflow/database";
 import {
+  type ArchiveDocumentService,
   type AuditRepositoryPort,
   type CategoryFieldDefinition,
   type CategoryRepositoryPort,
@@ -23,6 +26,7 @@ import {
   type DocumentMetadataMap,
   type DocumentRepositoryPort,
   DomainError,
+  type MoveDocumentService,
   validateDocumentMetadata,
 } from "@docuflow/domain";
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
@@ -55,6 +59,7 @@ function mapCreateDocumentDomainErrorStatus(code: string): {
     case "CATEGORY_INACTIVE":
     case "FOLDER_ARCHIVED":
     case "VERSION_ALREADY_CURRENT":
+    case "INVALID_DOCUMENT_TRANSITION":
       return { status: 409, apiCode: "CONFLICT" };
     case "DOCUMENT_VERSION_CONFLICT":
       return { status: 409, apiCode: "DOCUMENT_VERSION_CONFLICT" };
@@ -131,6 +136,8 @@ export async function registerDocumentRoutes(
     readonly categoryRepository?: CategoryRepositoryPort | undefined;
     readonly createDocumentService?: CreateDocumentService | undefined;
     readonly createDocumentVersionService?: CreateDocumentVersionService | undefined;
+    readonly moveDocumentService?: MoveDocumentService | undefined;
+    readonly archiveDocumentService?: ArchiveDocumentService | undefined;
   },
 ): Promise<void> {
   const {
@@ -141,6 +148,8 @@ export async function registerDocumentRoutes(
     categoryRepository,
     createDocumentService,
     createDocumentVersionService,
+    moveDocumentService,
+    archiveDocumentService,
   } = deps;
 
   app.get(`${CONTRACTS_API_PREFIX}/documents`, async (request, reply) => {
@@ -757,6 +766,132 @@ export async function registerDocumentRoutes(
           data: result.version,
           document: result.document,
         });
+      } catch (error) {
+        return handleDocumentDomainError(error, request, reply);
+      }
+    },
+  );
+
+  app.post<{ Params: { id: string } }>(
+    `${CONTRACTS_API_PREFIX}/documents/:id/move`,
+    async (request, reply) => {
+      if (!moveDocumentService) {
+        return reply.status(501).send({
+          error: {
+            code: "INTERNAL_ERROR",
+            message: "Serviço de movimentação documental não configurado.",
+            requestId: request.id,
+          },
+        });
+      }
+
+      const ctx = await guard.requireSubject(request, reply);
+      if (!ctx) {
+        return reply;
+      }
+
+      const idParsed = uuidSchema.safeParse(request.params.id);
+      const bodyParsed = moveDocumentRequestSchema.safeParse(request.body);
+      if (!idParsed.success || !bodyParsed.success) {
+        return reply.status(400).send({
+          error: {
+            code: "VALIDATION_ERROR",
+            message: !idParsed.success
+              ? "Identificador de documento inválido."
+              : !bodyParsed.success
+                ? (bodyParsed.error.issues[0]?.message ??
+                  "Dados inválidos para movimentação de documento.")
+                : "Dados inválidos para movimentação de documento.",
+            requestId: request.id,
+          },
+        });
+      }
+
+      const doc = await guard.authorizeDocument(ctx, idParsed.data, "UPDATE", reply, request.id);
+      if (!doc) {
+        return reply;
+      }
+
+      // Valida também que o usuário pode inserir documentos na pasta de destino sem violar DENY.
+      const targetAllowed = await guard.authorizeCreateScope(
+        ctx,
+        doc.categoryId,
+        bodyParsed.data.targetFolderId,
+        reply,
+        request.id,
+      );
+      if (!targetAllowed) {
+        return reply;
+      }
+
+      try {
+        const updated = await moveDocumentService.moveDocument({
+          organizationId: ctx.me.user.organizationId,
+          actorUserId: ctx.me.user.id,
+          requestId: request.id,
+          documentId: doc.id,
+          expectedVersion: bodyParsed.data.expectedVersion,
+          targetFolderId: bodyParsed.data.targetFolderId,
+        });
+
+        return reply.status(200).send({ data: updated });
+      } catch (error) {
+        return handleDocumentDomainError(error, request, reply);
+      }
+    },
+  );
+
+  app.post<{ Params: { id: string } }>(
+    `${CONTRACTS_API_PREFIX}/documents/:id/archive`,
+    async (request, reply) => {
+      if (!archiveDocumentService) {
+        return reply.status(501).send({
+          error: {
+            code: "INTERNAL_ERROR",
+            message: "Serviço de arquivamento documental não configurado.",
+            requestId: request.id,
+          },
+        });
+      }
+
+      const ctx = await guard.requireSubject(request, reply);
+      if (!ctx) {
+        return reply;
+      }
+
+      const idParsed = uuidSchema.safeParse(request.params.id);
+      const bodyParsed = archiveDocumentRequestSchema.safeParse(request.body);
+      if (!idParsed.success || !bodyParsed.success) {
+        return reply.status(400).send({
+          error: {
+            code: "VALIDATION_ERROR",
+            message: !idParsed.success
+              ? "Identificador de documento inválido."
+              : !bodyParsed.success
+                ? (bodyParsed.error.issues[0]?.message ??
+                  "Dados inválidos para arquivamento do documento.")
+                : "Dados inválidos para arquivamento do documento.",
+            requestId: request.id,
+          },
+        });
+      }
+
+      const doc = await guard.authorizeDocument(ctx, idParsed.data, "UPDATE", reply, request.id);
+      if (!doc) {
+        return reply;
+      }
+
+      try {
+        const archived = await archiveDocumentService.archiveDocument({
+          organizationId: ctx.me.user.organizationId,
+          actorUserId: ctx.me.user.id,
+          requestId: request.id,
+          documentId: doc.id,
+          expectedVersion: bodyParsed.data.expectedVersion,
+          reason: bodyParsed.data.reason,
+        });
+
+        return reply.status(200).send({ data: archived });
       } catch (error) {
         return handleDocumentDomainError(error, request, reply);
       }

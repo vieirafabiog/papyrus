@@ -85,6 +85,20 @@ export {
 } from "./documents/create-version.js";
 
 export {
+  type ArchiveDocumentCommand,
+  type ArchiveDocumentService,
+  type ArchiveDocumentServiceDependencies,
+  archiveDocumentUseCase,
+} from "./documents/archive-document.js";
+
+export {
+  type MoveDocumentCommand,
+  type MoveDocumentService,
+  type MoveDocumentServiceDependencies,
+  moveDocumentUseCase,
+} from "./documents/move-document.js";
+
+export {
   assertApprovalMatchesVersion,
   type BuildNextVersionInput,
   buildNextDocumentVersion,

@@ -1,16 +1,22 @@
 import {
+  type ArchiveDocumentRequest,
   CONTRACTS_API_PREFIX,
   type CreateDocumentVersionResponse,
   type DocumentDetail,
   type DocumentVersionHistoryItem,
+  type FolderRecord,
+  type MoveDocumentRequest,
   type RestoreDocumentVersionRequest,
   type UpdateDocumentRequest,
   apiErrorResponseSchema,
+  archiveDocumentRequestSchema,
   createApiResponseSchema,
   createDocumentVersionResponseSchema,
   documentDetailResponseSchema,
   documentRecordSchema,
   documentVersionHistoryListResponseSchema,
+  folderListResponseSchema,
+  moveDocumentRequestSchema,
   restoreDocumentVersionRequestSchema,
   updateDocumentRequestSchema,
 } from "@docuflow/contracts";
@@ -310,4 +316,115 @@ export async function requestVersionDownloadTarget(
     }
   }
   return {};
+}
+
+export async function fetchAvailableFolders(): Promise<readonly FolderRecord[]> {
+  const response = await fetch(
+    `${CONTRACTS_API_PREFIX}/folders?status=ACTIVE&pageSize=100&sortBy=name&sortDirection=asc`,
+    {
+      method: "GET",
+      credentials: "include",
+      headers: { Accept: "application/json" },
+    },
+  );
+
+  if (!response.ok) {
+    throw await parseErrorResponse(response, "Falha ao carregar pastas disponíveis");
+  }
+
+  const rawJson: unknown = await response.json();
+  const parsed = folderListResponseSchema.safeParse(rawJson);
+  if (!parsed.success) {
+    throw new DocumentDetailFetchError(500, "Resposta inválida recebida ao listar pastas.");
+  }
+
+  return parsed.data.data.items;
+}
+
+export function useAvailableFoldersQuery(enabled: boolean) {
+  return useQuery<readonly FolderRecord[], DocumentDetailFetchError>({
+    queryKey: ["folders", "active-options"],
+    queryFn: fetchAvailableFolders,
+    enabled,
+    retry: false,
+  });
+}
+
+export async function moveDocument(documentId: string, payload: MoveDocumentRequest) {
+  const validated = moveDocumentRequestSchema.parse(payload);
+  const csrfToken = await resolveCsrfToken();
+
+  const response = await fetch(`${CONTRACTS_API_PREFIX}/documents/${documentId}/move`, {
+    method: "POST",
+    credentials: "include",
+    headers: {
+      "Content-Type": "application/json",
+      Accept: "application/json",
+      ...(csrfToken ? { [CSRF_HEADER_NAME]: csrfToken } : {}),
+    },
+    body: JSON.stringify(validated),
+  });
+
+  if (!response.ok) {
+    throw await parseErrorResponse(response, "Falha ao mover o documento");
+  }
+
+  const rawJson: unknown = await response.json();
+  const parsed = updatedDocumentEnvelopeSchema.safeParse(rawJson);
+  if (!parsed.success) {
+    throw new DocumentDetailFetchError(500, "Resposta inválida recebida ao mover documento.");
+  }
+
+  return parsed.data.data;
+}
+
+export async function archiveDocument(documentId: string, payload: ArchiveDocumentRequest) {
+  const validated = archiveDocumentRequestSchema.parse(payload);
+  const csrfToken = await resolveCsrfToken();
+
+  const response = await fetch(`${CONTRACTS_API_PREFIX}/documents/${documentId}/archive`, {
+    method: "POST",
+    credentials: "include",
+    headers: {
+      "Content-Type": "application/json",
+      Accept: "application/json",
+      ...(csrfToken ? { [CSRF_HEADER_NAME]: csrfToken } : {}),
+    },
+    body: JSON.stringify(validated),
+  });
+
+  if (!response.ok) {
+    throw await parseErrorResponse(response, "Falha ao arquivar o documento");
+  }
+
+  const rawJson: unknown = await response.json();
+  const parsed = updatedDocumentEnvelopeSchema.safeParse(rawJson);
+  if (!parsed.success) {
+    throw new DocumentDetailFetchError(500, "Resposta inválida recebida ao arquivar documento.");
+  }
+
+  return parsed.data.data;
+}
+
+export function useMoveDocumentMutation(documentId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: MoveDocumentRequest) => moveDocument(documentId, payload),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: documentDetailsQueryKey(documentId) });
+    },
+  });
+}
+
+export function useArchiveDocumentMutation(documentId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: ArchiveDocumentRequest) => archiveDocument(documentId, payload),
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: documentDetailsQueryKey(documentId) }),
+        queryClient.invalidateQueries({ queryKey: documentVersionsQueryKey(documentId) }),
+      ]);
+    },
+  });
 }

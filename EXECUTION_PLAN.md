@@ -704,7 +704,7 @@ docuflow/
   - **Ação:** Exibir número, data, autor, observação e ações permitidas; restaurar versão antiga deve criar nova versão, não reescrever histórico.
   - **Verificação:** `pnpm --filter @docuflow/web test`.
 
-- [ ] **Step 10.11 — Implementar movimentação e arquivamento**
+- [x] **Step 10.11 — Implementar movimentação e arquivamento**
   - **Arquivos:** casos de uso, rotas e ações da UI
   - **Ação:** Mover documento entre pastas e arquivar com validação de permissão e registro de auditoria.
   - **Verificação:** `pnpm --filter @docuflow/api test:integration`.
