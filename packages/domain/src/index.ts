@@ -96,8 +96,25 @@ export type {
   StorageConnectionKind,
   StorageConnectionRepositoryPort,
   StorageConnectionStatus,
+  StorageRoutingRuleEntity,
+  StorageRoutingRuleRepositoryPort,
   UpdateStorageConnectionInput,
+  UpsertStorageRoutingRuleInput,
 } from "./ports/storage-connection-repository.port.js";
+
+export {
+  type BindNewFileObjectInput,
+  bindFileObjectToStorageTarget,
+  type ClearCategoryRoutingRuleCommand,
+  createStorageRouterService,
+  type ResolvedStorageTarget,
+  type ResolveReadTargetInput,
+  type ResolveWriteTargetInput,
+  type SetStorageRoutingRuleCommand,
+  type StorageRouteSource,
+  type StorageRouterDependencies,
+  type StorageRouterService,
+} from "./storage/storage-router.js";
 
 export {
   type CreateStorageConnectionCommand,

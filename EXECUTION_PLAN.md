@@ -581,7 +581,7 @@ docuflow/
   - **Ação:** Permitir cadastrar, editar e testar conexão S3, mascarando campos secretos em respostas e logs.
   - **Verificação:** `pnpm --filter @docuflow/api test:integration`.
 
-- [ ] **Step 08.08 — Implementar roteamento por instalação e categoria**
+- [x] **Step 08.08 — Implementar roteamento por instalação e categoria**
   - **Arquivos:** `packages/domain/src/storage/storage-router.ts`, testes
   - **Ação:** Resolver conexão padrão com override por categoria; persistir a conexão efetivamente usada em cada objeto. Alterar a regra não deve mover arquivos existentes.
   - **Verificação:** `pnpm --filter @docuflow/domain test`.

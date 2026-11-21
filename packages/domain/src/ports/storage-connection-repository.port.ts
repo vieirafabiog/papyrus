@@ -57,3 +57,38 @@ export interface StorageConnectionRepositoryPort {
   ): Promise<StorageConnectionEntity | null>;
   hasLinkedFileObjects(connectionId: string, tx?: TransactionContext): Promise<boolean>;
 }
+
+export interface StorageRoutingRuleEntity {
+  readonly id: string;
+  readonly organizationId: string;
+  readonly categoryId: string | null;
+  readonly storageConnectionId: string;
+  readonly createdAt: string;
+  readonly updatedAt: string;
+}
+
+export interface UpsertStorageRoutingRuleInput {
+  readonly id: string;
+  readonly organizationId: string;
+  readonly categoryId: string | null;
+  readonly storageConnectionId: string;
+  readonly actorUserId: string;
+}
+
+export interface StorageRoutingRuleRepositoryPort {
+  findByOrganizationAndCategory(
+    organizationId: string,
+    categoryId: string | null,
+    tx?: TransactionContext,
+  ): Promise<StorageRoutingRuleEntity | null>;
+  listByOrganization(organizationId: string): Promise<readonly StorageRoutingRuleEntity[]>;
+  upsertRule(
+    input: UpsertStorageRoutingRuleInput,
+    tx?: TransactionContext,
+  ): Promise<StorageRoutingRuleEntity>;
+  deleteCategoryRule(
+    organizationId: string,
+    categoryId: string,
+    tx?: TransactionContext,
+  ): Promise<boolean>;
+}
