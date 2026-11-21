@@ -1,3 +1,5 @@
+import type { CategoryFieldType } from "./metadata-validation.js";
+
 export interface CategoryEntity {
   readonly id: string;
   readonly organizationId: string;
@@ -6,6 +8,19 @@ export interface CategoryEntity {
   readonly color: string | null;
   readonly icon: string | null;
   readonly isActive: boolean;
+  readonly createdAt: string;
+  readonly updatedAt: string;
+}
+
+export interface CategoryFieldEntity {
+  readonly id: string;
+  readonly categoryId: string;
+  readonly key: string;
+  readonly label: string;
+  readonly type: CategoryFieldType;
+  readonly required: boolean;
+  readonly options: readonly string[] | null;
+  readonly sortOrder: number;
   readonly createdAt: string;
   readonly updatedAt: string;
 }

@@ -37,6 +37,7 @@ export {
   type MetadataValidationIssue,
   type MetadataValidationResult,
   validateDocumentMetadata,
+  validateFieldValueForDefinition,
 } from "./categories/metadata-validation.js";
 
 export {
@@ -176,6 +177,19 @@ export {
 } from "./uploads/upload-sessions.js";
 
 export {
+  type CategoryFieldService,
+  type CategoryFieldServiceDependencies,
+  type CreateCategoryFieldCommand,
+  createCategoryFieldService,
+  type FieldMigrationStrategy,
+  normalizeCategoryFieldKey,
+  normalizeCategoryFieldLabel,
+  normalizeCategoryFieldOptions,
+  type RemoveCategoryFieldCommand,
+  resolveFieldChangePlan,
+  type UpdateCategoryFieldCommand,
+} from "./categories/category-field-service.js";
+export {
   type CategoryService,
   type CategoryServiceDependencies,
   type CreateCategoryCommand,
@@ -193,12 +207,16 @@ export {
 export type {
   AuthorizedCategoryQueryScope,
   CategoryEntity,
+  CategoryFieldEntity,
   CategoryListFilter,
   CategorySortField,
 } from "./categories/category.types.js";
 export type {
   CategoryRepositoryPort,
+  CreateCategoryFieldRecordInput,
   CreateCategoryInput,
+  ExistingDocumentMetadataSnapshot,
+  UpdateCategoryFieldRecordInput,
   UpdateCategoryInput,
 } from "./ports/category-repository.port.js";
 

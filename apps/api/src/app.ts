@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import type { AuthorizationRepository } from "@docuflow/database";
 import type {
   AuditRepositoryPort,
+  CategoryFieldService,
   CategoryRepositoryPort,
   CategoryService,
   DocumentRepositoryPort,
@@ -65,6 +66,7 @@ export interface AppOptions {
         readonly authzRepository: AuthorizationRepository;
         readonly categoryRepository: CategoryRepositoryPort;
         readonly categoryService: CategoryService;
+        readonly categoryFieldService: CategoryFieldService;
       }
     | undefined;
   readonly uploadDeps?:
@@ -222,6 +224,7 @@ export function buildApp(options: AppOptions = {}): FastifyInstance {
         await registerCategoryRoutes(instance, {
           guard: categoryGuard,
           categoryService: categoryDeps.categoryService,
+          categoryFieldService: categoryDeps.categoryFieldService,
         });
       });
     }

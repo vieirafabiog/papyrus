@@ -2,11 +2,14 @@ import {
   CONTRACTS_API_PREFIX,
   type ErrorCode,
   categoryListQuerySchema,
+  createCategoryFieldInputSchema,
   createCategoryInputSchema,
+  deleteCategoryFieldInputSchema,
+  updateCategoryFieldInputSchema,
   updateCategoryInputSchema,
   uuidSchema,
 } from "@docuflow/contracts";
-import { type CategoryService, DomainError } from "@docuflow/domain";
+import { type CategoryFieldService, type CategoryService, DomainError } from "@docuflow/domain";
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import {
   type CategoryAuthorizationGuard,
@@ -17,19 +20,25 @@ import {
 export interface CategoryRoutesDependencies {
   readonly guard: CategoryAuthorizationGuard;
   readonly categoryService: CategoryService;
+  readonly categoryFieldService: CategoryFieldService;
 }
 
 function mapCategoryDomainErrorStatus(code: string): { status: number; apiCode: ErrorCode } {
   switch (code) {
     case "CATEGORY_NOT_FOUND":
+    case "CATEGORY_FIELD_NOT_FOUND":
       return { status: 404, apiCode: "NOT_FOUND" };
     case "CATEGORY_NAME_ALREADY_IN_USE":
     case "CATEGORY_HAS_EXISTING_DOCUMENTS":
+    case "CATEGORY_FIELD_KEY_ALREADY_IN_USE":
+    case "INCOMPATIBLE_CATEGORY_FIELD_CHANGE":
       return { status: 409, apiCode: "CONFLICT" };
     case "INVALID_CATEGORY_NAME":
     case "INVALID_CATEGORY_DESCRIPTION":
     case "INVALID_CATEGORY_COLOR":
     case "INVALID_CATEGORY_ICON":
+    case "INVALID_CATEGORY_FIELD":
+    case "INVALID_FIELD_MIGRATION":
       return { status: 400, apiCode: "VALIDATION_ERROR" };
     default:
       return { status: 400, apiCode: "VALIDATION_ERROR" };
@@ -56,13 +65,13 @@ function handleCategoryError(
 }
 
 /**
- * Registers category CRUD routes enforcing server-side authorization and document-link validation.
+ * Registers category CRUD and typed custom-field management routes.
  */
 export async function registerCategoryRoutes(
   app: FastifyInstance,
   deps: CategoryRoutesDependencies,
 ): Promise<void> {
-  const { guard, categoryService } = deps;
+  const { guard, categoryService, categoryFieldService } = deps;
 
   app.get(`${CONTRACTS_API_PREFIX}/categories`, async (request, reply) => {
     const subject = await guard.requireSubject(request, reply);
@@ -160,7 +169,11 @@ export async function registerCategoryRoutes(
       return reply;
     }
 
-    return reply.status(200).send({ data: authorized.category });
+    const fields = await categoryFieldService.listFields(
+      authorized.subject.me.user.organizationId,
+      authorized.category.id,
+    );
+    return reply.status(200).send({ data: { ...authorized.category, fields } });
   });
 
   app.patch(`${CONTRACTS_API_PREFIX}/categories/:id`, async (request, reply) => {
@@ -251,6 +264,191 @@ export async function registerCategoryRoutes(
         categoryId: authorized.category.id,
       });
       return reply.status(200).send({ data: deactivated });
+    } catch (error) {
+      return handleCategoryError(error, request, reply);
+    }
+  });
+
+  app.get(`${CONTRACTS_API_PREFIX}/categories/:id/fields`, async (request, reply) => {
+    const idParsed = uuidSchema.safeParse((request.params as { readonly id?: unknown }).id);
+    if (!idParsed.success) {
+      return reply.status(400).send({
+        error: {
+          code: "VALIDATION_ERROR",
+          message: "Identificador de categoria inválido.",
+          requestId: request.id,
+        },
+      });
+    }
+
+    const authorized = await guard.authorizeCategory(request, reply, "READ", idParsed.data);
+    if (!authorized) {
+      return reply;
+    }
+
+    const fields = await categoryFieldService.listFields(
+      authorized.subject.me.user.organizationId,
+      authorized.category.id,
+    );
+    return reply.status(200).send({ data: fields });
+  });
+
+  app.post(`${CONTRACTS_API_PREFIX}/categories/:id/fields`, async (request, reply) => {
+    const idParsed = uuidSchema.safeParse((request.params as { readonly id?: unknown }).id);
+    if (!idParsed.success) {
+      return reply.status(400).send({
+        error: {
+          code: "VALIDATION_ERROR",
+          message: "Identificador de categoria inválido.",
+          requestId: request.id,
+        },
+      });
+    }
+
+    const bodyParsed = createCategoryFieldInputSchema.safeParse(request.body);
+    if (!bodyParsed.success) {
+      return reply.status(400).send({
+        error: {
+          code: "VALIDATION_ERROR",
+          message: bodyParsed.error.issues[0]?.message ?? "Dados inválidos para criação de campo.",
+          requestId: request.id,
+        },
+      });
+    }
+
+    const authorized = await guard.authorizeCategory(request, reply, "UPDATE", idParsed.data);
+    if (!authorized) {
+      return reply;
+    }
+
+    try {
+      const created = await categoryFieldService.addField({
+        organizationId: authorized.subject.me.user.organizationId,
+        actorUserId: authorized.subject.me.user.id,
+        requestId: request.id,
+        categoryId: authorized.category.id,
+        key: bodyParsed.data.key,
+        label: bodyParsed.data.label,
+        type: bodyParsed.data.type,
+        required: bodyParsed.data.required,
+        options: bodyParsed.data.options,
+        sortOrder: bodyParsed.data.sortOrder,
+        migrationStrategy: bodyParsed.data.migrationStrategy,
+      });
+      return reply.status(201).send({ data: created });
+    } catch (error) {
+      return handleCategoryError(error, request, reply);
+    }
+  });
+
+  app.patch(`${CONTRACTS_API_PREFIX}/categories/:id/fields/:fieldId`, async (request, reply) => {
+    const params = request.params as { readonly id?: unknown; readonly fieldId?: unknown };
+    const idParsed = uuidSchema.safeParse(params.id);
+    const fieldIdParsed = uuidSchema.safeParse(params.fieldId);
+    if (!idParsed.success || !fieldIdParsed.success) {
+      return reply.status(400).send({
+        error: {
+          code: "VALIDATION_ERROR",
+          message: "Identificador de categoria ou campo inválido.",
+          requestId: request.id,
+        },
+      });
+    }
+
+    const bodyParsed = updateCategoryFieldInputSchema.safeParse(request.body);
+    if (!bodyParsed.success) {
+      return reply.status(400).send({
+        error: {
+          code: "VALIDATION_ERROR",
+          message:
+            bodyParsed.error.issues[0]?.message ?? "Dados inválidos para atualização do campo.",
+          requestId: request.id,
+        },
+      });
+    }
+
+    if (
+      bodyParsed.data.label === undefined &&
+      bodyParsed.data.type === undefined &&
+      bodyParsed.data.required === undefined &&
+      bodyParsed.data.options === undefined &&
+      bodyParsed.data.sortOrder === undefined
+    ) {
+      return reply.status(400).send({
+        error: {
+          code: "VALIDATION_ERROR",
+          message: "Informe ao menos um campo de configuração para atualizar.",
+          requestId: request.id,
+        },
+      });
+    }
+
+    const authorized = await guard.authorizeCategory(request, reply, "UPDATE", idParsed.data);
+    if (!authorized) {
+      return reply;
+    }
+
+    try {
+      const updated = await categoryFieldService.updateField({
+        organizationId: authorized.subject.me.user.organizationId,
+        actorUserId: authorized.subject.me.user.id,
+        requestId: request.id,
+        categoryId: authorized.category.id,
+        fieldId: fieldIdParsed.data,
+        label: bodyParsed.data.label,
+        type: bodyParsed.data.type,
+        required: bodyParsed.data.required,
+        options: bodyParsed.data.options,
+        sortOrder: bodyParsed.data.sortOrder,
+        migrationStrategy: bodyParsed.data.migrationStrategy,
+      });
+      return reply.status(200).send({ data: updated });
+    } catch (error) {
+      return handleCategoryError(error, request, reply);
+    }
+  });
+
+  app.delete(`${CONTRACTS_API_PREFIX}/categories/:id/fields/:fieldId`, async (request, reply) => {
+    const params = request.params as { readonly id?: unknown; readonly fieldId?: unknown };
+    const idParsed = uuidSchema.safeParse(params.id);
+    const fieldIdParsed = uuidSchema.safeParse(params.fieldId);
+    if (!idParsed.success || !fieldIdParsed.success) {
+      return reply.status(400).send({
+        error: {
+          code: "VALIDATION_ERROR",
+          message: "Identificador de categoria ou campo inválido.",
+          requestId: request.id,
+        },
+      });
+    }
+
+    const rawBody = request.body === undefined || request.body === null ? {} : request.body;
+    const bodyParsed = deleteCategoryFieldInputSchema.safeParse(rawBody);
+    if (!bodyParsed.success) {
+      return reply.status(400).send({
+        error: {
+          code: "VALIDATION_ERROR",
+          message: "Estratégia de migração inválida para remoção do campo.",
+          requestId: request.id,
+        },
+      });
+    }
+
+    const authorized = await guard.authorizeCategory(request, reply, "UPDATE", idParsed.data);
+    if (!authorized) {
+      return reply;
+    }
+
+    try {
+      await categoryFieldService.removeField({
+        organizationId: authorized.subject.me.user.organizationId,
+        actorUserId: authorized.subject.me.user.id,
+        requestId: request.id,
+        categoryId: authorized.category.id,
+        fieldId: fieldIdParsed.data,
+        migrationStrategy: bodyParsed.data.migrationStrategy,
+      });
+      return reply.status(204).send();
     } catch (error) {
       return handleCategoryError(error, request, reply);
     }

@@ -142,6 +142,14 @@ export {
 } from "./upload.schema.js";
 
 export {
+  type CategoryDetailResponse,
+  categoryDetailResponseSchema,
+  type CategoryFieldListResponse,
+  categoryFieldListResponseSchema,
+  type CategoryFieldRecord,
+  categoryFieldRecordSchema,
+  type CategoryFieldResponse,
+  categoryFieldResponseSchema,
   categoryHexColorSchema,
   type CategoryListQuery,
   categoryListQuerySchema,
@@ -152,6 +160,14 @@ export {
   type CategorySummaryResponse,
   categorySummaryResponseSchema,
   categorySummarySchema,
+  type CreateCategoryFieldInput,
+  createCategoryFieldInputSchema,
+  type DeleteCategoryFieldInput,
+  deleteCategoryFieldInputSchema,
+  type FieldMigrationStrategy,
+  fieldMigrationStrategySchema,
+  type UpdateCategoryFieldInput,
+  updateCategoryFieldInputSchema,
 } from "./category.schema.js";
 
 export {

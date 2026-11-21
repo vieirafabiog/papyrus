@@ -24,7 +24,7 @@ import {
   userRoleScopes,
   users,
 } from "@docuflow/database";
-import { createCategoryService } from "@docuflow/domain";
+import { createCategoryFieldService, createCategoryService } from "@docuflow/domain";
 import { PostgreSqlContainer, type StartedPostgreSqlContainer } from "@testcontainers/postgresql";
 import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/node-postgres";
@@ -211,6 +211,12 @@ describe("Category CRUD, document-link validation and scoped authorization integ
       audit: auditRepository,
       generateId: () => randomUUID(),
     });
+    const categoryFieldService = createCategoryFieldService({
+      categories: categoryRepository,
+      transactions: createTransactionManager(db),
+      audit: auditRepository,
+      generateId: () => randomUUID(),
+    });
 
     const authService = createAuthService({
       users: {
@@ -265,6 +271,7 @@ describe("Category CRUD, document-link validation and scoped authorization integ
         authzRepository,
         categoryRepository,
         categoryService,
+        categoryFieldService,
       },
     });
     await app.ready();

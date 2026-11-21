@@ -87,6 +87,31 @@ function createInMemoryCategoryHarness() {
       store.set(updated.id, updated);
       return updated;
     },
+    async listFields() {
+      return [];
+    },
+    async findFieldById() {
+      return null;
+    },
+    async findFieldByKey() {
+      return null;
+    },
+    async createField(input) {
+      const now = new Date().toISOString();
+      return { ...input, createdAt: now, updatedAt: now };
+    },
+    async updateField() {
+      return null;
+    },
+    async deleteField() {
+      return false;
+    },
+    async listExistingDocumentMetadata() {
+      return [];
+    },
+    async backfillFieldMetadata() {},
+    async resetFieldMetadata() {},
+    async removeFieldMetadata() {},
   };
 
   const transactions: TransactionManagerPort = {

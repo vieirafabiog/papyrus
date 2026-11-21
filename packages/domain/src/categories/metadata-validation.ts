@@ -110,6 +110,20 @@ function validateFieldValue(
   }
 }
 
+export function validateFieldValueForDefinition(
+  field: CategoryFieldDefinition,
+  rawValue: DocumentMetadataValue | undefined,
+): { ok: true; value: DocumentMetadataValue | undefined } | { ok: false; reason: string } {
+  if (rawValue === undefined || rawValue === null) {
+    if (field.required) {
+      return { ok: false, reason: "Campo obrigatório não informado." };
+    }
+    return { ok: true, value: rawValue === null ? null : undefined };
+  }
+
+  return validateFieldValue(field, rawValue);
+}
+
 export function validateDocumentMetadata(
   fields: readonly CategoryFieldDefinition[],
   inputMetadata: Readonly<Record<string, DocumentMetadataValue>>,

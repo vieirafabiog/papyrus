@@ -664,7 +664,7 @@ docuflow/
   - **Ação:** Criar, editar, desativar e listar categorias, com validação contra documentos existentes.
   - **Verificação:** `pnpm --filter @docuflow/api test:integration`.
 
-- [ ] **Step 10.03 — Implementar campos personalizados por categoria**
+- [x] **Step 10.03 — Implementar campos personalizados por categoria**
   - **Arquivos:** domínio, contracts, database e API de categorias
   - **Ação:** Permitir configurar campos tipados e obrigatoriedade; impedir alteração incompatível sem estratégia de migração dos metadados existentes.
   - **Verificação:** `pnpm --filter @docuflow/domain test` e `pnpm --filter @docuflow/api test:integration`.
