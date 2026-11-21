@@ -777,7 +777,7 @@ docuflow/
   - **Ação:** Criar fluxo sequencial com etapas, grupos/papéis aprovadores, prazos e regras de comentário obrigatório.
   - **Verificação:** `pnpm --filter @docuflow/domain test`.
 
-- [ ] **Step 12.02 — Implementar início de instância vinculada à versão**
+- [x] **Step 12.02 — Implementar início de instância vinculada à versão**
   - **Arquivos:** `packages/domain/src/workflows/start-workflow.ts`
   - **Ação:** Criar instância apontando para a versão imutável da definição e para `document_version_id` específico.
   - **Verificação:** `pnpm --filter @docuflow/domain test`.

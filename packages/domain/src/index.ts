@@ -343,6 +343,20 @@ export type {
   WorkflowDefinitionRepositoryPort,
 } from "./ports/workflow-definition-repository.port.js";
 
+export type {
+  CreateWorkflowInstanceRecordInput,
+  UpdateWorkflowInstanceProgressInput,
+  WorkflowInstanceRepositoryPort,
+} from "./ports/workflow-instance-repository.port.js";
+
+export {
+  createStartWorkflowUseCase,
+  type StartWorkflowCommand,
+  type StartedWorkflowResult,
+  type StartWorkflowService,
+  type StartWorkflowServiceDependencies,
+} from "./workflows/start-workflow.js";
+
 export {
   calculateStepDueAt,
   cloneAndValidateWorkflowAssignee,
