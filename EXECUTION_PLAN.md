@@ -753,7 +753,7 @@ docuflow/
   - **Ação:** Verificar usuário, documento, versão, estado do arquivo e provider; usar URL assinada curta ou streaming pela API.
   - **Verificação:** `pnpm --filter @docuflow/api test:security`.
 
-- [ ] **Step 11.08 — Implementar dashboard de indicadores reais**
+- [x] **Step 11.08 — Implementar dashboard de indicadores reais**
   - **Arquivos:** endpoint de dashboard e `DashboardPage.tsx`
   - **Ação:** Exibir totais de documentos, pendências, vencimentos e armazenamento com agregações autorizadas no banco. Não calcular métricas em coleções completas no navegador.
   - **Verificação:** `pnpm --filter @docuflow/api test:integration` e `pnpm --filter @docuflow/web test`.

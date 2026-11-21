@@ -23,6 +23,13 @@ export {
   createDocumentVersionRepository,
 } from "./repositories/document-repository.js";
 export {
+  createDashboardRepository,
+  type DashboardRecentActivityRecord,
+  type DashboardRepository,
+  type DashboardSummaryQueryInput,
+  type DashboardSummaryRecord,
+} from "./repositories/dashboard-repository.js";
+export {
   createDocumentSearchRepository,
   type DocumentMetadataSearchFilter,
   type DocumentSearchFilter,

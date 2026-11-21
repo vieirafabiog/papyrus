@@ -28,8 +28,11 @@ import {
   documents,
 } from "../schema/documents.js";
 import { fileObjects } from "../schema/storage.js";
-import { folders } from "../schema/taxonomy.js";
 import type { AuthorizedDocumentQueryScope } from "./authorization-repository.js";
+import {
+  buildAuthorizedDocumentScopeConditions,
+  expandFolderSubtreeIds,
+} from "./authorized-scope-sql.js";
 
 const ALLOWED_SEARCH_SORT_COLUMNS: Readonly<
   Record<
@@ -227,47 +230,6 @@ function buildMetadataFilterCondition(
   return inArray(documents.id, matchingDocIds);
 }
 
-async function expandFolderSubtreeIds(
-  db: NodePgDatabase,
-  organizationId: string,
-  rootFolderIds: readonly string[],
-): Promise<readonly string[]> {
-  if (rootFolderIds.length === 0) {
-    return [];
-  }
-
-  const orgFolders = await db
-    .select({ id: folders.id, parentId: folders.parentId })
-    .from(folders)
-    .where(eq(folders.organizationId, organizationId));
-
-  const childrenByParent = new Map<string, string[]>();
-  for (const folder of orgFolders) {
-    if (folder.parentId !== null) {
-      const list = childrenByParent.get(folder.parentId) ?? [];
-      list.push(folder.id);
-      childrenByParent.set(folder.parentId, list);
-    }
-  }
-
-  const expanded = new Set<string>();
-  const queue = [...rootFolderIds];
-  while (queue.length > 0) {
-    const current = queue.shift();
-    if (!current || expanded.has(current)) {
-      continue;
-    }
-    expanded.add(current);
-    for (const childId of childrenByParent.get(current) ?? []) {
-      if (!expanded.has(childId)) {
-        queue.push(childId);
-      }
-    }
-  }
-
-  return Array.from(expanded);
-}
-
 /**
  * Builds the advanced PostgreSQL document search repository, enforcing server-side
  * authorization scope before counting, sorting, and paginating results.
@@ -405,37 +367,15 @@ export function createDocumentSearchRepository(db: NodePgDatabase): DocumentSear
       }
 
       // Authorization constraints applied strictly before COUNT(*) and pagination
-      if (!scope.hasGlobalAllow) {
-        const allowPredicates: SQL[] = [];
-        if (scope.allowedCategoryIds.length > 0) {
-          allowPredicates.push(inArray(documents.categoryId, [...scope.allowedCategoryIds]));
-        }
-        if (expandedAllowedFolders.length > 0) {
-          allowPredicates.push(inArray(documents.folderId, [...expandedAllowedFolders]));
-        }
-        if (scope.allowedDocumentIds.length > 0) {
-          allowPredicates.push(inArray(documents.id, [...scope.allowedDocumentIds]));
-        }
-        if (allowPredicates.length === 0) {
-          return emptyResult;
-        }
-        const combinedAllow = or(...allowPredicates);
-        if (combinedAllow) {
-          conditions.push(combinedAllow);
-        }
+      const scopeResult = buildAuthorizedDocumentScopeConditions(
+        scope,
+        expandedAllowedFolders,
+        expandedDeniedFolders,
+      );
+      if (!scopeResult.allowed) {
+        return emptyResult;
       }
-
-      if (scope.deniedCategoryIds.length > 0) {
-        conditions.push(not(inArray(documents.categoryId, [...scope.deniedCategoryIds])));
-      }
-      if (expandedDeniedFolders.length > 0) {
-        conditions.push(
-          sql`(${documents.folderId} IS NULL OR ${not(inArray(documents.folderId, [...expandedDeniedFolders]))})`,
-        );
-      }
-      if (scope.deniedDocumentIds.length > 0) {
-        conditions.push(not(inArray(documents.id, [...scope.deniedDocumentIds])));
-      }
+      conditions.push(...scopeResult.conditions);
 
       const whereClause = and(...conditions);
       const sortColumn = ALLOWED_SEARCH_SORT_COLUMNS[filter.sortBy];

@@ -15,6 +15,8 @@ export const dashboardSummarySchema = z.object({
   pendingTasks: z.number().int().min(0),
   expiringSoonDocuments: z.number().int().min(0),
   quarantinedFiles: z.number().int().min(0),
+  storageUsedBytes: z.number().int().min(0).default(0),
+  storageFileCount: z.number().int().min(0).default(0),
   recentActivity: z.array(dashboardRecentActivitySchema),
 });
 export type DashboardSummary = z.infer<typeof dashboardSummarySchema>;

@@ -22,6 +22,7 @@ function renderDashboard() {
           <Routes>
             <Route path="/" element={<DashboardPage />} />
             <Route path="/documentos" element={<h1>Lista de documentos</h1>} />
+            <Route path="/documentos/:id" element={<h1>Detalhe do documento</h1>} />
           </Routes>
         </MemoryRouter>
       </QueryClientProvider>
@@ -48,7 +49,7 @@ describe("DashboardPage", () => {
     expect(await screen.findByRole("heading", { name: "Lista de documentos" })).toBeInTheDocument();
   });
 
-  it("renders real summary KPIs and recent activity when API responds 200", async () => {
+  it("renders real summary KPIs, storage usage and recent activity when API responds 200", async () => {
     const validUuid = "550e8400-e29b-41d4-a716-446655440000";
     vi.spyOn(globalThis, "fetch").mockResolvedValue(
       new Response(
@@ -58,6 +59,8 @@ describe("DashboardPage", () => {
             pendingTasks: 3,
             expiringSoonDocuments: 5,
             quarantinedFiles: 1,
+            storageUsedBytes: 1_572_864,
+            storageFileCount: 12,
             recentActivity: [
               {
                 id: validUuid,
@@ -79,7 +82,13 @@ describe("DashboardPage", () => {
     expect(screen.getByText("3")).toBeInTheDocument();
     expect(screen.getByText("5")).toBeInTheDocument();
     expect(screen.getByText("1")).toBeInTheDocument();
-    expect(screen.getByText("DOCUMENT_CREATED — DOCUMENT")).toBeInTheDocument();
+    expect(screen.getByText("1,5 MB")).toBeInTheDocument();
+    expect(screen.getByText("12 arquivos ativos")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByText("DOCUMENT_CREATED — DOCUMENT"));
+    expect(
+      await screen.findByRole("heading", { name: "Detalhe do documento" }),
+    ).toBeInTheDocument();
   });
 
   it("renders ErrorState with working retry when summary request fails", async () => {

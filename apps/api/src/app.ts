@@ -1,5 +1,9 @@
 import { randomUUID } from "node:crypto";
-import type { AuthorizationRepository, DocumentSearchRepository } from "@docuflow/database";
+import type {
+  AuthorizationRepository,
+  DashboardRepository,
+  DocumentSearchRepository,
+} from "@docuflow/database";
 import type {
   ArchiveDocumentService,
   AuditRepositoryPort,
@@ -29,6 +33,7 @@ import Fastify, { type FastifyInstance } from "fastify";
 import { registerAuthRoutes } from "./modules/auth/auth.routes.js";
 import type { AuthService } from "./modules/auth/auth.service.js";
 import { registerCategoryRoutes } from "./modules/categories/categories.routes.js";
+import { registerDashboardRoutes } from "./modules/dashboard/dashboard.routes.js";
 import { registerDocumentRoutes } from "./modules/documents/documents.routes.js";
 import { registerDocumentDownloadRoutes } from "./modules/documents/download.routes.js";
 import { registerDocumentPreviewRoutes } from "./modules/documents/preview.routes.js";
@@ -76,6 +81,8 @@ export interface AppOptions {
         readonly uploadRepository?: UploadSessionRepositoryPort | undefined;
         readonly storageConnections?: StorageConnectionRepositoryPort | undefined;
         readonly storageRegistry?: StorageProviderRegistry | undefined;
+        readonly dashboardRepository?: DashboardRepository | undefined;
+        readonly dashboardNow?: (() => Date) | undefined;
       }
     | undefined;
   readonly folderDeps?:
@@ -206,6 +213,13 @@ export function buildApp(options: AppOptions = {}): FastifyInstance {
           await registerDocumentSearchRoutes(instance, {
             guard,
             documentSearchRepository: documentDeps.documentSearchRepository,
+          });
+        }
+        if (documentDeps.dashboardRepository) {
+          await registerDashboardRoutes(instance, {
+            guard,
+            dashboardRepository: documentDeps.dashboardRepository,
+            now: documentDeps.dashboardNow,
           });
         }
         if (
