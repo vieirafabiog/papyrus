@@ -866,7 +866,7 @@ docuflow/
   - **Ação:** Verificar janela de retenção, hold, referências e estado; marcar operação pendente, apagar objeto e reconciliar. Falha deve ser repetível.
   - **Verificação:** `pnpm --filter @docuflow/worker test:integration`.
 
-- [ ] **Step 13.09 — Testar concorrência e trilha de auditoria**
+- [x] **Step 13.09 — Testar concorrência e trilha de auditoria**
   - **Arquivos:** testes de integração de governance
   - **Ação:** Provar que ações concorrentes não apagam versões/decisões e que auditoria permanece mesmo após lixeira/restauração.
   - **Verificação:** `pnpm --filter @docuflow/database test:integration`.
