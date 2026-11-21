@@ -590,7 +590,7 @@ docuflow/
 
 # PHASE 9 — PIPELINE DE UPLOAD, QUARENTENA E PROCESSAMENTO
 
-- [ ] **Step 09.01 — Implementar criação de sessão de upload**
+- [x] **Step 09.01 — Implementar criação de sessão de upload**
   - **Arquivos:** módulos upload no domínio, database e API
   - **Ação:** Criar sessão com usuário, destino, tamanho declarado, expiração e chave de idempotência; não criar versão disponível ainda.
   - **Verificação:** `pnpm --filter @docuflow/api test:integration`.

@@ -125,6 +125,15 @@ export {
 } from "./storage.schema.js";
 
 export {
+  type CreateUploadSessionRequestContract,
+  createUploadSessionRequestSchema,
+  type UploadSessionRecordContract,
+  uploadSessionRecordSchema,
+  type UploadSessionStatusContract,
+  uploadSessionStatusSchema,
+} from "./upload.schema.js";
+
+export {
   type SubmitTaskDecisionInput,
   submitTaskDecisionInputSchema,
   type WorkflowAssigneeTarget,

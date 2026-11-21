@@ -5,6 +5,8 @@ import type {
   DocumentRepositoryPort,
   GroupAdministrationService,
   StorageConnectionAdminService,
+  UploadSessionRepositoryPort,
+  UploadSessionService,
   UserAdministrationService,
 } from "@docuflow/domain";
 import type { S3EndpointSecurityPolicy } from "@docuflow/storage-s3";
@@ -17,6 +19,7 @@ import { registerGroupRoutes } from "./modules/groups/groups.routes.js";
 import { registerSetupRoutes } from "./modules/setup/setup.routes.js";
 import type { SetupService } from "./modules/setup/setup.service.js";
 import { registerStorageRoutes } from "./modules/storage/storage.routes.js";
+import { registerUploadRoutes } from "./modules/uploads/upload.routes.js";
 import { registerUserRoutes } from "./modules/users/users.routes.js";
 import { createDocumentAuthorizationGuard } from "./plugins/authorization.js";
 import { registerSecurityPlugin, type SecurityPluginOptions } from "./plugins/security.js";
@@ -34,6 +37,14 @@ export interface AppOptions {
         readonly authzRepository: AuthorizationRepository;
         readonly documentRepository: DocumentRepositoryPort;
         readonly auditRepository: AuditRepositoryPort;
+      }
+    | undefined;
+  readonly uploadDeps?:
+    | {
+        readonly authzRepository: AuthorizationRepository;
+        readonly documentRepository: DocumentRepositoryPort;
+        readonly uploadRepository: UploadSessionRepositoryPort;
+        readonly uploadSessionService: UploadSessionService;
       }
     | undefined;
   readonly secureCookies?: boolean | undefined;
@@ -133,6 +144,22 @@ export function buildApp(options: AppOptions = {}): FastifyInstance {
           authzRepository: documentDeps.authzRepository,
           documentRepository: documentDeps.documentRepository,
           auditRepository: documentDeps.auditRepository,
+        });
+      });
+    }
+
+    if (options.uploadDeps) {
+      const uploadDeps = options.uploadDeps;
+      const uploadGuard = createDocumentAuthorizationGuard({
+        authService,
+        authzRepository: uploadDeps.authzRepository,
+        documentRepository: uploadDeps.documentRepository,
+      });
+      void app.register(async (instance) => {
+        await registerUploadRoutes(instance, {
+          guard: uploadGuard,
+          uploadSessionService: uploadDeps.uploadSessionService,
+          uploadRepository: uploadDeps.uploadRepository,
         });
       });
     }

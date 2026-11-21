@@ -22,12 +22,16 @@ export {
   createDocumentVersionRepository,
 } from "./repositories/document-repository.js";
 export { createGroupRepository } from "./repositories/group-repository.js";
-export { createStorageConnectionRepository } from "./repositories/storage-connection-repository.js";
+export {
+  createStorageConnectionRepository,
+  createStorageRoutingRuleRepository,
+} from "./repositories/storage-connection-repository.js";
 export {
   createTransactionManager,
   type DrizzleDbExecutor,
   resolveDbExecutor,
 } from "./repositories/transaction-manager.js";
+export { createUploadSessionRepository } from "./repositories/upload-session-repository.js";
 export { createUserRepository } from "./repositories/user-repository.js";
 
 export {

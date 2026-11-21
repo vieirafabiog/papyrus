@@ -2,12 +2,15 @@ import type {
   CreateStorageConnectionInput,
   StorageConnectionEntity,
   StorageConnectionRepositoryPort,
+  StorageRoutingRuleEntity,
+  StorageRoutingRuleRepositoryPort,
   TransactionContext,
   UpdateStorageConnectionInput,
+  UpsertStorageRoutingRuleInput,
 } from "@docuflow/domain";
-import { and, asc, count, eq } from "drizzle-orm";
+import { and, asc, count, eq, isNull } from "drizzle-orm";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
-import { fileObjects, storageConnections } from "../schema/storage.js";
+import { fileObjects, storageConnections, storageRoutingRules } from "../schema/storage.js";
 import { resolveDbExecutor } from "./transaction-manager.js";
 
 function toStorageConnectionEntity(
@@ -67,9 +70,7 @@ export function createStorageConnectionRepository(
       return row ? toStorageConnectionEntity(row) : null;
     },
 
-    async listByOrganization(
-      organizationId: string,
-    ): Promise<readonly StorageConnectionEntity[]> {
+    async listByOrganization(organizationId: string): Promise<readonly StorageConnectionEntity[]> {
       const rows = await db
         .select()
         .from(storageConnections)
@@ -150,6 +151,116 @@ export function createStorageConnectionRepository(
         .from(fileObjects)
         .where(eq(fileObjects.storageConnectionId, connectionId));
       return Number(row?.total ?? 0) > 0;
+    },
+  };
+}
+
+function toStorageRoutingRuleEntity(
+  row: typeof storageRoutingRules.$inferSelect,
+): StorageRoutingRuleEntity {
+  return {
+    id: row.id,
+    organizationId: row.organizationId,
+    categoryId: row.categoryId,
+    storageConnectionId: row.storageConnectionId,
+    createdAt: row.createdAt.toISOString(),
+    updatedAt: row.updatedAt.toISOString(),
+  };
+}
+
+export function createStorageRoutingRuleRepository(
+  db: NodePgDatabase,
+): StorageRoutingRuleRepositoryPort {
+  return {
+    async findByOrganizationAndCategory(
+      organizationId: string,
+      categoryId: string | null,
+      tx?: TransactionContext,
+    ): Promise<StorageRoutingRuleEntity | null> {
+      const executor = resolveDbExecutor(db, tx);
+      const categoryPredicate =
+        categoryId === null
+          ? isNull(storageRoutingRules.categoryId)
+          : eq(storageRoutingRules.categoryId, categoryId);
+
+      const [row] = await executor
+        .select()
+        .from(storageRoutingRules)
+        .where(and(eq(storageRoutingRules.organizationId, organizationId), categoryPredicate))
+        .limit(1);
+
+      return row ? toStorageRoutingRuleEntity(row) : null;
+    },
+
+    async listByOrganization(organizationId: string): Promise<readonly StorageRoutingRuleEntity[]> {
+      const rows = await db
+        .select()
+        .from(storageRoutingRules)
+        .where(eq(storageRoutingRules.organizationId, organizationId))
+        .orderBy(asc(storageRoutingRules.createdAt), asc(storageRoutingRules.id));
+      return rows.map(toStorageRoutingRuleEntity);
+    },
+
+    async upsertRule(
+      input: UpsertStorageRoutingRuleInput,
+      tx?: TransactionContext,
+    ): Promise<StorageRoutingRuleEntity> {
+      const executor = resolveDbExecutor(db, tx);
+      const existing = await this.findByOrganizationAndCategory(
+        input.organizationId,
+        input.categoryId,
+        tx,
+      );
+
+      if (existing) {
+        const [updated] = await executor
+          .update(storageRoutingRules)
+          .set({
+            storageConnectionId: input.storageConnectionId,
+            updatedBy: input.actorUserId,
+            updatedAt: new Date(),
+          })
+          .where(eq(storageRoutingRules.id, existing.id))
+          .returning();
+        if (!updated) {
+          throw new Error("Failed to update storage routing rule.");
+        }
+        return toStorageRoutingRuleEntity(updated);
+      }
+
+      const [inserted] = await executor
+        .insert(storageRoutingRules)
+        .values({
+          id: input.id,
+          organizationId: input.organizationId,
+          categoryId: input.categoryId,
+          storageConnectionId: input.storageConnectionId,
+          createdBy: input.actorUserId,
+          updatedBy: input.actorUserId,
+        })
+        .returning();
+      if (!inserted) {
+        throw new Error("Failed to insert storage routing rule.");
+      }
+      return toStorageRoutingRuleEntity(inserted);
+    },
+
+    async deleteCategoryRule(
+      organizationId: string,
+      categoryId: string,
+      tx?: TransactionContext,
+    ): Promise<boolean> {
+      const executor = resolveDbExecutor(db, tx);
+      const deleted = await executor
+        .delete(storageRoutingRules)
+        .where(
+          and(
+            eq(storageRoutingRules.organizationId, organizationId),
+            eq(storageRoutingRules.categoryId, categoryId),
+          ),
+        )
+        .returning({ id: storageRoutingRules.id });
+      return deleted.length > 0;
     },
   };
 }

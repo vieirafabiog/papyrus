@@ -145,6 +145,13 @@ export interface DocumentAuthorizationGuard {
     reply: FastifyReply,
     requestId: string,
   ): Promise<boolean>;
+  authorizeUploadScope(
+    ctx: AuthenticatedAuthorizationContext,
+    categoryId: string | null,
+    folderId: string | null,
+    reply: FastifyReply,
+    requestId: string,
+  ): Promise<boolean>;
   authorizeDocument(
     ctx: AuthenticatedAuthorizationContext,
     documentId: string,
@@ -159,6 +166,71 @@ export function createDocumentAuthorizationGuard(deps: {
   readonly authzRepository: AuthorizationRepository;
   readonly documentRepository: DocumentRepositoryPort;
 }): DocumentAuthorizationGuard {
+  const authorizeScopeAction = async (
+    ctx: AuthenticatedAuthorizationContext,
+    action: AccessAction,
+    categoryId: string | null,
+    folderId: string | null,
+    reply: FastifyReply,
+    requestId: string,
+  ): Promise<boolean> => {
+    const folderAncestors = await deps.authzRepository.loadFolderAncestorIds(
+      ctx.me.user.organizationId,
+      folderId,
+    );
+
+    const candidateScopes: AccessScope[] = [{ type: "GLOBAL" }];
+    if (categoryId) {
+      candidateScopes.push({ type: "CATEGORY", categoryId });
+    }
+    for (const id of folderAncestors) {
+      candidateScopes.push({ type: "FOLDER", folderId: id });
+    }
+
+    let hasAllow = false;
+    for (const assignment of ctx.subject.assignments) {
+      const perms = ctx.rolePermissions.get(assignment.roleId);
+      if (!perms || !roleGrantsPermission(perms, action, "DOCUMENT")) {
+        continue;
+      }
+      const applies = candidateScopes.some((target) => {
+        if (assignment.scope.type === "GLOBAL") {
+          return true;
+        }
+        if (assignment.scope.type === "CATEGORY" && target.type === "CATEGORY") {
+          return assignment.scope.categoryId === target.categoryId;
+        }
+        if (assignment.scope.type === "FOLDER" && target.type === "FOLDER") {
+          return assignment.scope.folderId === target.folderId;
+        }
+        return false;
+      });
+      if (!applies) {
+        continue;
+      }
+      if (assignment.effect === "DENY") {
+        hasAllow = false;
+        break;
+      }
+      hasAllow = true;
+    }
+
+    if (!hasAllow) {
+      void reply.status(403).send({
+        error: {
+          code: "FORBIDDEN",
+          message:
+            action === "UPLOAD"
+              ? "Você não possui permissão para iniciar upload neste escopo."
+              : "Você não possui permissão para criar documentos neste escopo.",
+          requestId,
+        },
+      });
+      return false;
+    }
+    return true;
+  };
+
   return {
     async requireSubject(
       request: FastifyRequest,
@@ -196,56 +268,17 @@ export function createDocumentAuthorizationGuard(deps: {
       reply: FastifyReply,
       requestId: string,
     ): Promise<boolean> {
-      const folderAncestors = await deps.authzRepository.loadFolderAncestorIds(
-        ctx.me.user.organizationId,
-        folderId,
-      );
+      return authorizeScopeAction(ctx, "CREATE", categoryId, folderId, reply, requestId);
+    },
 
-      const candidateScopes: AccessScope[] = [
-        { type: "GLOBAL" },
-        { type: "CATEGORY", categoryId },
-        ...folderAncestors.map((id) => ({ type: "FOLDER" as const, folderId: id })),
-      ];
-
-      let hasAllow = false;
-      for (const assignment of ctx.subject.assignments) {
-        const perms = ctx.rolePermissions.get(assignment.roleId);
-        if (!perms || !roleGrantsPermission(perms, "CREATE", "DOCUMENT")) {
-          continue;
-        }
-        const applies = candidateScopes.some((target) => {
-          if (assignment.scope.type === "GLOBAL") {
-            return true;
-          }
-          if (assignment.scope.type === "CATEGORY" && target.type === "CATEGORY") {
-            return assignment.scope.categoryId === target.categoryId;
-          }
-          if (assignment.scope.type === "FOLDER" && target.type === "FOLDER") {
-            return assignment.scope.folderId === target.folderId;
-          }
-          return false;
-        });
-        if (!applies) {
-          continue;
-        }
-        if (assignment.effect === "DENY") {
-          hasAllow = false;
-          break;
-        }
-        hasAllow = true;
-      }
-
-      if (!hasAllow) {
-        void reply.status(403).send({
-          error: {
-            code: "FORBIDDEN",
-            message: "Você não possui permissão para criar documentos neste escopo.",
-            requestId,
-          },
-        });
-        return false;
-      }
-      return true;
+    async authorizeUploadScope(
+      ctx: AuthenticatedAuthorizationContext,
+      categoryId: string | null,
+      folderId: string | null,
+      reply: FastifyReply,
+      requestId: string,
+    ): Promise<boolean> {
+      return authorizeScopeAction(ctx, "UPLOAD", categoryId, folderId, reply, requestId);
     },
 
     async authorizeDocument(

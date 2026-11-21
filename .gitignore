@@ -37,11 +37,11 @@ temp/
 *~
 
 # Local data, volumes, and test uploads
-data/
-volumes/
-storage-data/
-uploads/
-test-uploads/
+/data/
+/volumes/
+/storage-data/
+/uploads/
+/test-uploads/
 
 # IDE and OS files
 .vscode/*

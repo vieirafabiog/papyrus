@@ -143,6 +143,23 @@ export type {
   GroupRepositoryPort,
 } from "./ports/group-repository.port.js";
 
+export {
+  type CreatedUploadSessionRecords,
+  type CreateUploadSessionWithFileObjectInput,
+  UPLOAD_SESSION_STATUSES,
+  type UploadSessionEntity,
+  type UploadSessionRepositoryPort,
+  type UploadSessionStatus,
+} from "./ports/upload-session-repository.port.js";
+
+export {
+  type CreateUploadSessionCommand,
+  type CreateUploadSessionResult,
+  createUploadSessionService,
+  type UploadSessionService,
+  type UploadSessionServiceDependencies,
+} from "./uploads/upload-sessions.js";
+
 export type {
   CreateUserInput,
   UpdateUserInput,
