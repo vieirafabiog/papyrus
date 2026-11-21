@@ -5,6 +5,7 @@ import { Navigate, Route, Routes } from "react-router-dom";
 import { LoginPage } from "../features/auth/LoginPage.js";
 import { DashboardPage } from "../features/dashboard/DashboardPage.js";
 import { UploadDialog } from "../features/documents/UploadDialog.js";
+import { TagsPage } from "../features/tags/TagsPage.js";
 import { AppShell } from "../layout/AppShell.js";
 import { RedirectIfAuthenticated, RequireAuth } from "./route-guards.js";
 
@@ -113,6 +114,7 @@ export function AppRoutes() {
               />
             }
           />
+          <Route path="/etiquetas" element={<TagsPage />} />
           <Route
             path="/fluxos"
             element={

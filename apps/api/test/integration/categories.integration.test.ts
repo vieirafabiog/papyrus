@@ -54,6 +54,7 @@ describe("Category CRUD, document-link validation and scoped authorization integ
     }
 
     pool = new Pool({ connectionString });
+    pool.on("error", () => {});
     const db = drizzle(pool);
     await migrate(db, { migrationsFolder: MIGRATIONS_FOLDER });
   }, 120_000);

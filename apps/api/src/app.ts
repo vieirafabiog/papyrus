@@ -10,6 +10,7 @@ import type {
   FolderService,
   GroupAdministrationService,
   StorageConnectionAdminService,
+  TagService,
   UploadSessionRepositoryPort,
   UploadSessionService,
   UserAdministrationService,
@@ -26,6 +27,7 @@ import { registerGroupRoutes } from "./modules/groups/groups.routes.js";
 import { registerSetupRoutes } from "./modules/setup/setup.routes.js";
 import type { SetupService } from "./modules/setup/setup.service.js";
 import { registerStorageRoutes } from "./modules/storage/storage.routes.js";
+import { registerTagRoutes } from "./modules/tags/tags.routes.js";
 import {
   type LocalStreamUploadDependencies,
   type StorageUploadDependencies,
@@ -67,6 +69,13 @@ export interface AppOptions {
         readonly categoryRepository: CategoryRepositoryPort;
         readonly categoryService: CategoryService;
         readonly categoryFieldService: CategoryFieldService;
+      }
+    | undefined;
+  readonly tagDeps?:
+    | {
+        readonly authzRepository: AuthorizationRepository;
+        readonly documentRepository: DocumentRepositoryPort;
+        readonly tagService: TagService;
       }
     | undefined;
   readonly uploadDeps?:
@@ -225,6 +234,21 @@ export function buildApp(options: AppOptions = {}): FastifyInstance {
           guard: categoryGuard,
           categoryService: categoryDeps.categoryService,
           categoryFieldService: categoryDeps.categoryFieldService,
+        });
+      });
+    }
+
+    if (options.tagDeps) {
+      const tagDeps = options.tagDeps;
+      const tagDocGuard = createDocumentAuthorizationGuard({
+        authService,
+        authzRepository: tagDeps.authzRepository,
+        documentRepository: tagDeps.documentRepository,
+      });
+      void app.register(async (instance) => {
+        await registerTagRoutes(instance, {
+          documentGuard: tagDocGuard,
+          tagService: tagDeps.tagService,
         });
       });
     }

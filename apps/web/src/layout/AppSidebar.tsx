@@ -1,3 +1,8 @@
+import {
+  DOCUFLOW_COLOR_TOKENS,
+  DOCUFLOW_DENSITY_TOKENS,
+  DOCUFLOW_SHAPE_TOKENS,
+} from "@docuflow/ui";
 import AssessmentOutlinedIcon from "@mui/icons-material/AssessmentOutlined";
 import CategoryOutlinedIcon from "@mui/icons-material/CategoryOutlined";
 import DashboardOutlinedIcon from "@mui/icons-material/DashboardOutlined";
@@ -6,6 +11,7 @@ import EventAvailableOutlinedIcon from "@mui/icons-material/EventAvailableOutlin
 import FolderOutlinedIcon from "@mui/icons-material/FolderOutlined";
 import GroupOutlinedIcon from "@mui/icons-material/GroupOutlined";
 import HistoryEduOutlinedIcon from "@mui/icons-material/HistoryEduOutlined";
+import LabelOutlinedIcon from "@mui/icons-material/LabelOutlined";
 import RuleOutlinedIcon from "@mui/icons-material/RuleOutlined";
 import SecurityOutlinedIcon from "@mui/icons-material/SecurityOutlined";
 import SettingsOutlinedIcon from "@mui/icons-material/SettingsOutlined";
@@ -23,7 +29,6 @@ import {
   Toolbar,
   Typography,
 } from "@mui/material";
-import { DOCUFLOW_COLOR_TOKENS, DOCUFLOW_DENSITY_TOKENS, DOCUFLOW_SHAPE_TOKENS } from "@docuflow/ui";
 import type { ReactElement } from "react";
 import { Link as RouterLink, useLocation } from "react-router-dom";
 
@@ -41,6 +46,11 @@ const PRIMARY_NAV_ITEMS: readonly NavItem[] = [
     label: "Categorias e campos",
     to: "/categorias",
     icon: <CategoryOutlinedIcon fontSize="small" />,
+  },
+  {
+    label: "Etiquetas",
+    to: "/etiquetas",
+    icon: <LabelOutlinedIcon fontSize="small" />,
   },
   { label: "Fluxos de aprovação", to: "/fluxos", icon: <RuleOutlinedIcon fontSize="small" /> },
   { label: "Minhas tarefas", to: "/tarefas", icon: <TaskAltOutlinedIcon fontSize="small" /> },
@@ -119,8 +129,7 @@ function SidebarNavSection({
       ) : null}
       <List dense disablePadding sx={{ px: 1 }}>
         {items.map((item) => {
-          const isActive =
-            item.to === "/" ? currentPath === "/" : currentPath.startsWith(item.to);
+          const isActive = item.to === "/" ? currentPath === "/" : currentPath.startsWith(item.to);
           return (
             <ListItem key={item.to} disablePadding sx={{ mb: 0.25 }}>
               <ListItemButton
@@ -161,11 +170,7 @@ function SidebarNavSection({
   );
 }
 
-export function AppSidebar({
-  mobileOpen,
-  desktopCollapsed,
-  onCloseMobile,
-}: AppSidebarProps) {
+export function AppSidebar({ mobileOpen, desktopCollapsed, onCloseMobile }: AppSidebarProps) {
   const location = useLocation();
   const drawerWidth = DOCUFLOW_DENSITY_TOKENS.sidebarWidth;
 

@@ -191,6 +191,24 @@ export {
 } from "./folder.schema.js";
 
 export {
+  type AttachDocumentTagInput,
+  attachDocumentTagInputSchema,
+  type CreateTagInput,
+  createTagInputSchema,
+  type DocumentTagListResponse,
+  documentTagListResponseSchema,
+  type TagListQuery,
+  tagListQuerySchema,
+  type TagListResponse,
+  tagListResponseSchema,
+  tagListSortSchema,
+  type TagRecord,
+  tagRecordSchema,
+  type TagResponse,
+  tagResponseSchema,
+} from "./tag.schema.js";
+
+export {
   type SubmitTaskDecisionInput,
   submitTaskDecisionInputSchema,
   type WorkflowAssigneeTarget,

@@ -669,7 +669,7 @@ docuflow/
   - **Ação:** Permitir configurar campos tipados e obrigatoriedade; impedir alteração incompatível sem estratégia de migração dos metadados existentes.
   - **Verificação:** `pnpm --filter @docuflow/domain test` e `pnpm --filter @docuflow/api test:integration`.
 
-- [ ] **Step 10.04 — Implementar etiquetas**
+- [x] **Step 10.04 — Implementar etiquetas**
   - **Arquivos:** `packages/domain/src/tags/*`, API e UI
   - **Ação:** Criar tags, associar e remover de documentos, validar unicidade e autorização.
   - **Verificação:** `pnpm --filter @docuflow/api test:integration`.

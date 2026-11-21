@@ -54,6 +54,7 @@ describe("Folder CRUD, hierarchy cycle prevention and inherited permissions inte
     }
 
     pool = new Pool({ connectionString });
+    pool.on("error", () => {});
     const db = drizzle(pool);
     await migrate(db, { migrationsFolder: MIGRATIONS_FOLDER });
   }, 120_000);

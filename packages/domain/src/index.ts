@@ -249,6 +249,23 @@ export type {
   RenameFolderInput,
 } from "./ports/folder-repository.port.js";
 
+export {
+  type AttachDocumentTagCommand,
+  createTagService,
+  type CreateTagCommand,
+  type DetachDocumentTagCommand,
+  MAX_TAG_NAME_LENGTH,
+  normalizeTagName,
+  type TagService,
+  type TagServiceDependencies,
+} from "./tags/tag-service.js";
+export type { TagEntity, TagListFilter, TagSortField } from "./tags/tag.types.js";
+export type {
+  AttachDocumentTagRecordInput,
+  CreateTagRecordInput,
+  TagRepositoryPort,
+} from "./ports/tag-repository.port.js";
+
 export type {
   CreateUserInput,
   UpdateUserInput,

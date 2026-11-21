@@ -37,6 +37,7 @@ export {
   createStorageConnectionRepository,
   createStorageRoutingRuleRepository,
 } from "./repositories/storage-connection-repository.js";
+export { createTagRepository } from "./repositories/tag-repository.js";
 export {
   createTransactionManager,
   type DrizzleDbExecutor,
