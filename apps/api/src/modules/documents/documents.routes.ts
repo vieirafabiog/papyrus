@@ -1,19 +1,71 @@
 import { randomUUID } from "node:crypto";
 import {
   CONTRACTS_API_PREFIX,
+  type ErrorCode,
+  createDocumentRequestSchema,
   documentListQuerySchema,
   documentMetadataRecordSchema,
   isoDateSchema,
   uuidSchema,
 } from "@docuflow/contracts";
 import type { AuthorizationRepository } from "@docuflow/database";
-import type { AuditRepositoryPort, DocumentRepositoryPort } from "@docuflow/domain";
-import type { FastifyInstance } from "fastify";
+import {
+  type AuditRepositoryPort,
+  type CreateDocumentService,
+  type DocumentRepositoryPort,
+  DomainError,
+} from "@docuflow/domain";
+import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { z } from "zod";
 import {
-  buildDocumentQueryScope,
   type DocumentAuthorizationGuard,
+  buildDocumentQueryScope,
 } from "../../plugins/authorization.js";
+
+function mapCreateDocumentDomainErrorStatus(code: string): {
+  status: number;
+  apiCode: ErrorCode;
+} {
+  switch (code) {
+    case "CATEGORY_NOT_FOUND":
+    case "FOLDER_NOT_FOUND":
+    case "OWNER_USER_NOT_FOUND":
+    case "UPLOAD_SESSION_NOT_FOUND":
+    case "FILE_OBJECT_NOT_FOUND":
+      return { status: 404, apiCode: "NOT_FOUND" };
+    case "UPLOAD_SESSION_FORBIDDEN":
+      return { status: 403, apiCode: "FORBIDDEN" };
+    case "FILE_ALREADY_LINKED_TO_DOCUMENT":
+    case "UPLOAD_NOT_FINALIZED":
+    case "DOCUMENT_NOT_READY_FOR_REVIEW":
+    case "CATEGORY_INACTIVE":
+    case "FOLDER_ARCHIVED":
+      return { status: 409, apiCode: "CONFLICT" };
+    case "DOCUMENT_VERSION_CONFLICT":
+      return { status: 409, apiCode: "DOCUMENT_VERSION_CONFLICT" };
+    default:
+      return { status: 400, apiCode: "VALIDATION_ERROR" };
+  }
+}
+
+function handleDocumentDomainError(
+  error: unknown,
+  request: FastifyRequest,
+  reply: FastifyReply,
+): FastifyReply {
+  if (error instanceof DomainError) {
+    const mapped = mapCreateDocumentDomainErrorStatus(error.code);
+    return reply.status(mapped.status).send({
+      error: {
+        code: mapped.apiCode,
+        message: error.message,
+        requestId: request.id,
+        details: { domainCode: error.code },
+      },
+    });
+  }
+  throw error;
+}
 
 const createDocumentBodySchema = z.object({
   title: z.string().trim().min(1).max(255),
@@ -41,9 +93,11 @@ export async function registerDocumentRoutes(
     readonly authzRepository: AuthorizationRepository;
     readonly documentRepository: DocumentRepositoryPort;
     readonly auditRepository: AuditRepositoryPort;
+    readonly createDocumentService?: CreateDocumentService | undefined;
   },
 ): Promise<void> {
-  const { guard, authzRepository, documentRepository, auditRepository } = deps;
+  const { guard, authzRepository, documentRepository, auditRepository, createDocumentService } =
+    deps;
 
   app.get(`${CONTRACTS_API_PREFIX}/documents`, async (request, reply) => {
     const ctx = await guard.requireSubject(request, reply);
@@ -93,6 +147,56 @@ export async function registerDocumentRoutes(
     const ctx = await guard.requireSubject(request, reply);
     if (!ctx) {
       return reply;
+    }
+
+    if (createDocumentService) {
+      const parsedFull = createDocumentRequestSchema.safeParse(request.body);
+      if (!parsedFull.success) {
+        return reply.status(400).send({
+          error: {
+            code: "VALIDATION_ERROR",
+            message:
+              parsedFull.error.issues[0]?.message ?? "Dados inválidos para criação de documento.",
+            requestId: request.id,
+          },
+        });
+      }
+
+      const allowed = await guard.authorizeCreateScope(
+        ctx,
+        parsedFull.data.categoryId,
+        parsedFull.data.folderId,
+        reply,
+        request.id,
+      );
+      if (!allowed) {
+        return reply;
+      }
+
+      try {
+        const result = await createDocumentService.createDocument({
+          organizationId: ctx.me.user.organizationId,
+          actorUserId: ctx.me.user.id,
+          requestId: request.id,
+          title: parsedFull.data.title,
+          categoryId: parsedFull.data.categoryId,
+          folderId: parsedFull.data.folderId,
+          ownerUserId: parsedFull.data.ownerUserId,
+          issueDate: parsedFull.data.issueDate,
+          expirationDate: parsedFull.data.expirationDate,
+          metadata: parsedFull.data.metadata,
+          uploadSessionId: parsedFull.data.uploadSessionId,
+          changeNote: parsedFull.data.changeNote,
+          initialStatus: parsedFull.data.initialStatus,
+        });
+
+        return reply.status(201).send({
+          data: result.document,
+          initialVersion: result.initialVersion,
+        });
+      } catch (error) {
+        return handleDocumentDomainError(error, request, reply);
+      }
     }
 
     const parsed = createDocumentBodySchema.safeParse(request.body);

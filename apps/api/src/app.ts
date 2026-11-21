@@ -5,6 +5,7 @@ import type {
   CategoryFieldService,
   CategoryRepositoryPort,
   CategoryService,
+  CreateDocumentService,
   DocumentRepositoryPort,
   FolderRepositoryPort,
   FolderService,
@@ -54,6 +55,7 @@ export interface AppOptions {
         readonly authzRepository: AuthorizationRepository;
         readonly documentRepository: DocumentRepositoryPort;
         readonly auditRepository: AuditRepositoryPort;
+        readonly createDocumentService?: CreateDocumentService | undefined;
       }
     | undefined;
   readonly folderDeps?:
@@ -185,6 +187,7 @@ export function buildApp(options: AppOptions = {}): FastifyInstance {
           authzRepository: documentDeps.authzRepository,
           documentRepository: documentDeps.documentRepository,
           auditRepository: documentDeps.auditRepository,
+          createDocumentService: documentDeps.createDocumentService,
         });
       });
     }

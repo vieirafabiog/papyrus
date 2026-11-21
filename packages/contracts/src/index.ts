@@ -81,6 +81,8 @@ export {
 } from "./dashboard.schema.js";
 
 export {
+  type CreateDocumentRequest,
+  createDocumentRequestSchema,
   type DocumentListQuery,
   documentListQuerySchema,
   documentListSortSchema,

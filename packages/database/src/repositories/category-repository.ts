@@ -24,6 +24,10 @@ import {
   documents,
 } from "../schema/documents.js";
 import { categories, categoryFields } from "../schema/taxonomy.js";
+import {
+  toMetadataJsonValue as toJsonColumnValue,
+  toTypedMetadataColumns,
+} from "./metadata-columns.js";
 import { resolveDbExecutor } from "./transaction-manager.js";
 
 const ALLOWED_CATEGORY_SORT_COLUMNS: Readonly<
@@ -70,47 +74,6 @@ function toCategoryFieldEntity(row: typeof categoryFields.$inferSelect): Categor
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
   };
-}
-
-function toJsonColumnValue(value: DocumentMetadataValue): DocumentMetadataColumnValue {
-  return typeof value === "object" && value !== null ? [...value] : value;
-}
-
-function toTypedMetadataColumns(
-  fieldType: CategoryFieldType,
-  value: DocumentMetadataValue,
-): {
-  valueText: string | null;
-  valueNumber: number | null;
-  valueDate: string | null;
-  valueBoolean: boolean | null;
-  valueJson: string[] | null;
-} {
-  const base = {
-    valueText: null as string | null,
-    valueNumber: null as number | null,
-    valueDate: null as string | null,
-    valueBoolean: null as boolean | null,
-    valueJson: null as string[] | null,
-  };
-
-  if (value === null) {
-    return base;
-  }
-
-  switch (fieldType) {
-    case "TEXT":
-    case "SINGLE_SELECT":
-      return { ...base, valueText: typeof value === "string" ? value : null };
-    case "NUMBER":
-      return { ...base, valueNumber: typeof value === "number" ? value : null };
-    case "DATE":
-      return { ...base, valueDate: typeof value === "string" ? value : null };
-    case "BOOLEAN":
-      return { ...base, valueBoolean: typeof value === "boolean" ? value : null };
-    case "MULTI_SELECT":
-      return { ...base, valueJson: Array.isArray(value) ? [...value] : null };
-  }
 }
 
 async function applyMetadataMigrationForDocuments(

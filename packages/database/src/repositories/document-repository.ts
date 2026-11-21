@@ -17,9 +17,11 @@ import { type SQL, and, asc, count, desc, eq, ilike, ne } from "drizzle-orm";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 import {
   type DocumentMetadataColumnValue,
+  documentMetadata,
   documentVersions,
   documents,
 } from "../schema/documents.js";
+import { toTypedMetadataColumns } from "./metadata-columns.js";
 import { resolveDbExecutor } from "./transaction-manager.js";
 
 const ALLOWED_DOCUMENT_SORT_COLUMNS: Readonly<
@@ -242,6 +244,36 @@ export function createDocumentRepository(db: NodePgDatabase): DocumentRepository
         .returning();
 
       return row ? toDocumentEntity(row) : null;
+    },
+
+    async syncMetadataRows(input, tx): Promise<void> {
+      const executor = resolveDbExecutor(db, tx);
+      const now = new Date();
+      for (const field of input.fields) {
+        const rawValue = input.metadata[field.key];
+        if (rawValue === undefined) {
+          continue;
+        }
+        const typedCols = toTypedMetadataColumns(field.type, rawValue);
+        await executor
+          .insert(documentMetadata)
+          .values({
+            documentId: input.documentId,
+            fieldId: field.id,
+            fieldKey: field.key,
+            ...typedCols,
+            createdAt: now,
+            updatedAt: now,
+          })
+          .onConflictDoUpdate({
+            target: [documentMetadata.documentId, documentMetadata.fieldId],
+            set: {
+              fieldKey: field.key,
+              ...typedCols,
+              updatedAt: now,
+            },
+          });
+      }
     },
   };
 }

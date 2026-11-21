@@ -1,3 +1,4 @@
+import type { CategoryFieldEntity } from "../categories/category.types.js";
 import type {
   DocumentEntity,
   DocumentMetadataMap,
@@ -78,6 +79,14 @@ export interface DocumentRepositoryPort {
     expectedVersion: number,
     tx?: TransactionContext,
   ): Promise<DocumentEntity | null>;
+  syncMetadataRows?(
+    input: {
+      readonly documentId: string;
+      readonly fields: readonly CategoryFieldEntity[];
+      readonly metadata: DocumentMetadataMap;
+    },
+    tx?: TransactionContext,
+  ): Promise<void>;
 }
 
 export interface CreateDocumentVersionInput {

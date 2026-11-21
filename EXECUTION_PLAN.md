@@ -674,7 +674,7 @@ docuflow/
   - **Ação:** Criar tags, associar e remover de documentos, validar unicidade e autorização.
   - **Verificação:** `pnpm --filter @docuflow/api test:integration`.
 
-- [ ] **Step 10.05 — Implementar criação do registro documental**
+- [x] **Step 10.05 — Implementar criação do registro documental**
   - **Arquivos:** `packages/domain/src/documents/create-document.ts`, rotas
   - **Ação:** Criar documento com categoria, pasta, responsável, metadados e vínculo ao upload finalizado. Não permitir status aprovado no envio inicial.
   - **Verificação:** `pnpm --filter @docuflow/domain test`.

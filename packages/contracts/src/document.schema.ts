@@ -96,12 +96,49 @@ export const documentListSortSchema = createSortSchema([
   "id",
 ]);
 
-export const documentListQuerySchema = paginationQuerySchema
-  .merge(documentListSortSchema)
-  .extend({
-    search: z.string().trim().max(200).optional(),
-    categoryId: uuidSchema.optional(),
-    folderId: uuidSchema.optional(),
-    status: documentStatusSchema.optional(),
-  });
+export const documentListQuerySchema = paginationQuerySchema.merge(documentListSortSchema).extend({
+  search: z.string().trim().max(200).optional(),
+  categoryId: uuidSchema.optional(),
+  folderId: uuidSchema.optional(),
+  status: documentStatusSchema.optional(),
+});
 export type DocumentListQuery = z.infer<typeof documentListQuerySchema>;
+
+export const createDocumentRequestSchema = z
+  .object({
+    title: z
+      .string()
+      .trim()
+      .min(1, "Título do documento é obrigatório.")
+      .max(255, "Título deve ter no máximo 255 caracteres."),
+    categoryId: uuidSchema,
+    folderId: uuidSchema.nullable().default(null),
+    ownerUserId: uuidSchema.optional(),
+    issueDate: isoDateSchema.nullable().default(null),
+    expirationDate: isoDateSchema.nullable().default(null),
+    metadata: documentMetadataRecordSchema.default({}),
+    uploadSessionId: uuidSchema,
+    changeNote: z.string().trim().max(1000).nullable().optional(),
+    initialStatus: documentStatusSchema.optional(),
+  })
+  .superRefine((payload, ctx) => {
+    if (
+      payload.issueDate !== null &&
+      payload.expirationDate !== null &&
+      payload.expirationDate < payload.issueDate
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["expirationDate"],
+        message: "A data de vencimento não pode ser anterior à data de emissão.",
+      });
+    }
+    if (payload.initialStatus === "APPROVED") {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["initialStatus"],
+        message: "Não é permitido definir status aprovado no envio inicial do documento.",
+      });
+    }
+  });
+export type CreateDocumentRequest = z.infer<typeof createDocumentRequestSchema>;

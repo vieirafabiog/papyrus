@@ -61,6 +61,17 @@ export {
 } from "./documents/document.types.js";
 
 export {
+  type CreateDocumentCommand,
+  type CreatedDocumentResult,
+  type CreateDocumentService,
+  type CreateDocumentServiceDependencies,
+  createDocumentUseCase,
+  MAX_DOCUMENT_TITLE_LENGTH,
+  normalizeDocumentTitle,
+  resolveInitialDocumentStatus,
+} from "./documents/create-document.js";
+
+export {
   assertApprovalMatchesVersion,
   type BuildNextVersionInput,
   buildNextDocumentVersion,
