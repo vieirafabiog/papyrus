@@ -3,6 +3,7 @@ import { DOCUFLOW_COLOR_TOKENS, EmptyState, ErrorState, LoadingState } from "@do
 import ArrowBackOutlinedIcon from "@mui/icons-material/ArrowBackOutlined";
 import CategoryOutlinedIcon from "@mui/icons-material/CategoryOutlined";
 import DescriptionOutlinedIcon from "@mui/icons-material/DescriptionOutlined";
+import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import EventOutlinedIcon from "@mui/icons-material/EventOutlined";
 import FolderOutlinedIcon from "@mui/icons-material/FolderOutlined";
 import PersonOutlineOutlinedIcon from "@mui/icons-material/PersonOutlineOutlined";
@@ -11,6 +12,7 @@ import { Alert, Box, Button, Chip, Divider, Grid, Paper, Stack, Typography } fro
 import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { DocumentTagsField } from "../tags/DocumentTagsField.js";
+import { DocumentMetadataForm } from "./DocumentMetadataForm.js";
 import { DocumentFileAvailabilityPanel } from "./FileProcessingStatus.js";
 import { UploadDialog } from "./UploadDialog.js";
 import { useDocumentDetailsQuery } from "./useDocumentDetails.js";
@@ -86,6 +88,7 @@ export function DocumentDetailsPage() {
   const { id = "" } = useParams();
   const navigate = useNavigate();
   const [uploadNewVersionOpen, setUploadNewVersionOpen] = useState(false);
+  const [editingMetadata, setEditingMetadata] = useState(false);
 
   const query = useDocumentDetailsQuery(id);
 
@@ -178,15 +181,27 @@ export function DocumentDetailsPage() {
           </Stack>
         </Stack>
 
-        {doc.permissions.canUpload ? (
-          <Button
-            variant="contained"
-            startIcon={<UploadFileOutlinedIcon />}
-            onClick={() => setUploadNewVersionOpen(true)}
-          >
-            Enviar nova versão
-          </Button>
-        ) : null}
+        <Stack direction="row" spacing={1} alignItems="center">
+          {doc.permissions.canUpdate && !editingMetadata ? (
+            <Button
+              variant="outlined"
+              startIcon={<EditOutlinedIcon />}
+              onClick={() => setEditingMetadata(true)}
+            >
+              Editar metadados
+            </Button>
+          ) : null}
+
+          {doc.permissions.canUpload ? (
+            <Button
+              variant="contained"
+              startIcon={<UploadFileOutlinedIcon />}
+              onClick={() => setUploadNewVersionOpen(true)}
+            >
+              Enviar nova versão
+            </Button>
+          ) : null}
+        </Stack>
       </Box>
 
       <Grid container spacing={2.5}>
@@ -297,7 +312,13 @@ export function DocumentDetailsPage() {
               </Typography>
               <Divider sx={{ mb: 2 }} />
 
-              {sortedFields.length === 0 && extraMetadataKeys.length === 0 ? (
+              {editingMetadata ? (
+                <DocumentMetadataForm
+                  document={doc}
+                  onSaved={() => setEditingMetadata(false)}
+                  onCancel={() => setEditingMetadata(false)}
+                />
+              ) : sortedFields.length === 0 && extraMetadataKeys.length === 0 ? (
                 <Typography variant="body2" color="text.secondary">
                   Nenhum metadado personalizado configurado para esta categoria.
                 </Typography>

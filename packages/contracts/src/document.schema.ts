@@ -236,3 +236,35 @@ export const createDocumentRequestSchema = z
     }
   });
 export type CreateDocumentRequest = z.infer<typeof createDocumentRequestSchema>;
+
+export const updateDocumentRequestSchema = z
+  .object({
+    expectedVersion: z.number().int().min(1),
+    title: z
+      .string()
+      .trim()
+      .min(1, "Título do documento é obrigatório.")
+      .max(255, "Título deve ter no máximo 255 caracteres.")
+      .optional(),
+    categoryId: uuidSchema.optional(),
+    folderId: uuidSchema.nullable().optional(),
+    issueDate: isoDateSchema.nullable().optional(),
+    expirationDate: isoDateSchema.nullable().optional(),
+    metadata: documentMetadataRecordSchema.optional(),
+  })
+  .superRefine((payload, ctx) => {
+    if (
+      payload.issueDate !== undefined &&
+      payload.issueDate !== null &&
+      payload.expirationDate !== undefined &&
+      payload.expirationDate !== null &&
+      payload.expirationDate < payload.issueDate
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["expirationDate"],
+        message: "A data de vencimento não pode ser anterior à data de emissão.",
+      });
+    }
+  });
+export type UpdateDocumentRequest = z.infer<typeof updateDocumentRequestSchema>;

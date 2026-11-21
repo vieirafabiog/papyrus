@@ -55,6 +55,7 @@ export interface AppOptions {
         readonly authzRepository: AuthorizationRepository;
         readonly documentRepository: DocumentRepositoryPort;
         readonly auditRepository: AuditRepositoryPort;
+        readonly categoryRepository?: CategoryRepositoryPort | undefined;
         readonly createDocumentService?: CreateDocumentService | undefined;
       }
     | undefined;
@@ -187,6 +188,7 @@ export function buildApp(options: AppOptions = {}): FastifyInstance {
           authzRepository: documentDeps.authzRepository,
           documentRepository: documentDeps.documentRepository,
           auditRepository: documentDeps.auditRepository,
+          categoryRepository: documentDeps.categoryRepository,
           createDocumentService: documentDeps.createDocumentService,
         });
       });

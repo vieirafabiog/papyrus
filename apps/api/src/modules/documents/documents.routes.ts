@@ -7,15 +7,20 @@ import {
   documentListQuerySchema,
   documentMetadataRecordSchema,
   isoDateSchema,
+  updateDocumentRequestSchema,
   uuidSchema,
 } from "@docuflow/contracts";
 import type { AuthorizationRepository } from "@docuflow/database";
 import {
   type AuditRepositoryPort,
+  type CategoryFieldDefinition,
+  type CategoryRepositoryPort,
   type CreateDocumentService,
   type DocumentListItemEntity,
+  type DocumentMetadataMap,
   type DocumentRepositoryPort,
   DomainError,
+  validateDocumentMetadata,
 } from "@docuflow/domain";
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { z } from "zod";
@@ -78,16 +83,6 @@ const createDocumentBodySchema = z.object({
   metadata: documentMetadataRecordSchema.default({}),
 });
 
-const updateDocumentBodySchema = z.object({
-  expectedVersion: z.number().int().min(1),
-  title: z.string().trim().min(1).max(255).optional(),
-  categoryId: uuidSchema.optional(),
-  folderId: uuidSchema.nullable().optional(),
-  issueDate: isoDateSchema.nullable().optional(),
-  expirationDate: isoDateSchema.nullable().optional(),
-  metadata: documentMetadataRecordSchema.optional(),
-});
-
 function toMinimalDocumentListItem(doc: {
   readonly id: string;
   readonly title: string;
@@ -125,11 +120,18 @@ export async function registerDocumentRoutes(
     readonly authzRepository: AuthorizationRepository;
     readonly documentRepository: DocumentRepositoryPort;
     readonly auditRepository: AuditRepositoryPort;
+    readonly categoryRepository?: CategoryRepositoryPort | undefined;
     readonly createDocumentService?: CreateDocumentService | undefined;
   },
 ): Promise<void> {
-  const { guard, authzRepository, documentRepository, auditRepository, createDocumentService } =
-    deps;
+  const {
+    guard,
+    authzRepository,
+    documentRepository,
+    auditRepository,
+    categoryRepository,
+    createDocumentService,
+  } = deps;
 
   app.get(`${CONTRACTS_API_PREFIX}/documents`, async (request, reply) => {
     const ctx = await guard.requireSubject(request, reply);
@@ -391,12 +393,15 @@ export async function registerDocumentRoutes(
       }
 
       const idParsed = uuidSchema.safeParse(request.params.id);
-      const bodyParsed = updateDocumentBodySchema.safeParse(request.body);
+      const bodyParsed = updateDocumentRequestSchema.safeParse(request.body);
       if (!idParsed.success || !bodyParsed.success) {
         return reply.status(400).send({
           error: {
             code: "VALIDATION_ERROR",
-            message: "Identificador ou dados de atualização inválidos.",
+            message: bodyParsed.success
+              ? "Identificador de documento inválido."
+              : (bodyParsed.error.issues[0]?.message ??
+                "Identificador ou dados de atualização inválidos."),
             requestId: request.id,
           },
         });
@@ -413,6 +418,111 @@ export async function registerDocumentRoutes(
         return reply;
       }
 
+      const nextIssueDate =
+        bodyParsed.data.issueDate !== undefined ? bodyParsed.data.issueDate : existing.issueDate;
+      const nextExpirationDate =
+        bodyParsed.data.expirationDate !== undefined
+          ? bodyParsed.data.expirationDate
+          : existing.expirationDate;
+      if (
+        nextIssueDate !== null &&
+        nextExpirationDate !== null &&
+        nextExpirationDate < nextIssueDate
+      ) {
+        return reply.status(400).send({
+          error: {
+            code: "VALIDATION_ERROR",
+            message: "A data de vencimento não pode ser anterior à data de emissão.",
+            requestId: request.id,
+            details: {
+              fieldErrors: {
+                expirationDate: "A data de vencimento não pode ser anterior à data de emissão.",
+              },
+            },
+          },
+        });
+      }
+
+      let normalizedMetadata: DocumentMetadataMap | undefined = bodyParsed.data.metadata;
+      const targetCategoryId = bodyParsed.data.categoryId ?? existing.categoryId;
+      if (
+        categoryRepository &&
+        (bodyParsed.data.metadata !== undefined || bodyParsed.data.categoryId !== undefined)
+      ) {
+        const fields = await categoryRepository.listFields(targetCategoryId);
+        const fieldDefs: readonly CategoryFieldDefinition[] = fields.map((field) => ({
+          key: field.key,
+          label: field.label,
+          type: field.type,
+          required: field.required,
+          options: field.options ?? undefined,
+        }));
+        const validation = validateDocumentMetadata(
+          fieldDefs,
+          bodyParsed.data.metadata ?? existing.metadata,
+        );
+        if (!validation.valid) {
+          const fieldErrors: Record<string, string> = {};
+          for (const issue of validation.issues) {
+            if (!fieldErrors[issue.fieldKey]) {
+              fieldErrors[issue.fieldKey] = issue.reason;
+            }
+          }
+          return reply.status(400).send({
+            error: {
+              code: "VALIDATION_ERROR",
+              message: "Metadados inválidos para a categoria do documento.",
+              requestId: request.id,
+              details: { fieldErrors },
+            },
+          });
+        }
+        normalizedMetadata = validation.normalizedMetadata;
+
+        const updated = await documentRepository.updateWithOptimisticLock(
+          existing.id,
+          bodyParsed.data.expectedVersion,
+          {
+            title: bodyParsed.data.title,
+            categoryId: bodyParsed.data.categoryId,
+            folderId: bodyParsed.data.folderId,
+            issueDate: bodyParsed.data.issueDate,
+            expirationDate: bodyParsed.data.expirationDate,
+            metadata: normalizedMetadata,
+          },
+        );
+
+        if (!updated) {
+          return reply.status(409).send({
+            error: {
+              code: "DOCUMENT_VERSION_CONFLICT",
+              message: "O documento foi atualizado por outra pessoa.",
+              requestId: request.id,
+            },
+          });
+        }
+
+        if (documentRepository.syncMetadataRows && fields.length > 0 && normalizedMetadata) {
+          await documentRepository.syncMetadataRows({
+            documentId: updated.id,
+            fields,
+            metadata: normalizedMetadata,
+          });
+        }
+
+        await auditRepository.append({
+          organizationId: ctx.me.user.organizationId,
+          actorUserId: ctx.me.user.id,
+          action: "DOCUMENT_UPDATED",
+          resourceType: "DOCUMENT",
+          resourceId: updated.id,
+          result: "SUCCESS",
+          requestId: request.id,
+        });
+
+        return reply.status(200).send({ data: updated });
+      }
+
       const updated = await documentRepository.updateWithOptimisticLock(
         existing.id,
         bodyParsed.data.expectedVersion,
@@ -422,7 +532,7 @@ export async function registerDocumentRoutes(
           folderId: bodyParsed.data.folderId,
           issueDate: bodyParsed.data.issueDate,
           expirationDate: bodyParsed.data.expirationDate,
-          metadata: bodyParsed.data.metadata,
+          metadata: normalizedMetadata,
         },
       );
 

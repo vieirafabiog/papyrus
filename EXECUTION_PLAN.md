@@ -689,7 +689,7 @@ docuflow/
   - **Ação:** Exibir metadados, categoria, pasta, status, responsável e datas, respeitando autorização.
   - **Verificação:** `pnpm --filter @docuflow/web test` e `pnpm --filter @docuflow/api test:integration`.
 
-- [ ] **Step 10.08 — Implementar editor de metadados na UI**
+- [x] **Step 10.08 — Implementar editor de metadados na UI**
   - **Arquivos:** `apps/web/src/features/documents/DocumentMetadataForm.tsx`
   - **Ação:** Renderizar campos conforme schema da categoria, validar no cliente e no servidor e apresentar erros próximos dos campos.
   - **Verificação:** `pnpm --filter @docuflow/web test`.

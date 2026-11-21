@@ -113,6 +113,8 @@ export {
   type FileObjectStatus,
   fileObjectStatusSchema,
   sha256ChecksumSchema,
+  type UpdateDocumentRequest,
+  updateDocumentRequestSchema,
 } from "./document.schema.js";
 
 export {
