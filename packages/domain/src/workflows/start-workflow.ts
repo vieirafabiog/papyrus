@@ -1,3 +1,4 @@
+import { createAuditWriter } from "../audit/audit-writer.js";
 import { canTransitionDocumentStatus } from "../documents/document-state.js";
 import type { DocumentEntity, DocumentVersionEntity } from "../documents/document.types.js";
 import { DomainError } from "../index.js";
@@ -55,6 +56,7 @@ export function createStartWorkflowUseCase(
   deps: StartWorkflowServiceDependencies,
 ): StartWorkflowService {
   const now = deps.now ?? (() => new Date());
+  const auditWriter = createAuditWriter({ repository: deps.audit });
 
   return {
     async startWorkflow(command: StartWorkflowCommand): Promise<StartedWorkflowResult> {
@@ -203,7 +205,7 @@ export function createStartWorkflowUseCase(
           tx,
         );
 
-        await deps.audit.append(
+        await auditWriter.write(
           {
             organizationId: command.organizationId,
             actorUserId: command.actorUserId,

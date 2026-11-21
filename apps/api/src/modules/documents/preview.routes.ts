@@ -5,6 +5,7 @@ import {
   type FileObjectEntity,
   type StorageConnectionRepositoryPort,
   type UploadSessionRepositoryPort,
+  createAuditWriter,
   isFileObjectDownloadable,
 } from "@docuflow/domain";
 import {
@@ -79,6 +80,7 @@ export async function registerDocumentPreviewRoutes(
     auditRepository,
   } = deps;
   const maxImagePreviewBytes = deps.maxImagePreviewBytes ?? DEFAULT_MAX_IMAGE_PREVIEW_BYTES;
+  const auditWriter = createAuditWriter({ repository: auditRepository });
 
   const authorizeAndLoadPreviewSubject = async (
     request: FastifyRequest<{ Params: { id: string } }>,
@@ -109,7 +111,14 @@ export async function registerDocumentPreviewRoutes(
       return null;
     }
 
-    const doc = await guard.authorizeDocument(ctx, idParsed.data, "READ", reply, request.id);
+    const doc = await guard.authorizeDocument(
+      ctx,
+      idParsed.data,
+      "READ",
+      reply,
+      request.id,
+      request.ip,
+    );
     if (!doc) {
       return null;
     }
@@ -182,6 +191,22 @@ export async function registerDocumentPreviewRoutes(
           : fileObject.status === "REJECTED"
             ? "FILE_REJECTED"
             : "CONFLICT";
+      await auditWriter.write({
+        organizationId: ctx.me.user.organizationId,
+        actorUserId: ctx.me.user.id,
+        action: "DOCUMENT_PREVIEW_DENIED",
+        resourceType: "DOCUMENT",
+        resourceId: doc.id,
+        result: "DENIED",
+        requestId: request.id,
+        ipAddress: request.ip,
+        metadata: {
+          versionId: version.id,
+          fileObjectId: fileObject.id,
+          fileStatus: fileObject.status,
+          reason: errorCode,
+        },
+      });
       void reply.status(409).send({
         error: {
           code: errorCode,
@@ -253,7 +278,7 @@ export async function registerDocumentPreviewRoutes(
           downloadName: inlineFileName,
         });
 
-        await auditRepository.append({
+        await auditWriter.write({
           organizationId,
           actorUserId,
           action: "DOCUMENT_PREVIEWED",
@@ -261,6 +286,7 @@ export async function registerDocumentPreviewRoutes(
           resourceId: documentId,
           result: "SUCCESS",
           requestId: request.id,
+          ipAddress: request.ip,
           metadata: {
             versionId,
             fileObjectId: fileObject.id,
@@ -278,7 +304,7 @@ export async function registerDocumentPreviewRoutes(
 
       const downloaded = await provider.getObject({ value: fileObject.objectKey });
 
-      await auditRepository.append({
+      await auditWriter.write({
         organizationId,
         actorUserId,
         action: "DOCUMENT_PREVIEWED",
@@ -286,6 +312,7 @@ export async function registerDocumentPreviewRoutes(
         resourceId: documentId,
         result: "SUCCESS",
         requestId: request.id,
+        ipAddress: request.ip,
         metadata: {
           versionId,
           fileObjectId: fileObject.id,

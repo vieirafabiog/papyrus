@@ -16,17 +16,20 @@ import type {
   AuthorizedDocumentQueryScope,
   LoadedAuthorizationSubject,
 } from "@docuflow/database";
-import type {
-  AccessAction,
-  AccessScope,
-  AuthorizedCategoryQueryScope,
-  AuthorizedFolderQueryScope,
-  CategoryEntity,
-  CategoryRepositoryPort,
-  DocumentEntity,
-  DocumentRepositoryPort,
-  FolderEntity,
-  FolderRepositoryPort,
+import {
+  type AccessAction,
+  type AccessScope,
+  type AuditRepositoryPort,
+  type AuditWriter,
+  type AuthorizedCategoryQueryScope,
+  type AuthorizedFolderQueryScope,
+  type CategoryEntity,
+  type CategoryRepositoryPort,
+  type DocumentEntity,
+  type DocumentRepositoryPort,
+  type FolderEntity,
+  type FolderRepositoryPort,
+  createAuditWriter,
 } from "@docuflow/domain";
 import type { FastifyReply, FastifyRequest } from "fastify";
 import { SESSION_COOKIE_NAME } from "../modules/auth/auth.routes.js";
@@ -264,6 +267,38 @@ export interface AuthenticatedAuthorizationContext {
   readonly rolePermissions: RolePermissionsLookup;
 }
 
+async function recordAuthorizationDenied(
+  auditWriter: AuditWriter | null,
+  input: {
+    readonly organizationId: string;
+    readonly actorUserId: string;
+    readonly requestId: string;
+    readonly ipAddress?: string | undefined;
+    readonly resourceType: "DOCUMENT" | "FOLDER" | "CATEGORY";
+    readonly resourceId: string | null;
+    readonly requiredAction: AccessAction;
+    readonly reason: string;
+  },
+): Promise<void> {
+  if (!auditWriter) {
+    return;
+  }
+  await auditWriter.write({
+    organizationId: input.organizationId,
+    actorUserId: input.actorUserId,
+    action: "AUTHORIZATION_DENIED",
+    resourceType: input.resourceType,
+    resourceId: input.resourceId,
+    result: "DENIED",
+    requestId: input.requestId,
+    ipAddress: input.ipAddress ?? null,
+    metadata: {
+      requiredAction: input.requiredAction,
+      reason: input.reason,
+    },
+  });
+}
+
 export interface DocumentAuthorizationGuard {
   requireSubject(
     request: FastifyRequest,
@@ -275,6 +310,7 @@ export interface DocumentAuthorizationGuard {
     folderId: string | null,
     reply: FastifyReply,
     requestId: string,
+    ipAddress?: string | undefined,
   ): Promise<boolean>;
   authorizeUploadScope(
     ctx: AuthenticatedAuthorizationContext,
@@ -282,6 +318,7 @@ export interface DocumentAuthorizationGuard {
     folderId: string | null,
     reply: FastifyReply,
     requestId: string,
+    ipAddress?: string | undefined,
   ): Promise<boolean>;
   authorizeDocument(
     ctx: AuthenticatedAuthorizationContext,
@@ -289,6 +326,7 @@ export interface DocumentAuthorizationGuard {
     action: AccessAction,
     reply: FastifyReply,
     requestId: string,
+    ipAddress?: string | undefined,
   ): Promise<DocumentEntity | null>;
 }
 
@@ -296,7 +334,12 @@ export function createDocumentAuthorizationGuard(deps: {
   readonly authService: AuthService;
   readonly authzRepository: AuthorizationRepository;
   readonly documentRepository: DocumentRepositoryPort;
+  readonly auditRepository?: AuditRepositoryPort | undefined;
 }): DocumentAuthorizationGuard {
+  const auditWriter = deps.auditRepository
+    ? createAuditWriter({ repository: deps.auditRepository })
+    : null;
+
   const authorizeScopeAction = async (
     ctx: AuthenticatedAuthorizationContext,
     action: AccessAction,
@@ -304,6 +347,7 @@ export function createDocumentAuthorizationGuard(deps: {
     folderId: string | null,
     reply: FastifyReply,
     requestId: string,
+    ipAddress?: string | undefined,
   ): Promise<boolean> => {
     const folderAncestors = await deps.authzRepository.loadFolderAncestorIds(
       ctx.me.user.organizationId,
@@ -347,6 +391,16 @@ export function createDocumentAuthorizationGuard(deps: {
     }
 
     if (!hasAllow) {
+      await recordAuthorizationDenied(auditWriter, {
+        organizationId: ctx.me.user.organizationId,
+        actorUserId: ctx.me.user.id,
+        requestId,
+        ipAddress,
+        resourceType: "DOCUMENT",
+        resourceId: null,
+        requiredAction: action,
+        reason: "SCOPE_CREATE_OR_UPLOAD_DENIED",
+      });
       void reply.status(403).send({
         error: {
           code: "FORBIDDEN",
@@ -376,8 +430,9 @@ export function createDocumentAuthorizationGuard(deps: {
       folderId: string | null,
       reply: FastifyReply,
       requestId: string,
+      ipAddress?: string | undefined,
     ): Promise<boolean> {
-      return authorizeScopeAction(ctx, "CREATE", categoryId, folderId, reply, requestId);
+      return authorizeScopeAction(ctx, "CREATE", categoryId, folderId, reply, requestId, ipAddress);
     },
 
     async authorizeUploadScope(
@@ -386,8 +441,9 @@ export function createDocumentAuthorizationGuard(deps: {
       folderId: string | null,
       reply: FastifyReply,
       requestId: string,
+      ipAddress?: string | undefined,
     ): Promise<boolean> {
-      return authorizeScopeAction(ctx, "UPLOAD", categoryId, folderId, reply, requestId);
+      return authorizeScopeAction(ctx, "UPLOAD", categoryId, folderId, reply, requestId, ipAddress);
     },
 
     async authorizeDocument(
@@ -396,6 +452,7 @@ export function createDocumentAuthorizationGuard(deps: {
       action: AccessAction,
       reply: FastifyReply,
       requestId: string,
+      ipAddress?: string | undefined,
     ): Promise<DocumentEntity | null> {
       const doc = await deps.documentRepository.findById(documentId);
       if (!doc || doc.organizationId !== ctx.me.user.organizationId) {
@@ -405,6 +462,16 @@ export function createDocumentAuthorizationGuard(deps: {
           ctx.rolePermissions,
         );
         if (!globalDecision.allowed) {
+          await recordAuthorizationDenied(auditWriter, {
+            organizationId: ctx.me.user.organizationId,
+            actorUserId: ctx.me.user.id,
+            requestId,
+            ipAddress,
+            resourceType: "DOCUMENT",
+            resourceId: null,
+            requiredAction: action,
+            reason: "MISSING_OR_DENIED_SCOPE",
+          });
           void reply.status(403).send({
             error: {
               code: "FORBIDDEN",
@@ -440,6 +507,16 @@ export function createDocumentAuthorizationGuard(deps: {
       );
 
       if (!decision.allowed) {
+        await recordAuthorizationDenied(auditWriter, {
+          organizationId: ctx.me.user.organizationId,
+          actorUserId: ctx.me.user.id,
+          requestId,
+          ipAddress,
+          resourceType: "DOCUMENT",
+          resourceId: doc.id,
+          requiredAction: action,
+          reason: decision.reason,
+        });
         void reply.status(403).send({
           error: {
             code: "FORBIDDEN",
@@ -489,7 +566,12 @@ export function createFolderAuthorizationGuard(deps: {
   readonly authService: AuthService;
   readonly authzRepository: AuthorizationRepository;
   readonly folderRepository: FolderRepositoryPort;
+  readonly auditRepository?: AuditRepositoryPort | undefined;
 }): FolderAuthorizationGuard {
+  const auditWriter = deps.auditRepository
+    ? createAuditWriter({ repository: deps.auditRepository })
+    : null;
+
   const verifyParentScopeForCreate = async (
     request: FastifyRequest,
     reply: FastifyReply,
@@ -503,6 +585,16 @@ export function createFolderAuthorizationGuard(deps: {
         ctx.rolePermissions,
       );
       if (!decision.allowed) {
+        await recordAuthorizationDenied(auditWriter, {
+          organizationId: ctx.me.user.organizationId,
+          actorUserId: ctx.me.user.id,
+          requestId: request.id,
+          ipAddress: request.ip,
+          resourceType: "FOLDER",
+          resourceId: null,
+          requiredAction: "CREATE",
+          reason: decision.reason,
+        });
         void reply.status(403).send({
           error: {
             code: "FORBIDDEN",
@@ -523,6 +615,16 @@ export function createFolderAuthorizationGuard(deps: {
         ctx.rolePermissions,
       );
       if (!globalDecision.allowed) {
+        await recordAuthorizationDenied(auditWriter, {
+          organizationId: ctx.me.user.organizationId,
+          actorUserId: ctx.me.user.id,
+          requestId: request.id,
+          ipAddress: request.ip,
+          resourceType: "FOLDER",
+          resourceId: null,
+          requiredAction: "CREATE",
+          reason: "MISSING_OR_DENIED_SCOPE",
+        });
         void reply.status(403).send({
           error: {
             code: "FORBIDDEN",
@@ -546,6 +648,16 @@ export function createFolderAuthorizationGuard(deps: {
       ctx.rolePermissions,
     );
     if (!decision.allowed) {
+      await recordAuthorizationDenied(auditWriter, {
+        organizationId: ctx.me.user.organizationId,
+        actorUserId: ctx.me.user.id,
+        requestId: request.id,
+        ipAddress: request.ip,
+        resourceType: "FOLDER",
+        resourceId: parent.id,
+        requiredAction: "CREATE",
+        reason: decision.reason,
+      });
       void reply.status(403).send({
         error: {
           code: "FORBIDDEN",
@@ -622,6 +734,16 @@ export function createFolderAuthorizationGuard(deps: {
           ctx.rolePermissions,
         );
         if (!globalDecision.allowed) {
+          await recordAuthorizationDenied(auditWriter, {
+            organizationId: ctx.me.user.organizationId,
+            actorUserId: ctx.me.user.id,
+            requestId: request.id,
+            ipAddress: request.ip,
+            resourceType: "FOLDER",
+            resourceId: null,
+            requiredAction: action,
+            reason: "MISSING_OR_DENIED_SCOPE",
+          });
           void reply.status(403).send({
             error: {
               code: "FORBIDDEN",
@@ -652,6 +774,16 @@ export function createFolderAuthorizationGuard(deps: {
         ctx.rolePermissions,
       );
       if (!decision.allowed) {
+        await recordAuthorizationDenied(auditWriter, {
+          organizationId: ctx.me.user.organizationId,
+          actorUserId: ctx.me.user.id,
+          requestId: request.id,
+          ipAddress: request.ip,
+          resourceType: "FOLDER",
+          resourceId: folder.id,
+          requiredAction: action,
+          reason: decision.reason,
+        });
         void reply.status(403).send({
           error: {
             code: "FORBIDDEN",
@@ -694,7 +826,12 @@ export function createCategoryAuthorizationGuard(deps: {
   readonly authService: AuthService;
   readonly authzRepository: AuthorizationRepository;
   readonly categoryRepository: CategoryRepositoryPort;
+  readonly auditRepository?: AuditRepositoryPort | undefined;
 }): CategoryAuthorizationGuard {
+  const auditWriter = deps.auditRepository
+    ? createAuditWriter({ repository: deps.auditRepository })
+    : null;
+
   return {
     requireSubject(
       request: FastifyRequest,
@@ -723,6 +860,16 @@ export function createCategoryAuthorizationGuard(deps: {
         ctx.rolePermissions,
       );
       if (!decision.allowed) {
+        await recordAuthorizationDenied(auditWriter, {
+          organizationId: ctx.me.user.organizationId,
+          actorUserId: ctx.me.user.id,
+          requestId: request.id,
+          ipAddress: request.ip,
+          resourceType: "CATEGORY",
+          resourceId: null,
+          requiredAction: "CREATE",
+          reason: decision.reason,
+        });
         void reply.status(403).send({
           error: {
             code: "FORBIDDEN",
@@ -763,6 +910,16 @@ export function createCategoryAuthorizationGuard(deps: {
           ctx.rolePermissions,
         );
         if (!globalDecision.allowed) {
+          await recordAuthorizationDenied(auditWriter, {
+            organizationId: ctx.me.user.organizationId,
+            actorUserId: ctx.me.user.id,
+            requestId: request.id,
+            ipAddress: request.ip,
+            resourceType: "CATEGORY",
+            resourceId: null,
+            requiredAction: action,
+            reason: "MISSING_OR_DENIED_SCOPE",
+          });
           void reply.status(403).send({
             error: {
               code: "FORBIDDEN",
@@ -789,6 +946,16 @@ export function createCategoryAuthorizationGuard(deps: {
         ctx.rolePermissions,
       );
       if (!decision.allowed) {
+        await recordAuthorizationDenied(auditWriter, {
+          organizationId: ctx.me.user.organizationId,
+          actorUserId: ctx.me.user.id,
+          requestId: request.id,
+          ipAddress: request.ip,
+          resourceType: "CATEGORY",
+          resourceId: category.id,
+          requiredAction: action,
+          reason: decision.reason,
+        });
         void reply.status(403).send({
           error: {
             code: "FORBIDDEN",

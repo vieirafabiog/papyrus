@@ -9,6 +9,7 @@ export {
 } from "./client.js";
 
 export { createAuditRepository } from "./repositories/audit-repository.js";
+export { createPermissionScopeRepository } from "./repositories/permission-repository.js";
 export {
   type AuthorizationRepository,
   type AuthorizedDocumentQueryScope,

@@ -13,12 +13,14 @@ import type {
   CategoryService,
   CreateDocumentService,
   CreateDocumentVersionService,
+  DecideTaskService,
   DocumentRepositoryPort,
   DocumentVersionRepositoryPort,
   FolderRepositoryPort,
   FolderService,
   GroupAdministrationService,
   MoveDocumentService,
+  PermissionAdministrationService,
   StorageConnectionAdminService,
   StorageConnectionRepositoryPort,
   TagService,
@@ -32,6 +34,7 @@ import type { StorageProviderRegistry } from "@docuflow/storage-core";
 import type { S3EndpointSecurityPolicy } from "@docuflow/storage-s3";
 import cookie from "@fastify/cookie";
 import Fastify, { type FastifyInstance } from "fastify";
+import { registerPermissionRoutes } from "./modules/access/permissions.routes.js";
 import { registerAuthRoutes } from "./modules/auth/auth.routes.js";
 import type { AuthService } from "./modules/auth/auth.service.js";
 import { registerCategoryRoutes } from "./modules/categories/categories.routes.js";
@@ -67,7 +70,9 @@ export interface AppOptions {
   readonly setupService?: SetupService | undefined;
   readonly userAdminService?: UserAdministrationService | undefined;
   readonly groupAdminService?: GroupAdministrationService | undefined;
+  readonly permissionAdminService?: PermissionAdministrationService | undefined;
   readonly storageAdminService?: StorageConnectionAdminService | undefined;
+  readonly auditRepository?: AuditRepositoryPort | undefined;
   readonly s3SecurityPolicy?: S3EndpointSecurityPolicy | undefined;
   readonly documentDeps?:
     | {
@@ -126,6 +131,7 @@ export interface AppOptions {
         readonly authzRepository: AuthorizationRepository;
         readonly documentRepository: DocumentRepositoryPort;
         readonly taskInboxRepository: TaskInboxRepository;
+        readonly decideTaskService?: DecideTaskService | undefined;
         readonly now?: (() => Date) | undefined;
       }
     | undefined;
@@ -202,6 +208,13 @@ export function buildApp(options: AppOptions = {}): FastifyInstance {
       });
     }
 
+    if (options.permissionAdminService) {
+      const permissionAdminService = options.permissionAdminService;
+      void app.register(async (instance) => {
+        await registerPermissionRoutes(instance, { authService, permissionAdminService });
+      });
+    }
+
     if (options.storageAdminService) {
       const storageAdminService = options.storageAdminService;
       const s3SecurityPolicy = options.s3SecurityPolicy;
@@ -220,6 +233,7 @@ export function buildApp(options: AppOptions = {}): FastifyInstance {
         authService,
         authzRepository: documentDeps.authzRepository,
         documentRepository: documentDeps.documentRepository,
+        auditRepository: documentDeps.auditRepository,
       });
       void app.register(async (instance) => {
         if (documentDeps.documentSearchRepository) {
@@ -279,6 +293,7 @@ export function buildApp(options: AppOptions = {}): FastifyInstance {
         authService,
         authzRepository: uploadDeps.authzRepository,
         documentRepository: uploadDeps.documentRepository,
+        auditRepository: options.auditRepository ?? options.documentDeps?.auditRepository,
       });
       void app.register(async (instance) => {
         await registerUploadRoutes(instance, {
@@ -297,6 +312,7 @@ export function buildApp(options: AppOptions = {}): FastifyInstance {
         authService,
         authzRepository: folderDeps.authzRepository,
         folderRepository: folderDeps.folderRepository,
+        auditRepository: options.auditRepository ?? options.documentDeps?.auditRepository,
       });
       void app.register(async (instance) => {
         await registerFolderRoutes(instance, {
@@ -312,6 +328,7 @@ export function buildApp(options: AppOptions = {}): FastifyInstance {
         authService,
         authzRepository: categoryDeps.authzRepository,
         categoryRepository: categoryDeps.categoryRepository,
+        auditRepository: options.auditRepository ?? options.documentDeps?.auditRepository,
       });
       void app.register(async (instance) => {
         await registerCategoryRoutes(instance, {
@@ -343,11 +360,13 @@ export function buildApp(options: AppOptions = {}): FastifyInstance {
         authService,
         authzRepository: taskDeps.authzRepository,
         documentRepository: taskDeps.documentRepository,
+        auditRepository: options.auditRepository ?? options.documentDeps?.auditRepository,
       });
       void app.register(async (instance) => {
         await registerTaskRoutes(instance, {
           guard: taskGuard,
           taskInboxRepository: taskDeps.taskInboxRepository,
+          decideTaskService: taskDeps.decideTaskService,
           now: taskDeps.now,
         });
       });

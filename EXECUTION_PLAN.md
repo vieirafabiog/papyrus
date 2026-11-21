@@ -831,7 +831,7 @@ docuflow/
   - **Ação:** Criar evento mínimo e append-only dentro da transação de negócio quando aplicável. Redigir segredos e dados excessivos.
   - **Verificação:** `pnpm --filter @docuflow/domain test`.
 
-- [ ] **Step 13.02 — Instrumentar eventos documentais**
+- [x] **Step 13.02 — Instrumentar eventos documentais**
   - **Arquivos:** casos de uso de documento, versão, download, permissões e workflow
   - **Ação:** Registrar eventos definidos em `project.md` C.10 sem duplicidade nem conteúdo sensível.
   - **Verificação:** `pnpm --filter @docuflow/api test:integration`.

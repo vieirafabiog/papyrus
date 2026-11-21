@@ -6,6 +6,7 @@ import {
   type StorageConnectionEntity,
   type StorageConnectionRepositoryPort,
   type UploadSessionRepositoryPort,
+  createAuditWriter,
   isFileObjectDownloadable,
 } from "@docuflow/domain";
 import {
@@ -154,6 +155,7 @@ export async function registerDocumentDownloadRoutes(
     storageRegistry,
     auditRepository,
   } = deps;
+  const auditWriter = createAuditWriter({ repository: auditRepository });
 
   const authorizeAndResolveDownload = async (
     request: FastifyRequest<{ Params: { id: string } }>,
@@ -177,7 +179,14 @@ export async function registerDocumentDownloadRoutes(
       return null;
     }
 
-    const doc = await guard.authorizeDocument(ctx, idParsed.data, "DOWNLOAD", reply, request.id);
+    const doc = await guard.authorizeDocument(
+      ctx,
+      idParsed.data,
+      "DOWNLOAD",
+      reply,
+      request.id,
+      request.ip,
+    );
     if (!doc) {
       return null;
     }
@@ -250,6 +259,23 @@ export async function registerDocumentDownloadRoutes(
           : fileObject.status === "REJECTED"
             ? "FILE_REJECTED"
             : "CONFLICT";
+
+      await auditWriter.write({
+        organizationId: ctx.me.user.organizationId,
+        actorUserId: ctx.me.user.id,
+        action: "DOCUMENT_DOWNLOAD_DENIED",
+        resourceType: "DOCUMENT",
+        resourceId: doc.id,
+        result: "DENIED",
+        requestId: request.id,
+        ipAddress: request.ip,
+        metadata: {
+          versionId: version.id,
+          fileObjectId: fileObject.id,
+          fileStatus: fileObject.status,
+          reason: errorCode,
+        },
+      });
 
       void reply.status(409).send({
         error: {
@@ -347,7 +373,7 @@ export async function registerDocumentDownloadRoutes(
             downloadName: safeFileName,
           });
 
-          await auditRepository.append({
+          await auditWriter.write({
             organizationId,
             actorUserId,
             action: "DOCUMENT_DOWNLOADED",
@@ -355,6 +381,7 @@ export async function registerDocumentDownloadRoutes(
             resourceId: documentId,
             result: "SUCCESS",
             requestId: request.id,
+            ipAddress: request.ip,
             metadata: {
               versionId,
               fileObjectId: fileObject.id,
@@ -386,7 +413,7 @@ export async function registerDocumentDownloadRoutes(
 
         const streamPath = `${CONTRACTS_API_PREFIX}/documents/${documentId}/download?versionId=${encodeURIComponent(versionId)}`;
 
-        await auditRepository.append({
+        await auditWriter.write({
           organizationId,
           actorUserId,
           action: "DOCUMENT_DOWNLOAD_REQUESTED",
@@ -394,6 +421,7 @@ export async function registerDocumentDownloadRoutes(
           resourceId: documentId,
           result: "SUCCESS",
           requestId: request.id,
+          ipAddress: request.ip,
           metadata: {
             versionId,
             fileObjectId: fileObject.id,
@@ -463,7 +491,7 @@ export async function registerDocumentDownloadRoutes(
           returnedChecksum !== fileObject.checksumSha256.toLowerCase()
         ) {
           downloaded.body.destroy();
-          await auditRepository.append({
+          await auditWriter.write({
             organizationId,
             actorUserId,
             action: "DOCUMENT_DOWNLOAD_FAILED",
@@ -471,6 +499,7 @@ export async function registerDocumentDownloadRoutes(
             resourceId: documentId,
             result: "FAILURE",
             requestId: request.id,
+            ipAddress: request.ip,
             metadata: {
               versionId,
               fileObjectId: fileObject.id,
@@ -486,7 +515,7 @@ export async function registerDocumentDownloadRoutes(
           });
         }
 
-        await auditRepository.append({
+        await auditWriter.write({
           organizationId,
           actorUserId,
           action: "DOCUMENT_DOWNLOADED",
@@ -494,6 +523,7 @@ export async function registerDocumentDownloadRoutes(
           resourceId: documentId,
           result: "SUCCESS",
           requestId: request.id,
+          ipAddress: request.ip,
           metadata: {
             versionId,
             fileObjectId: fileObject.id,

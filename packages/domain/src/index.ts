@@ -32,6 +32,21 @@ export {
 } from "./access/access.types.js";
 
 export {
+  type AssignRoleScopeCommand,
+  createPermissionAdministrationService,
+  type PermissionAdministrationDependencies,
+  type PermissionAdministrationService,
+  type RevokeRoleScopeCommand,
+} from "./access/permission-service.js";
+
+export type {
+  CreateRoleScopeAssignmentInput,
+  PermissionScopeRepositoryPort,
+  PermissionSubjectType,
+  RoleScopeAssignmentRecord,
+} from "./ports/permission-repository.port.js";
+
+export {
   type CategoryFieldDefinition,
   type CategoryFieldType,
   type MetadataValidationIssue,

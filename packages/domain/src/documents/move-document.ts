@@ -1,3 +1,4 @@
+import { createAuditWriter } from "../audit/audit-writer.js";
 import { DomainError } from "../index.js";
 import type { AuditRepositoryPort } from "../ports/audit-repository.port.js";
 import type { DocumentRepositoryPort } from "../ports/document-repository.port.js";
@@ -30,6 +31,8 @@ export interface MoveDocumentService {
  * enforcing optimistic concurrency control and emitting an audit event.
  */
 export function moveDocumentUseCase(deps: MoveDocumentServiceDependencies): MoveDocumentService {
+  const auditWriter = createAuditWriter({ repository: deps.audit });
+
   return {
     async moveDocument(command: MoveDocumentCommand): Promise<DocumentEntity> {
       return deps.transactions.runInTransaction(async (tx) => {
@@ -83,7 +86,7 @@ export function moveDocumentUseCase(deps: MoveDocumentServiceDependencies): Move
           );
         }
 
-        await deps.audit.append(
+        await auditWriter.write(
           {
             organizationId: command.organizationId,
             actorUserId: command.actorUserId,

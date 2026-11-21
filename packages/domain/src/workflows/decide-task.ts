@@ -1,3 +1,4 @@
+import { createAuditWriter } from "../audit/audit-writer.js";
 import type { DocumentEntity } from "../documents/document.types.js";
 import { assertApprovalMatchesVersion } from "../documents/versioning.js";
 import { DomainError } from "../index.js";
@@ -149,6 +150,7 @@ function isMatchingIdempotentDecisionReplay(params: {
  */
 export function createDecideTaskUseCase(deps: DecideTaskDependencies): DecideTaskService {
   const now = deps.now ?? (() => new Date());
+  const auditWriter = createAuditWriter({ repository: deps.audit });
 
   return {
     async decideTask(command: DecideTaskCommand): Promise<DecidedTaskResult> {
@@ -378,7 +380,7 @@ export function createDecideTaskUseCase(deps: DecideTaskDependencies): DecideTas
           finalDocument = updated;
         }
 
-        await deps.audit.append(
+        await auditWriter.write(
           {
             organizationId: command.organizationId,
             actorUserId: command.actorUserId,

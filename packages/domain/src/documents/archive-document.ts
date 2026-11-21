@@ -1,3 +1,4 @@
+import { createAuditWriter } from "../audit/audit-writer.js";
 import { DomainError } from "../index.js";
 import type { AuditRepositoryPort } from "../ports/audit-repository.port.js";
 import type { DocumentRepositoryPort } from "../ports/document-repository.port.js";
@@ -31,6 +32,8 @@ export interface ArchiveDocumentService {
 export function archiveDocumentUseCase(
   deps: ArchiveDocumentServiceDependencies,
 ): ArchiveDocumentService {
+  const auditWriter = createAuditWriter({ repository: deps.audit });
+
   return {
     async archiveDocument(command: ArchiveDocumentCommand): Promise<DocumentEntity> {
       const normalizedReason =
@@ -71,7 +74,7 @@ export function archiveDocumentUseCase(
           );
         }
 
-        await deps.audit.append(
+        await auditWriter.write(
           {
             organizationId: command.organizationId,
             actorUserId: command.actorUserId,

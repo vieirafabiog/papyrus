@@ -5,16 +5,45 @@ import {
   uuidSchema,
 } from "@docuflow/contracts";
 import type { TaskInboxRepository } from "@docuflow/database";
+import { type DecideTaskService, DomainError } from "@docuflow/domain";
 import type { FastifyInstance } from "fastify";
+import { z } from "zod";
 import {
   type AuthenticatedAuthorizationContext,
   type DocumentAuthorizationGuard,
   buildDocumentQueryScope,
 } from "../../plugins/authorization.js";
 
+const decideTaskBodySchema = z.object({
+  action: z.enum(["APPROVE", "REJECT", "REQUEST_CHANGES", "CANCEL"]),
+  comment: z.string().max(2000).nullable().optional(),
+});
+
+function mapDecideTaskDomainErrorStatus(code: string): {
+  status: number;
+  apiCode: "NOT_FOUND" | "FORBIDDEN" | "CONFLICT" | "VALIDATION_ERROR";
+} {
+  switch (code) {
+    case "TASK_NOT_FOUND":
+    case "WORKFLOW_INSTANCE_NOT_FOUND":
+    case "DOCUMENT_NOT_FOUND":
+      return { status: 404, apiCode: "NOT_FOUND" };
+    case "TASK_DECISION_FORBIDDEN":
+      return { status: 403, apiCode: "FORBIDDEN" };
+    case "TASK_ALREADY_TERMINAL":
+    case "WORKFLOW_INSTANCE_NOT_ACTIVE":
+    case "VERSION_LOCK_MISMATCH":
+    case "INVALID_DOCUMENT_TRANSITION":
+      return { status: 409, apiCode: "CONFLICT" };
+    default:
+      return { status: 400, apiCode: "VALIDATION_ERROR" };
+  }
+}
+
 export interface TaskRoutesDependencies {
   readonly guard: DocumentAuthorizationGuard;
   readonly taskInboxRepository: TaskInboxRepository;
+  readonly decideTaskService?: DecideTaskService | undefined;
   readonly now?: (() => Date) | undefined;
 }
 
@@ -37,7 +66,7 @@ export async function registerTaskRoutes(
   app: FastifyInstance,
   deps: TaskRoutesDependencies,
 ): Promise<void> {
-  const { guard, taskInboxRepository, now } = deps;
+  const { guard, taskInboxRepository, decideTaskService, now } = deps;
 
   app.get(`${CONTRACTS_API_PREFIX}/tasks`, async (request, reply) => {
     const ctx = await guard.requireSubject(request, reply);
@@ -161,4 +190,55 @@ export async function registerTaskRoutes(
       });
     },
   );
+
+  if (decideTaskService) {
+    app.post<{ Params: { id: string } }>(
+      `${CONTRACTS_API_PREFIX}/tasks/:id/decision`,
+      async (request, reply) => {
+        const ctx = await guard.requireSubject(request, reply);
+        if (!ctx) {
+          return reply;
+        }
+
+        const idParsed = uuidSchema.safeParse(request.params.id);
+        const bodyParsed = decideTaskBodySchema.safeParse(request.body);
+        if (!idParsed.success || !bodyParsed.success) {
+          return reply.status(400).send({
+            error: {
+              code: "VALIDATION_ERROR",
+              message: "Parâmetros inválidos para decisão na tarefa de workflow.",
+              requestId: request.id,
+            },
+          });
+        }
+
+        try {
+          const decided = await decideTaskService.decideTask({
+            organizationId: ctx.me.user.organizationId,
+            actorUserId: ctx.me.user.id,
+            actorGroupIds: ctx.loaded.groupIds,
+            actorRoleIds: collectAllowRoleIds(ctx),
+            requestId: request.id,
+            taskId: idParsed.data,
+            action: bodyParsed.data.action,
+            comment: bodyParsed.data.comment ?? null,
+          });
+          return reply.status(200).send({ data: decided });
+        } catch (error) {
+          if (error instanceof DomainError) {
+            const mapped = mapDecideTaskDomainErrorStatus(error.code);
+            return reply.status(mapped.status).send({
+              error: {
+                code: mapped.apiCode,
+                message: error.message,
+                requestId: request.id,
+                details: { domainCode: error.code },
+              },
+            });
+          }
+          throw error;
+        }
+      },
+    );
+  }
 }

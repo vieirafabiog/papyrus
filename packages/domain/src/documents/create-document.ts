@@ -1,3 +1,4 @@
+import { createAuditWriter } from "../audit/audit-writer.js";
 import type { CategoryFieldDefinition } from "../categories/metadata-validation.js";
 import { validateDocumentMetadata } from "../categories/metadata-validation.js";
 import { DomainError } from "../index.js";
@@ -121,6 +122,7 @@ export function createDocumentUseCase(
   deps: CreateDocumentServiceDependencies,
 ): CreateDocumentService {
   const now = deps.now ?? (() => new Date());
+  const auditWriter = createAuditWriter({ repository: deps.audit });
 
   return {
     async createDocument(command: CreateDocumentCommand): Promise<CreatedDocumentResult> {
@@ -319,7 +321,7 @@ export function createDocumentUseCase(
           );
         }
 
-        await deps.audit.append(
+        await auditWriter.write(
           {
             organizationId: command.organizationId,
             actorUserId: command.actorUserId,

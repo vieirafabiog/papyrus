@@ -1,3 +1,4 @@
+import { createAuditWriter } from "../audit/audit-writer.js";
 import { DomainError } from "../index.js";
 import type { AuditRepositoryPort } from "../ports/audit-repository.port.js";
 import type { DocumentRepositoryPort } from "../ports/document-repository.port.js";
@@ -29,6 +30,8 @@ export interface TrashDocumentService {
  * immutable document versions and audit history until authorized purge.
  */
 export function trashDocumentUseCase(deps: TrashDocumentServiceDependencies): TrashDocumentService {
+  const auditWriter = createAuditWriter({ repository: deps.audit });
+
   return {
     async trashDocument(command: TrashDocumentCommand): Promise<DocumentEntity> {
       const normalizedReason =
@@ -66,7 +69,7 @@ export function trashDocumentUseCase(deps: TrashDocumentServiceDependencies): Tr
           );
         }
 
-        await deps.audit.append(
+        await auditWriter.write(
           {
             organizationId: command.organizationId,
             actorUserId: command.actorUserId,

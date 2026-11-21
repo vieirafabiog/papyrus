@@ -1,3 +1,4 @@
+import { createAuditWriter } from "../audit/audit-writer.js";
 import { DomainError } from "../index.js";
 import type { AuditRepositoryPort } from "../ports/audit-repository.port.js";
 import type { DocumentRepositoryPort } from "../ports/document-repository.port.js";
@@ -58,6 +59,7 @@ export function createWorkflowTasksUseCase(
   deps: CreateWorkflowTasksDependencies,
 ): CreateWorkflowTasksService {
   const now = deps.now ?? (() => new Date());
+  const auditWriter = createAuditWriter({ repository: deps.audit });
 
   return {
     async generateTaskForStep(
@@ -148,7 +150,7 @@ export function createWorkflowTasksUseCase(
         );
 
         if (result.created) {
-          await deps.audit.append(
+          await auditWriter.write(
             {
               organizationId: command.organizationId,
               actorUserId: command.actorUserId ?? null,

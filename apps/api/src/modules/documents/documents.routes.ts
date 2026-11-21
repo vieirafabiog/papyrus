@@ -29,6 +29,7 @@ import {
   DomainError,
   type MoveDocumentService,
   type TrashDocumentService,
+  createAuditWriter,
   validateDocumentMetadata,
 } from "@docuflow/domain";
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
@@ -155,6 +156,7 @@ export async function registerDocumentRoutes(
     archiveDocumentService,
     trashDocumentService,
   } = deps;
+  const auditWriter = createAuditWriter({ repository: auditRepository });
 
   app.get(`${CONTRACTS_API_PREFIX}/documents`, async (request, reply) => {
     const ctx = await guard.requireSubject(request, reply);
@@ -297,6 +299,7 @@ export async function registerDocumentRoutes(
       parsed.data.folderId,
       reply,
       request.id,
+      request.ip,
     );
     if (!allowed) {
       return reply;
@@ -314,7 +317,7 @@ export async function registerDocumentRoutes(
       metadata: parsed.data.metadata,
     });
 
-    await auditRepository.append({
+    await auditWriter.write({
       organizationId: ctx.me.user.organizationId,
       actorUserId: ctx.me.user.id,
       action: "DOCUMENT_CREATED",
@@ -322,6 +325,11 @@ export async function registerDocumentRoutes(
       resourceId: created.id,
       result: "SUCCESS",
       requestId: request.id,
+      ipAddress: request.ip,
+      metadata: {
+        categoryId: created.categoryId,
+        folderId: created.folderId,
+      },
     });
 
     return reply.status(201).send({ data: created });
@@ -346,7 +354,14 @@ export async function registerDocumentRoutes(
         });
       }
 
-      const doc = await guard.authorizeDocument(ctx, idParsed.data, "READ", reply, request.id);
+      const doc = await guard.authorizeDocument(
+        ctx,
+        idParsed.data,
+        "READ",
+        reply,
+        request.id,
+        request.ip,
+      );
       if (!doc) {
         return reply;
       }
@@ -391,7 +406,7 @@ export async function registerDocumentRoutes(
         ? await authzRepository.loadDocumentDetailView(doc)
         : null;
 
-      await auditRepository.append({
+      await auditWriter.write({
         organizationId: ctx.me.user.organizationId,
         actorUserId: ctx.me.user.id,
         action: "DOCUMENT_VIEWED",
@@ -399,6 +414,11 @@ export async function registerDocumentRoutes(
         resourceId: doc.id,
         result: "SUCCESS",
         requestId: request.id,
+        ipAddress: request.ip,
+        metadata: {
+          status: doc.status,
+          currentVersionId: doc.currentVersionId,
+        },
       });
 
       if (!details) {
@@ -449,6 +469,7 @@ export async function registerDocumentRoutes(
         "UPDATE",
         reply,
         request.id,
+        request.ip,
       );
       if (!existing) {
         return reply;
@@ -480,6 +501,7 @@ export async function registerDocumentRoutes(
       }
 
       let normalizedMetadata: DocumentMetadataMap | undefined = bodyParsed.data.metadata;
+      let metadataFieldsToSync: Awaited<ReturnType<CategoryRepositoryPort["listFields"]>> = [];
       const targetCategoryId = bodyParsed.data.categoryId ?? existing.categoryId;
       if (
         categoryRepository &&
@@ -514,49 +536,27 @@ export async function registerDocumentRoutes(
           });
         }
         normalizedMetadata = validation.normalizedMetadata;
+        metadataFieldsToSync = fields;
+      }
 
-        const updated = await documentRepository.updateWithOptimisticLock(
-          existing.id,
-          bodyParsed.data.expectedVersion,
-          {
-            title: bodyParsed.data.title,
-            categoryId: bodyParsed.data.categoryId,
-            folderId: bodyParsed.data.folderId,
-            issueDate: bodyParsed.data.issueDate,
-            expirationDate: bodyParsed.data.expirationDate,
-            metadata: normalizedMetadata,
-          },
-        );
-
-        if (!updated) {
-          return reply.status(409).send({
-            error: {
-              code: "DOCUMENT_VERSION_CONFLICT",
-              message: "O documento foi atualizado por outra pessoa.",
-              requestId: request.id,
-            },
-          });
-        }
-
-        if (documentRepository.syncMetadataRows && fields.length > 0 && normalizedMetadata) {
-          await documentRepository.syncMetadataRows({
-            documentId: updated.id,
-            fields,
-            metadata: normalizedMetadata,
-          });
-        }
-
-        await auditRepository.append({
-          organizationId: ctx.me.user.organizationId,
-          actorUserId: ctx.me.user.id,
-          action: "DOCUMENT_UPDATED",
-          resourceType: "DOCUMENT",
-          resourceId: updated.id,
-          result: "SUCCESS",
-          requestId: request.id,
-        });
-
-        return reply.status(200).send({ data: updated });
+      const changedFields: string[] = [];
+      if (bodyParsed.data.title !== undefined) {
+        changedFields.push("title");
+      }
+      if (bodyParsed.data.categoryId !== undefined) {
+        changedFields.push("categoryId");
+      }
+      if (bodyParsed.data.folderId !== undefined) {
+        changedFields.push("folderId");
+      }
+      if (bodyParsed.data.issueDate !== undefined) {
+        changedFields.push("issueDate");
+      }
+      if (bodyParsed.data.expirationDate !== undefined) {
+        changedFields.push("expirationDate");
+      }
+      if (bodyParsed.data.metadata !== undefined) {
+        changedFields.push("metadata");
       }
 
       const updated = await documentRepository.updateWithOptimisticLock(
@@ -582,7 +582,19 @@ export async function registerDocumentRoutes(
         });
       }
 
-      await auditRepository.append({
+      if (
+        documentRepository.syncMetadataRows &&
+        metadataFieldsToSync.length > 0 &&
+        normalizedMetadata
+      ) {
+        await documentRepository.syncMetadataRows({
+          documentId: updated.id,
+          fields: metadataFieldsToSync,
+          metadata: normalizedMetadata,
+        });
+      }
+
+      await auditWriter.write({
         organizationId: ctx.me.user.organizationId,
         actorUserId: ctx.me.user.id,
         action: "DOCUMENT_UPDATED",
@@ -590,6 +602,12 @@ export async function registerDocumentRoutes(
         resourceId: updated.id,
         result: "SUCCESS",
         requestId: request.id,
+        ipAddress: request.ip,
+        metadata: {
+          version: updated.version,
+          changedFields: changedFields.join(","),
+          metadataKeyCount: normalizedMetadata ? Object.keys(normalizedMetadata).length : 0,
+        },
       });
 
       return reply.status(200).send({ data: updated });
@@ -615,7 +633,14 @@ export async function registerDocumentRoutes(
         });
       }
 
-      const doc = await guard.authorizeDocument(ctx, idParsed.data, "READ", reply, request.id);
+      const doc = await guard.authorizeDocument(
+        ctx,
+        idParsed.data,
+        "READ",
+        reply,
+        request.id,
+        request.ip,
+      );
       if (!doc) {
         return reply;
       }
