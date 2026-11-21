@@ -817,7 +817,7 @@ docuflow/
   - **Ação:** Criar notificações para tarefas atribuídas, decisões e vencimentos; leitura individual e idempotência.
   - **Verificação:** `pnpm --filter @docuflow/notifications test` e `pnpm --filter @docuflow/api test:integration`.
 
-- [ ] **Step 12.10 — Implementar SMTP opcional**
+- [x] **Step 12.10 — Implementar SMTP opcional**
   - **Arquivos:** `packages/notifications/src/email/*`, configuração e testes
   - **Ação:** Enviar e-mails por SMTP configurado pelo administrador, sem depender de provedor externo fixo. Segredos protegidos e envio assíncrono.
   - **Verificação:** `pnpm --filter @docuflow/notifications test`.

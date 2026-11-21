@@ -29,6 +29,28 @@ export const storageConfigSchema = z.object({
   localRootPath: z.string().min(1).optional(),
 });
 
+export const smtpSecurityModeSchema = z.enum(["NONE", "STARTTLS", "TLS"]);
+
+export const smtpEnvConfigSchema = z.object({
+  host: z
+    .string()
+    .trim()
+    .min(1)
+    .max(255)
+    .refine((value) => !/[\r\n\0]/.test(value), "Host SMTP inválido."),
+  port: z.coerce.number().int().min(1).max(65535).default(587),
+  securityMode: smtpSecurityModeSchema.default("STARTTLS"),
+  username: z.string().trim().min(1).max(255).optional(),
+  password: z.string().min(1).max(1024).optional(),
+  from: z
+    .string()
+    .trim()
+    .min(3)
+    .max(320)
+    .refine((value) => !/[\r\n\0]/.test(value), "Remetente SMTP inválido."),
+  timeoutMs: z.coerce.number().int().min(500).max(60_000).default(10_000),
+});
+
 export const webConfigSchema = z.object({
   apiBaseUrl: z.string().url(),
 });
@@ -36,7 +58,61 @@ export const webConfigSchema = z.object({
 export type ApiConfig = z.infer<typeof apiConfigSchema>;
 export type WorkerConfig = z.infer<typeof workerConfigSchema>;
 export type StorageConfig = z.infer<typeof storageConfigSchema>;
+export type SmtpSecurityModeConfig = z.infer<typeof smtpSecurityModeSchema>;
+export type SmtpEnvConfig = z.infer<typeof smtpEnvConfigSchema>;
 export type WebConfig = z.infer<typeof webConfigSchema>;
+
+/**
+ * Parses optional SMTP fallback settings from environment variables.
+ * Returns `null` when `SMTP_HOST` is omitted, because SMTP is strictly optional.
+ */
+export function parseOptionalSmtpEnvConfig(
+  env: Readonly<Record<string, string | undefined>>,
+): SmtpEnvConfig | null {
+  const host = env.SMTP_HOST?.trim();
+  if (!host) {
+    return null;
+  }
+
+  const secureRaw = env.SMTP_SECURE?.trim().toLowerCase();
+  const explicitMode = env.SMTP_SECURITY_MODE?.trim().toUpperCase();
+  const inferredMode =
+    explicitMode === "NONE" || explicitMode === "STARTTLS" || explicitMode === "TLS"
+      ? explicitMode
+      : secureRaw === "true"
+        ? "TLS"
+        : "STARTTLS";
+
+  const username = env.SMTP_USER?.trim();
+  const password = env.SMTP_PASS;
+
+  return smtpEnvConfigSchema.parse({
+    host,
+    port: env.SMTP_PORT,
+    securityMode: inferredMode,
+    username: username && username.length > 0 ? username : undefined,
+    password: password !== undefined && password.length > 0 ? password : undefined,
+    from: env.SMTP_FROM,
+    timeoutMs: env.SMTP_TIMEOUT_MS,
+  });
+}
+
+export function getSafeSmtpConfigSummary(
+  config: SmtpEnvConfig | null,
+): Readonly<Record<string, unknown>> {
+  if (!config) {
+    return { enabled: false };
+  }
+  return {
+    enabled: true,
+    host: config.host,
+    port: config.port,
+    securityMode: config.securityMode,
+    from: config.from,
+    authConfigured: Boolean(config.username && config.password),
+    timeoutMs: config.timeoutMs,
+  };
+}
 
 export function parseApiConfig(env: Readonly<Record<string, string | undefined>>): ApiConfig {
   return apiConfigSchema.parse({
