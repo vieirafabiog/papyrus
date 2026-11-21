@@ -13,7 +13,7 @@ import {
   uuid,
   varchar,
 } from "drizzle-orm/pg-core";
-import { documents, documentVersions } from "./documents.js";
+import { documentVersions, documents } from "./documents.js";
 import { organizations, users } from "./identity.js";
 
 export const workflowInstanceStatusEnum = pgEnum("workflow_instance_status", [
@@ -40,11 +40,7 @@ export const workflowDecisionTypeEnum = pgEnum("workflow_decision_type", [
   "REQUEST_CHANGES",
 ]);
 
-export const workflowAssigneeTypeEnum = pgEnum("workflow_assignee_type", [
-  "USER",
-  "GROUP",
-  "ROLE",
-]);
+export const workflowAssigneeTypeEnum = pgEnum("workflow_assignee_type", ["USER", "GROUP", "ROLE"]);
 
 export const notificationChannelEnum = pgEnum("notification_channel", ["INTERNAL", "EMAIL"]);
 
@@ -208,6 +204,8 @@ export const notifications = pgTable(
       .notNull()
       .references(() => users.id, { onDelete: "restrict" }),
     channel: notificationChannelEnum("channel").notNull().default("INTERNAL"),
+    kind: varchar("kind", { length: 64 }).notNull().default("TASK_ASSIGNED"),
+    idempotencyKey: varchar("idempotency_key", { length: 255 }),
     title: varchar("title", { length: 200 }).notNull(),
     body: text("body").notNull(),
     resourceType: varchar("resource_type", { length: 64 }),
@@ -221,6 +219,12 @@ export const notifications = pgTable(
       table.recipientUserId,
       table.readAt,
       table.createdAt,
+    ),
+    uniqueIndex("notifications_org_channel_recipient_idem_unique").on(
+      table.organizationId,
+      table.channel,
+      table.recipientUserId,
+      table.idempotencyKey,
     ),
   ],
 );

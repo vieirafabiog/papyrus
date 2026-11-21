@@ -20,6 +20,7 @@ import { type MouseEvent, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { SESSION_QUERY_KEY, useSessionQuery } from "../app/session.js";
 import { GlobalSearch } from "../components/GlobalSearch.js";
+import { NotificationBell } from "../components/NotificationBell.js";
 
 export interface AppHeaderProps {
   readonly desktopCollapsed: boolean;
@@ -122,6 +123,8 @@ export function AppHeader({
           <Box sx={{ flexGrow: 1, display: "flex", justifyContent: "flex-end", mr: 1 }}>
             {session ? <GlobalSearch /> : null}
           </Box>
+
+          {session ? <NotificationBell /> : null}
 
           {session ? (
             <Box>

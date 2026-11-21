@@ -37,6 +37,7 @@ export {
 } from "./repositories/document-search.js";
 export { createFolderRepository } from "./repositories/folder-repository.js";
 export { createGroupRepository } from "./repositories/group-repository.js";
+export { createInAppNotificationRepository } from "./repositories/notification-repository.js";
 export {
   type ClaimOutboxJobOptions,
   createOutboxRepository,

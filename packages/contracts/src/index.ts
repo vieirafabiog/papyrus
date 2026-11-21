@@ -235,6 +235,21 @@ export {
 } from "./folder.schema.js";
 
 export {
+  type NotificationChannelContract,
+  notificationChannelSchema,
+  type NotificationDetailResponse,
+  notificationDetailResponseSchema,
+  type NotificationItem,
+  notificationItemSchema,
+  type NotificationKindContract,
+  notificationKindSchema,
+  type NotificationListQuery,
+  notificationListQuerySchema,
+  type NotificationListResponse,
+  notificationListResponseSchema,
+} from "./notification.schema.js";
+
+export {
   type AttachDocumentTagInput,
   attachDocumentTagInputSchema,
   type CreateTagInput,

@@ -27,6 +27,7 @@ import type {
   UploadSessionService,
   UserAdministrationService,
 } from "@docuflow/domain";
+import type { InAppNotificationService } from "@docuflow/notifications";
 import type { StorageProviderRegistry } from "@docuflow/storage-core";
 import type { S3EndpointSecurityPolicy } from "@docuflow/storage-s3";
 import cookie from "@fastify/cookie";
@@ -41,6 +42,7 @@ import { registerDocumentPreviewRoutes } from "./modules/documents/preview.route
 import { registerDocumentSearchRoutes } from "./modules/documents/search.routes.js";
 import { registerFolderRoutes } from "./modules/folders/folders.routes.js";
 import { registerGroupRoutes } from "./modules/groups/groups.routes.js";
+import { registerNotificationRoutes } from "./modules/notifications/index.js";
 import { registerSetupRoutes } from "./modules/setup/setup.routes.js";
 import type { SetupService } from "./modules/setup/setup.service.js";
 import { registerStorageRoutes } from "./modules/storage/storage.routes.js";
@@ -127,6 +129,7 @@ export interface AppOptions {
         readonly now?: (() => Date) | undefined;
       }
     | undefined;
+  readonly notificationService?: InAppNotificationService | undefined;
   readonly secureCookies?: boolean | undefined;
   readonly security?: Partial<SecurityPluginOptions> | undefined;
 }
@@ -155,7 +158,7 @@ export function buildApp(options: AppOptions = {}): FastifyInstance {
     genReqId: () => randomUUID(),
   });
 
-  const secureCookies = options.secureCookies ?? process.env["NODE_ENV"] === "production";
+  const secureCookies = options.secureCookies ?? process.env.NODE_ENV === "production";
 
   void app.register(cookie);
   app.after(() => {
@@ -346,6 +349,16 @@ export function buildApp(options: AppOptions = {}): FastifyInstance {
           guard: taskGuard,
           taskInboxRepository: taskDeps.taskInboxRepository,
           now: taskDeps.now,
+        });
+      });
+    }
+
+    if (options.notificationService) {
+      const notificationService = options.notificationService;
+      void app.register(async (instance) => {
+        await registerNotificationRoutes(instance, {
+          authService,
+          notificationService,
         });
       });
     }

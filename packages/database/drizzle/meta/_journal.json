@@ -15,6 +15,13 @@
       "when": 1795280253323,
       "tag": "0001_lean_carlie_cooper",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1795284813680,
+      "tag": "0002_cheerful_hercules",
+      "breakpoints": true
     }
   ]
 }

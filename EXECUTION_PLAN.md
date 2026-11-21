@@ -812,7 +812,7 @@ docuflow/
   - **Ação:** Exibir etapas, responsáveis, decisões e horários de forma somente leitura para usuários autorizados.
   - **Verificação:** `pnpm --filter @docuflow/web test`.
 
-- [ ] **Step 12.09 — Implementar notificações internas**
+- [x] **Step 12.09 — Implementar notificações internas**
   - **Arquivos:** `packages/notifications/src/in-app/*`, API e UI
   - **Ação:** Criar notificações para tarefas atribuídas, decisões e vencimentos; leitura individual e idempotência.
   - **Verificação:** `pnpm --filter @docuflow/notifications test` e `pnpm --filter @docuflow/api test:integration`.

@@ -202,6 +202,9 @@ importers:
       '@docuflow/domain':
         specifier: workspace:*
         version: link:../../packages/domain
+      '@docuflow/notifications':
+        specifier: workspace:*
+        version: link:../../packages/notifications
       '@docuflow/storage-core':
         specifier: workspace:*
         version: link:../../packages/storage-core
@@ -364,6 +367,9 @@ importers:
       '@docuflow/domain':
         specifier: workspace:*
         version: link:../domain
+      '@docuflow/notifications':
+        specifier: workspace:*
+        version: link:../notifications
       drizzle-orm:
         specifier: ^0.41.0
         version: 0.41.0(@types/pg@8.23.1)(gel@2.2.1)(pg@8.23.1)
