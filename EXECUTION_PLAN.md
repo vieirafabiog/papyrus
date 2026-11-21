@@ -733,7 +733,7 @@ docuflow/
   - **Ação:** Pesquisar título/nome e navegar para resultados autorizados, com debounce, cancelamento de requisição e estado vazio.
   - **Verificação:** `pnpm --filter @docuflow/web test`.
 
-- [ ] **Step 11.04 — Implementar filtros e tabela de documentos**
+- [x] **Step 11.04 — Implementar filtros e tabela de documentos**
   - **Arquivos:** `apps/web/src/features/documents/DocumentListPage.tsx`, componentes
   - **Ação:** Exibir filtros por categoria, pasta, status, responsável e vencimento; paginação e ordenação controladas pela API.
   - **Verificação:** `pnpm --filter @docuflow/web test`.
