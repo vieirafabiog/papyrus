@@ -19,6 +19,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { type MouseEvent, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { SESSION_QUERY_KEY, useSessionQuery } from "../app/session.js";
+import { GlobalSearch } from "../components/GlobalSearch.js";
 
 export interface AppHeaderProps {
   readonly desktopCollapsed: boolean;
@@ -110,9 +111,17 @@ export function AppHeader({
             <MenuIcon />
           </IconButton>
 
-          <Typography variant="subtitle1" component="span" sx={{ flexGrow: 1 }}>
+          <Typography
+            variant="subtitle1"
+            component="span"
+            sx={{ display: { xs: "none", sm: "inline" }, mr: 2 }}
+          >
             Gestão Eletrônica de Documentos
           </Typography>
+
+          <Box sx={{ flexGrow: 1, display: "flex", justifyContent: "flex-end", mr: 1 }}>
+            {session ? <GlobalSearch /> : null}
+          </Box>
 
           {session ? (
             <Box>
@@ -142,10 +151,7 @@ export function AppHeader({
                     {session.user.email}
                   </Typography>
                 </Box>
-                <MenuItem
-                  onClick={() => void handleLogout()}
-                  disabled={isLoggingOut}
-                >
+                <MenuItem onClick={() => void handleLogout()} disabled={isLoggingOut}>
                   <ListItemIcon>
                     <LogoutOutlinedIcon fontSize="small" />
                   </ListItemIcon>

@@ -728,7 +728,7 @@ docuflow/
   - **Ação:** Validar filtros, paginação, ordenação e escopo; aplicar permissão antes de contagens e resultados.
   - **Verificação:** `pnpm --filter @docuflow/api test:integration`.
 
-- [ ] **Step 11.03 — Implementar barra de busca global**
+- [x] **Step 11.03 — Implementar barra de busca global**
   - **Arquivos:** `apps/web/src/components/GlobalSearch.tsx`
   - **Ação:** Pesquisar título/nome e navegar para resultados autorizados, com debounce, cancelamento de requisição e estado vazio.
   - **Verificação:** `pnpm --filter @docuflow/web test`.
