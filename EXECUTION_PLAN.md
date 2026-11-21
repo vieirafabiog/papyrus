@@ -826,7 +826,7 @@ docuflow/
 
 # PHASE 13 — AUDITORIA, VENCIMENTOS E RETENÇÃO
 
-- [ ] **Step 13.01 — Implementar writer central de auditoria**
+- [x] **Step 13.01 — Implementar writer central de auditoria**
   - **Arquivos:** `packages/domain/src/audit/audit-writer.ts`
   - **Ação:** Criar evento mínimo e append-only dentro da transação de negócio quando aplicável. Redigir segredos e dados excessivos.
   - **Verificação:** `pnpm --filter @docuflow/domain test`.

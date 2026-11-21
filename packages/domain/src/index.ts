@@ -116,6 +116,21 @@ export {
   restoreHistoricalVersion,
 } from "./documents/versioning.js";
 
+export {
+  type AuditWriter,
+  type AuditWriterDependencies,
+  buildMinimalAuditEvent,
+  createAuditWriter,
+  MAX_AUDIT_ACTION_LENGTH,
+  MAX_AUDIT_IP_LENGTH,
+  MAX_AUDIT_METADATA_KEYS,
+  MAX_AUDIT_METADATA_STRING_LENGTH,
+  MAX_AUDIT_RESOURCE_TYPE_LENGTH,
+  redactSensitiveAuditString,
+  sanitizeAuditMetadata,
+  type WriteAuditEventInput,
+} from "./audit/audit-writer.js";
+
 export type {
   AuditEventInput,
   AuditEventRecord,

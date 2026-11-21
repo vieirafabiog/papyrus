@@ -13,6 +13,7 @@ export interface AuditEventInput {
   readonly resourceId: string | null;
   readonly result: AuditResult;
   readonly requestId: string;
+  readonly ipAddress?: string | null | undefined;
   readonly metadata?: Readonly<Record<string, AuditMetadataValue>> | undefined;
 }
 

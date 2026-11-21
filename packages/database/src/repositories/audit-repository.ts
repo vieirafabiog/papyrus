@@ -7,9 +7,9 @@ import type {
   PaginatedResult,
   TransactionContext,
 } from "@docuflow/domain";
-import { and, count, desc, eq, type SQL } from "drizzle-orm";
+import { type SQL, and, count, desc, eq } from "drizzle-orm";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
-import { auditEvents, type AuditMetadataJson } from "../schema/governance.js";
+import { type AuditMetadataJson, auditEvents } from "../schema/governance.js";
 import { resolveDbExecutor } from "./transaction-manager.js";
 
 function toAuditEventRecord(row: typeof auditEvents.$inferSelect): AuditEventRecord {
@@ -23,6 +23,7 @@ function toAuditEventRecord(row: typeof auditEvents.$inferSelect): AuditEventRec
     resourceId: row.resourceId,
     result: row.result,
     requestId: row.requestId,
+    ipAddress: row.ipAddress,
     metadata: row.metadata,
   };
 }
@@ -54,6 +55,7 @@ export function createAuditRepository(db: NodePgDatabase): AuditRepositoryPort {
           resourceId: event.resourceId,
           result: event.result,
           requestId: event.requestId,
+          ...(event.ipAddress !== undefined ? { ipAddress: event.ipAddress } : {}),
           metadata: toMutableAuditMetadata(event.metadata),
         })
         .returning();
