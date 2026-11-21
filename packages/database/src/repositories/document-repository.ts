@@ -13,17 +13,26 @@ import type {
   TransactionContext,
   UpdateDocumentInput,
 } from "@docuflow/domain";
-import { and, asc, count, desc, eq, ilike, ne, type SQL } from "drizzle-orm";
+import { type SQL, and, asc, count, desc, eq, ilike, ne } from "drizzle-orm";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 import {
   type DocumentMetadataColumnValue,
-  documents,
   documentVersions,
+  documents,
 } from "../schema/documents.js";
 import { resolveDbExecutor } from "./transaction-manager.js";
 
 const ALLOWED_DOCUMENT_SORT_COLUMNS: Readonly<
-  Record<DocumentSortField, typeof documents.title | typeof documents.status | typeof documents.issueDate | typeof documents.expirationDate | typeof documents.createdAt | typeof documents.updatedAt | typeof documents.id>
+  Record<
+    DocumentSortField,
+    | typeof documents.title
+    | typeof documents.status
+    | typeof documents.issueDate
+    | typeof documents.expirationDate
+    | typeof documents.createdAt
+    | typeof documents.updatedAt
+    | typeof documents.id
+  >
 > = {
   title: documents.title,
   status: documents.status,
@@ -104,7 +113,8 @@ export function createDocumentRepository(db: NodePgDatabase): DocumentRepository
       const whereClause = and(...conditions);
       const sortColumn = ALLOWED_DOCUMENT_SORT_COLUMNS[filter.sortBy];
       const primaryOrder = filter.sortDirection === "asc" ? asc(sortColumn) : desc(sortColumn);
-      const tiebreakerOrder = filter.sortDirection === "asc" ? asc(documents.id) : desc(documents.id);
+      const tiebreakerOrder =
+        filter.sortDirection === "asc" ? asc(documents.id) : desc(documents.id);
 
       const offset = (filter.page - 1) * filter.pageSize;
 
@@ -236,9 +246,7 @@ export function createDocumentRepository(db: NodePgDatabase): DocumentRepository
   };
 }
 
-export function createDocumentVersionRepository(
-  db: NodePgDatabase,
-): DocumentVersionRepositoryPort {
+export function createDocumentVersionRepository(db: NodePgDatabase): DocumentVersionRepositoryPort {
   return {
     async findById(id: string, tx?: TransactionContext): Promise<DocumentVersionEntity | null> {
       const executor = resolveDbExecutor(db, tx);
@@ -246,6 +254,19 @@ export function createDocumentVersionRepository(
         .select()
         .from(documentVersions)
         .where(eq(documentVersions.id, id))
+        .limit(1);
+      return row ? toDocumentVersionEntity(row) : null;
+    },
+
+    async findByFileObjectId(
+      fileObjectId: string,
+      tx?: TransactionContext,
+    ): Promise<DocumentVersionEntity | null> {
+      const executor = resolveDbExecutor(db, tx);
+      const [row] = await executor
+        .select()
+        .from(documentVersions)
+        .where(eq(documentVersions.fileObjectId, fileObjectId))
         .limit(1);
       return row ? toDocumentVersionEntity(row) : null;
     },
@@ -264,8 +285,12 @@ export function createDocumentVersionRepository(
       return row ? toDocumentVersionEntity(row) : null;
     },
 
-    async listByDocumentId(documentId: string): Promise<readonly DocumentVersionEntity[]> {
-      const rows = await db
+    async listByDocumentId(
+      documentId: string,
+      tx?: TransactionContext,
+    ): Promise<readonly DocumentVersionEntity[]> {
+      const executor = resolveDbExecutor(db, tx);
+      const rows = await executor
         .select()
         .from(documentVersions)
         .where(eq(documentVersions.documentId, documentId))

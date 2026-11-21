@@ -91,10 +91,20 @@ export interface CreateDocumentVersionInput {
 
 export interface DocumentVersionRepositoryPort {
   findById(id: string, tx?: TransactionContext): Promise<DocumentVersionEntity | null>;
+  findByFileObjectId(
+    fileObjectId: string,
+    tx?: TransactionContext,
+  ): Promise<DocumentVersionEntity | null>;
   findLatestByDocumentId(
     documentId: string,
     tx?: TransactionContext,
   ): Promise<DocumentVersionEntity | null>;
-  listByDocumentId(documentId: string): Promise<readonly DocumentVersionEntity[]>;
-  create(input: CreateDocumentVersionInput, tx?: TransactionContext): Promise<DocumentVersionEntity>;
+  listByDocumentId(
+    documentId: string,
+    tx?: TransactionContext,
+  ): Promise<readonly DocumentVersionEntity[]>;
+  create(
+    input: CreateDocumentVersionInput,
+    tx?: TransactionContext,
+  ): Promise<DocumentVersionEntity>;
 }

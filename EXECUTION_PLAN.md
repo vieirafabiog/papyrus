@@ -605,7 +605,7 @@ docuflow/
   - **Ação:** Emitir destino temporário apenas para upload session autorizada; exigir finalização na API.
   - **Verificação:** `pnpm --filter @docuflow/api test:integration`.
 
-- [ ] **Step 09.04 — Implementar finalização idempotente de upload**
+- [x] **Step 09.04 — Implementar finalização idempotente de upload**
   - **Arquivos:** `packages/domain/src/uploads/finalize-upload.ts`, testes
   - **Ação:** Verificar objeto, tamanho e checksum antes de marcar como quarentena; repetição da mesma finalização não pode criar versões duplicadas.
   - **Verificação:** `pnpm --filter @docuflow/domain test`.

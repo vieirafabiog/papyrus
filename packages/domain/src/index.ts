@@ -146,12 +146,25 @@ export type {
 export {
   type CreatedUploadSessionRecords,
   type CreateUploadSessionWithFileObjectInput,
+  type FinalizeUploadToQuarantineInput,
   type MarkUploadReceivedInput,
   UPLOAD_SESSION_STATUSES,
   type UploadSessionEntity,
   type UploadSessionRepositoryPort,
   type UploadSessionStatus,
 } from "./ports/upload-session-repository.port.js";
+
+export {
+  createFinalizeUploadService,
+  type FinalizeUploadCommand,
+  type FinalizeUploadResult,
+  type FinalizeUploadService,
+  type FinalizeUploadServiceDependencies,
+  type UploadObjectVerifierPort,
+  type UploadProcessingEnqueueInput,
+  type UploadProcessingQueuePort,
+  type VerifiedUploadedObject,
+} from "./uploads/finalize-upload.js";
 
 export {
   type CreateUploadSessionCommand,

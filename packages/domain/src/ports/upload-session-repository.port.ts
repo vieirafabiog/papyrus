@@ -55,6 +55,14 @@ export interface MarkUploadReceivedInput {
   readonly checksumSha256: string;
 }
 
+export interface FinalizeUploadToQuarantineInput {
+  readonly sessionId: string;
+  readonly fileObjectId: string;
+  readonly sizeBytes: number;
+  readonly checksumSha256: string;
+  readonly finalizedAt: Date;
+}
+
 export interface UploadSessionRepositoryPort {
   findById(id: string, tx?: TransactionContext): Promise<UploadSessionEntity | null>;
   findByIdempotencyKey(
@@ -73,6 +81,10 @@ export interface UploadSessionRepositoryPort {
   ): Promise<CreatedUploadSessionRecords>;
   markUploadReceived(
     input: MarkUploadReceivedInput,
+    tx?: TransactionContext,
+  ): Promise<CreatedUploadSessionRecords | null>;
+  finalizeToQuarantine(
+    input: FinalizeUploadToQuarantineInput,
     tx?: TransactionContext,
   ): Promise<CreatedUploadSessionRecords | null>;
   markSessionExpired(sessionId: string, tx?: TransactionContext): Promise<void>;

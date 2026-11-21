@@ -2,12 +2,14 @@ import type {
   CreateUploadSessionWithFileObjectInput,
   CreatedUploadSessionRecords,
   FileObjectEntity,
+  FinalizeUploadToQuarantineInput,
   MarkUploadReceivedInput,
   TransactionContext,
   UploadSessionEntity,
   UploadSessionRepositoryPort,
+  UploadSessionStatus,
 } from "@docuflow/domain";
-import { and, eq } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 import { fileObjects, uploadSessions } from "../schema/storage.js";
 import { resolveDbExecutor } from "./transaction-manager.js";
@@ -145,40 +147,30 @@ export function createUploadSessionRepository(db: NodePgDatabase): UploadSession
       input: MarkUploadReceivedInput,
       tx?: TransactionContext,
     ): Promise<CreatedUploadSessionRecords | null> {
-      const executor = resolveDbExecutor(db, tx);
-      const now = new Date();
+      return transitionSessionAndFileObject(resolveDbExecutor(db, tx), {
+        sessionId: input.sessionId,
+        allowedStatuses: ["PENDING"],
+        nextSessionStatus: "UPLOADED",
+        fileObjectId: input.fileObjectId,
+        sizeBytes: input.sizeBytes,
+        checksumSha256: input.checksumSha256,
+      });
+    },
 
-      const [updatedSession] = await executor
-        .update(uploadSessions)
-        .set({
-          status: "UPLOADED",
-          updatedAt: now,
-        })
-        .where(and(eq(uploadSessions.id, input.sessionId), eq(uploadSessions.status, "PENDING")))
-        .returning();
-
-      if (!updatedSession) {
-        return null;
-      }
-
-      const [updatedFileObject] = await executor
-        .update(fileObjects)
-        .set({
-          sizeBytes: input.sizeBytes,
-          checksumSha256: input.checksumSha256,
-          updatedAt: now,
-        })
-        .where(eq(fileObjects.id, input.fileObjectId))
-        .returning();
-
-      if (!updatedFileObject) {
-        throw new Error("Failed to update file object checksum after upload.");
-      }
-
-      return {
-        session: toUploadSessionEntity(updatedSession),
-        fileObject: toFileObjectEntity(updatedFileObject),
-      };
+    async finalizeToQuarantine(
+      input: FinalizeUploadToQuarantineInput,
+      tx?: TransactionContext,
+    ): Promise<CreatedUploadSessionRecords | null> {
+      return transitionSessionAndFileObject(resolveDbExecutor(db, tx), {
+        sessionId: input.sessionId,
+        allowedStatuses: ["PENDING", "UPLOADED"],
+        nextSessionStatus: "FINALIZED",
+        finalizedAt: input.finalizedAt,
+        fileObjectId: input.fileObjectId,
+        sizeBytes: input.sizeBytes,
+        checksumSha256: input.checksumSha256,
+        nextFileObjectStatus: "QUARANTINED",
+      });
     },
 
     async markSessionExpired(sessionId: string, tx?: TransactionContext): Promise<void> {
@@ -188,5 +180,59 @@ export function createUploadSessionRepository(db: NodePgDatabase): UploadSession
         .set({ status: "EXPIRED", updatedAt: new Date() })
         .where(and(eq(uploadSessions.id, sessionId), eq(uploadSessions.status, "PENDING")));
     },
+  };
+}
+
+async function transitionSessionAndFileObject(
+  executor: ReturnType<typeof resolveDbExecutor>,
+  params: {
+    readonly sessionId: string;
+    readonly allowedStatuses: readonly UploadSessionStatus[];
+    readonly nextSessionStatus: UploadSessionStatus;
+    readonly finalizedAt?: Date | undefined;
+    readonly fileObjectId: string;
+    readonly sizeBytes: number;
+    readonly checksumSha256: string;
+    readonly nextFileObjectStatus?: "QUARANTINED" | undefined;
+  },
+): Promise<CreatedUploadSessionRecords | null> {
+  const now = new Date();
+  const [updatedSession] = await executor
+    .update(uploadSessions)
+    .set({
+      status: params.nextSessionStatus,
+      ...(params.finalizedAt ? { finalizedAt: params.finalizedAt } : {}),
+      updatedAt: now,
+    })
+    .where(
+      and(
+        eq(uploadSessions.id, params.sessionId),
+        inArray(uploadSessions.status, [...params.allowedStatuses]),
+      ),
+    )
+    .returning();
+
+  if (!updatedSession) {
+    return null;
+  }
+
+  const [updatedFileObject] = await executor
+    .update(fileObjects)
+    .set({
+      sizeBytes: params.sizeBytes,
+      checksumSha256: params.checksumSha256,
+      ...(params.nextFileObjectStatus ? { status: params.nextFileObjectStatus } : {}),
+      updatedAt: now,
+    })
+    .where(eq(fileObjects.id, params.fileObjectId))
+    .returning();
+
+  if (!updatedFileObject) {
+    throw new Error("Failed to update file object record during upload state transition.");
+  }
+
+  return {
+    session: toUploadSessionEntity(updatedSession),
+    fileObject: toFileObjectEntity(updatedFileObject),
   };
 }
