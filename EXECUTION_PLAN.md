@@ -748,7 +748,7 @@ docuflow/
   - **Ação:** Renderizar formatos de imagem permitidos, respeitando tamanho e autorização; outros formatos devem oferecer download.
   - **Verificação:** `pnpm --filter @docuflow/web test`.
 
-- [ ] **Step 11.07 — Implementar download autorizado**
+- [x] **Step 11.07 — Implementar download autorizado**
   - **Arquivos:** `apps/api/src/modules/documents/download.routes.ts`
   - **Ação:** Verificar usuário, documento, versão, estado do arquivo e provider; usar URL assinada curta ou streaming pela API.
   - **Verificação:** `pnpm --filter @docuflow/api test:security`.

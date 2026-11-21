@@ -30,6 +30,7 @@ import { registerAuthRoutes } from "./modules/auth/auth.routes.js";
 import type { AuthService } from "./modules/auth/auth.service.js";
 import { registerCategoryRoutes } from "./modules/categories/categories.routes.js";
 import { registerDocumentRoutes } from "./modules/documents/documents.routes.js";
+import { registerDocumentDownloadRoutes } from "./modules/documents/download.routes.js";
 import { registerDocumentPreviewRoutes } from "./modules/documents/preview.routes.js";
 import { registerDocumentSearchRoutes } from "./modules/documents/search.routes.js";
 import { registerFolderRoutes } from "./modules/folders/folders.routes.js";
@@ -213,6 +214,14 @@ export function buildApp(options: AppOptions = {}): FastifyInstance {
           documentDeps.storageConnections &&
           documentDeps.storageRegistry
         ) {
+          await registerDocumentDownloadRoutes(instance, {
+            guard,
+            documentVersionRepository: documentDeps.documentVersionRepository,
+            uploadRepository: documentDeps.uploadRepository,
+            storageConnections: documentDeps.storageConnections,
+            storageRegistry: documentDeps.storageRegistry,
+            auditRepository: documentDeps.auditRepository,
+          });
           await registerDocumentPreviewRoutes(instance, {
             guard,
             documentVersionRepository: documentDeps.documentVersionRepository,
