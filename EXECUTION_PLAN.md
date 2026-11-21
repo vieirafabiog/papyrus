@@ -861,7 +861,7 @@ docuflow/
   - **Ação:** Restaurar documento enquanto permitido, preservando histórico e permissões; registrar auditoria.
   - **Verificação:** `pnpm --filter @docuflow/api test:integration`.
 
-- [ ] **Step 13.08 — Implementar expurgo físico seguro**
+- [x] **Step 13.08 — Implementar expurgo físico seguro**
   - **Arquivos:** `apps/worker/src/jobs/purge-deleted-documents.ts`
   - **Ação:** Verificar janela de retenção, hold, referências e estado; marcar operação pendente, apagar objeto e reconciliar. Falha deve ser repetível.
   - **Verificação:** `pnpm --filter @docuflow/worker test:integration`.

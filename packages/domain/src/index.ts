@@ -443,6 +443,13 @@ export {
 } from "./workflows/start-workflow.js";
 
 export type {
+  ClaimPurgeDocumentOutcome,
+  DocumentPurgeStorePort,
+  PurgeCandidateRecord,
+  PurgeStorageDeletionTarget,
+} from "./ports/document-purge.port.js";
+
+export type {
   CreateDocumentRetentionHoldInput,
   CreateRetentionPolicyInput,
   DocumentRetentionHoldRepositoryPort,

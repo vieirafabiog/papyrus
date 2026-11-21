@@ -68,6 +68,7 @@ export {
   createDocumentRetentionHoldRepository,
   createRetentionPolicyRepository,
 } from "./repositories/retention-repository.js";
+export { createDocumentPurgeRepository } from "./repositories/document-purge-repository.js";
 export {
   createStorageConnectionRepository,
   createStorageRoutingRuleRepository,
