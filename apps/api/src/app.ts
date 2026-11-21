@@ -22,6 +22,7 @@ import type {
   GroupAdministrationService,
   MoveDocumentService,
   PermissionAdministrationService,
+  RetentionGovernanceService,
   StorageConnectionAdminService,
   StorageConnectionRepositoryPort,
   TagService,
@@ -35,10 +36,10 @@ import type { StorageProviderRegistry } from "@docuflow/storage-core";
 import type { S3EndpointSecurityPolicy } from "@docuflow/storage-s3";
 import cookie from "@fastify/cookie";
 import Fastify, { type FastifyInstance } from "fastify";
+import { registerPermissionRoutes } from "./modules/access/permissions.routes.js";
 import { registerAuditRoutes } from "./modules/audit/audit.routes.js";
 import { registerAuthRoutes } from "./modules/auth/auth.routes.js";
 import type { AuthService } from "./modules/auth/auth.service.js";
-import { registerPermissionRoutes } from "./modules/access/permissions.routes.js";
 import { registerCategoryRoutes } from "./modules/categories/categories.routes.js";
 import { registerDashboardRoutes } from "./modules/dashboard/dashboard.routes.js";
 import { registerDocumentRoutes } from "./modules/documents/documents.routes.js";
@@ -49,6 +50,7 @@ import { registerDocumentSearchRoutes } from "./modules/documents/search.routes.
 import { registerFolderRoutes } from "./modules/folders/folders.routes.js";
 import { registerGroupRoutes } from "./modules/groups/groups.routes.js";
 import { registerNotificationRoutes } from "./modules/notifications/index.js";
+import { registerRetentionRoutes } from "./modules/retention/retention.routes.js";
 import { registerSetupRoutes } from "./modules/setup/setup.routes.js";
 import type { SetupService } from "./modules/setup/setup.service.js";
 import { registerStorageRoutes } from "./modules/storage/storage.routes.js";
@@ -145,6 +147,13 @@ export interface AppOptions {
         readonly authzRepository: AuthorizationRepository;
         readonly auditRepository: AuditRepositoryPort;
         readonly now?: (() => Date) | undefined;
+      }
+    | undefined;
+  readonly retentionDeps?:
+    | {
+        readonly authzRepository: AuthorizationRepository;
+        readonly retentionService: RetentionGovernanceService;
+        readonly documentRepository?: DocumentRepositoryPort | undefined;
       }
     | undefined;
   readonly notificationService?: InAppNotificationService | undefined;
@@ -415,6 +424,28 @@ export function buildApp(options: AppOptions = {}): FastifyInstance {
           authzRepository: resolvedAuditAuthzRepo,
           auditRepository: resolvedAuditRepo,
           now: auditNow,
+        });
+      });
+    }
+
+    if (options.retentionDeps) {
+      const retentionDeps = options.retentionDeps;
+      const retentionDocRepo =
+        retentionDeps.documentRepository ?? options.documentDeps?.documentRepository;
+      const retentionDocGuard = retentionDocRepo
+        ? createDocumentAuthorizationGuard({
+            authService,
+            authzRepository: retentionDeps.authzRepository,
+            documentRepository: retentionDocRepo,
+            auditRepository: options.auditRepository ?? options.documentDeps?.auditRepository,
+          })
+        : undefined;
+      void app.register(async (instance) => {
+        await registerRetentionRoutes(instance, {
+          authService,
+          authzRepository: retentionDeps.authzRepository,
+          retentionService: retentionDeps.retentionService,
+          documentGuard: retentionDocGuard,
         });
       });
     }

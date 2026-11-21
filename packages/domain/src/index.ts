@@ -433,6 +433,44 @@ export {
   type StartWorkflowServiceDependencies,
 } from "./workflows/start-workflow.js";
 
+export type {
+  CreateDocumentRetentionHoldInput,
+  CreateRetentionPolicyInput,
+  DocumentRetentionHoldRepositoryPort,
+  ReleaseDocumentRetentionHoldInput,
+  RetentionPolicyRepositoryPort,
+  UpdateRetentionPolicyInput,
+} from "./ports/retention-repository.port.js";
+
+export {
+  type DocumentRetentionHoldEntity,
+  PURGE_BLOCK_REASONS,
+  type PurgeBlockReason,
+  type PurgeEligibilityEvaluation,
+  RETENTION_ACTIONS,
+  type RetentionAction,
+  type RetentionPolicyEntity,
+} from "./retention/retention.types.js";
+
+export {
+  type CheckDocumentPurgeInput,
+  type CreateRetentionPolicyCommand,
+  createRetentionGovernanceService,
+  DEFAULT_TRASH_GRACE_DAYS,
+  type EvaluatePurgeInput,
+  evaluateDocumentPurgeEligibility,
+  MAX_HOLD_REASON_LENGTH,
+  MAX_RETENTION_DAYS,
+  MAX_RETENTION_POLICY_NAME_LENGTH,
+  MAX_TRASH_GRACE_DAYS,
+  type PlaceDocumentHoldCommand,
+  type ReleaseDocumentHoldCommand,
+  type RetentionGovernanceDependencies,
+  type RetentionGovernanceService,
+  selectApplicableRetentionPolicy,
+  type UpdateRetentionPolicyCommand,
+} from "./retention/retention-service.js";
+
 export {
   calculateStepDueAt,
   cloneAndValidateWorkflowAssignee,

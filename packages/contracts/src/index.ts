@@ -312,6 +312,29 @@ export {
 } from "./tag.schema.js";
 
 export {
+  type CreateRetentionPolicyRequestContract,
+  createRetentionPolicyRequestSchema,
+  type DocumentRetentionHoldContract,
+  documentRetentionHoldResponseSchema,
+  documentRetentionHoldSchema,
+  documentRetentionHoldsStateResponseSchema,
+  type PlaceDocumentHoldRequestContract,
+  placeDocumentHoldRequestSchema,
+  type PurgeEligibilityContract,
+  purgeEligibilitySchema,
+  type ReleaseDocumentHoldRequestContract,
+  releaseDocumentHoldRequestSchema,
+  type RetentionActionContract,
+  retentionActionSchema,
+  retentionPolicyListResponseSchema,
+  type RetentionPolicyRecordContract,
+  retentionPolicyRecordSchema,
+  retentionPolicyResponseSchema,
+  type UpdateRetentionPolicyRequestContract,
+  updateRetentionPolicyRequestSchema,
+} from "./retention.schema.js";
+
+export {
   type DocumentWorkflowTimelineInstance,
   documentWorkflowTimelineInstanceSchema,
   type DocumentWorkflowTimelineResponse,

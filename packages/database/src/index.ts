@@ -58,6 +58,10 @@ export {
   UPLOAD_PROCESSING_EVENT_TYPE,
 } from "./repositories/outbox-repository.js";
 export {
+  createDocumentRetentionHoldRepository,
+  createRetentionPolicyRepository,
+} from "./repositories/retention-repository.js";
+export {
   createStorageConnectionRepository,
   createStorageRoutingRuleRepository,
 } from "./repositories/storage-connection-repository.js";

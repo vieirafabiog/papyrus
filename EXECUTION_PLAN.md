@@ -851,7 +851,7 @@ docuflow/
   - **Ação:** Agendar notificações com idempotência para evitar alertas duplicados em retries e mudanças de data.
   - **Verificação:** `pnpm --filter @docuflow/worker test`.
 
-- [ ] **Step 13.06 — Implementar políticas de retenção e holds**
+- [x] **Step 13.06 — Implementar políticas de retenção e holds**
   - **Arquivos:** domínio, database e API de retenção
   - **Ação:** Permitir regras configuráveis e bloqueio de expurgo por hold. Não fornecer prazos legais universais pré-cadastrados como orientação jurídica.
   - **Verificação:** `pnpm --filter @docuflow/domain test`.
