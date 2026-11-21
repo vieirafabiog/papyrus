@@ -880,7 +880,7 @@ docuflow/
   - **Ação:** Administrar nome, fuso horário, idioma e preferências permitidas da instalação.
   - **Verificação:** `pnpm --filter @docuflow/api test:integration`.
 
-- [ ] **Step 14.02 — Implementar UI de usuários e grupos**
+- [x] **Step 14.02 — Implementar UI de usuários e grupos**
   - **Arquivos:** `apps/web/src/features/admin/UsersPage.tsx`, `GroupsPage.tsx`
   - **Ação:** Criar, editar, desativar, associar e filtrar usuários/grupos conforme permissões.
   - **Verificação:** `pnpm --filter @docuflow/web test`.

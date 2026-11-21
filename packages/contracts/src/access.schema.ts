@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { isoDateTimeSchema, uuidSchema } from "./common.schema.js";
+import { createApiResponseSchema, isoDateTimeSchema, uuidSchema } from "./common.schema.js";
 
 export const accessActionSchema = z.enum([
   "READ",
@@ -132,3 +132,15 @@ export const addGroupMemberRequestSchema = z.object({
   userId: uuidSchema,
 });
 export type AddGroupMemberRequest = z.infer<typeof addGroupMemberRequestSchema>;
+
+export const userListResponseSchema = createApiResponseSchema(z.array(userSummarySchema));
+export type UserListResponse = z.infer<typeof userListResponseSchema>;
+
+export const userResponseSchema = createApiResponseSchema(userSummarySchema);
+export type UserResponse = z.infer<typeof userResponseSchema>;
+
+export const groupListResponseSchema = createApiResponseSchema(z.array(groupSummarySchema));
+export type GroupListResponse = z.infer<typeof groupListResponseSchema>;
+
+export const groupResponseSchema = createApiResponseSchema(groupSummarySchema);
+export type GroupResponse = z.infer<typeof groupResponseSchema>;
