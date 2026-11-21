@@ -1,5 +1,6 @@
 import { Box, Typography } from "@mui/material";
 import { Navigate, Route, Routes } from "react-router-dom";
+import { CategoriesPage } from "../features/admin/CategoriesPage.js";
 import { GroupsPage } from "../features/admin/GroupsPage.js";
 import { OrganizationSettingsPage } from "../features/admin/OrganizationSettingsPage.js";
 import { PermissionsPage } from "../features/admin/PermissionsPage.js";
@@ -74,15 +75,7 @@ export function AppRoutes() {
           <Route path="/lixeira" element={<TrashDocumentsPage />} />
           <Route path="/pastas" element={<FoldersPage />} />
           <Route path="/pastas/:folderId" element={<FoldersPage />} />
-          <Route
-            path="/categorias"
-            element={
-              <RouteSectionView
-                title="Categorias e campos"
-                description="Configuração de tipos documentais e metadados."
-              />
-            }
-          />
+          <Route path="/categorias" element={<CategoriesPage />} />
           <Route path="/etiquetas" element={<TagsPage />} />
           <Route
             path="/fluxos"

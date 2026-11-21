@@ -895,7 +895,7 @@ docuflow/
   - **Ação:** Cadastrar local/S3, editar configurações, testar saúde, mascarar credenciais, escolher destino padrão e regras por categoria.
   - **Verificação:** `pnpm --filter @docuflow/web test`.
 
-- [ ] **Step 14.05 — Implementar UI de categorias e campos**
+- [x] **Step 14.05 — Implementar UI de categorias e campos**
   - **Arquivos:** `apps/web/src/features/admin/CategoriesPage.tsx`, `CategoryEditor.tsx`
   - **Ação:** Gerenciar categoria, campos personalizados, opções e política de storage por categoria.
   - **Verificação:** `pnpm --filter @docuflow/web test`.
