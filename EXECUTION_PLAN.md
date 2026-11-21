@@ -910,7 +910,7 @@ docuflow/
   - **Ação:** Separar liveness e readiness, verificando banco e dependências críticas sem expor detalhes internos publicamente.
   - **Verificação:** `pnpm --filter @docuflow/api test`.
 
-- [ ] **Step 14.08 — Implementar tela de status operacional**
+- [x] **Step 14.08 — Implementar tela de status operacional**
   - **Arquivos:** `apps/web/src/features/admin/SystemStatusPage.tsx`
   - **Ação:** Exibir saúde de banco, worker e conexões de storage para administradores, com horário da última verificação.
   - **Verificação:** `pnpm --filter @docuflow/web test`.

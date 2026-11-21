@@ -471,3 +471,16 @@ export {
   workflowTaskSchema,
   workflowTaskStatusSchema,
 } from "./workflow.schema.js";
+
+export {
+  type AdminSystemStatusReportContract,
+  adminSystemStatusReportSchema,
+  type AdminSystemStatusResponseContract,
+  adminSystemStatusResponseSchema,
+  type OperationalComponentStatusContract,
+  operationalComponentStatusSchema,
+  type OperationalDependencyStateContract,
+  operationalDependencyStateSchema,
+  type OperationalStorageStatusSummaryContract,
+  operationalStorageStatusSummarySchema,
+} from "./health.schema.js";

@@ -13,6 +13,7 @@ import FolderOutlinedIcon from "@mui/icons-material/FolderOutlined";
 import GroupOutlinedIcon from "@mui/icons-material/GroupOutlined";
 import HistoryEduOutlinedIcon from "@mui/icons-material/HistoryEduOutlined";
 import LabelOutlinedIcon from "@mui/icons-material/LabelOutlined";
+import MonitorHeartOutlinedIcon from "@mui/icons-material/MonitorHeartOutlined";
 import RuleOutlinedIcon from "@mui/icons-material/RuleOutlined";
 import SecurityOutlinedIcon from "@mui/icons-material/SecurityOutlined";
 import SettingsOutlinedIcon from "@mui/icons-material/SettingsOutlined";
@@ -79,6 +80,11 @@ const ADMIN_NAV_ITEMS: readonly NavItem[] = [
     label: "Armazenamento",
     to: "/admin/armazenamento",
     icon: <StorageOutlinedIcon fontSize="small" />,
+  },
+  {
+    label: "Status operacional",
+    to: "/admin/status",
+    icon: <MonitorHeartOutlinedIcon fontSize="small" />,
   },
   {
     label: "Auditoria",
