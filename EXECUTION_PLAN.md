@@ -610,7 +610,7 @@ docuflow/
   - **Ação:** Verificar objeto, tamanho e checksum antes de marcar como quarentena; repetição da mesma finalização não pode criar versões duplicadas.
   - **Verificação:** `pnpm --filter @docuflow/domain test`.
 
-- [ ] **Step 09.05 — Implementar detector de MIME e allowlist**
+- [x] **Step 09.05 — Implementar detector de MIME e allowlist**
   - **Arquivos:** `packages/file-processing/src/content-detection.ts`, testes
   - **Ação:** Detectar tipo pelo conteúdo, comparar extensão e tipo declarado, aplicar allowlist configurável e registrar rejeição segura.
   - **Verificação:** `pnpm --filter @docuflow/file-processing test`.
