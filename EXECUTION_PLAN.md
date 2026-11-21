@@ -875,7 +875,7 @@ docuflow/
 
 # PHASE 14 — ADMINISTRAÇÃO E CONFIGURAÇÃO DA INSTALAÇÃO
 
-- [ ] **Step 14.01 — Implementar dados e preferências da organização**
+- [x] **Step 14.01 — Implementar dados e preferências da organização**
   - **Arquivos:** módulo organization da API e UI
   - **Ação:** Administrar nome, fuso horário, idioma e preferências permitidas da instalação.
   - **Verificação:** `pnpm --filter @docuflow/api test:integration`.

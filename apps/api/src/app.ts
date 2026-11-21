@@ -22,6 +22,7 @@ import type {
   FolderService,
   GroupAdministrationService,
   MoveDocumentService,
+  OrganizationService,
   PermissionAdministrationService,
   RestoreDocumentService,
   RetentionGovernanceService,
@@ -52,6 +53,7 @@ import { registerDocumentSearchRoutes } from "./modules/documents/search.routes.
 import { registerFolderRoutes } from "./modules/folders/folders.routes.js";
 import { registerGroupRoutes } from "./modules/groups/groups.routes.js";
 import { registerNotificationRoutes } from "./modules/notifications/index.js";
+import { registerOrganizationRoutes } from "./modules/organization/organization.routes.js";
 import { registerRetentionRoutes } from "./modules/retention/retention.routes.js";
 import { registerSetupRoutes } from "./modules/setup/setup.routes.js";
 import type { SetupService } from "./modules/setup/setup.service.js";
@@ -159,6 +161,12 @@ export interface AppOptions {
         readonly authzRepository: AuthorizationRepository;
         readonly retentionService: RetentionGovernanceService;
         readonly documentRepository?: DocumentRepositoryPort | undefined;
+      }
+    | undefined;
+  readonly organizationDeps?:
+    | {
+        readonly authzRepository: AuthorizationRepository;
+        readonly organizationService: OrganizationService;
       }
     | undefined;
   readonly notificationService?: InAppNotificationService | undefined;
@@ -454,6 +462,17 @@ export function buildApp(options: AppOptions = {}): FastifyInstance {
           authzRepository: retentionDeps.authzRepository,
           retentionService: retentionDeps.retentionService,
           documentGuard: retentionDocGuard,
+        });
+      });
+    }
+
+    if (options.organizationDeps) {
+      const organizationDeps = options.organizationDeps;
+      void app.register(async (instance) => {
+        await registerOrganizationRoutes(instance, {
+          authService,
+          authzRepository: organizationDeps.authzRepository,
+          organizationService: organizationDeps.organizationService,
         });
       });
     }

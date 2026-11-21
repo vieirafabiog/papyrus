@@ -1,5 +1,6 @@
 import { Box, Typography } from "@mui/material";
 import { Navigate, Route, Routes } from "react-router-dom";
+import { OrganizationSettingsPage } from "../features/admin/OrganizationSettingsPage.js";
 import { AuditPage } from "../features/audit/AuditPage.js";
 import { LoginPage } from "../features/auth/LoginPage.js";
 import { DashboardPage } from "../features/dashboard/DashboardPage.js";
@@ -128,15 +129,7 @@ export function AppRoutes() {
             }
           />
           <Route path="/admin/auditoria" element={<AuditPage />} />
-          <Route
-            path="/admin/configuracoes"
-            element={
-              <RouteSectionView
-                title="Configurações"
-                description="Preferências da organização e políticas de retenção."
-              />
-            }
-          />
+          <Route path="/admin/configuracoes" element={<OrganizationSettingsPage />} />
         </Route>
       </Route>
 

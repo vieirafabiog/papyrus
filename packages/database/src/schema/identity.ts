@@ -3,6 +3,7 @@ import {
   boolean,
   check,
   index,
+  jsonb,
   pgEnum,
   pgTable,
   text,
@@ -51,6 +52,8 @@ export const accessScopeTypeEnum = pgEnum("access_scope_type", [
 
 export const accessEffectEnum = pgEnum("access_effect", ["ALLOW", "DENY"]);
 
+export type OrganizationPreferencesJson = Record<string, string | number | boolean>;
+
 export const organizations = pgTable("organizations", {
   id: uuid("id").primaryKey().defaultRandom(),
   name: varchar("name", { length: 160 }).notNull(),
@@ -58,6 +61,7 @@ export const organizations = pgTable("organizations", {
   defaultLanguage: varchar("default_language", { length: 16 }).notNull().default("pt-BR"),
   timezone: varchar("timezone", { length: 64 }).notNull().default("America/Sao_Paulo"),
   logoObjectKey: varchar("logo_object_key", { length: 512 }),
+  preferences: jsonb("preferences").$type<OrganizationPreferencesJson>().notNull().default({}),
   createdAt: timestamp("created_at", { withTimezone: true, mode: "date" }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true, mode: "date" }).notNull().defaultNow(),
 });
@@ -161,7 +165,9 @@ export const rolePermissions = pgTable(
       .references(() => permissions.id, { onDelete: "restrict" }),
     createdAt: timestamp("created_at", { withTimezone: true, mode: "date" }).notNull().defaultNow(),
   },
-  (table) => [uniqueIndex("role_permissions_role_perm_unique").on(table.roleId, table.permissionId)],
+  (table) => [
+    uniqueIndex("role_permissions_role_perm_unique").on(table.roleId, table.permissionId),
+  ],
 );
 
 export const userRoleScopes = pgTable(

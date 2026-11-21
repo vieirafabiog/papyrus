@@ -64,6 +64,7 @@ export {
   type RetryOrFailOutboxJobInput,
   UPLOAD_PROCESSING_EVENT_TYPE,
 } from "./repositories/outbox-repository.js";
+export { createOrganizationRepository } from "./repositories/organization-repository.js";
 export {
   createDocumentRetentionHoldRepository,
   createRetentionPolicyRepository,
@@ -124,6 +125,7 @@ export {
   accessResourceEnum,
   accessScopeTypeEnum,
   groups,
+  type OrganizationPreferencesJson,
   organizations,
   permissions,
   rolePermissions,

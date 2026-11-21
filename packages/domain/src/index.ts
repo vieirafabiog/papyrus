@@ -39,6 +39,37 @@ export {
   type RevokeRoleScopeCommand,
 } from "./access/permission-service.js";
 
+export {
+  ALLOWED_ORGANIZATION_PAGE_SIZES,
+  DEFAULT_ORGANIZATION_PREFERENCES,
+  type OrganizationDateFormat,
+  type OrganizationEntity,
+  type OrganizationLanguage,
+  type OrganizationListPageSize,
+  type OrganizationPreferences,
+  SUPPORTED_ORGANIZATION_DATE_FORMATS,
+  SUPPORTED_ORGANIZATION_LANGUAGES,
+} from "./organization/organization.types.js";
+
+export {
+  createOrganizationService,
+  MAX_EXPIRATION_PREFERENCE_DAYS,
+  MAX_ORGANIZATION_NAME_LENGTH,
+  MAX_TRASH_GRACE_PREFERENCE_DAYS,
+  MIN_ORGANIZATION_NAME_LENGTH,
+  normalizeOrganizationLanguage,
+  normalizeOrganizationPreferences,
+  type OrganizationPreferencesPatch,
+  type OrganizationService,
+  type OrganizationServiceDependencies,
+  type UpdateOrganizationCommand,
+} from "./organization/organization-service.js";
+
+export type {
+  OrganizationRepositoryPort,
+  UpdateOrganizationSettingsInput,
+} from "./ports/organization-repository.port.js";
+
 export type {
   CreateRoleScopeAssignmentInput,
   PermissionScopeRepositoryPort,
