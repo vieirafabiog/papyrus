@@ -142,6 +142,26 @@ export {
 } from "./upload.schema.js";
 
 export {
+  type CreateFolderRequest,
+  createFolderRequestSchema,
+  type FolderListQuery,
+  folderListQuerySchema,
+  type FolderListResponse,
+  folderListResponseSchema,
+  folderListSortSchema,
+  type FolderRecord,
+  folderRecordSchema,
+  type FolderResponse,
+  folderResponseSchema,
+  type FolderStatus,
+  folderStatusSchema,
+  type MoveFolderRequest,
+  moveFolderRequestSchema,
+  type RenameFolderRequest,
+  renameFolderRequestSchema,
+} from "./folder.schema.js";
+
+export {
   type SubmitTaskDecisionInput,
   submitTaskDecisionInputSchema,
   type WorkflowAssigneeTarget,

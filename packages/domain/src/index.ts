@@ -175,6 +175,35 @@ export {
   type UploadSessionServiceDependencies,
 } from "./uploads/upload-sessions.js";
 
+export {
+  buildFolderMaterializedPath,
+  type ArchiveFolderCommand,
+  type CreateFolderCommand,
+  createFolderService,
+  type FolderService,
+  type FolderServiceDependencies,
+  isFolderHierarchyCycle,
+  MAX_FOLDER_NAME_LENGTH,
+  type MoveFolderCommand,
+  normalizeFolderName,
+  type RenameFolderCommand,
+} from "./folders/folder-service.js";
+export {
+  type AuthorizedFolderQueryScope,
+  FOLDER_STATUSES,
+  type FolderEntity,
+  type FolderListFilter,
+  type FolderSortField,
+  type FolderStatus,
+} from "./folders/folder.types.js";
+export type {
+  ArchiveFolderInput,
+  CreateFolderInput,
+  FolderRepositoryPort,
+  MoveFolderSubtreeInput,
+  RenameFolderInput,
+} from "./ports/folder-repository.port.js";
+
 export type {
   CreateUserInput,
   UpdateUserInput,

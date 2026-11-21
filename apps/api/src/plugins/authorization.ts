@@ -1,12 +1,13 @@
 import {
   type AuthorizationSubjectContext,
-  evaluateAuthorization,
-  evaluateDocumentAuthorization,
   type PermissionPair,
-  roleGrantsPermission,
   type RolePermissionsLookup,
   SYSTEM_ROLE_DEFINITIONS,
   type SystemRoleKey,
+  evaluateAuthorization,
+  evaluateDocumentAuthorization,
+  evaluateFolderAuthorization,
+  roleGrantsPermission,
 } from "@docuflow/auth";
 import type { AuthMeResponse } from "@docuflow/contracts";
 import type {
@@ -17,8 +18,11 @@ import type {
 import type {
   AccessAction,
   AccessScope,
+  AuthorizedFolderQueryScope,
   DocumentEntity,
   DocumentRepositoryPort,
+  FolderEntity,
+  FolderRepositoryPort,
 } from "@docuflow/domain";
 import type { FastifyReply, FastifyRequest } from "fastify";
 import { SESSION_COOKIE_NAME } from "../modules/auth/auth.routes.js";
@@ -123,6 +127,83 @@ export function buildDocumentQueryScope(
     deniedCategoryIds: Array.from(deniedCategories),
     deniedFolderIds: Array.from(deniedFolders),
     deniedDocumentIds: Array.from(deniedDocuments),
+  };
+}
+
+export function buildFolderQueryScope(
+  loaded: LoadedAuthorizationSubject,
+  rolePermissions: RolePermissionsLookup,
+  action: AccessAction,
+): AuthorizedFolderQueryScope {
+  let hasGlobalDeny = false;
+  let hasGlobalAllow = false;
+  const allowedFolders = new Set<string>();
+  const deniedFolders = new Set<string>();
+
+  for (const assignment of loaded.assignments) {
+    const perms = rolePermissions.get(assignment.roleId);
+    if (!perms || !roleGrantsPermission(perms, action, "FOLDER")) {
+      continue;
+    }
+
+    const isDeny = assignment.effect === "DENY";
+    switch (assignment.scope.type) {
+      case "GLOBAL":
+        if (isDeny) {
+          hasGlobalDeny = true;
+        } else {
+          hasGlobalAllow = true;
+        }
+        break;
+      case "FOLDER":
+        if (isDeny) {
+          deniedFolders.add(assignment.scope.folderId);
+        } else {
+          allowedFolders.add(assignment.scope.folderId);
+        }
+        break;
+      case "CATEGORY":
+      case "DOCUMENT":
+        break;
+    }
+  }
+
+  return {
+    hasGlobalDeny,
+    hasGlobalAllow,
+    allowedFolderIds: Array.from(allowedFolders),
+    deniedFolderIds: Array.from(deniedFolders),
+  };
+}
+
+async function resolveAuthenticatedSubject(
+  request: FastifyRequest,
+  reply: FastifyReply,
+  authService: AuthService,
+  authzRepository: AuthorizationRepository,
+): Promise<AuthenticatedAuthorizationContext | null> {
+  const rawToken = request.cookies[SESSION_COOKIE_NAME];
+  const outcome = await authService.getMe(rawToken);
+  if (!outcome) {
+    void reply.status(401).send({
+      error: {
+        code: "UNAUTHORIZED",
+        message: "Sessão não autenticada ou expirada.",
+        requestId: request.id,
+      },
+    });
+    return null;
+  }
+
+  const loaded = await authzRepository.loadSubject(
+    outcome.me.user.organizationId,
+    outcome.me.user.id,
+  );
+  return {
+    me: outcome.me,
+    loaded,
+    subject: toSubjectContext(loaded),
+    rolePermissions: buildRolePermissionsLookup(loaded),
   };
 }
 
@@ -232,33 +313,11 @@ export function createDocumentAuthorizationGuard(deps: {
   };
 
   return {
-    async requireSubject(
+    requireSubject(
       request: FastifyRequest,
       reply: FastifyReply,
     ): Promise<AuthenticatedAuthorizationContext | null> {
-      const rawToken = request.cookies[SESSION_COOKIE_NAME];
-      const outcome = await deps.authService.getMe(rawToken);
-      if (!outcome) {
-        void reply.status(401).send({
-          error: {
-            code: "UNAUTHORIZED",
-            message: "Sessão não autenticada ou expirada.",
-            requestId: request.id,
-          },
-        });
-        return null;
-      }
-
-      const loaded = await deps.authzRepository.loadSubject(
-        outcome.me.user.organizationId,
-        outcome.me.user.id,
-      );
-      return {
-        me: outcome.me,
-        loaded,
-        subject: toSubjectContext(loaded),
-        rolePermissions: buildRolePermissionsLookup(loaded),
-      };
+      return resolveAuthenticatedSubject(request, reply, deps.authService, deps.authzRepository);
     },
 
     async authorizeCreateScope(
@@ -342,6 +401,218 @@ export function createDocumentAuthorizationGuard(deps: {
       }
 
       return doc;
+    },
+  };
+}
+
+export interface FolderAuthorizationGuard {
+  requireSubject(
+    request: FastifyRequest,
+    reply: FastifyReply,
+  ): Promise<AuthenticatedAuthorizationContext | null>;
+  authorizeCreateScope(
+    request: FastifyRequest,
+    reply: FastifyReply,
+    parentId: string | null,
+  ): Promise<AuthenticatedAuthorizationContext | null>;
+  authorizeDestinationScope(
+    request: FastifyRequest,
+    reply: FastifyReply,
+    ctx: AuthenticatedAuthorizationContext,
+    targetParentId: string | null,
+  ): Promise<boolean>;
+  authorizeFolder(
+    request: FastifyRequest,
+    reply: FastifyReply,
+    action: AccessAction,
+    folderId: string,
+  ): Promise<{
+    readonly subject: AuthenticatedAuthorizationContext;
+    readonly folder: FolderEntity;
+  } | null>;
+}
+
+/**
+ * Creates the server-side authorization guard for hierarchical folder routes.
+ */
+export function createFolderAuthorizationGuard(deps: {
+  readonly authService: AuthService;
+  readonly authzRepository: AuthorizationRepository;
+  readonly folderRepository: FolderRepositoryPort;
+}): FolderAuthorizationGuard {
+  const verifyParentScopeForCreate = async (
+    request: FastifyRequest,
+    reply: FastifyReply,
+    ctx: AuthenticatedAuthorizationContext,
+    parentId: string | null,
+  ): Promise<boolean> => {
+    if (parentId === null) {
+      const decision = evaluateAuthorization(
+        ctx.subject,
+        { action: "CREATE", resource: "FOLDER", scope: { type: "GLOBAL" } },
+        ctx.rolePermissions,
+      );
+      if (!decision.allowed) {
+        void reply.status(403).send({
+          error: {
+            code: "FORBIDDEN",
+            message: "Você não possui permissão para criar ou mover pastas na raiz.",
+            requestId: request.id,
+          },
+        });
+        return false;
+      }
+      return true;
+    }
+
+    const parent = await deps.folderRepository.findById(parentId);
+    if (!parent || parent.organizationId !== ctx.me.user.organizationId) {
+      const globalDecision = evaluateAuthorization(
+        ctx.subject,
+        { action: "CREATE", resource: "FOLDER", scope: { type: "GLOBAL" } },
+        ctx.rolePermissions,
+      );
+      if (!globalDecision.allowed) {
+        void reply.status(403).send({
+          error: {
+            code: "FORBIDDEN",
+            message: "Você não possui permissão para criar ou mover pastas neste escopo.",
+            requestId: request.id,
+          },
+        });
+        return false;
+      }
+      return true;
+    }
+
+    const ancestorFolderIds = await deps.authzRepository.loadFolderAncestorIds(
+      ctx.me.user.organizationId,
+      parent.id,
+    );
+    const decision = evaluateFolderAuthorization(
+      ctx.subject,
+      "CREATE",
+      { folderId: parent.id, ancestorFolderIds },
+      ctx.rolePermissions,
+    );
+    if (!decision.allowed) {
+      void reply.status(403).send({
+        error: {
+          code: "FORBIDDEN",
+          message: "Você não possui permissão para criar ou mover pastas neste escopo.",
+          requestId: request.id,
+        },
+      });
+      return false;
+    }
+
+    return true;
+  };
+
+  return {
+    requireSubject(
+      request: FastifyRequest,
+      reply: FastifyReply,
+    ): Promise<AuthenticatedAuthorizationContext | null> {
+      return resolveAuthenticatedSubject(request, reply, deps.authService, deps.authzRepository);
+    },
+
+    async authorizeCreateScope(
+      request: FastifyRequest,
+      reply: FastifyReply,
+      parentId: string | null,
+    ): Promise<AuthenticatedAuthorizationContext | null> {
+      const ctx = await resolveAuthenticatedSubject(
+        request,
+        reply,
+        deps.authService,
+        deps.authzRepository,
+      );
+      if (!ctx) {
+        return null;
+      }
+
+      const allowed = await verifyParentScopeForCreate(request, reply, ctx, parentId);
+      return allowed ? ctx : null;
+    },
+
+    authorizeDestinationScope(
+      request: FastifyRequest,
+      reply: FastifyReply,
+      ctx: AuthenticatedAuthorizationContext,
+      targetParentId: string | null,
+    ): Promise<boolean> {
+      return verifyParentScopeForCreate(request, reply, ctx, targetParentId);
+    },
+
+    async authorizeFolder(
+      request: FastifyRequest,
+      reply: FastifyReply,
+      action: AccessAction,
+      folderId: string,
+    ): Promise<{
+      readonly subject: AuthenticatedAuthorizationContext;
+      readonly folder: FolderEntity;
+    } | null> {
+      const ctx = await resolveAuthenticatedSubject(
+        request,
+        reply,
+        deps.authService,
+        deps.authzRepository,
+      );
+      if (!ctx) {
+        return null;
+      }
+
+      const folder = await deps.folderRepository.findById(folderId);
+      if (!folder || folder.organizationId !== ctx.me.user.organizationId) {
+        const globalDecision = evaluateAuthorization(
+          ctx.subject,
+          { action, resource: "FOLDER", scope: { type: "GLOBAL" } },
+          ctx.rolePermissions,
+        );
+        if (!globalDecision.allowed) {
+          void reply.status(403).send({
+            error: {
+              code: "FORBIDDEN",
+              message: "Você não possui permissão para acessar esta pasta.",
+              requestId: request.id,
+            },
+          });
+          return null;
+        }
+        void reply.status(404).send({
+          error: {
+            code: "NOT_FOUND",
+            message: "Pasta não encontrada.",
+            requestId: request.id,
+          },
+        });
+        return null;
+      }
+
+      const ancestorFolderIds = await deps.authzRepository.loadFolderAncestorIds(
+        ctx.me.user.organizationId,
+        folder.id,
+      );
+      const decision = evaluateFolderAuthorization(
+        ctx.subject,
+        action,
+        { folderId: folder.id, ancestorFolderIds },
+        ctx.rolePermissions,
+      );
+      if (!decision.allowed) {
+        void reply.status(403).send({
+          error: {
+            code: "FORBIDDEN",
+            message: "Você não possui permissão para executar esta operação nesta pasta.",
+            requestId: request.id,
+          },
+        });
+        return null;
+      }
+
+      return { subject: ctx, folder };
     },
   };
 }

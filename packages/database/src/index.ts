@@ -21,6 +21,7 @@ export {
   createDocumentRepository,
   createDocumentVersionRepository,
 } from "./repositories/document-repository.js";
+export { createFolderRepository } from "./repositories/folder-repository.js";
 export { createGroupRepository } from "./repositories/group-repository.js";
 export {
   type ClaimOutboxJobOptions,

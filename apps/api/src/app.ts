@@ -3,6 +3,8 @@ import type { AuthorizationRepository } from "@docuflow/database";
 import type {
   AuditRepositoryPort,
   DocumentRepositoryPort,
+  FolderRepositoryPort,
+  FolderService,
   GroupAdministrationService,
   StorageConnectionAdminService,
   UploadSessionRepositoryPort,
@@ -15,6 +17,7 @@ import Fastify, { type FastifyInstance } from "fastify";
 import { registerAuthRoutes } from "./modules/auth/auth.routes.js";
 import type { AuthService } from "./modules/auth/auth.service.js";
 import { registerDocumentRoutes } from "./modules/documents/documents.routes.js";
+import { registerFolderRoutes } from "./modules/folders/folders.routes.js";
 import { registerGroupRoutes } from "./modules/groups/groups.routes.js";
 import { registerSetupRoutes } from "./modules/setup/setup.routes.js";
 import type { SetupService } from "./modules/setup/setup.service.js";
@@ -25,7 +28,10 @@ import {
   registerUploadRoutes,
 } from "./modules/uploads/upload.routes.js";
 import { registerUserRoutes } from "./modules/users/users.routes.js";
-import { createDocumentAuthorizationGuard } from "./plugins/authorization.js";
+import {
+  createDocumentAuthorizationGuard,
+  createFolderAuthorizationGuard,
+} from "./plugins/authorization.js";
 import { type SecurityPluginOptions, registerSecurityPlugin } from "./plugins/security.js";
 
 export interface AppOptions {
@@ -41,6 +47,13 @@ export interface AppOptions {
         readonly authzRepository: AuthorizationRepository;
         readonly documentRepository: DocumentRepositoryPort;
         readonly auditRepository: AuditRepositoryPort;
+      }
+    | undefined;
+  readonly folderDeps?:
+    | {
+        readonly authzRepository: AuthorizationRepository;
+        readonly folderRepository: FolderRepositoryPort;
+        readonly folderService: FolderService;
       }
     | undefined;
   readonly uploadDeps?:
@@ -168,6 +181,21 @@ export function buildApp(options: AppOptions = {}): FastifyInstance {
           uploadRepository: uploadDeps.uploadRepository,
           storageUploadDeps: uploadDeps.storageUploadDeps,
           localUploadDeps: uploadDeps.localUploadDeps,
+        });
+      });
+    }
+
+    if (options.folderDeps) {
+      const folderDeps = options.folderDeps;
+      const folderGuard = createFolderAuthorizationGuard({
+        authService,
+        authzRepository: folderDeps.authzRepository,
+        folderRepository: folderDeps.folderRepository,
+      });
+      void app.register(async (instance) => {
+        await registerFolderRoutes(instance, {
+          guard: folderGuard,
+          folderService: folderDeps.folderService,
         });
       });
     }

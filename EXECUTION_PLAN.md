@@ -654,7 +654,7 @@ docuflow/
 
 # PHASE 10 — DOCUMENTOS, PASTAS, CATEGORIAS, METADADOS E VERSÕES
 
-- [ ] **Step 10.01 — Implementar CRUD de pastas**
+- [x] **Step 10.01 — Implementar CRUD de pastas**
   - **Arquivos:** `packages/domain/src/folders/*`, repositório e rotas
   - **Ação:** Criar, renomear, mover e arquivar pastas; impedir ciclo na hierarquia e validar permissões herdadas.
   - **Verificação:** `pnpm --filter @docuflow/api test:integration`.
