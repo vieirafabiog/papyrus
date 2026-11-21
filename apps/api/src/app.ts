@@ -54,6 +54,8 @@ import { registerDocumentPreviewRoutes } from "./modules/documents/preview.route
 import { registerDocumentSearchRoutes } from "./modules/documents/search.routes.js";
 import { registerFolderRoutes } from "./modules/folders/folders.routes.js";
 import { registerGroupRoutes } from "./modules/groups/groups.routes.js";
+import { registerHealthRoutes } from "./modules/health/health.routes.js";
+import type { ApiHealthDependencies } from "./modules/health/health.service.js";
 import { registerNotificationRoutes } from "./modules/notifications/index.js";
 import { registerOrganizationRoutes } from "./modules/organization/organization.routes.js";
 import { registerRetentionRoutes } from "./modules/retention/retention.routes.js";
@@ -180,6 +182,7 @@ export interface AppOptions {
       }
     | undefined;
   readonly notificationService?: InAppNotificationService | undefined;
+  readonly healthDeps?: ApiHealthDependencies | undefined;
   readonly secureCookies?: boolean | undefined;
   readonly security?: Partial<SecurityPluginOptions> | undefined;
 }
@@ -221,8 +224,11 @@ export function buildApp(options: AppOptions = {}): FastifyInstance {
     });
   });
 
-  app.get("/api/v1/health/live", async () => {
-    return { status: "ok" };
+  void app.register(async (instance) => {
+    await registerHealthRoutes(instance, {
+      healthDeps: options.healthDeps,
+      authService: options.authService,
+    });
   });
 
   if (options.setupService) {

@@ -905,7 +905,7 @@ docuflow/
   - **Ação:** Configurar limites de tamanho e extensões permitidas com validação consistente no proxy, API e worker.
   - **Verificação:** `pnpm --filter @docuflow/api test`.
 
-- [ ] **Step 14.07 — Implementar health e readiness endpoints**
+- [x] **Step 14.07 — Implementar health e readiness endpoints**
   - **Arquivos:** `apps/api/src/modules/health/*`, worker health
   - **Ação:** Separar liveness e readiness, verificando banco e dependências críticas sem expor detalhes internos publicamente.
   - **Verificação:** `pnpm --filter @docuflow/api test`.
