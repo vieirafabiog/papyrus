@@ -162,3 +162,17 @@ export type TaskInboxListResponse = z.infer<typeof taskInboxListResponseSchema>;
 
 export const taskDetailResponseSchema = createApiResponseSchema(taskInboxItemSchema);
 export type TaskDetailResponse = z.infer<typeof taskDetailResponseSchema>;
+
+export const submitTaskDecisionResultSchema = z.object({
+  task: workflowTaskSchema,
+  decision: workflowDecisionRecordSchema.nullable(),
+  instance: workflowInstanceSchema,
+  documentStatus: documentStatusSchema,
+  idempotentReplay: z.boolean(),
+});
+export type SubmitTaskDecisionResult = z.infer<typeof submitTaskDecisionResultSchema>;
+
+export const submitTaskDecisionResponseSchema = createApiResponseSchema(
+  submitTaskDecisionResultSchema,
+);
+export type SubmitTaskDecisionResponse = z.infer<typeof submitTaskDecisionResponseSchema>;

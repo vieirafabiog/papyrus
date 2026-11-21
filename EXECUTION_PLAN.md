@@ -802,7 +802,7 @@ docuflow/
   - **Ação:** Criar lista com filtros, contagem e acesso ao documento relacionado sem permitir acesso além do escopo da tarefa.
   - **Verificação:** `pnpm --filter @docuflow/web test`.
 
-- [ ] **Step 12.07 — Implementar detalhe e ações de aprovação**
+- [x] **Step 12.07 — Implementar detalhe e ações de aprovação**
   - **Arquivos:** `apps/web/src/features/tasks/TaskReviewPage.tsx`
   - **Ação:** Exibir versão exata, metadados, histórico e caixa de comentário; desabilitar ação durante envio e atualizar estado somente após confirmação da API.
   - **Verificação:** `pnpm --filter @docuflow/web test`.

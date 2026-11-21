@@ -233,31 +233,43 @@ export function TaskInboxPage() {
     },
     {
       id: "actions",
-      label: "Documento",
+      label: "Ações",
       align: "right",
       render: (row) => {
         const target = resolveTaskDocumentTarget(row);
-        if (!target) {
-          return (
-            <Button size="small" variant="text" disabled>
-              Documento indisponível
-            </Button>
-          );
-        }
-
         return (
-          <Button
-            size="small"
-            variant="text"
-            endIcon={<OpenInNewOutlinedIcon fontSize="small" />}
-            onClick={(event) => {
-              event.stopPropagation();
-              openScopedDocument(row);
-            }}
-            aria-label={`Abrir documento ${row.documentTitle} (versão v${row.documentVersionNumber})`}
-          >
-            Abrir documento
-          </Button>
+          <Stack direction="row" spacing={1} justifyContent="flex-end">
+            <Button
+              size="small"
+              variant="outlined"
+              onClick={(event) => {
+                event.stopPropagation();
+                void navigate(`/tarefas/${encodeURIComponent(row.id)}`);
+              }}
+              aria-label={`Revisar tarefa ${row.workflowDefinitionName} — ${row.documentTitle}`}
+            >
+              Revisar
+            </Button>
+
+            {target ? (
+              <Button
+                size="small"
+                variant="text"
+                endIcon={<OpenInNewOutlinedIcon fontSize="small" />}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  openScopedDocument(row);
+                }}
+                aria-label={`Abrir documento ${row.documentTitle} (versão v${row.documentVersionNumber})`}
+              >
+                Abrir documento
+              </Button>
+            ) : (
+              <Button size="small" variant="text" disabled>
+                Documento indisponível
+              </Button>
+            )}
+          </Stack>
         );
       },
     },

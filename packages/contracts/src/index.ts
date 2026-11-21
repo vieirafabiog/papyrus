@@ -255,6 +255,10 @@ export {
 export {
   type SubmitTaskDecisionInput,
   submitTaskDecisionInputSchema,
+  type SubmitTaskDecisionResponse,
+  submitTaskDecisionResponseSchema,
+  type SubmitTaskDecisionResult,
+  submitTaskDecisionResultSchema,
   type TaskDetailResponse,
   taskDetailResponseSchema,
   type TaskInboxItem,

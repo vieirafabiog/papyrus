@@ -7,6 +7,7 @@ import { DocumentListPage } from "../features/documents/DocumentListPage.js";
 import { FoldersPage } from "../features/folders/FoldersPage.js";
 import { TagsPage } from "../features/tags/TagsPage.js";
 import { TaskInboxPage } from "../features/tasks/TaskInboxPage.js";
+import { TaskReviewPage } from "../features/tasks/TaskReviewPage.js";
 import { AppShell } from "../layout/AppShell.js";
 import { RedirectIfAuthenticated, RequireAuth } from "./route-guards.js";
 
@@ -84,6 +85,7 @@ export function AppRoutes() {
             }
           />
           <Route path="/tarefas" element={<TaskInboxPage />} />
+          <Route path="/tarefas/:id" element={<TaskReviewPage />} />
           <Route
             path="/vencimentos"
             element={
