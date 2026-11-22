@@ -924,7 +924,7 @@ docuflow/
   - **Ação:** Build multi-stage, servidor estático mínimo, usuário não-root e imagem base fixada.
   - **Verificação:** `docker build -f apps/web/Dockerfile -t docuflow-web:test .`.
 
-- [ ] **Step 15.02 — Criar Dockerfile de produção para API**
+- [x] **Step 15.02 — Criar Dockerfile de produção para API**
   - **Arquivo:** `apps/api/Dockerfile`
   - **Ação:** Build multi-stage, dependências de produção, usuário não-root, health check e sem ferramentas de desenvolvimento na imagem final.
   - **Verificação:** `docker build -f apps/api/Dockerfile -t docuflow-api:test .`.
