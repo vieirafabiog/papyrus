@@ -969,7 +969,7 @@ docuflow/
   - **Ação:** Documentar e automatizar restauração coordenada do PostgreSQL, arquivos, configuração protegida e chave mestra.
   - **Verificação:** Executar restore completo em ambiente limpo e baixar um documento restaurado.
 
-- [ ] **Step 15.11 — Implementar verificação de consistência do acervo**
+- [x] **Step 15.11 — Implementar verificação de consistência do acervo**
   - **Arquivos:** `apps/worker/src/jobs/verify-storage-integrity.ts`
   - **Ação:** Comparar referências do banco com `headObject`, identificar ausências e permitir verificação de checksum sob demanda; não apagar automaticamente objetos não reconhecidos.
   - **Verificação:** `pnpm --filter @docuflow/worker test`.
