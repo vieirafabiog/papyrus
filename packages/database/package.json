@@ -16,7 +16,8 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run --passWithNoTests",
     "test:integration": "vitest run test",
-    "db:generate": "tsc -p tsconfig.json && drizzle-kit generate"
+    "db:generate": "tsc -p tsconfig.json && drizzle-kit generate",
+    "db:migrate": "node dist/migrate-cli.js"
   },
   "dependencies": {
     "@docuflow/domain": "workspace:*",

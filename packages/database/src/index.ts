@@ -8,6 +8,20 @@ export {
   sanitizeDatabaseErrorMessage,
 } from "./client.js";
 
+export {
+  assertDestructiveSeedAllowed,
+  DEFAULT_MIGRATION_LOCK_RETRY_INTERVAL_MS,
+  DEFAULT_MIGRATION_LOCK_TIMEOUT_MS,
+  DOCUFLOW_MIGRATION_ADVISORY_LOCK_KEY,
+  isProductionNodeEnv,
+  MigrationGuardError,
+  MigrationLockTimeoutError,
+  resolveDefaultMigrationsFolder,
+  runMigrationsWithAdvisoryLock,
+  type RunMigrationsOptions,
+  type RunMigrationsResult,
+} from "./migrations/safe-migrator.js";
+
 export { createAuditRepository } from "./repositories/audit-repository.js";
 export { createPermissionScopeRepository } from "./repositories/permission-repository.js";
 export {

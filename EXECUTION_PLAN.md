@@ -949,7 +949,7 @@ docuflow/
   - **Ação:** Configurar TLS, headers, limite de corpo coerente com upload, timeouts e encaminhamento de headers confiáveis.
   - **Verificação:** Validar configuração do Caddy e testar rota web/API local.
 
-- [ ] **Step 15.07 — Implementar migration runner seguro**
+- [x] **Step 15.07 — Implementar migration runner seguro**
   - **Arquivos:** script de entrypoint/migrations
   - **Ação:** Executar migrations com lock advisory no PostgreSQL para impedir duas instâncias de migrarem simultaneamente; não executar seed destrutivo em produção.
   - **Verificação:** `pnpm --filter @docuflow/database test:integration`.
