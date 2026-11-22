@@ -929,7 +929,7 @@ docuflow/
   - **Ação:** Build multi-stage, dependências de produção, usuário não-root, health check e sem ferramentas de desenvolvimento na imagem final.
   - **Verificação:** `docker build -f apps/api/Dockerfile -t docuflow-api:test .`.
 
-- [ ] **Step 15.03 — Criar Dockerfile de produção para worker**
+- [x] **Step 15.03 — Criar Dockerfile de produção para worker**
   - **Arquivo:** `apps/worker/Dockerfile`
   - **Ação:** Imagem separada com dependências necessárias aos jobs, shutdown gracioso e usuário não-root.
   - **Verificação:** `docker build -f apps/worker/Dockerfile -t docuflow-worker:test .`.
