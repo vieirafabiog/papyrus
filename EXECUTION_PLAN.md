@@ -964,7 +964,7 @@ docuflow/
   - **Ação:** Copiar/snapshot do volume local preservando estrutura e integridade; documentar consistência com backup de banco.
   - **Verificação:** Restaurar cópia em diretório temporário e comparar checksums.
 
-- [ ] **Step 15.10 — Implementar procedimento de restore**
+- [x] **Step 15.10 — Implementar procedimento de restore**
   - **Arquivos:** `scripts/restore/*`, `docs/backup-restore.md`
   - **Ação:** Documentar e automatizar restauração coordenada do PostgreSQL, arquivos, configuração protegida e chave mestra.
   - **Verificação:** Executar restore completo em ambiente limpo e baixar um documento restaurado.
