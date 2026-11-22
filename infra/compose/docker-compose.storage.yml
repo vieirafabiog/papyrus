@@ -1,0 +1,57 @@
+services:
+  clamav:
+    image: clamav/clamav-debian:1.4.2
+    profiles:
+      - clamav
+      - lab-storage
+    restart: unless-stopped
+    environment:
+      CLAMAV_NO_FRESHCLAM: ${CLAMAV_NO_FRESHCLAM:-false}
+    expose:
+      - "3310"
+    volumes:
+      - docuflow_clamav_data:/var/lib/clamav
+    networks:
+      - docuflow_internal
+      - docuflow_edge
+    healthcheck:
+      test: ["CMD-SHELL", "clamdcheck.sh"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 90s
+    security_opt:
+      - no-new-privileges:true
+
+  minio:
+    image: minio/minio:RELEASE.2025-02-28T09-55-16Z
+    profiles:
+      - minio
+      - lab-storage
+    restart: unless-stopped
+    command: ["server", "/data", "--console-address", ":9001"]
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-}
+    ports:
+      - "${MINIO_BIND_IP:-127.0.0.1}:${MINIO_API_PORT:-9000}:9000"
+      - "${MINIO_BIND_IP:-127.0.0.1}:${MINIO_CONSOLE_PORT:-9001}:9001"
+    volumes:
+      - docuflow_minio_data:/data
+    networks:
+      - docuflow_internal
+      - docuflow_edge
+    healthcheck:
+      test: ["CMD-SHELL", "mc ready local >/dev/null 2>&1 || curl -fsS http://127.0.0.1:9000/minio/health/live >/dev/null"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+
+volumes:
+  docuflow_clamav_data:
+  docuflow_minio_data:

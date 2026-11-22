@@ -939,7 +939,7 @@ docuflow/
   - **Ação:** Declarar web, API, worker, PostgreSQL, volumes persistentes, rede interna e health checks. Storage local deve usar volume próprio.
   - **Verificação:** `docker compose -f infra/compose/docker-compose.yml config`.
 
-- [ ] **Step 15.05 — Criar profile opcional de ClamAV e MinIO**
+- [x] **Step 15.05 — Criar profile opcional de ClamAV e MinIO**
   - **Arquivo:** `infra/compose/docker-compose.storage.yml`
   - **Ação:** Declarar serviços opcionais para laboratório/instalações que não possuem scanner ou endpoint S3 externo. Não tornar MinIO obrigatório para clientes com storage próprio.
   - **Verificação:** `docker compose -f infra/compose/docker-compose.yml -f infra/compose/docker-compose.storage.yml config`.
