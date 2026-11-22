@@ -959,7 +959,7 @@ docuflow/
   - **Ação:** Gerar backup com nome/horário, código de saída confiável, política de retenção e log sem segredos.
   - **Verificação:** Executar backup contra PostgreSQL de teste e validar arquivo gerado.
 
-- [ ] **Step 15.09 — Implementar backup de arquivos locais**
+- [x] **Step 15.09 — Implementar backup de arquivos locais**
   - **Arquivos:** `scripts/backup/backup-files.sh`
   - **Ação:** Copiar/snapshot do volume local preservando estrutura e integridade; documentar consistência com backup de banco.
   - **Verificação:** Restaurar cópia em diretório temporário e comparar checksums.
