@@ -954,7 +954,7 @@ docuflow/
   - **Ação:** Executar migrations com lock advisory no PostgreSQL para impedir duas instâncias de migrarem simultaneamente; não executar seed destrutivo em produção.
   - **Verificação:** `pnpm --filter @docuflow/database test:integration`.
 
-- [ ] **Step 15.08 — Implementar backup do PostgreSQL**
+- [x] **Step 15.08 — Implementar backup do PostgreSQL**
   - **Arquivos:** `scripts/backup/backup-database.sh` ou versão multiplataforma documentada
   - **Ação:** Gerar backup com nome/horário, código de saída confiável, política de retenção e log sem segredos.
   - **Verificação:** Executar backup contra PostgreSQL de teste e validar arquivo gerado.
