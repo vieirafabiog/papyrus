@@ -974,7 +974,7 @@ docuflow/
   - **Ação:** Comparar referências do banco com `headObject`, identificar ausências e permitir verificação de checksum sob demanda; não apagar automaticamente objetos não reconhecidos.
   - **Verificação:** `pnpm --filter @docuflow/worker test`.
 
-- [ ] **Step 15.12 — Documentar instalação e atualização**
+- [x] **Step 15.12 — Documentar instalação e atualização**
   - **Arquivos:** `docs/installation.md`, `docs/operations.md`
   - **Ação:** Documentar pré-requisitos, DNS/HTTPS, volumes, permissões, variáveis, primeiro administrador, atualização, rollback e troubleshooting.
   - **Verificação:** Seguir a documentação em uma instalação limpa sem depender de conhecimento implícito.
