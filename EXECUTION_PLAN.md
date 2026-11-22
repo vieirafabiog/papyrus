@@ -934,7 +934,7 @@ docuflow/
   - **Ação:** Imagem separada com dependências necessárias aos jobs, shutdown gracioso e usuário não-root.
   - **Verificação:** `docker build -f apps/worker/Dockerfile -t docuflow-worker:test .`.
 
-- [ ] **Step 15.04 — Criar Docker Compose base**
+- [x] **Step 15.04 — Criar Docker Compose base**
   - **Arquivo:** `infra/compose/docker-compose.yml`
   - **Ação:** Declarar web, API, worker, PostgreSQL, volumes persistentes, rede interna e health checks. Storage local deve usar volume próprio.
   - **Verificação:** `docker compose -f infra/compose/docker-compose.yml config`.

@@ -1,0 +1,158 @@
+name: docuflow
+
+services:
+  postgres:
+    image: postgres:16.8-alpine3.21
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-docuflow}
+      POSTGRES_USER: ${POSTGRES_USER:-docuflow}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-}
+    volumes:
+      - docuflow_postgres_data:/var/lib/postgresql/data
+    networks:
+      - docuflow_internal
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER:-docuflow} -d $${POSTGRES_DB:-docuflow}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    security_opt:
+      - no-new-privileges:true
+
+  api:
+    build:
+      context: ../..
+      dockerfile: apps/api/Dockerfile
+    image: docuflow-api:${DOCUFLOW_IMAGE_TAG:-latest}
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      NODE_ENV: ${NODE_ENV:-production}
+      PORT: "3000"
+      HOST: "0.0.0.0"
+      APP_URL: ${APP_URL:-http://localhost:8080}
+      DATABASE_URL: ${DATABASE_URL:-}
+      SESSION_SECRET: ${SESSION_SECRET:-}
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY:-}
+      STORAGE_DEFAULT_CONNECTION: ${STORAGE_DEFAULT_CONNECTION:-local-default}
+      STORAGE_LOCAL_ROOT: /var/lib/docuflow/storage
+      UPLOAD_MAX_BYTES: ${UPLOAD_MAX_BYTES:-52428800}
+      PROXY_MAX_BODY_BYTES: ${PROXY_MAX_BODY_BYTES:-54525952}
+      UPLOAD_ALLOWED_EXTENSIONS: ${UPLOAD_ALLOWED_EXTENSIONS:-.pdf,.png,.jpg,.jpeg,.webp,.gif,.tif,.tiff,.txt,.csv,.docx,.xlsx,.pptx}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+    expose:
+      - "3000"
+    volumes:
+      - docuflow_storage_data:/var/lib/docuflow/storage
+    tmpfs:
+      - /tmp
+    networks:
+      - docuflow_internal
+      - docuflow_edge
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:3000/api/v1/health/live').then((r) => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))",
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+
+  worker:
+    build:
+      context: ../..
+      dockerfile: apps/worker/Dockerfile
+    image: docuflow-worker:${DOCUFLOW_IMAGE_TAG:-latest}
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      NODE_ENV: ${NODE_ENV:-production}
+      WORKER_HEALTH_HOST: "0.0.0.0"
+      WORKER_HEALTH_PORT: "3001"
+      DATABASE_URL: ${DATABASE_URL:-}
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY:-}
+      STORAGE_DEFAULT_CONNECTION: ${STORAGE_DEFAULT_CONNECTION:-local-default}
+      STORAGE_LOCAL_ROOT: /var/lib/docuflow/storage
+      UPLOAD_MAX_BYTES: ${UPLOAD_MAX_BYTES:-52428800}
+      UPLOAD_ALLOWED_EXTENSIONS: ${UPLOAD_ALLOWED_EXTENSIONS:-.pdf,.png,.jpg,.jpeg,.webp,.gif,.tif,.tiff,.txt,.csv,.docx,.xlsx,.pptx}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_SECURE: ${SMTP_SECURE:-false}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASS: ${SMTP_PASS:-}
+      SMTP_FROM: ${SMTP_FROM:-}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+    expose:
+      - "3001"
+    volumes:
+      - docuflow_storage_data:/var/lib/docuflow/storage
+    tmpfs:
+      - /tmp
+    networks:
+      - docuflow_internal
+      - docuflow_edge
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:3001/health/live').then((r) => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))",
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+
+  web:
+    build:
+      context: ../..
+      dockerfile: apps/web/Dockerfile
+    image: docuflow-web:${DOCUFLOW_IMAGE_TAG:-latest}
+    restart: unless-stopped
+    depends_on:
+      api:
+        condition: service_healthy
+    ports:
+      - "${WEB_BIND_IP:-127.0.0.1}:${WEB_PORT:-8080}:8080"
+    networks:
+      - docuflow_edge
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8080/healthz"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+
+volumes:
+  docuflow_postgres_data:
+  docuflow_storage_data:
+
+networks:
+  docuflow_internal:
+    driver: bridge
+    internal: true
+  docuflow_edge:
+    driver: bridge
