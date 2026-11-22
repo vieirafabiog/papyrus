@@ -1,0 +1,50 @@
+{
+	admin off
+	email {$DOCUFLOW_TLS_EMAIL:admin@localhost}
+}
+
+{$DOCUFLOW_SITE_ADDRESS:https://localhost} {
+	encode zstd gzip
+
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		Permissions-Policy "camera=(), microphone=(), geolocation=()"
+		-Server
+	}
+
+	@api path /api/*
+	handle @api {
+		request_body {
+			max_size {$DOCUFLOW_PROXY_MAX_BODY_SIZE:52MiB}
+		}
+
+		reverse_proxy {$DOCUFLOW_API_UPSTREAM:api:3000} {
+			flush_interval -1
+
+			header_up X-Real-IP {remote_host}
+
+			transport http {
+				dial_timeout 5s
+				response_header_timeout 60s
+				read_timeout 120s
+				write_timeout 120s
+			}
+		}
+	}
+
+	handle {
+		reverse_proxy {$DOCUFLOW_WEB_UPSTREAM:web:8080} {
+			header_up X-Real-IP {remote_host}
+
+			transport http {
+				dial_timeout 5s
+				response_header_timeout 30s
+				read_timeout 30s
+				write_timeout 30s
+			}
+		}
+	}
+}

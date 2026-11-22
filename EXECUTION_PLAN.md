@@ -944,7 +944,7 @@ docuflow/
   - **Ação:** Declarar serviços opcionais para laboratório/instalações que não possuem scanner ou endpoint S3 externo. Não tornar MinIO obrigatório para clientes com storage próprio.
   - **Verificação:** `docker compose -f infra/compose/docker-compose.yml -f infra/compose/docker-compose.storage.yml config`.
 
-- [ ] **Step 15.06 — Configurar proxy HTTPS de referência**
+- [x] **Step 15.06 — Configurar proxy HTTPS de referência**
   - **Arquivos:** `infra/caddy/Caddyfile`, documentação
   - **Ação:** Configurar TLS, headers, limite de corpo coerente com upload, timeouts e encaminhamento de headers confiáveis.
   - **Verificação:** Validar configuração do Caddy e testar rota web/API local.
