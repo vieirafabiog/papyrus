@@ -919,7 +919,7 @@ docuflow/
 
 # PHASE 15 — DOCKER, BACKUP, RESTAURAÇÃO E OPERAÇÃO SELF-HOSTED
 
-- [ ] **Step 15.01 — Criar Dockerfile de produção para web**
+- [x] **Step 15.01 — Criar Dockerfile de produção para web**
   - **Arquivo:** `apps/web/Dockerfile`
   - **Ação:** Build multi-stage, servidor estático mínimo, usuário não-root e imagem base fixada.
   - **Verificação:** `docker build -f apps/web/Dockerfile -t docuflow-web:test .`.
