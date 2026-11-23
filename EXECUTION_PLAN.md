@@ -1008,7 +1008,7 @@ docuflow/
   - **Ação:** Testar usuário sem permissão em busca, count, preview, download, versão, workflow e exportação.
   - **Verificação:** `pnpm --filter @docuflow/api test:security`.
 
-- [ ] **Step 16.06 — Criar testes de segurança de storage**
+- [x] **Step 16.06 — Criar testes de segurança de storage**
   - **Arquivos:** `packages/storage-local/test/security/*`, `packages/storage-s3/test/security/*`
   - **Ação:** Cobrir traversal, symlink escape, SSRF de endpoint, segredo exposto, URL assinada expirada e objeto em conexão desativada.
   - **Verificação:** `pnpm --filter @docuflow/storage-local test` e `pnpm --filter @docuflow/storage-s3 test`.
