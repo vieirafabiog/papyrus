@@ -184,6 +184,7 @@ describe("Internal notifications HTTP API & idempotency integration", () => {
           userId: input.userId,
           tokenHash: input.tokenHash,
           expiresAt: input.expiresAt,
+          createdAt: currentTime,
           ipAddress: input.ipAddress,
           userAgent: input.userAgent,
           revokedAt: null,

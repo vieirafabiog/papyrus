@@ -988,7 +988,7 @@ docuflow/
   - **Ação:** Reutilizar o mesmo conjunto de testes para filesystem local e S3/MinIO, cobrindo capabilities e erros normalizados.
   - **Verificação:** `pnpm --filter @docuflow/storage-local test` e `pnpm --filter @docuflow/storage-s3 test:integration`.
 
-- [ ] **Step 16.02 — Criar testes de integração da API documental**
+- [x] **Step 16.02 — Criar testes de integração da API documental**
   - **Arquivos:** `apps/api/test/integration/documents/*`
   - **Ação:** Cobrir criação, listagem, detalhe, upload finalizado, versão, lixeira e autorização com PostgreSQL real.
   - **Verificação:** `pnpm --filter @docuflow/api test:integration`.
