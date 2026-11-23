@@ -36,13 +36,20 @@ function mapDecideTaskDomainErrorStatus(code: string): {
 } {
   switch (code) {
     case "TASK_NOT_FOUND":
+    case "WORKFLOW_TASK_NOT_FOUND":
     case "WORKFLOW_INSTANCE_NOT_FOUND":
+    case "WORKFLOW_DEFINITION_VERSION_NOT_FOUND":
+    case "WORKFLOW_STEP_NOT_FOUND":
     case "DOCUMENT_NOT_FOUND":
       return { status: 404, apiCode: "NOT_FOUND" };
     case "TASK_DECISION_FORBIDDEN":
       return { status: 403, apiCode: "FORBIDDEN" };
     case "TASK_ALREADY_TERMINAL":
+    case "TASK_ALREADY_DECIDED":
+    case "TASK_DECISION_CONFLICT":
     case "WORKFLOW_INSTANCE_NOT_ACTIVE":
+    case "WORKFLOW_INSTANCE_CONFLICT":
+    case "DOCUMENT_VERSION_CONFLICT":
     case "VERSION_LOCK_MISMATCH":
     case "INVALID_DOCUMENT_TRANSITION":
       return { status: 409, apiCode: "CONFLICT" };

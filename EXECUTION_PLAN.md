@@ -1003,7 +1003,7 @@ docuflow/
   - **Ação:** Automatizar envio para aprovação, solicitação de ajuste, nova versão, aprovação final e histórico.
   - **Verificação:** `pnpm test:e2e -- workflows.spec.ts`.
 
-- [ ] **Step 16.05 — Criar testes de isolamento e IDOR**
+- [x] **Step 16.05 — Criar testes de isolamento e IDOR**
   - **Arquivos:** `apps/api/test/security/authorization.spec.ts`
   - **Ação:** Testar usuário sem permissão em busca, count, preview, download, versão, workflow e exportação.
   - **Verificação:** `pnpm --filter @docuflow/api test:security`.
