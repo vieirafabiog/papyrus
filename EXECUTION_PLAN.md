@@ -1018,7 +1018,7 @@ docuflow/
   - **Ação:** Provar que hold bloqueia expurgo, que retry não apaga objetos errados e que auditoria é preservada.
   - **Verificação:** `pnpm --filter @docuflow/worker test:integration`.
 
-- [ ] **Step 16.08 — Criar teste automatizado de backup/restore**
+- [x] **Step 16.08 — Criar teste automatizado de backup/restore**
   - **Arquivos:** `tests/operations/backup-restore.spec.ts`
   - **Ação:** Instalar ambiente temporário, criar documento, executar backup, restaurar e comparar arquivo e metadados.
   - **Verificação:** `pnpm test:operations -- backup-restore.spec.ts`.
