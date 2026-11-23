@@ -7,6 +7,7 @@ import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import EventOutlinedIcon from "@mui/icons-material/EventOutlined";
 import FolderOutlinedIcon from "@mui/icons-material/FolderOutlined";
 import PersonOutlineOutlinedIcon from "@mui/icons-material/PersonOutlineOutlined";
+import SendOutlinedIcon from "@mui/icons-material/SendOutlined";
 import UploadFileOutlinedIcon from "@mui/icons-material/UploadFileOutlined";
 import { Alert, Box, Button, Chip, Divider, Grid, Paper, Stack, Typography } from "@mui/material";
 import { useQueryClient } from "@tanstack/react-query";
@@ -18,6 +19,7 @@ import { DocumentMetadataForm } from "./DocumentMetadataForm.js";
 import { DocumentPreviewPanel } from "./DocumentPreviewPanel.js";
 import { DocumentWorkflowTimeline } from "./DocumentWorkflowTimeline.js";
 import { DocumentFileAvailabilityPanel } from "./FileProcessingStatus.js";
+import { StartWorkflowDialog } from "./StartWorkflowDialog.js";
 import { UploadDialog } from "./UploadDialog.js";
 import { VersionHistory } from "./VersionHistory.js";
 import {
@@ -98,6 +100,7 @@ export function DocumentDetailsPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [uploadNewVersionOpen, setUploadNewVersionOpen] = useState(false);
+  const [startWorkflowOpen, setStartWorkflowOpen] = useState(false);
   const [editingMetadata, setEditingMetadata] = useState(false);
   const [lifecycleFeedback, setLifecycleFeedback] = useState<{
     readonly severity: "success" | "error";
@@ -218,6 +221,19 @@ export function DocumentDetailsPage() {
               onClick={() => setUploadNewVersionOpen(true)}
             >
               Enviar nova versão
+            </Button>
+          ) : null}
+
+          {doc.permissions.canUpdate &&
+          (doc.status === "DRAFT" || doc.status === "REJECTED" || doc.status === "EXPIRED") &&
+          doc.currentVersion?.fileObject?.status === "AVAILABLE" ? (
+            <Button
+              variant="outlined"
+              color="primary"
+              startIcon={<SendOutlinedIcon />}
+              onClick={() => setStartWorkflowOpen(true)}
+            >
+              Enviar para aprovação
             </Button>
           ) : null}
         </Stack>
@@ -469,6 +485,17 @@ export function DocumentDetailsPage() {
           ]);
         }}
         onClose={() => setUploadNewVersionOpen(false)}
+      />
+
+      <StartWorkflowDialog
+        open={startWorkflowOpen}
+        documentId={doc.id}
+        documentTitle={doc.title}
+        documentVersionNumber={doc.currentVersion?.versionNumber}
+        currentVersionId={doc.currentVersionId}
+        expectedDocumentVersion={doc.version}
+        onStarted={(message) => setLifecycleFeedback({ severity: "success", message })}
+        onClose={() => setStartWorkflowOpen(false)}
       />
     </Stack>
   );

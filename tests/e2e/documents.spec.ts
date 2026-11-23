@@ -69,7 +69,7 @@ test.describe("Gestão documental E2E", () => {
     await expect(page).toHaveURL(/\/documentos$/);
     await expect(page.getByRole("heading", { name: "Documentos" })).toBeVisible();
 
-    await page.getByRole("button", { name: "Enviar documentos" }).click();
+    await page.getByRole("button", { name: "Enviar documentos" }).first().click();
     const uploadDialog = page.getByRole("dialog", { name: "Enviar documentos" });
     await expect(uploadDialog).toBeVisible();
 

@@ -12,6 +12,7 @@ import {
   taskDetailResponseSchema,
 } from "@docuflow/contracts";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { documentWorkflowTimelineQueryKey } from "../documents/DocumentWorkflowTimeline.js";
 import {
   documentDetailsQueryKey,
   documentVersionsQueryKey,
@@ -253,6 +254,9 @@ export function useSubmitTaskDecisionMutation(taskId: string, documentId?: strin
         void queryClient.invalidateQueries({ queryKey: documentDetailsQueryKey(documentId) });
         void queryClient.invalidateQueries({ queryKey: documentVersionsQueryKey(documentId) });
         void queryClient.invalidateQueries({ queryKey: taskDocumentVersionsQueryKey(documentId) });
+        void queryClient.invalidateQueries({
+          queryKey: documentWorkflowTimelineQueryKey(documentId),
+        });
       }
     },
   });

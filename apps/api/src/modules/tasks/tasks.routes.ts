@@ -5,7 +5,11 @@ import {
   uuidSchema,
 } from "@docuflow/contracts";
 import type { TaskInboxRepository } from "@docuflow/database";
-import { type DecideTaskService, DomainError } from "@docuflow/domain";
+import {
+  type CreateWorkflowTasksService,
+  type DecideTaskService,
+  DomainError,
+} from "@docuflow/domain";
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import {
@@ -14,10 +18,17 @@ import {
   buildDocumentQueryScope,
 } from "../../plugins/authorization.js";
 
-const decideTaskBodySchema = z.object({
-  action: z.enum(["APPROVE", "REJECT", "REQUEST_CHANGES", "CANCEL"]),
-  comment: z.string().max(2000).nullable().optional(),
-});
+const decideTaskActionSchema = z.enum(["APPROVE", "REJECT", "REQUEST_CHANGES", "CANCEL"]);
+
+const decideTaskBodySchema = z
+  .object({
+    action: decideTaskActionSchema.optional(),
+    decision: decideTaskActionSchema.optional(),
+    comment: z.string().max(2000).nullable().optional(),
+  })
+  .refine((body) => body.action !== undefined || body.decision !== undefined, {
+    message: "Informe a decisão ou ação para a tarefa.",
+  });
 
 function mapDecideTaskDomainErrorStatus(code: string): {
   status: number;
@@ -44,6 +55,7 @@ export interface TaskRoutesDependencies {
   readonly guard: DocumentAuthorizationGuard;
   readonly taskInboxRepository: TaskInboxRepository;
   readonly decideTaskService?: DecideTaskService | undefined;
+  readonly createWorkflowTasksService?: CreateWorkflowTasksService | undefined;
   readonly now?: (() => Date) | undefined;
 }
 
@@ -66,7 +78,7 @@ export async function registerTaskRoutes(
   app: FastifyInstance,
   deps: TaskRoutesDependencies,
 ): Promise<void> {
-  const { guard, taskInboxRepository, decideTaskService, now } = deps;
+  const { guard, taskInboxRepository, decideTaskService, createWorkflowTasksService, now } = deps;
 
   app.get(`${CONTRACTS_API_PREFIX}/tasks`, async (request, reply) => {
     const ctx = await guard.requireSubject(request, reply);
@@ -213,6 +225,18 @@ export async function registerTaskRoutes(
         }
 
         try {
+          const resolvedAction = bodyParsed.data.decision ?? bodyParsed.data.action;
+          if (!resolvedAction) {
+            return reply.status(400).send({
+              error: {
+                code: "VALIDATION_ERROR",
+                message: "Parâmetros inválidos para decisão na tarefa de workflow.",
+                requestId: request.id,
+              },
+            });
+          }
+
+          const rawIdempotencyKey = request.headers["idempotency-key"];
           const decided = await decideTaskService.decideTask({
             organizationId: ctx.me.user.organizationId,
             actorUserId: ctx.me.user.id,
@@ -220,10 +244,29 @@ export async function registerTaskRoutes(
             actorRoleIds: collectAllowRoleIds(ctx),
             requestId: request.id,
             taskId: idParsed.data,
-            action: bodyParsed.data.action,
+            action: resolvedAction,
             comment: bodyParsed.data.comment ?? null,
+            ...(typeof rawIdempotencyKey === "string" && rawIdempotencyKey.trim().length > 0
+              ? { idempotencyKey: rawIdempotencyKey.trim() }
+              : {}),
           });
-          return reply.status(200).send({ data: decided });
+
+          if (!decided.idempotentReplay && decided.nextStep && createWorkflowTasksService) {
+            await createWorkflowTasksService.generateTaskForStep({
+              organizationId: ctx.me.user.organizationId,
+              actorUserId: ctx.me.user.id,
+              requestId: request.id,
+              workflowInstanceId: decided.instance.id,
+              stepOrder: decided.nextStep.stepOrder,
+            });
+          }
+
+          return reply.status(200).send({
+            data: {
+              ...decided,
+              documentStatus: decided.document.status,
+            },
+          });
         } catch (error) {
           if (error instanceof DomainError) {
             const mapped = mapDecideTaskDomainErrorStatus(error.code);

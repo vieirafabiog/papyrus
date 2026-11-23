@@ -225,3 +225,37 @@ export const documentWorkflowTimelineResponseSchema = createApiResponseSchema(
 export type DocumentWorkflowTimelineResponse = z.infer<
   typeof documentWorkflowTimelineResponseSchema
 >;
+
+export const workflowDefinitionSummarySchema = z.object({
+  id: uuidSchema,
+  organizationId: uuidSchema,
+  name: z.string().trim().min(1).max(120),
+  description: z.string().nullable(),
+  isActive: z.boolean(),
+  latestVersionNumber: z.number().int().min(0),
+});
+export type WorkflowDefinitionSummary = z.infer<typeof workflowDefinitionSummarySchema>;
+
+export const workflowDefinitionListResponseSchema = createApiResponseSchema(
+  z.array(workflowDefinitionSummarySchema),
+);
+export type WorkflowDefinitionListResponse = z.infer<typeof workflowDefinitionListResponseSchema>;
+
+export const startDocumentWorkflowRequestSchema = z.object({
+  workflowDefinitionId: uuidSchema,
+  documentVersionId: uuidSchema.optional(),
+  expectedDocumentVersion: z.number().int().min(1).optional(),
+});
+export type StartDocumentWorkflowRequest = z.infer<typeof startDocumentWorkflowRequestSchema>;
+
+export const startDocumentWorkflowResultSchema = z.object({
+  instance: workflowInstanceSchema,
+  task: workflowTaskSchema,
+  documentStatus: documentStatusSchema,
+});
+export type StartDocumentWorkflowResult = z.infer<typeof startDocumentWorkflowResultSchema>;
+
+export const startDocumentWorkflowResponseSchema = createApiResponseSchema(
+  startDocumentWorkflowResultSchema,
+);
+export type StartDocumentWorkflowResponse = z.infer<typeof startDocumentWorkflowResponseSchema>;

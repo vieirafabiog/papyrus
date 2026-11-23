@@ -998,7 +998,7 @@ docuflow/
   - **Ação:** Automatizar login, envio, processamento, pesquisa, preview, download e criação de versão.
   - **Verificação:** `pnpm test:e2e -- documents.spec.ts`.
 
-- [ ] **Step 16.04 — Criar E2E de revisão e aprovação**
+- [x] **Step 16.04 — Criar E2E de revisão e aprovação**
   - **Arquivo:** `tests/e2e/workflows.spec.ts`
   - **Ação:** Automatizar envio para aprovação, solicitação de ajuste, nova versão, aprovação final e histórico.
   - **Verificação:** `pnpm test:e2e -- workflows.spec.ts`.

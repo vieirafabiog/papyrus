@@ -27,7 +27,7 @@ import {
 } from "@docuflow/domain";
 import { and, asc, desc, eq, ilike, inArray, or } from "drizzle-orm";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
-import { documents } from "../schema/documents.js";
+import { documentVersions, documents } from "../schema/documents.js";
 import {
   groups,
   permissions,
@@ -972,6 +972,256 @@ export function createWorkflowAssigneeVerifier(
           "O papel informado não possui atribuição ativa no escopo deste documento.",
         );
       }
+    },
+  };
+}
+
+export interface WorkflowTimelineDecisionRecord {
+  readonly id: string;
+  readonly decision: "APPROVE" | "REJECT" | "REQUEST_CHANGES";
+  readonly actorDisplayName: string;
+  readonly comment: string | null;
+  readonly createdAt: string;
+}
+
+export interface WorkflowTimelineStepRecord {
+  readonly stepOrder: number;
+  readonly stepName: string;
+  readonly assigneeType: "USER" | "GROUP" | "ROLE";
+  readonly assigneeDisplayName: string;
+  readonly taskId: string | null;
+  readonly taskStatus:
+    | "PENDING"
+    | "APPROVED"
+    | "REJECTED"
+    | "CHANGES_REQUESTED"
+    | "CANCELLED"
+    | "EXPIRED"
+    | null;
+  readonly createdAt: string | null;
+  readonly dueAt: string | null;
+  readonly decidedAt: string | null;
+  readonly decision: WorkflowTimelineDecisionRecord | null;
+}
+
+export interface DocumentWorkflowTimelineRecord {
+  readonly id: string;
+  readonly documentId: string;
+  readonly documentVersionId: string;
+  readonly documentVersionNumber: number;
+  readonly workflowDefinitionId: string;
+  readonly workflowDefinitionName: string;
+  readonly workflowDefinitionVersionNumber: number;
+  readonly status:
+    | "ACTIVE"
+    | "COMPLETED"
+    | "REJECTED"
+    | "CHANGES_REQUESTED"
+    | "CANCELLED"
+    | "EXPIRED";
+  readonly currentStepOrder: number;
+  readonly startedByDisplayName: string;
+  readonly startedAt: string;
+  readonly completedAt: string | null;
+  readonly steps: readonly WorkflowTimelineStepRecord[];
+}
+
+export interface WorkflowTimelineRepository {
+  listDocumentTimeline(
+    organizationId: string,
+    documentId: string,
+  ): Promise<readonly DocumentWorkflowTimelineRecord[]>;
+}
+
+/**
+ * Loads chronological workflow instances, immutable definition snapshots, tasks,
+ * and recorded decisions for an authorized document in PostgreSQL.
+ */
+export function createWorkflowTimelineRepository(db: NodePgDatabase): WorkflowTimelineRepository {
+  return {
+    async listDocumentTimeline(
+      organizationId: string,
+      documentId: string,
+    ): Promise<readonly DocumentWorkflowTimelineRecord[]> {
+      const instanceRows = await db
+        .select()
+        .from(workflowInstances)
+        .where(
+          and(
+            eq(workflowInstances.organizationId, organizationId),
+            eq(workflowInstances.documentId, documentId),
+          ),
+        )
+        .orderBy(desc(workflowInstances.startedAt), desc(workflowInstances.id));
+
+      if (instanceRows.length === 0) {
+        return [];
+      }
+
+      const instanceIds = instanceRows.map((row) => row.id);
+      const defVersionIds = Array.from(
+        new Set(instanceRows.map((row) => row.workflowDefinitionVersionId)),
+      );
+      const docVersionIds = Array.from(new Set(instanceRows.map((row) => row.documentVersionId)));
+
+      const [defVersionRows, docVersionRows, taskRows] = await Promise.all([
+        db
+          .select()
+          .from(workflowDefinitionVersions)
+          .where(inArray(workflowDefinitionVersions.id, defVersionIds)),
+        db
+          .select({ id: documentVersions.id, versionNumber: documentVersions.versionNumber })
+          .from(documentVersions)
+          .where(inArray(documentVersions.id, docVersionIds)),
+        db
+          .select()
+          .from(workflowTasks)
+          .where(inArray(workflowTasks.workflowInstanceId, instanceIds)),
+      ]);
+
+      const definitionIds = Array.from(
+        new Set(defVersionRows.map((row) => row.workflowDefinitionId)),
+      );
+      const taskIds = taskRows.map((row) => row.id);
+
+      const [definitionRows, decisionRows] = await Promise.all([
+        definitionIds.length > 0
+          ? db
+              .select()
+              .from(workflowDefinitions)
+              .where(inArray(workflowDefinitions.id, definitionIds))
+          : Promise.resolve([]),
+        taskIds.length > 0
+          ? db.select().from(workflowDecisions).where(inArray(workflowDecisions.taskId, taskIds))
+          : Promise.resolve([]),
+      ]);
+
+      const userIds = new Set<string>();
+      const groupIds = new Set<string>();
+      const roleIds = new Set<string>();
+
+      for (const inst of instanceRows) {
+        userIds.add(inst.startedByUserId);
+      }
+      for (const dec of decisionRows) {
+        userIds.add(dec.actorUserId);
+      }
+      for (const defVer of defVersionRows) {
+        for (const step of defVer.steps) {
+          if (step.assigneeType === "USER") {
+            userIds.add(step.assigneeTargetId);
+          } else if (step.assigneeType === "GROUP") {
+            groupIds.add(step.assigneeTargetId);
+          } else {
+            roleIds.add(step.assigneeTargetId);
+          }
+        }
+      }
+
+      const [userRows, groupRows, roleRows] = await Promise.all([
+        userIds.size > 0
+          ? db
+              .select({ id: users.id, fullName: users.fullName })
+              .from(users)
+              .where(inArray(users.id, Array.from(userIds)))
+          : Promise.resolve([]),
+        groupIds.size > 0
+          ? db
+              .select({ id: groups.id, name: groups.name })
+              .from(groups)
+              .where(inArray(groups.id, Array.from(groupIds)))
+          : Promise.resolve([]),
+        roleIds.size > 0
+          ? db
+              .select({ id: roles.id, name: roles.name })
+              .from(roles)
+              .where(inArray(roles.id, Array.from(roleIds)))
+          : Promise.resolve([]),
+      ]);
+
+      const userNameById = new Map(userRows.map((r) => [r.id, r.fullName]));
+      const groupNameById = new Map(groupRows.map((r) => [r.id, r.name]));
+      const roleNameById = new Map(roleRows.map((r) => [r.id, r.name]));
+
+      const defVersionById = new Map(defVersionRows.map((r) => [r.id, r]));
+      const defById = new Map(definitionRows.map((r) => [r.id, r]));
+      const docVersionNumberById = new Map(docVersionRows.map((r) => [r.id, r.versionNumber]));
+      const decisionByTaskId = new Map(decisionRows.map((r) => [r.taskId, r]));
+
+      const tasksByInstanceAndStep = new Map<string, typeof workflowTasks.$inferSelect>();
+      for (const task of taskRows) {
+        tasksByInstanceAndStep.set(`${task.workflowInstanceId}:${task.stepOrder}`, task);
+      }
+
+      const resolveAssigneeDisplayName = (
+        assigneeType: "USER" | "GROUP" | "ROLE",
+        targetId: string,
+      ): string => {
+        if (assigneeType === "USER") {
+          return userNameById.get(targetId) ?? "Usuário";
+        }
+        if (assigneeType === "GROUP") {
+          return groupNameById.get(targetId) ?? "Grupo";
+        }
+        return roleNameById.get(targetId) ?? "Papel";
+      };
+
+      const timeline: DocumentWorkflowTimelineRecord[] = [];
+      for (const inst of instanceRows) {
+        const defVer = defVersionById.get(inst.workflowDefinitionVersionId);
+        const def = defVer ? defById.get(defVer.workflowDefinitionId) : undefined;
+        if (!defVer || !def) {
+          continue;
+        }
+
+        const orderedSteps = [...defVer.steps].sort((a, b) => a.stepOrder - b.stepOrder);
+        const steps: WorkflowTimelineStepRecord[] = orderedSteps.map((step) => {
+          const task = tasksByInstanceAndStep.get(`${inst.id}:${step.stepOrder}`);
+          const dec = task ? decisionByTaskId.get(task.id) : undefined;
+
+          return {
+            stepOrder: step.stepOrder,
+            stepName: step.name,
+            assigneeType: step.assigneeType,
+            assigneeDisplayName: resolveAssigneeDisplayName(
+              step.assigneeType,
+              step.assigneeTargetId,
+            ),
+            taskId: task?.id ?? null,
+            taskStatus: task?.status ?? null,
+            createdAt: task ? task.createdAt.toISOString() : null,
+            dueAt: task?.dueAt ? task.dueAt.toISOString() : null,
+            decidedAt: task?.decidedAt ? task.decidedAt.toISOString() : null,
+            decision: dec
+              ? {
+                  id: dec.id,
+                  decision: dec.decision,
+                  actorDisplayName: userNameById.get(dec.actorUserId) ?? "Revisor",
+                  comment: dec.comment,
+                  createdAt: dec.createdAt.toISOString(),
+                }
+              : null,
+          };
+        });
+
+        timeline.push({
+          id: inst.id,
+          documentId: inst.documentId,
+          documentVersionId: inst.documentVersionId,
+          documentVersionNumber: docVersionNumberById.get(inst.documentVersionId) ?? 1,
+          workflowDefinitionId: def.id,
+          workflowDefinitionName: def.name,
+          workflowDefinitionVersionNumber: defVer.versionNumber,
+          status: inst.status,
+          currentStepOrder: inst.currentStepOrder,
+          startedByDisplayName: userNameById.get(inst.startedByUserId) ?? "Solicitante",
+          startedAt: inst.startedAt.toISOString(),
+          completedAt: inst.completedAt ? inst.completedAt.toISOString() : null,
+          steps,
+        });
+      }
+
+      return timeline;
     },
   };
 }

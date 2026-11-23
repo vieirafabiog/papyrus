@@ -6,6 +6,7 @@ import type {
   DocumentSearchRepository,
   DocumentTrashRepository,
   TaskInboxRepository,
+  WorkflowTimelineRepository,
 } from "@docuflow/database";
 import type {
   ArchiveDocumentService,
@@ -15,6 +16,7 @@ import type {
   CategoryService,
   CreateDocumentService,
   CreateDocumentVersionService,
+  CreateWorkflowTasksService,
   DecideTaskService,
   DocumentRepositoryPort,
   DocumentVersionRepositoryPort,
@@ -27,6 +29,7 @@ import type {
   PermissionAdministrationService,
   RestoreDocumentService,
   RetentionGovernanceService,
+  StartWorkflowService,
   StorageConnectionAdminService,
   StorageConnectionRepositoryPort,
   StorageRouterService,
@@ -36,6 +39,7 @@ import type {
   UploadSessionRepositoryPort,
   UploadSessionService,
   UserAdministrationService,
+  WorkflowDefinitionRepositoryPort,
 } from "@docuflow/domain";
 import type { InAppNotificationService } from "@docuflow/notifications";
 import type { StorageProviderRegistry } from "@docuflow/storage-core";
@@ -72,6 +76,7 @@ import {
   registerUploadRoutes,
 } from "./modules/uploads/upload.routes.js";
 import { registerUserRoutes } from "./modules/users/users.routes.js";
+import { registerWorkflowRoutes } from "./modules/workflows/index.js";
 import {
   createCategoryAuthorizationGuard,
   createDocumentAuthorizationGuard,
@@ -154,7 +159,18 @@ export interface AppOptions {
         readonly documentRepository: DocumentRepositoryPort;
         readonly taskInboxRepository: TaskInboxRepository;
         readonly decideTaskService?: DecideTaskService | undefined;
+        readonly createWorkflowTasksService?: CreateWorkflowTasksService | undefined;
         readonly now?: (() => Date) | undefined;
+      }
+    | undefined;
+  readonly workflowDeps?:
+    | {
+        readonly authzRepository: AuthorizationRepository;
+        readonly documentRepository: DocumentRepositoryPort;
+        readonly workflowDefinitionRepository: WorkflowDefinitionRepositoryPort;
+        readonly workflowTimelineRepository?: WorkflowTimelineRepository | undefined;
+        readonly startWorkflowService: StartWorkflowService;
+        readonly createWorkflowTasksService: CreateWorkflowTasksService;
       }
     | undefined;
   readonly auditDeps?:
@@ -432,7 +448,27 @@ export function buildApp(options: AppOptions = {}): FastifyInstance {
           guard: taskGuard,
           taskInboxRepository: taskDeps.taskInboxRepository,
           decideTaskService: taskDeps.decideTaskService,
+          createWorkflowTasksService: taskDeps.createWorkflowTasksService,
           now: taskDeps.now,
+        });
+      });
+    }
+
+    if (options.workflowDeps) {
+      const workflowDeps = options.workflowDeps;
+      const workflowGuard = createDocumentAuthorizationGuard({
+        authService,
+        authzRepository: workflowDeps.authzRepository,
+        documentRepository: workflowDeps.documentRepository,
+        auditRepository: options.auditRepository ?? options.documentDeps?.auditRepository,
+      });
+      void app.register(async (instance) => {
+        await registerWorkflowRoutes(instance, {
+          guard: workflowGuard,
+          workflowDefinitionRepository: workflowDeps.workflowDefinitionRepository,
+          workflowTimelineRepository: workflowDeps.workflowTimelineRepository,
+          startWorkflowService: workflowDeps.startWorkflowService,
+          createWorkflowTasksService: workflowDeps.createWorkflowTasksService,
         });
       });
     }

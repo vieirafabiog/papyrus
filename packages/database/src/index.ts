@@ -111,6 +111,11 @@ export {
   createWorkflowDefinitionRepository,
   createWorkflowInstanceRepository,
   createWorkflowTaskRepository,
+  createWorkflowTimelineRepository,
+  type DocumentWorkflowTimelineRecord,
+  type WorkflowTimelineDecisionRecord,
+  type WorkflowTimelineRepository,
+  type WorkflowTimelineStepRecord,
 } from "./repositories/workflow-repository.js";
 
 export {

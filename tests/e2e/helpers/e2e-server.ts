@@ -28,9 +28,16 @@ import {
   createOutboxRepository,
   createStorageConnectionRepository,
   createStorageRoutingRuleRepository,
+  createTaskInboxRepository,
   createTransactionManager,
   createUploadSessionRepository,
   createUserRepository,
+  createWorkflowAssigneeVerifier,
+  createWorkflowDecisionRepository,
+  createWorkflowDefinitionRepository,
+  createWorkflowInstanceRepository,
+  createWorkflowTaskRepository,
+  createWorkflowTimelineRepository,
   folders,
   organizations,
   permissions,
@@ -44,12 +51,16 @@ import {
 import {
   createCategoryFieldService,
   createCategoryService,
+  createDecideTaskUseCase,
   createDocumentUseCase,
   createDocumentVersionUseCase,
   createFinalizeUploadService,
   createFolderService,
+  createStartWorkflowUseCase,
   createStorageRouterService,
   createUploadSessionService,
+  createWorkflowDefinitionService,
+  createWorkflowTasksUseCase,
 } from "@docuflow/domain";
 import type { AntivirusScannerPort } from "@docuflow/file-processing";
 import { createStorageProviderRegistry } from "@docuflow/storage-core";
@@ -86,6 +97,11 @@ export interface E2eEnvironment {
     readonly email: string;
     readonly password: string;
   };
+  readonly reviewerCredentials: {
+    readonly email: string;
+    readonly password: string;
+  };
+  readonly workflowDefinitionName: string;
   readonly categoryName: string;
   readonly folderName: string;
   stop(): Promise<void>;
@@ -212,15 +228,20 @@ export async function startE2eEnvironment(): Promise<E2eEnvironment> {
 
   const orgId = randomUUID();
   const adminId = randomUUID();
+  const reviewerId = randomUUID();
   const adminRoleId = randomUUID();
+  const reviewerRoleId = randomUUID();
   const categoryId = randomUUID();
   const folderId = randomUUID();
   const storageConnId = randomUUID();
 
   const categoryName = "Contratos E2E";
   const folderName = "Jurídico E2E";
+  const workflowDefinitionName = "Aprovação de Contratos E2E";
   const adminEmail = `admin-e2e-${orgId.slice(0, 6)}@docuflow.local`;
   const adminPassword = "DocuFlowE2E!2026";
+  const reviewerEmail = `revisor-e2e-${orgId.slice(0, 6)}@docuflow.local`;
+  const reviewerPassword = "RevisorE2E!2026";
 
   const passwordService = createPasswordService({
     memoryCost: 8_192,
@@ -229,6 +250,7 @@ export async function startE2eEnvironment(): Promise<E2eEnvironment> {
     minPasswordLength: 10,
   });
   const passwordHash = await passwordService.hashPassword(adminPassword);
+  const reviewerPasswordHash = await passwordService.hashPassword(reviewerPassword);
 
   const sessionService = createSessionService({
     store: {
@@ -262,18 +284,31 @@ export async function startE2eEnvironment(): Promise<E2eEnvironment> {
     slug: `org-e2e-${orgId.slice(0, 8)}`,
   });
 
-  await db.insert(roles).values({
-    id: adminRoleId,
-    organizationId: orgId,
-    key: "admin",
-    name: "Administrador",
-    isSystem: true,
-  });
+  await db.insert(roles).values([
+    {
+      id: adminRoleId,
+      organizationId: orgId,
+      key: "admin",
+      name: "Administrador",
+      isSystem: true,
+    },
+    {
+      id: reviewerRoleId,
+      organizationId: orgId,
+      key: "reviewer",
+      name: "Revisor",
+      isSystem: true,
+    },
+  ]);
 
+  const allRolePermissions = [
+    ...SYSTEM_ROLE_DEFINITIONS.admin.permissions,
+    ...SYSTEM_ROLE_DEFINITIONS.reviewer.permissions,
+  ];
   const insertedPerms = await db
     .insert(permissions)
     .values(
-      SYSTEM_ROLE_DEFINITIONS.admin.permissions.map((perm) => ({
+      allRolePermissions.map((perm) => ({
         id: randomUUID(),
         action: perm.action,
         resource: perm.resource,
@@ -286,30 +321,57 @@ export async function startE2eEnvironment(): Promise<E2eEnvironment> {
   const adminPermIds = SYSTEM_ROLE_DEFINITIONS.admin.permissions
     .map((p) => permByKey.get(`${p.action}:${p.resource}`))
     .filter((id): id is string => id !== undefined);
-  await db.insert(rolePermissions).values(
-    adminPermIds.map((permissionId) => ({
+  const reviewerPermIds = SYSTEM_ROLE_DEFINITIONS.reviewer.permissions
+    .map((p) => permByKey.get(`${p.action}:${p.resource}`))
+    .filter((id): id is string => id !== undefined);
+  await db.insert(rolePermissions).values([
+    ...adminPermIds.map((permissionId) => ({
       roleId: adminRoleId,
       permissionId,
     })),
-  );
+    ...reviewerPermIds.map((permissionId) => ({
+      roleId: reviewerRoleId,
+      permissionId,
+    })),
+  ]);
 
-  await db.insert(users).values({
-    id: adminId,
-    organizationId: orgId,
-    email: adminEmail,
-    fullName: "Administrador E2E",
-    passwordHash,
-    status: "ACTIVE",
-  });
+  await db.insert(users).values([
+    {
+      id: adminId,
+      organizationId: orgId,
+      email: adminEmail,
+      fullName: "Administrador E2E",
+      passwordHash,
+      status: "ACTIVE",
+    },
+    {
+      id: reviewerId,
+      organizationId: orgId,
+      email: reviewerEmail,
+      fullName: "Revisor Jurídico E2E",
+      passwordHash: reviewerPasswordHash,
+      status: "ACTIVE",
+    },
+  ]);
 
-  await db.insert(userRoleScopes).values({
-    id: randomUUID(),
-    organizationId: orgId,
-    userId: adminId,
-    roleId: adminRoleId,
-    scopeType: "GLOBAL",
-    effect: "ALLOW",
-  });
+  await db.insert(userRoleScopes).values([
+    {
+      id: randomUUID(),
+      organizationId: orgId,
+      userId: adminId,
+      roleId: adminRoleId,
+      scopeType: "GLOBAL",
+      effect: "ALLOW",
+    },
+    {
+      id: randomUUID(),
+      organizationId: orgId,
+      userId: reviewerId,
+      roleId: reviewerRoleId,
+      scopeType: "GLOBAL",
+      effect: "ALLOW",
+    },
+  ]);
 
   await db.insert(categories).values({
     id: categoryId,
@@ -352,6 +414,13 @@ export async function startE2eEnvironment(): Promise<E2eEnvironment> {
   const uploadRepository = createUploadSessionRepository(db);
   const connectionRepository = createStorageConnectionRepository(db);
   const outboxRepository = createOutboxRepository(db);
+  const workflowDefinitionRepository = createWorkflowDefinitionRepository(db);
+  const workflowInstanceRepository = createWorkflowInstanceRepository(db);
+  const workflowTaskRepository = createWorkflowTaskRepository(db);
+  const workflowDecisionRepository = createWorkflowDecisionRepository(db);
+  const workflowTimelineRepository = createWorkflowTimelineRepository(db);
+  const workflowAssigneeVerifier = createWorkflowAssigneeVerifier(db);
+  const taskInboxRepository = createTaskInboxRepository(db);
 
   const storageRegistry = createStorageProviderRegistry();
   storageRegistry.registerFactory("local", ({ connection }) =>
@@ -446,6 +515,68 @@ export async function startE2eEnvironment(): Promise<E2eEnvironment> {
 
   const folderService = createFolderService({
     folders: folderRepository,
+    transactions,
+    audit: auditRepository,
+    generateId: () => randomUUID(),
+  });
+
+  const workflowDefinitionService = createWorkflowDefinitionService({
+    definitions: workflowDefinitionRepository,
+    transactions,
+    audit: auditRepository,
+    generateId: () => randomUUID(),
+  });
+
+  await workflowDefinitionService.createDefinition({
+    organizationId: orgId,
+    actorUserId: adminId,
+    requestId: randomUUID(),
+    name: workflowDefinitionName,
+    description: "Fluxo sequencial de revisão jurídica e aprovação final.",
+    steps: [
+      {
+        stepOrder: 1,
+        name: "Revisão Jurídica",
+        assignee: { type: "USER", userId: reviewerId },
+        dueDays: 3,
+      },
+      {
+        stepOrder: 2,
+        name: "Aprovação Final",
+        assignee: { type: "USER", userId: adminId },
+        dueDays: 3,
+      },
+    ],
+  });
+
+  const startWorkflowService = createStartWorkflowUseCase({
+    documents: documentRepository,
+    documentVersions: documentVersionRepository,
+    uploadSessions: uploadRepository,
+    definitions: workflowDefinitionRepository,
+    workflowInstances: workflowInstanceRepository,
+    transactions,
+    audit: auditRepository,
+    generateId: () => randomUUID(),
+  });
+
+  const createWorkflowTasksService = createWorkflowTasksUseCase({
+    workflowInstances: workflowInstanceRepository,
+    definitions: workflowDefinitionRepository,
+    documents: documentRepository,
+    tasks: workflowTaskRepository,
+    transactions,
+    audit: auditRepository,
+    assigneeAuthorization: workflowAssigneeVerifier,
+    generateId: () => randomUUID(),
+  });
+
+  const decideTaskService = createDecideTaskUseCase({
+    tasks: workflowTaskRepository,
+    decisions: workflowDecisionRepository,
+    workflowInstances: workflowInstanceRepository,
+    definitions: workflowDefinitionRepository,
+    documents: documentRepository,
     transactions,
     audit: auditRepository,
     generateId: () => randomUUID(),
@@ -569,6 +700,21 @@ export async function startE2eEnvironment(): Promise<E2eEnvironment> {
       folderRepository,
       folderService,
     },
+    taskDeps: {
+      authzRepository,
+      documentRepository,
+      taskInboxRepository,
+      decideTaskService,
+      createWorkflowTasksService,
+    },
+    workflowDeps: {
+      authzRepository,
+      documentRepository,
+      workflowDefinitionRepository,
+      workflowTimelineRepository,
+      startWorkflowService,
+      createWorkflowTasksService,
+    },
   });
 
   await app.listen({ host: "127.0.0.1", port: 0 });
@@ -612,6 +758,11 @@ export async function startE2eEnvironment(): Promise<E2eEnvironment> {
       email: adminEmail,
       password: adminPassword,
     },
+    reviewerCredentials: {
+      email: reviewerEmail,
+      password: reviewerPassword,
+    },
+    workflowDefinitionName,
     categoryName,
     folderName,
     async stop() {
