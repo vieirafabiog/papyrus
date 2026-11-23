@@ -12,6 +12,7 @@
     "test": "vitest run --passWithNoTests",
     "test:integration": "pnpm -r --if-present test:integration",
     "test:operations": "vitest run --root tests/operations",
+    "test:performance": "./apps/api/node_modules/.bin/tsx tests/performance/run-load-test.ts",
     "test:e2e": "playwright test",
     "lint": "biome check .",
     "format": "biome format --write ."

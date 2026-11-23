@@ -1023,7 +1023,7 @@ docuflow/
   - **Ação:** Instalar ambiente temporário, criar documento, executar backup, restaurar e comparar arquivo e metadados.
   - **Verificação:** `pnpm test:operations -- backup-restore.spec.ts`.
 
-- [ ] **Step 16.09 — Definir e executar teste de carga básico**
+- [x] **Step 16.09 — Definir e executar teste de carga básico**
   - **Arquivos:** `tests/performance/*`, relatório
   - **Ação:** Medir listagem paginada, busca, login e uploads concorrentes com dataset conhecido; registrar hardware, volume e resultados, sem inventar SLA.
   - **Verificação:** Executar script de carga e salvar relatório reproduzível.
