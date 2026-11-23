@@ -105,6 +105,22 @@ describe("S3StorageProvider integration against MinIO", () => {
     }
   });
 
+  describe("Shared StorageProvider contract suite on MinIO (signed targets enabled)", () => {
+    for (const [index, scenario] of scenarios.entries()) {
+      it(scenario.name, async () => {
+        const provider = createS3StorageProvider(makeMinioConfig(endpoint), {
+          securityPolicy: { allowPrivateEndpoints: true },
+          enableSignedTargets: true,
+          healthVerifyReadWrite: true,
+        });
+        await scenario.run({
+          provider,
+          keyPrefix: `org/contract-org/documents/minio-signed-doc-${index + 1}`,
+        });
+      });
+    }
+  });
+
   it("uploads and downloads via real SigV4 presigned targets against MinIO", async () => {
     const provider = createS3StorageProvider(makeMinioConfig(endpoint), {
       securityPolicy: { allowPrivateEndpoints: true },

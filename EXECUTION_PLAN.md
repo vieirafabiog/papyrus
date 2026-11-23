@@ -983,7 +983,7 @@ docuflow/
 
 # PHASE 16 — TESTES INTEGRADOS, SEGURANÇA E PERFORMANCE
 
-- [ ] **Step 16.01 — Criar suíte de contrato para todos os conectores**
+- [x] **Step 16.01 — Criar suíte de contrato para todos os conectores**
   - **Arquivos:** `packages/storage-core/test/contract/*`
   - **Ação:** Reutilizar o mesmo conjunto de testes para filesystem local e S3/MinIO, cobrindo capabilities e erros normalizados.
   - **Verificação:** `pnpm --filter @docuflow/storage-local test` e `pnpm --filter @docuflow/storage-s3 test:integration`.
