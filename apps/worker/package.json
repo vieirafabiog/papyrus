@@ -23,7 +23,7 @@
   },
   "devDependencies": {
     "@testcontainers/postgresql": "^10.18.0",
-    "drizzle-orm": "^0.41.0",
+    "drizzle-orm": "^0.45.4",
     "pg": "^8.14.1",
     "tsx": "^4.19.3"
   }

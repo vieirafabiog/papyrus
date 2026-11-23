@@ -212,8 +212,8 @@ importers:
         specifier: ^8.11.11
         version: 8.23.1
       drizzle-orm:
-        specifier: ^0.41.0
-        version: 0.41.0(@types/pg@8.23.1)(gel@2.2.1)(pg@8.23.1)
+        specifier: ^0.45.4
+        version: 0.45.4(@types/pg@8.23.1)(gel@2.2.1)(pg@8.23.1)
       fastify:
         specifier: ^5.2.1
         version: 5.12.8
@@ -254,8 +254,8 @@ importers:
         specifier: workspace:*
         version: link:../../packages/storage-s3
       '@fastify/busboy':
-        specifier: ^2.1.1
-        version: 2.1.1
+        specifier: ^3.2.6
+        version: 3.2.6
       '@fastify/cookie':
         specifier: ^11.0.2
         version: 11.1.5
@@ -273,8 +273,8 @@ importers:
         specifier: ^10.18.0
         version: 10.28.0(bare-buffer@3.7.3)
       drizzle-orm:
-        specifier: ^0.41.0
-        version: 0.41.0(@types/pg@8.23.1)(gel@2.2.1)(pg@8.23.1)
+        specifier: ^0.45.4
+        version: 0.45.4(@types/pg@8.23.1)(gel@2.2.1)(pg@8.23.1)
       pg:
         specifier: ^8.14.1
         version: 8.23.1
@@ -374,8 +374,8 @@ importers:
         specifier: ^10.18.0
         version: 10.28.0(bare-buffer@3.7.3)
       drizzle-orm:
-        specifier: ^0.41.0
-        version: 0.41.0(@types/pg@8.23.1)(gel@2.2.1)(pg@8.23.1)
+        specifier: ^0.45.4
+        version: 0.45.4(@types/pg@8.23.1)(gel@2.2.1)(pg@8.23.1)
       pg:
         specifier: ^8.14.1
         version: 8.23.1
@@ -413,8 +413,8 @@ importers:
         specifier: workspace:*
         version: link:../notifications
       drizzle-orm:
-        specifier: ^0.41.0
-        version: 0.41.0(@types/pg@8.23.1)(gel@2.2.1)(pg@8.23.1)
+        specifier: ^0.45.4
+        version: 0.45.4(@types/pg@8.23.1)(gel@2.2.1)(pg@8.23.1)
       pg:
         specifier: ^8.14.1
         version: 8.23.1
@@ -1255,6 +1255,9 @@ packages:
     resolution: {integrity: sha512-vBZP4NlzfOlerQTnba4aqZoMhE/a9HY7HRqoOPaETQcSQuWEIyZMHGfVu6w9wGtGK5fED5qRs2DteVCjOH60sA==}
     engines: {node: '>=14'}
 
+  '@fastify/busboy@3.2.6':
+    resolution: {integrity: sha512-UPXdyAMbz/gNvjS8HONpJR2TDaHM3wQKMtSRPFkoh2LTeRRtnm+ICVYKgBYkTwlPOVzDNynOd34EH8qapwfelQ==}
+
   '@fastify/cookie@11.1.5':
     resolution: {integrity: sha512-hs7e0otf7n/lJMpt63EFdQb5/u8kO6DeexEtLPVTybSdItC6SwJ1O0vtTyWvKNR70LZcHLlsUr/y3jFpqtyWRA==}
 
@@ -2084,8 +2087,8 @@ packages:
     resolution: {integrity: sha512-U4wWit0fyZuGuP7iNmRleQyK2V8wCuv57vf5l3MnG4z4fzNTjY/U13M8owyQ5RavqvqxBifWORaR3wIUzlN64g==}
     hasBin: true
 
-  drizzle-orm@0.41.0:
-    resolution: {integrity: sha512-7A4ZxhHk9gdlXmTdPj/lREtP+3u8KvZ4yEN6MYVxBzZGex5Wtdc+CWSbu7btgF6TB0N+MNPrvW7RKBbxJchs/Q==}
+  drizzle-orm@0.45.4:
+    resolution: {integrity: sha512-NiM1YZpJ2UxyeE67DpDDZ+Tsw4YLX3trSlkNT7Tm9eKoUNb1LvaAaQzXgYQsWs+AQ9TUmmwMmBOCXuqqxUWKKQ==}
     peerDependencies:
       '@aws-sdk/client-rds-data': '>=3'
       '@cloudflare/workers-types': '>=4'
@@ -2093,14 +2096,16 @@ packages:
       '@libsql/client': '>=0.10.0'
       '@libsql/client-wasm': '>=0.10.0'
       '@neondatabase/serverless': '>=0.10.0'
+      '@netlify/db': '>=0.4.0'
       '@op-engineering/op-sqlite': '>=2'
       '@opentelemetry/api': ^1.4.1
-      '@planetscale/database': '>=1'
+      '@planetscale/database': '>=1.13'
       '@prisma/client': '*'
       '@tidbcloud/serverless': '*'
       '@types/better-sqlite3': '*'
       '@types/pg': '*'
       '@types/sql.js': '*'
+      '@upstash/redis': '>=1.34.7'
       '@vercel/postgres': '>=0.8.0'
       '@xata.io/client': '*'
       better-sqlite3: '>=7'
@@ -2128,6 +2133,8 @@ packages:
         optional: true
       '@neondatabase/serverless':
         optional: true
+      '@netlify/db':
+        optional: true
       '@op-engineering/op-sqlite':
         optional: true
       '@opentelemetry/api':
@@ -2143,6 +2150,8 @@ packages:
       '@types/pg':
         optional: true
       '@types/sql.js':
+        optional: true
+      '@upstash/redis':
         optional: true
       '@vercel/postgres':
         optional: true
@@ -3917,6 +3926,8 @@ snapshots:
 
   '@fastify/busboy@2.1.1': {}
 
+  '@fastify/busboy@3.2.6': {}
+
   '@fastify/cookie@11.1.5':
     dependencies:
       cookie: 2.0.2
@@ -4734,7 +4745,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  drizzle-orm@0.41.0(@types/pg@8.23.1)(gel@2.2.1)(pg@8.23.1):
+  drizzle-orm@0.45.4(@types/pg@8.23.1)(gel@2.2.1)(pg@8.23.1):
     optionalDependencies:
       '@types/pg': 8.23.1
       gel: 2.2.1

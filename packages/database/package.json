@@ -22,7 +22,7 @@
   "dependencies": {
     "@docuflow/domain": "workspace:*",
     "@docuflow/notifications": "workspace:*",
-    "drizzle-orm": "^0.41.0",
+    "drizzle-orm": "^0.45.4",
     "pg": "^8.14.1"
   },
   "devDependencies": {

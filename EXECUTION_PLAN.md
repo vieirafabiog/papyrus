@@ -1033,7 +1033,7 @@ docuflow/
   - **Ação:** Verificar login, lista, upload, detalhe, tarefa e administração por teclado, labels e contraste.
   - **Verificação:** `pnpm test:e2e -- accessibility.spec.ts`.
 
-- [ ] **Step 16.11 — Executar auditoria de dependências e licenças**
+- [x] **Step 16.11 — Executar auditoria de dependências e licenças**
   - **Arquivos:** `docs/dependencies-and-licenses.md`, pipeline CI
   - **Ação:** Identificar dependências diretas/transitivas, licenças, CVEs relevantes e política de atualização. Resolver bloqueadores antes do release.
   - **Verificação:** Executar scanner escolhido e registrar resultado datado.

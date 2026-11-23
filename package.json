@@ -15,7 +15,8 @@
     "test:performance": "./apps/api/node_modules/.bin/tsx tests/performance/run-load-test.ts",
     "test:e2e": "playwright test",
     "lint": "biome check .",
-    "format": "biome format --write ."
+    "format": "biome format --write .",
+    "audit:deps": "node scripts/ci/check-dependencies.mjs"
   },
   "devDependencies": {
     "@biomejs/biome": "^1.9.4",
@@ -30,7 +31,7 @@
     "@testcontainers/postgresql": "^10.18.0",
     "@types/node": "^22.13.10",
     "@types/pg": "^8.11.11",
-    "drizzle-orm": "^0.41.0",
+    "drizzle-orm": "^0.45.4",
     "fastify": "^5.2.1",
     "pg": "^8.14.1",
     "typescript": "^5.8.2",
