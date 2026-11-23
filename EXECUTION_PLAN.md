@@ -1028,7 +1028,7 @@ docuflow/
   - **Ação:** Medir listagem paginada, busca, login e uploads concorrentes com dataset conhecido; registrar hardware, volume e resultados, sem inventar SLA.
   - **Verificação:** Executar script de carga e salvar relatório reproduzível.
 
-- [ ] **Step 16.10 — Verificar acessibilidade dos fluxos críticos**
+- [x] **Step 16.10 — Verificar acessibilidade dos fluxos críticos**
   - **Arquivos:** testes Playwright/a11y
   - **Ação:** Verificar login, lista, upload, detalhe, tarefa e administração por teclado, labels e contraste.
   - **Verificação:** `pnpm test:e2e -- accessibility.spec.ts`.

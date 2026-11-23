@@ -704,7 +704,7 @@ export function StorageSettingsPage() {
         <Stack direction="row" spacing={1.5} alignItems="center">
           <StorageOutlinedIcon color="primary" fontSize="large" />
           <Box>
-            <Typography variant="h4" fontWeight={700}>
+            <Typography variant="h1" component="h1">
               Armazenamento e conexões
             </Typography>
             <Typography variant="body2" color="text.secondary">
@@ -739,7 +739,7 @@ export function StorageSettingsPage() {
       >
         <Stack spacing={2}>
           <Box>
-            <Typography variant="h6" fontWeight={600}>
+            <Typography variant="h2" component="h2" fontWeight={600}>
               Conexões configuradas
             </Typography>
             <Typography variant="body2" color="text.secondary">
@@ -914,7 +914,7 @@ export function StorageSettingsPage() {
           <Stack direction="row" spacing={1.25} alignItems="center">
             <RouteOutlinedIcon color="primary" />
             <Box>
-              <Typography variant="h6" fontWeight={600}>
+              <Typography variant="h2" component="h2" fontWeight={600}>
                 Regras de roteamento por categoria
               </Typography>
               <Typography variant="body2" color="text.secondary">

@@ -57,8 +57,10 @@ import {
   createFinalizeUploadService,
   createFolderService,
   createStartWorkflowUseCase,
+  createStorageConnectionAdminService,
   createStorageRouterService,
   createUploadSessionService,
+  createUserAdministrationService,
   createWorkflowDefinitionService,
   createWorkflowTasksUseCase,
 } from "@docuflow/domain";
@@ -66,12 +68,13 @@ import type { AntivirusScannerPort } from "@docuflow/file-processing";
 import { createStorageProviderRegistry } from "@docuflow/storage-core";
 import { createLocalStorageProvider } from "@docuflow/storage-local";
 import { PostgreSqlContainer, type StartedPostgreSqlContainer } from "@testcontainers/postgresql";
-import { eq } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/node-postgres";
 import { migrate } from "drizzle-orm/node-postgres/migrator";
 import { Pool } from "pg";
 import { buildApp } from "../../../apps/api/src/app.js";
 import { createAuthService } from "../../../apps/api/src/modules/auth/auth.service.js";
+import { createStorageHealthTester } from "../../../apps/api/src/modules/storage/storage-health.adapter.js";
 import { createProcessUploadJobHandler } from "../../../apps/worker/src/jobs/process-upload.js";
 
 const CURRENT_DIR = path.dirname(fileURLToPath(import.meta.url));
@@ -585,8 +588,6 @@ export async function startE2eEnvironment(): Promise<E2eEnvironment> {
   const authService = createAuthService({
     passwordService,
     sessionService,
-    authzRepository,
-    auditRepository,
     users: {
       async findCredentialByEmail(email) {
         const [row] = await db.select().from(users).where(eq(users.email, email)).limit(1);
@@ -611,6 +612,36 @@ export async function startE2eEnvironment(): Promise<E2eEnvironment> {
         if (!row) {
           return null;
         }
+        const loaded = await authzRepository.loadSubject(row.organizationId, uid);
+        const assignedRoleIds = Array.from(
+          new Set(
+            loaded.assignments
+              .filter((assignment) => assignment.effect === "ALLOW")
+              .map((assignment) => assignment.roleId),
+          ),
+        );
+        const roleRows =
+          assignedRoleIds.length > 0
+            ? await db.select().from(roles).where(inArray(roles.id, assignedRoleIds))
+            : [];
+        const uniquePermissions = new Map<
+          string,
+          {
+            readonly id: string;
+            readonly action: (typeof allPerms)[number]["action"];
+            readonly resource: (typeof allPerms)[number]["resource"];
+          }
+        >();
+        for (const perm of loaded.rolePermissions) {
+          const permId = permByKey.get(`${perm.action}:${perm.resource}`);
+          if (permId) {
+            uniquePermissions.set(`${perm.action}:${perm.resource}`, {
+              id: permId,
+              action: perm.action,
+              resource: perm.resource,
+            });
+          }
+        }
         return {
           user: {
             id: row.id,
@@ -622,8 +653,14 @@ export async function startE2eEnvironment(): Promise<E2eEnvironment> {
             updatedAt: row.updatedAt.toISOString(),
           },
           groups: [],
-          roles: [],
-          permissions: [],
+          roles: roleRows.map((r) => ({
+            id: r.id,
+            key: r.key,
+            name: r.name,
+            description: r.description,
+            isSystem: r.isSystem,
+          })),
+          permissions: Array.from(uniquePermissions.values()),
         };
       },
     },
@@ -651,6 +688,24 @@ export async function startE2eEnvironment(): Promise<E2eEnvironment> {
   const proxyAddress = proxyServer.address() as AddressInfo;
   const baseUrl = `http://127.0.0.1:${proxyAddress.port}`;
 
+  const storageAdminService = createStorageConnectionAdminService({
+    connections: connectionRepository,
+    transactions,
+    audit: auditRepository,
+    healthTester: createStorageHealthTester(),
+    generateId: () => randomUUID(),
+  });
+
+  const userAdminService = createUserAdministrationService({
+    users: userRepository,
+    transactions,
+    audit: auditRepository,
+    passwordHasher: {
+      hashPassword: (plain) => passwordService.hashPassword(plain),
+    },
+    generateId: () => randomUUID(),
+  });
+
   const app = buildApp({
     logger: false,
     secureCookies: false,
@@ -659,6 +714,13 @@ export async function startE2eEnvironment(): Promise<E2eEnvironment> {
       allowedOrigins: [baseUrl],
     },
     authService,
+    userAdminService,
+    storageAdminService,
+    storageRouterService: storageRouter,
+    auditDeps: {
+      authzRepository,
+      auditRepository,
+    },
     uploadDeps: {
       authzRepository,
       documentRepository,

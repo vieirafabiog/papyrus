@@ -256,7 +256,7 @@ export function CategoriesPage() {
         <Stack direction="row" spacing={1.5} alignItems="center">
           <CategoryOutlinedIcon color="primary" fontSize="large" />
           <Box>
-            <Typography variant="h4" fontWeight={700}>
+            <Typography variant="h1" component="h1">
               Categorias e campos
             </Typography>
             <Typography variant="body2" color="text.secondary">
