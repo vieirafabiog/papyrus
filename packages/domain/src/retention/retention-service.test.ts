@@ -390,4 +390,124 @@ describe("Retention policies and legal hold governance", () => {
     expect(graceBlocked.eligible).toBe(false);
     expect(graceBlocked.blockReasons).toEqual(["TRASH_GRACE_WINDOW_NOT_ELAPSED"]);
   });
+
+  it("enforces hold block years past policy expiry, isolates cross-org hold calls, and preserves append-only retention audits", async () => {
+    const harness = createRetentionHarness("2030-01-15T12:00:00.000Z");
+    const orgId = "org-1";
+    const otherOrgId = "org-2";
+    const catId = "cat-legal";
+    const docId = "doc-aged";
+
+    harness.categories.set(catId, {
+      id: catId,
+      organizationId: orgId,
+      name: "Jurídico",
+      description: null,
+      color: null,
+      icon: null,
+      isActive: true,
+      createdAt: "2024-01-01T00:00:00.000Z",
+      updatedAt: "2024-01-01T00:00:00.000Z",
+    });
+
+    await harness.service.createPolicy({
+      organizationId: orgId,
+      actorUserId: "admin-1",
+      requestId: "req-aged-pol",
+      name: "Curta Temporalidade",
+      categoryId: catId,
+      retentionDays: 1,
+      trashGraceDays: 1,
+      actionOnExpiry: "PURGE",
+    });
+
+    const agedDeletedDoc: DocumentEntity = {
+      id: docId,
+      organizationId: orgId,
+      title: "Contrato Antigo Sob Bloqueio",
+      categoryId: catId,
+      folderId: null,
+      status: "DELETED",
+      currentVersionId: "ver-aged-1",
+      ownerUserId: "owner-1",
+      issueDate: null,
+      expirationDate: null,
+      metadata: {},
+      version: 4,
+      createdAt: "2024-01-01T00:00:00.000Z",
+      updatedAt: "2025-01-01T00:00:00.000Z",
+    };
+    harness.documents.set(docId, agedDeletedDoc);
+    harness.deletedAtMap.set(docId, new Date("2025-01-01T00:00:00.000Z"));
+
+    const hold = await harness.service.placeHold({
+      organizationId: orgId,
+      actorUserId: "legal-counsel",
+      requestId: "req-hold-aged",
+      documentId: docId,
+      reason: "Preservação probatória indefinida",
+    });
+
+    // Five years past retention & grace expiry, active hold STILL blocks purge
+    const evaluation = await harness.service.evaluatePurgeForDocument({
+      organizationId: orgId,
+      documentId: docId,
+      referenceNow: new Date("2030-01-15T12:00:00.000Z"),
+    });
+    expect(evaluation.eligible).toBe(false);
+    expect(evaluation.blockReasons).toEqual(["ACTIVE_HOLD"]);
+    expect(evaluation.activeHoldCount).toBe(1);
+
+    // Cross-tenant attempts cannot inspect, place, or release holds on org-1 documents
+    await expect(
+      harness.service.placeHold({
+        organizationId: otherOrgId,
+        actorUserId: "attacker",
+        requestId: "req-cross-1",
+        documentId: docId,
+        reason: "Tentativa indevida",
+      }),
+    ).rejects.toMatchObject({ code: "DOCUMENT_NOT_FOUND" });
+
+    await expect(
+      harness.service.releaseHold({
+        organizationId: otherOrgId,
+        actorUserId: "attacker",
+        requestId: "req-cross-2",
+        documentId: docId,
+        holdId: hold.id,
+        releaseReason: "Tentativa de remoção indevida",
+      }),
+    ).rejects.toMatchObject({ code: "HOLD_NOT_FOUND" });
+
+    // Only non-deleted documents are blocked even after hold release if restored before purge
+    await harness.service.releaseHold({
+      organizationId: orgId,
+      actorUserId: "legal-counsel",
+      requestId: "req-rel-aged",
+      documentId: docId,
+      holdId: hold.id,
+      releaseReason: "Trânsito em julgado",
+    });
+
+    const restoredDoc: DocumentEntity = { ...agedDeletedDoc, status: "APPROVED", version: 5 };
+    const restoredEval = evaluateDocumentPurgeEligibility({
+      document: restoredDoc,
+      deletedAt: new Date("2025-01-01T00:00:00.000Z"),
+      activeHolds: [],
+      policy: null,
+      referenceNow: new Date("2030-01-15T12:00:00.000Z"),
+      fallbackTrashGraceDays: 1,
+    });
+    expect(restoredEval.eligible).toBe(false);
+    expect(restoredEval.blockReasons).toEqual(["NOT_IN_TRASH"]);
+
+    // Audit trail preserves every step append-only
+    expect(harness.auditEvents.map((event) => event.action)).toEqual([
+      "RETENTION_POLICY_CREATED",
+      "RETENTION_HOLD_PLACED",
+      "RETENTION_HOLD_RELEASED",
+    ]);
+    expect(harness.auditEvents.every((event) => event.resourceId !== null)).toBe(true);
+  });
 });

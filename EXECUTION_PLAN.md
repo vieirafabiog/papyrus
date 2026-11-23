@@ -1013,7 +1013,7 @@ docuflow/
   - **Ação:** Cobrir traversal, symlink escape, SSRF de endpoint, segredo exposto, URL assinada expirada e objeto em conexão desativada.
   - **Verificação:** `pnpm --filter @docuflow/storage-local test` e `pnpm --filter @docuflow/storage-s3 test`.
 
-- [ ] **Step 16.07 — Criar testes de exclusão e retenção**
+- [x] **Step 16.07 — Criar testes de exclusão e retenção**
   - **Arquivos:** testes de domain/worker para retenção
   - **Ação:** Provar que hold bloqueia expurgo, que retry não apaga objetos errados e que auditoria é preservada.
   - **Verificação:** `pnpm --filter @docuflow/worker test:integration`.
