@@ -178,9 +178,48 @@ importers:
       '@biomejs/biome':
         specifier: ^1.9.4
         version: 1.9.4
+      '@docuflow/auth':
+        specifier: workspace:*
+        version: link:packages/auth
+      '@docuflow/contracts':
+        specifier: workspace:*
+        version: link:packages/contracts
+      '@docuflow/database':
+        specifier: workspace:*
+        version: link:packages/database
+      '@docuflow/domain':
+        specifier: workspace:*
+        version: link:packages/domain
+      '@docuflow/file-processing':
+        specifier: workspace:*
+        version: link:packages/file-processing
+      '@docuflow/storage-core':
+        specifier: workspace:*
+        version: link:packages/storage-core
+      '@docuflow/storage-local':
+        specifier: workspace:*
+        version: link:packages/storage-local
+      '@playwright/test':
+        specifier: ^1.65.1
+        version: 1.65.1
+      '@testcontainers/postgresql':
+        specifier: ^10.18.0
+        version: 10.28.0(bare-buffer@3.7.3)
       '@types/node':
         specifier: ^22.13.10
         version: 22.20.5
+      '@types/pg':
+        specifier: ^8.11.11
+        version: 8.23.1
+      drizzle-orm:
+        specifier: ^0.41.0
+        version: 0.41.0(@types/pg@8.23.1)(gel@2.2.1)(pg@8.23.1)
+      fastify:
+        specifier: ^5.2.1
+        version: 5.12.8
+      pg:
+        specifier: ^8.14.1
+        version: 8.23.1
       typescript:
         specifier: ^5.8.2
         version: 5.9.3
@@ -1378,6 +1417,11 @@ packages:
   '@pkgjs/parseargs@0.11.0':
     resolution: {integrity: sha512-+1VkjdD0QBLPodGrJUeqarH8VAIvQODIbwh9XpP5Syisf7YoQgsJKPNFoqqLQlu+VQ/tVSshMR6loPMn8U+dPg==}
     engines: {node: '>=14'}
+
+  '@playwright/test@1.65.1':
+    resolution: {integrity: sha512-y+NCIRm2LvY4slUVWvGh1nujJ8RF/hEisIsq2mtUPgdQC4L701bq5hZGMhrpeXjACvwvO9tj5dJqhvM6TP9lbw==}
+    engines: {node: '>=20'}
+    hasBin: true
 
   '@popperjs/core@2.11.8':
     resolution: {integrity: sha512-P1st0aksCrn9sGZhp8GMYwBnQsbvAWsZAX44oXNNvLHGqAOcoVxmjZiohstwQ7SqKnbR47akdNi+uleWD8+g6A==}
@@ -2592,6 +2636,16 @@ packages:
 
   pino@10.4.0:
     resolution: {integrity: sha512-bk1ZMTwG/Vymx+zPoa28MhNzucFvXJWp3csrSuxuHPSMeUettaCoQ5Jvg07mtC4JGNpcfTwz41oVCnNgBK9+vA==}
+    hasBin: true
+
+  playwright-core@1.65.1:
+    resolution: {integrity: sha512-hqPpz7blSMPxWVdoeE1yiBSzXsKiVOd2k+kjCvmUywD2GPO2Dd9HfcWnq9NN0GHbNZDFgZ9JfBFr+X5/BLo0qw==}
+    engines: {node: '>=20'}
+    hasBin: true
+
+  playwright@1.65.1:
+    resolution: {integrity: sha512-vJ1FuoOrNwOKHUIVEvSt3jT1L+wjjDpwhwIstKtfvTh8XIG4FG4bIFuvNdMxi81LGfAhUgUZleVFaOLY4RIUUw==}
+    engines: {node: '>=20'}
     hasBin: true
 
   postcss@8.5.33:
@@ -4032,6 +4086,10 @@ snapshots:
   '@pkgjs/parseargs@0.11.0':
     optional: true
 
+  '@playwright/test@1.65.1':
+    dependencies:
+      playwright: 1.65.1
+
   '@popperjs/core@2.11.8': {}
 
   '@protobufjs/aspromise@1.1.2': {}
@@ -5194,6 +5252,12 @@ snapshots:
       safe-stable-stringify: 2.5.0
       sonic-boom: 4.2.1
       thread-stream: 4.2.1
+
+  playwright-core@1.65.1: {}
+
+  playwright@1.65.1:
+    dependencies:
+      playwright-core: 1.65.1
 
   postcss@8.5.33:
     dependencies:

@@ -11,13 +11,26 @@
     "typecheck": "pnpm -r --if-present typecheck",
     "test": "vitest run --passWithNoTests",
     "test:integration": "pnpm -r --if-present test:integration",
-    "test:e2e": "pnpm -r --if-present test:e2e",
+    "test:e2e": "playwright test",
     "lint": "biome check .",
     "format": "biome format --write ."
   },
   "devDependencies": {
     "@biomejs/biome": "^1.9.4",
+    "@docuflow/auth": "workspace:*",
+    "@docuflow/contracts": "workspace:*",
+    "@docuflow/database": "workspace:*",
+    "@docuflow/domain": "workspace:*",
+    "@docuflow/file-processing": "workspace:*",
+    "@docuflow/storage-core": "workspace:*",
+    "@docuflow/storage-local": "workspace:*",
+    "@playwright/test": "^1.65.1",
+    "@testcontainers/postgresql": "^10.18.0",
     "@types/node": "^22.13.10",
+    "@types/pg": "^8.11.11",
+    "drizzle-orm": "^0.41.0",
+    "fastify": "^5.2.1",
+    "pg": "^8.14.1",
     "typescript": "^5.8.2",
     "vitest": "^3.0.9"
   }

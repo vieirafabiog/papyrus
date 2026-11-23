@@ -177,6 +177,10 @@ export function useDocumentDetailsQuery(documentId: string) {
     queryFn: () => fetchDocumentDetails(documentId),
     enabled: documentId.trim().length > 0,
     retry: false,
+    refetchInterval: (query) => {
+      const fileStatus = query.state.data?.currentVersion?.fileObject?.status;
+      return fileStatus === "QUARANTINED" || fileStatus === "UPLOADING" ? 1000 : false;
+    },
   });
 }
 
@@ -259,6 +263,14 @@ export function useDocumentVersionsQuery(documentId: string) {
     queryFn: () => fetchDocumentVersions(documentId),
     enabled: documentId.trim().length > 0,
     retry: false,
+    refetchInterval: (query) =>
+      query.state.data?.some(
+        (version) =>
+          version.fileObject?.status === "QUARANTINED" ||
+          version.fileObject?.status === "UPLOADING",
+      )
+        ? 1000
+        : false,
   });
 }
 

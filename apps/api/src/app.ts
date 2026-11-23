@@ -18,6 +18,7 @@ import type {
   DecideTaskService,
   DocumentRepositoryPort,
   DocumentVersionRepositoryPort,
+  FinalizeUploadService,
   FolderRepositoryPort,
   FolderService,
   GroupAdministrationService,
@@ -142,6 +143,7 @@ export interface AppOptions {
         readonly documentRepository: DocumentRepositoryPort;
         readonly uploadRepository: UploadSessionRepositoryPort;
         readonly uploadSessionService: UploadSessionService;
+        readonly finalizeUploadService?: FinalizeUploadService | undefined;
         readonly storageUploadDeps?: StorageUploadDependencies | undefined;
         readonly localUploadDeps?: LocalStreamUploadDependencies | undefined;
       }
@@ -361,6 +363,7 @@ export function buildApp(options: AppOptions = {}): FastifyInstance {
         await registerUploadRoutes(instance, {
           guard: uploadGuard,
           uploadSessionService: uploadDeps.uploadSessionService,
+          finalizeUploadService: uploadDeps.finalizeUploadService,
           uploadRepository: uploadDeps.uploadRepository,
           storageUploadDeps: uploadDeps.storageUploadDeps,
           localUploadDeps: uploadDeps.localUploadDeps,

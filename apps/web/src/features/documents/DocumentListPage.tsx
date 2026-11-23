@@ -243,6 +243,7 @@ export function DocumentListPage() {
         open={uploadOpen}
         categories={categories.map((cat) => ({ id: cat.id, name: cat.name }))}
         folders={folders.map((folder) => ({ id: folder.id, name: folder.name }))}
+        createDocumentOnFinalize
         onUploadBatchFinished={() => {
           void queryClient.invalidateQueries({ queryKey: ["documents", "search"] });
         }}

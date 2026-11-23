@@ -72,6 +72,7 @@ export type BinaryUploadExecutor = (request: BinaryUploadRequest) => Promise<Bin
 
 export interface UseUploadDocumentsOptions {
   readonly documentId?: string | undefined;
+  readonly createDocumentOnFinalize?: boolean | undefined;
   readonly maxFileBytes?: number | undefined;
   readonly binaryUploader?: BinaryUploadExecutor | undefined;
   readonly fetchFn?: typeof fetch | undefined;
@@ -602,6 +603,39 @@ export function useUploadDocuments(options: UseUploadDocumentsOptions = {}) {
           errorMessage:
             finalStatus === "REJECTED" ? "Arquivo rejeitado na verificação de segurança." : null,
         }));
+
+        if (options.createDocumentOnFinalize && !options.documentId) {
+          const documentTitle =
+            metadata.title.trim().length > 0 ? metadata.title.trim() : item.suggestedTitle;
+          const createDocPayload = {
+            title: documentTitle,
+            categoryId: metadata.categoryId,
+            folderId: metadata.folderId,
+            issueDate: null,
+            expirationDate:
+              metadata.expirationDate.trim().length > 0 ? metadata.expirationDate.trim() : null,
+            metadata: {},
+            uploadSessionId: sessionId,
+            ...(metadata.changeNote.trim().length > 0
+              ? { changeNote: metadata.changeNote.trim() }
+              : {}),
+          };
+
+          const createDocRes = await fetchImpl(`${CONTRACTS_API_PREFIX}/documents`, {
+            method: "POST",
+            credentials: "include",
+            headers: baseJsonHeaders,
+            body: JSON.stringify(createDocPayload),
+            signal: controller.signal,
+          });
+          if (!createDocRes.ok) {
+            const message = await parseSafeApiErrorMessage(
+              createDocRes,
+              "O arquivo foi enviado, mas não foi possível registrar o documento.",
+            );
+            throw new Error(message);
+          }
+        }
       } catch (error) {
         if (
           controller.signal.aborted ||
@@ -630,7 +664,15 @@ export function useUploadDocuments(options: UseUploadDocumentsOptions = {}) {
         abortControllersRef.current.delete(item.localId);
       }
     },
-    [binaryUploader, ensureCsrfToken, fetchImpl, maxFileBytes, options.documentId, updateItem],
+    [
+      binaryUploader,
+      ensureCsrfToken,
+      fetchImpl,
+      maxFileBytes,
+      options.createDocumentOnFinalize,
+      options.documentId,
+      updateItem,
+    ],
   );
 
   const startBatchUpload = useCallback(

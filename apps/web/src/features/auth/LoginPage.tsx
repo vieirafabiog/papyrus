@@ -1,6 +1,6 @@
 import {
-  apiErrorResponseSchema,
   CONTRACTS_API_PREFIX,
+  apiErrorResponseSchema,
   loginRequestSchema,
 } from "@docuflow/contracts";
 import { DOCUFLOW_COLOR_TOKENS } from "@docuflow/ui";
@@ -25,9 +25,59 @@ import { type FormEvent, useRef, useState } from "react";
 import { Link as RouterLink, useLocation, useNavigate } from "react-router-dom";
 import { SESSION_QUERY_KEY } from "../../app/session.js";
 
+const CSRF_COOKIE_NAME = "docuflow_csrf";
+const CSRF_HEADER_NAME = "x-csrf-token";
+
 interface FieldErrors {
   readonly email?: string;
   readonly password?: string;
+}
+
+function readCookieValue(name: string): string | null {
+  if (typeof document === "undefined" || typeof document.cookie !== "string") {
+    return null;
+  }
+  for (const part of document.cookie.split(";")) {
+    const trimmed = part.trim();
+    if (trimmed.startsWith(`${name}=`)) {
+      return decodeURIComponent(trimmed.slice(name.length + 1));
+    }
+  }
+  return null;
+}
+
+async function resolveLoginCsrfToken(): Promise<string | null> {
+  const fromCookie = readCookieValue(CSRF_COOKIE_NAME);
+  if (fromCookie) {
+    return fromCookie;
+  }
+
+  try {
+    const response = await fetch(`${CONTRACTS_API_PREFIX}/auth/csrf-token`, {
+      method: "GET",
+      credentials: "include",
+      headers: { Accept: "application/json" },
+    });
+    if (!response.ok) {
+      return readCookieValue(CSRF_COOKIE_NAME);
+    }
+    const rawJson: unknown = await response.clone().json();
+    if (
+      typeof rawJson === "object" &&
+      rawJson !== null &&
+      "data" in rawJson &&
+      typeof rawJson.data === "object" &&
+      rawJson.data !== null &&
+      "csrfToken" in rawJson.data &&
+      typeof rawJson.data.csrfToken === "string" &&
+      rawJson.data.csrfToken.length > 0
+    ) {
+      return rawJson.data.csrfToken;
+    }
+  } catch {
+    // Fallback para cookie ou ambiente de teste sem endpoint CSRF dedicado.
+  }
+  return readCookieValue(CSRF_COOKIE_NAME);
 }
 
 function resolveSafeRedirectPath(state: unknown): string {
@@ -85,12 +135,14 @@ export function LoginPage() {
     setIsSubmitting(true);
 
     try {
+      const csrfToken = await resolveLoginCsrfToken();
       const response = await fetch(`${CONTRACTS_API_PREFIX}/auth/login`, {
         method: "POST",
         credentials: "include",
         headers: {
           "Content-Type": "application/json",
           Accept: "application/json",
+          ...(csrfToken ? { [CSRF_HEADER_NAME]: csrfToken } : {}),
         },
         body: JSON.stringify(parsed.data),
       });

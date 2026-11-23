@@ -58,6 +58,7 @@ export interface UploadDialogProps {
   readonly defaultCategoryId?: string | undefined;
   readonly defaultFolderId?: string | null | undefined;
   readonly documentId?: string | undefined;
+  readonly createDocumentOnFinalize?: boolean | undefined;
   readonly maxFileBytes?: number | undefined;
   readonly binaryUploader?: BinaryUploadExecutor | undefined;
   readonly fetchFn?: typeof fetch | undefined;
@@ -141,6 +142,7 @@ export function UploadDialog({
   defaultCategoryId = "",
   defaultFolderId = null,
   documentId,
+  createDocumentOnFinalize,
   maxFileBytes,
   binaryUploader,
   fetchFn,
@@ -172,6 +174,7 @@ export function UploadDialog({
     retryItem,
   } = useUploadDocuments({
     documentId,
+    createDocumentOnFinalize,
     maxFileBytes,
     binaryUploader,
     fetchFn,

@@ -29,8 +29,10 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
-import { useId, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { useEffect, useId, useState } from "react";
 import {
+  documentDetailsQueryKey,
   requestVersionDownloadTarget,
   useDocumentVersionsQuery,
   useRestoreDocumentVersionMutation,
@@ -100,7 +102,15 @@ export function VersionHistory({
   const [actionSuccess, setActionSuccess] = useState<string | null>(null);
   const [downloadingVersionId, setDownloadingVersionId] = useState<string | null>(null);
 
+  const queryClient = useQueryClient();
   const versions = versionsQuery.data ?? [];
+  const currentInHistory = versions.find((item) => item.isCurrent);
+  useEffect(() => {
+    if (currentInHistory && currentInHistory.id !== document.currentVersionId) {
+      void queryClient.invalidateQueries({ queryKey: documentDetailsQueryKey(document.id) });
+    }
+  }, [currentInHistory, document.currentVersionId, document.id, queryClient]);
+
   const nextRestoredNumber =
     versions.reduce((max, item) => (item.versionNumber > max ? item.versionNumber : max), 0) + 1;
 

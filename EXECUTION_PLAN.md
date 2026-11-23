@@ -993,7 +993,7 @@ docuflow/
   - **Ação:** Cobrir criação, listagem, detalhe, upload finalizado, versão, lixeira e autorização com PostgreSQL real.
   - **Verificação:** `pnpm --filter @docuflow/api test:integration`.
 
-- [ ] **Step 16.03 — Criar E2E de login e gestão documental**
+- [x] **Step 16.03 — Criar E2E de login e gestão documental**
   - **Arquivos:** `tests/e2e/documents.spec.ts`, configuração Playwright
   - **Ação:** Automatizar login, envio, processamento, pesquisa, preview, download e criação de versão.
   - **Verificação:** `pnpm test:e2e -- documents.spec.ts`.

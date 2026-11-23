@@ -12,6 +12,7 @@ import {
   type UploadSessionRecordContract,
   createSignedUploadTargetRequestSchema,
   createUploadSessionRequestSchema,
+  sha256ChecksumSchema,
   uuidSchema,
 } from "@docuflow/contracts";
 import {
@@ -19,6 +20,7 @@ import {
   DomainError,
   type EffectiveUploadPolicy,
   type FileObjectEntity,
+  type FinalizeUploadService,
   type StorageConnectionEntity,
   type StorageConnectionRepositoryPort,
   type TransactionManagerPort,
@@ -36,6 +38,7 @@ import {
 } from "@docuflow/storage-core";
 import { Busboy } from "@fastify/busboy";
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
+import { z } from "zod";
 import {
   type AuthenticatedAuthorizationContext,
   type DocumentAuthorizationGuard,
@@ -93,11 +96,24 @@ function mapUploadDomainError(code: string): { status: number; httpCode: string 
       return { status: 413, httpCode: "UPLOAD_TOO_LARGE" };
     case "EXTENSION_NOT_ALLOWED":
     case "MIME_NOT_ALLOWED":
+    case "VALIDATION_ERROR":
       return { status: 400, httpCode: "VALIDATION_ERROR" };
+    case "UPLOAD_SESSION_FORBIDDEN":
+      return { status: 403, httpCode: "FORBIDDEN" };
     case "IDEMPOTENCY_CONFLICT":
+    case "UPLOAD_OBJECT_MISSING":
+    case "UPLOAD_OBJECT_MISMATCH":
+    case "UPLOAD_SIZE_MISMATCH":
+    case "UPLOAD_CHECKSUM_MISMATCH":
+    case "UPLOAD_CHECKSUM_UNVERIFIED":
+    case "UPLOAD_SESSION_EXPIRED":
+    case "UPLOAD_SESSION_NOT_FINALIZABLE":
+    case "UPLOAD_FINALIZATION_CONFLICT":
+    case "INVALID_DOCUMENT_STATE":
       return { status: 409, httpCode: "CONFLICT" };
     case "DOCUMENT_NOT_FOUND":
     case "STORAGE_CONNECTION_NOT_FOUND":
+    case "UPLOAD_SESSION_NOT_FOUND":
       return { status: 404, httpCode: "NOT_FOUND" };
     case "STORAGE_CONNECTION_INACTIVE":
       return { status: 503, httpCode: "STORAGE_UNAVAILABLE" };
@@ -105,6 +121,14 @@ function mapUploadDomainError(code: string): { status: number; httpCode: string 
       return { status: 400, httpCode: "VALIDATION_ERROR" };
   }
 }
+
+const finalizeUploadBodySchema = z
+  .object({
+    expectedChecksumSha256: sha256ChecksumSchema.optional(),
+    documentId: uuidSchema.optional(),
+    changeNote: z.string().trim().max(1000).nullable().optional(),
+  })
+  .default({});
 
 function createHashAndLimitStream(
   maxBytes: number,
@@ -271,12 +295,13 @@ export async function registerUploadRoutes(
   deps: {
     readonly guard: DocumentAuthorizationGuard;
     readonly uploadSessionService: UploadSessionService;
+    readonly finalizeUploadService?: FinalizeUploadService | undefined;
     readonly uploadRepository: UploadSessionRepositoryPort;
     readonly storageUploadDeps?: StorageUploadDependencies | undefined;
     readonly localUploadDeps?: LocalStreamUploadDependencies | undefined;
   },
 ): Promise<void> {
-  const { guard, uploadSessionService, uploadRepository } = deps;
+  const { guard, uploadSessionService, finalizeUploadService, uploadRepository } = deps;
   const uploadStorageDeps = deps.storageUploadDeps ?? deps.localUploadDeps;
   const maxUploadBytes = uploadStorageDeps?.maxUploadBytes ?? DEFAULT_MAX_UPLOAD_BYTES;
   const proxyMaxBodyBytes =
@@ -1000,6 +1025,80 @@ export async function registerUploadRoutes(
       `${CONTRACTS_API_PREFIX}/uploads/sessions/:id/content`,
       { bodyLimit: streamBodyLimit },
       handleStreamContentUpload,
+    );
+  }
+
+  if (finalizeUploadService) {
+    app.post<{ Params: { id: string } }>(
+      `${CONTRACTS_API_PREFIX}/uploads/sessions/:id/finalize`,
+      async (request, reply) => {
+        const ctx = await guard.requireSubject(request, reply);
+        if (!ctx) {
+          return reply;
+        }
+
+        const idParsed = uuidSchema.safeParse(request.params.id);
+        const bodyParsed = finalizeUploadBodySchema.safeParse(request.body ?? {});
+        if (!idParsed.success || !bodyParsed.success) {
+          return reply.status(400).send({
+            error: {
+              code: "VALIDATION_ERROR",
+              message: !idParsed.success
+                ? "Identificador de sessão de upload inválido."
+                : "Dados inválidos para finalização da sessão de upload.",
+              requestId: request.id,
+            },
+          });
+        }
+
+        if (bodyParsed.data.documentId !== undefined) {
+          const authorizedDoc = await guard.authorizeDocument(
+            ctx,
+            bodyParsed.data.documentId,
+            "UPLOAD",
+            reply,
+            request.id,
+            request.ip,
+          );
+          if (!authorizedDoc) {
+            return reply;
+          }
+        }
+
+        try {
+          const finalized = await finalizeUploadService.finalizeUpload({
+            organizationId: ctx.me.user.organizationId,
+            actorUserId: ctx.me.user.id,
+            requestId: request.id,
+            sessionId: idParsed.data,
+            expectedChecksumSha256: bodyParsed.data.expectedChecksumSha256,
+            documentId: bodyParsed.data.documentId,
+            changeNote: bodyParsed.data.changeNote,
+          });
+
+          return reply.status(200).send({
+            data: {
+              id: finalized.session.id,
+              status: finalized.session.status,
+              fileObjectStatus: finalized.fileObject.status,
+              fileObjectId: finalized.fileObject.id,
+              documentVersion: finalized.documentVersion,
+            },
+          });
+        } catch (error) {
+          if (error instanceof DomainError) {
+            const mapped = mapUploadDomainError(error.code);
+            return reply.status(mapped.status).send({
+              error: {
+                code: mapped.httpCode,
+                message: error.message,
+                requestId: request.id,
+              },
+            });
+          }
+          throw error;
+        }
+      },
     );
   }
 }
