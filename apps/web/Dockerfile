@@ -23,6 +23,16 @@ RUN pnpm --filter @docuflow/contracts build \
 
 FROM nginxinc/nginx-unprivileged:1.27.5-alpine3.21 AS runtime
 
+ARG DOCUFLOW_VERSION=1.0.0-rc.1
+ARG VCS_REF=unknown
+
+LABEL org.opencontainers.image.title="docuflow-web" \
+      org.opencontainers.image.description="DocuFlow web frontend static container" \
+      org.opencontainers.image.version="${DOCUFLOW_VERSION}" \
+      org.opencontainers.image.revision="${VCS_REF}"
+
+ENV DOCUFLOW_VERSION="${DOCUFLOW_VERSION}"
+
 USER 101
 
 COPY --chown=101:101 apps/web/nginx.conf /etc/nginx/conf.d/default.conf

@@ -54,9 +54,18 @@ RUN pnpm install --prod --frozen-lockfile --filter-prod @docuflow/api...
 
 FROM node:22.14.0-alpine3.21 AS runtime
 
+ARG DOCUFLOW_VERSION=1.0.0-rc.1
+ARG VCS_REF=unknown
+
+LABEL org.opencontainers.image.title="docuflow-api" \
+      org.opencontainers.image.description="DocuFlow API server with Drizzle schema migrations" \
+      org.opencontainers.image.version="${DOCUFLOW_VERSION}" \
+      org.opencontainers.image.revision="${VCS_REF}"
+
 ENV NODE_ENV=production
 ENV PORT=3000
 ENV HOST=0.0.0.0
+ENV DOCUFLOW_VERSION="${DOCUFLOW_VERSION}"
 
 WORKDIR /app
 
@@ -73,6 +82,8 @@ COPY --from=builder --chown=node:node /app/packages/storage-local/dist packages/
 COPY --from=builder --chown=node:node /app/packages/storage-s3/dist packages/storage-s3/dist
 COPY --from=builder --chown=node:node /app/packages/auth/dist packages/auth/dist
 COPY --from=builder --chown=node:node /app/packages/database/dist packages/database/dist
+COPY --from=builder --chown=node:node /app/packages/database/drizzle packages/database/drizzle
+COPY --chown=node:node scripts/maintenance/migrate-entrypoint.sh scripts/maintenance/migrate-entrypoint.sh
 COPY --from=builder --chown=node:node /app/apps/api/dist apps/api/dist
 
 USER node

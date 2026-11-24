@@ -52,9 +52,18 @@ RUN pnpm install --prod --frozen-lockfile --filter-prod @docuflow/worker...
 
 FROM node:22.14.0-alpine3.21 AS runtime
 
+ARG DOCUFLOW_VERSION=1.0.0-rc.1
+ARG VCS_REF=unknown
+
+LABEL org.opencontainers.image.title="docuflow-worker" \
+      org.opencontainers.image.description="DocuFlow background worker (upload scan, retention, notifications)" \
+      org.opencontainers.image.version="${DOCUFLOW_VERSION}" \
+      org.opencontainers.image.revision="${VCS_REF}"
+
 ENV NODE_ENV=production
 ENV WORKER_HEALTH_HOST=0.0.0.0
 ENV WORKER_HEALTH_PORT=3001
+ENV DOCUFLOW_VERSION="${DOCUFLOW_VERSION}"
 
 WORKDIR /app
 

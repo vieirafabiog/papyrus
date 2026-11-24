@@ -25,7 +25,10 @@ services:
     build:
       context: ../..
       dockerfile: apps/api/Dockerfile
-    image: docuflow-api:${DOCUFLOW_IMAGE_TAG:-latest}
+      args:
+        DOCUFLOW_VERSION: ${DOCUFLOW_IMAGE_TAG:-1.0.0-rc.1}
+        VCS_REF: ${VCS_REF:-unknown}
+    image: docuflow-api:${DOCUFLOW_IMAGE_TAG:-1.0.0-rc.1}
     restart: unless-stopped
     depends_on:
       postgres:
@@ -74,7 +77,10 @@ services:
     build:
       context: ../..
       dockerfile: apps/worker/Dockerfile
-    image: docuflow-worker:${DOCUFLOW_IMAGE_TAG:-latest}
+      args:
+        DOCUFLOW_VERSION: ${DOCUFLOW_IMAGE_TAG:-1.0.0-rc.1}
+        VCS_REF: ${VCS_REF:-unknown}
+    image: docuflow-worker:${DOCUFLOW_IMAGE_TAG:-1.0.0-rc.1}
     restart: unless-stopped
     depends_on:
       postgres:
@@ -126,7 +132,10 @@ services:
     build:
       context: ../..
       dockerfile: apps/web/Dockerfile
-    image: docuflow-web:${DOCUFLOW_IMAGE_TAG:-latest}
+      args:
+        DOCUFLOW_VERSION: ${DOCUFLOW_IMAGE_TAG:-1.0.0-rc.1}
+        VCS_REF: ${VCS_REF:-unknown}
+    image: docuflow-web:${DOCUFLOW_IMAGE_TAG:-1.0.0-rc.1}
     restart: unless-stopped
     depends_on:
       api:

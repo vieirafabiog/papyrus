@@ -1067,7 +1067,7 @@ docuflow/
   - **Ação:** Documentar login, pastas, categorias, envio, metadados, versões, busca, aprovação, vencimentos e lixeira com capturas atualizadas.
   - **Verificação:** Percorrer todos os fluxos do manual na versão candidata.
 
-- [ ] **Step 17.05 — Preparar configuração de release**
+- [x] **Step 17.05 — Preparar configuração de release**
   - **Arquivos:** `package.json`, tags, `CHANGELOG.md`, imagens Docker
   - **Ação:** Definir versão semântica, changelog, imagens fixadas, migrations incluídas e estratégia de atualização.
   - **Verificação:** Build de release e validação de versão dos containers.
