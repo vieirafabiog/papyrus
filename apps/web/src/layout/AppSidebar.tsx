@@ -1,7 +1,8 @@
 import {
-  DOCUFLOW_COLOR_TOKENS,
-  DOCUFLOW_DENSITY_TOKENS,
-  DOCUFLOW_SHAPE_TOKENS,
+  PAPYRUS_COLOR_TOKENS,
+  PAPYRUS_DENSITY_TOKENS,
+  PAPYRUS_SHAPE_TOKENS,
+  PapyrusLogo,
 } from "@docuflow/ui";
 import AssessmentOutlinedIcon from "@mui/icons-material/AssessmentOutlined";
 import CategoryOutlinedIcon from "@mui/icons-material/CategoryOutlined";
@@ -146,15 +147,15 @@ function SidebarNavSection({
                 selected={isActive}
                 onClick={onSelectItem}
                 sx={{
-                  borderRadius: `${DOCUFLOW_SHAPE_TOKENS.md}px`,
+                  borderRadius: `${PAPYRUS_SHAPE_TOKENS.md}px`,
                   "&.Mui-selected": {
-                    bgcolor: DOCUFLOW_COLOR_TOKENS.primary.container,
-                    color: DOCUFLOW_COLOR_TOKENS.primary.onContainer,
+                    bgcolor: PAPYRUS_COLOR_TOKENS.primary.container,
+                    color: PAPYRUS_COLOR_TOKENS.primary.onContainer,
                     "& .MuiListItemIcon-root": {
-                      color: DOCUFLOW_COLOR_TOKENS.primary.onContainer,
+                      color: PAPYRUS_COLOR_TOKENS.primary.onContainer,
                     },
                     "&:hover": {
-                      bgcolor: DOCUFLOW_COLOR_TOKENS.primary.container,
+                      bgcolor: PAPYRUS_COLOR_TOKENS.primary.container,
                     },
                   },
                 }}
@@ -180,7 +181,7 @@ function SidebarNavSection({
 
 export function AppSidebar({ mobileOpen, desktopCollapsed, onCloseMobile }: AppSidebarProps) {
   const location = useLocation();
-  const drawerWidth = DOCUFLOW_DENSITY_TOKENS.sidebarWidth;
+  const drawerWidth = PAPYRUS_DENSITY_TOKENS.sidebarWidth;
 
   const drawerContent = (
     <Box
@@ -190,13 +191,11 @@ export function AppSidebar({ mobileOpen, desktopCollapsed, onCloseMobile }: AppS
         display: "flex",
         flexDirection: "column",
         height: "100%",
-        bgcolor: DOCUFLOW_COLOR_TOKENS.surface.containerLowest,
+        bgcolor: PAPYRUS_COLOR_TOKENS.surface.containerLowest,
       }}
     >
       <Toolbar sx={{ px: 2 }}>
-        <Typography variant="h3" component="span" color="primary.main">
-          DocuFlow
-        </Typography>
+        <PapyrusLogo size="sm" />
       </Toolbar>
       <Divider />
       <Box sx={{ flex: 1, overflowY: "auto", py: 1 }}>

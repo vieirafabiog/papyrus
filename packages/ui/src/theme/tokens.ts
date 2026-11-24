@@ -1,5 +1,5 @@
 /**
- * Tokens visuais do DocuFlow.
+ * Tokens visuais do papyrus (Paleta Junco & Papiro).
  *
  * Nota arquitetural: `@mui/material` é a biblioteca React de componentes utilizada
  * na implementação, enquanto o Material Design 3 (MD3) orienta os tokens de cor,
@@ -7,50 +7,55 @@
  * uma implementação integral do MD3; esta camada centraliza a aproximação visual.
  */
 
-export const DOCUFLOW_COLOR_TOKENS = {
+export const PAPYRUS_COLOR_TOKENS = {
   primary: {
-    main: "#0F5C73",
-    light: "#2B7A91",
-    dark: "#084152",
-    container: "#D8EEF5",
-    onContainer: "#062A36",
+    main: "#1F5C4D",
+    light: "#377B69",
+    dark: "#143F34",
+    container: "#D6EDE6",
+    onContainer: "#0D3027",
     contrastText: "#FFFFFF",
   },
   secondary: {
-    main: "#475E6B",
-    light: "#69808E",
-    dark: "#2F424D",
-    container: "#E2ECF1",
-    onContainer: "#1C2B33",
+    main: "#7D541E",
+    light: "#9E6E30",
+    dark: "#5A3B12",
+    container: "#F4E9D8",
+    onContainer: "#3D260A",
     contrastText: "#FFFFFF",
   },
+  brand: {
+    accent: "#B07D3A",
+    accentContainer: "#F4E9D8",
+    onAccentContainer: "#4A3110",
+  },
   surface: {
-    background: "#F6F8F9",
+    background: "#FAF8F4",
     paper: "#FFFFFF",
     containerLowest: "#FFFFFF",
-    containerLow: "#F1F5F7",
-    container: "#EBF0F3",
-    containerHigh: "#E2E9ED",
-    outline: "#728088",
-    outlineVariant: "#D3DCE1",
-    divider: "#DDE5E9",
+    containerLow: "#F3EFE7",
+    container: "#ECE7DC",
+    containerHigh: "#E3DDD0",
+    outline: "#767066",
+    outlineVariant: "#DBD4C7",
+    divider: "#E4DED3",
   },
   text: {
-    primary: "#162026",
-    secondary: "#4B5B64",
-    disabled: "#8A98A0",
+    primary: "#1C1B18",
+    secondary: "#57534A",
+    disabled: "#8F8A80",
   },
   semantic: {
     successMain: "#1B6E41",
     successContainer: "#DCF3E5",
     successContrast: "#FFFFFF",
-    warningMain: "#9A5B00",
+    warningMain: "#945600",
     warningContainer: "#FCECD2",
     warningContrast: "#FFFFFF",
     errorMain: "#B3261E",
     errorContainer: "#F9DEDC",
     errorContrast: "#FFFFFF",
-    infoMain: "#0E5E8A",
+    infoMain: "#195A7A",
     infoContainer: "#D8EEFA",
     infoContrast: "#FFFFFF",
   },
@@ -58,14 +63,14 @@ export const DOCUFLOW_COLOR_TOKENS = {
     hoverOpacity: 0.06,
     focusOpacity: 0.12,
     selectedOpacity: 0.1,
-    disabledBackground: "#E9EEF1",
-    focusRingColor: "#0F5C73",
+    disabledBackground: "#EAE6DD",
+    focusRingColor: "#1F5C4D",
     focusRingWidth: "2px",
     focusRingOffset: "2px",
   },
 } as const;
 
-export const DOCUFLOW_TYPOGRAPHY_TOKENS = {
+export const PAPYRUS_TYPOGRAPHY_TOKENS = {
   fontFamily: '"Inter", "Roboto", "Helvetica Neue", Arial, sans-serif',
   h1: { fontSize: "1.75rem", fontWeight: 600, lineHeight: 1.25, letterSpacing: "-0.01em" },
   h2: { fontSize: "1.375rem", fontWeight: 600, lineHeight: 1.3, letterSpacing: "-0.005em" },
@@ -82,7 +87,7 @@ export const DOCUFLOW_TYPOGRAPHY_TOKENS = {
   },
 } as const;
 
-export const DOCUFLOW_SHAPE_TOKENS = {
+export const PAPYRUS_SHAPE_TOKENS = {
   borderRadiusBase: 8,
   xs: 4,
   sm: 6,
@@ -90,7 +95,7 @@ export const DOCUFLOW_SHAPE_TOKENS = {
   lg: 12,
 } as const;
 
-export const DOCUFLOW_SPACING_TOKENS = {
+export const PAPYRUS_SPACING_TOKENS = {
   unit: 8,
   compactCellPaddingY: 8,
   compactCellPaddingX: 12,
@@ -98,10 +103,17 @@ export const DOCUFLOW_SPACING_TOKENS = {
   panelPadding: 20,
 } as const;
 
-export const DOCUFLOW_DENSITY_TOKENS = {
+export const PAPYRUS_DENSITY_TOKENS = {
   buttonMinHeight: 36,
   inputSize: "small" as const,
   tableSize: "small" as const,
   toolbarMinHeight: 56,
   sidebarWidth: 260,
 } as const;
+
+// Aliases de compatibilidade mantidos até a migração técnica dos pacotes na Fase 4.
+export const DOCUFLOW_COLOR_TOKENS = PAPYRUS_COLOR_TOKENS;
+export const DOCUFLOW_TYPOGRAPHY_TOKENS = PAPYRUS_TYPOGRAPHY_TOKENS;
+export const DOCUFLOW_SHAPE_TOKENS = PAPYRUS_SHAPE_TOKENS;
+export const DOCUFLOW_SPACING_TOKENS = PAPYRUS_SPACING_TOKENS;
+export const DOCUFLOW_DENSITY_TOKENS = PAPYRUS_DENSITY_TOKENS;

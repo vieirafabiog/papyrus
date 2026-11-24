@@ -40,6 +40,9 @@ describe("LoginPage", () => {
     const fetchSpy = vi.spyOn(globalThis, "fetch");
     renderLoginPage();
 
+    expect(screen.getByRole("heading", { name: "Entrar no papyrus" })).toBeInTheDocument();
+    expect(screen.getByText("papyrus")).toBeInTheDocument();
+
     fireEvent.click(screen.getByRole("button", { name: "Entrar" }));
 
     expect(await screen.findByText("Informe um endereço de e-mail válido.")).toBeInTheDocument();

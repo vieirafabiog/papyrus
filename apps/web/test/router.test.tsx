@@ -37,7 +37,7 @@ describe("Web main routing and session guards", () => {
 
     renderAt("/documentos");
 
-    expect(await screen.findByRole("heading", { name: "Entrar no DocuFlow" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Entrar no papyrus" })).toBeInTheDocument();
   });
 
   it("redirects authenticated users away from /login to private dashboard route", async () => {
@@ -87,6 +87,6 @@ describe("Web main routing and session guards", () => {
     await waitFor(() => {
       expect(fetchSpy).toHaveBeenCalledTimes(2);
     });
-    expect(await screen.findByRole("heading", { name: "Entrar no DocuFlow" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Entrar no papyrus" })).toBeInTheDocument();
   });
 });

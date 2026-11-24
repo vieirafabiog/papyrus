@@ -49,7 +49,7 @@ export function RequireAuth() {
               Não foi possível validar sua sessão
             </Typography>
             <Typography variant="body2" color="text.secondary">
-              Verifique a conexão com a API do DocuFlow e tente novamente.
+              Verifique a conexão com a API do papyrus e tente novamente.
             </Typography>
             <Box>
               <Button variant="contained" onClick={() => void refetch()}>

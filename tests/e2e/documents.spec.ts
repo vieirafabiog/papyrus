@@ -56,7 +56,7 @@ test.describe("Gestão documental E2E", () => {
     // 1. Login no frontend real com CSRF e sessão em cookie HttpOnly
     await page.goto(env.baseUrl);
     await expect(page).toHaveURL(/\/login$/);
-    await expect(page.getByRole("heading", { name: "DocuFlow" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "papyrus" })).toBeVisible();
 
     await page.getByLabel(/E-mail corporativo/i).fill(env.credentials.email);
     await page.getByLabel(/^Senha/i).fill(env.credentials.password);

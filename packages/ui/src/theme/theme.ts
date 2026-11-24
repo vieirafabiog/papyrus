@@ -1,22 +1,22 @@
 import { ptBR } from "@mui/material/locale";
 import { type Theme, createTheme } from "@mui/material/styles";
 import {
-  DOCUFLOW_COLOR_TOKENS,
-  DOCUFLOW_DENSITY_TOKENS,
-  DOCUFLOW_SHAPE_TOKENS,
-  DOCUFLOW_SPACING_TOKENS,
-  DOCUFLOW_TYPOGRAPHY_TOKENS,
+  PAPYRUS_COLOR_TOKENS,
+  PAPYRUS_DENSITY_TOKENS,
+  PAPYRUS_SHAPE_TOKENS,
+  PAPYRUS_SPACING_TOKENS,
+  PAPYRUS_TYPOGRAPHY_TOKENS,
 } from "./tokens.js";
 
 /**
- * Cria o tema MUI do DocuFlow inspirado em Material Design 3.
+ * Cria o tema MUI do papyrus inspirado em Material Design 3.
  * `@mui/material` implementa os componentes; os tokens em `tokens.ts`
- * aplicam superfícies tonais, densidade empresarial e foco acessível.
+ * aplicam a paleta Junco & Papiro, superfícies tonais, densidade empresarial e foco acessível.
  */
-export function createDocuflowTheme(): Theme {
+export function createPapyrusTheme(): Theme {
   const focusVisibleRule = {
-    outline: `${DOCUFLOW_COLOR_TOKENS.states.focusRingWidth} solid ${DOCUFLOW_COLOR_TOKENS.states.focusRingColor}`,
-    outlineOffset: DOCUFLOW_COLOR_TOKENS.states.focusRingOffset,
+    outline: `${PAPYRUS_COLOR_TOKENS.states.focusRingWidth} solid ${PAPYRUS_COLOR_TOKENS.states.focusRingColor}`,
+    outlineOffset: PAPYRUS_COLOR_TOKENS.states.focusRingOffset,
   };
 
   return createTheme(
@@ -24,71 +24,71 @@ export function createDocuflowTheme(): Theme {
       palette: {
         mode: "light",
         primary: {
-          main: DOCUFLOW_COLOR_TOKENS.primary.main,
-          light: DOCUFLOW_COLOR_TOKENS.primary.light,
-          dark: DOCUFLOW_COLOR_TOKENS.primary.dark,
-          contrastText: DOCUFLOW_COLOR_TOKENS.primary.contrastText,
+          main: PAPYRUS_COLOR_TOKENS.primary.main,
+          light: PAPYRUS_COLOR_TOKENS.primary.light,
+          dark: PAPYRUS_COLOR_TOKENS.primary.dark,
+          contrastText: PAPYRUS_COLOR_TOKENS.primary.contrastText,
         },
         secondary: {
-          main: DOCUFLOW_COLOR_TOKENS.secondary.main,
-          light: DOCUFLOW_COLOR_TOKENS.secondary.light,
-          dark: DOCUFLOW_COLOR_TOKENS.secondary.dark,
-          contrastText: DOCUFLOW_COLOR_TOKENS.secondary.contrastText,
+          main: PAPYRUS_COLOR_TOKENS.secondary.main,
+          light: PAPYRUS_COLOR_TOKENS.secondary.light,
+          dark: PAPYRUS_COLOR_TOKENS.secondary.dark,
+          contrastText: PAPYRUS_COLOR_TOKENS.secondary.contrastText,
         },
         success: {
-          main: DOCUFLOW_COLOR_TOKENS.semantic.successMain,
-          contrastText: DOCUFLOW_COLOR_TOKENS.semantic.successContrast,
+          main: PAPYRUS_COLOR_TOKENS.semantic.successMain,
+          contrastText: PAPYRUS_COLOR_TOKENS.semantic.successContrast,
         },
         warning: {
-          main: DOCUFLOW_COLOR_TOKENS.semantic.warningMain,
-          contrastText: DOCUFLOW_COLOR_TOKENS.semantic.warningContrast,
+          main: PAPYRUS_COLOR_TOKENS.semantic.warningMain,
+          contrastText: PAPYRUS_COLOR_TOKENS.semantic.warningContrast,
         },
         error: {
-          main: DOCUFLOW_COLOR_TOKENS.semantic.errorMain,
-          contrastText: DOCUFLOW_COLOR_TOKENS.semantic.errorContrast,
+          main: PAPYRUS_COLOR_TOKENS.semantic.errorMain,
+          contrastText: PAPYRUS_COLOR_TOKENS.semantic.errorContrast,
         },
         info: {
-          main: DOCUFLOW_COLOR_TOKENS.semantic.infoMain,
-          contrastText: DOCUFLOW_COLOR_TOKENS.semantic.infoContrast,
+          main: PAPYRUS_COLOR_TOKENS.semantic.infoMain,
+          contrastText: PAPYRUS_COLOR_TOKENS.semantic.infoContrast,
         },
         background: {
-          default: DOCUFLOW_COLOR_TOKENS.surface.background,
-          paper: DOCUFLOW_COLOR_TOKENS.surface.paper,
+          default: PAPYRUS_COLOR_TOKENS.surface.background,
+          paper: PAPYRUS_COLOR_TOKENS.surface.paper,
         },
         text: {
-          primary: DOCUFLOW_COLOR_TOKENS.text.primary,
-          secondary: DOCUFLOW_COLOR_TOKENS.text.secondary,
-          disabled: DOCUFLOW_COLOR_TOKENS.text.disabled,
+          primary: PAPYRUS_COLOR_TOKENS.text.primary,
+          secondary: PAPYRUS_COLOR_TOKENS.text.secondary,
+          disabled: PAPYRUS_COLOR_TOKENS.text.disabled,
         },
-        divider: DOCUFLOW_COLOR_TOKENS.surface.divider,
+        divider: PAPYRUS_COLOR_TOKENS.surface.divider,
         action: {
-          hoverOpacity: DOCUFLOW_COLOR_TOKENS.states.hoverOpacity,
-          focusOpacity: DOCUFLOW_COLOR_TOKENS.states.focusOpacity,
-          selectedOpacity: DOCUFLOW_COLOR_TOKENS.states.selectedOpacity,
-          disabledBackground: DOCUFLOW_COLOR_TOKENS.states.disabledBackground,
+          hoverOpacity: PAPYRUS_COLOR_TOKENS.states.hoverOpacity,
+          focusOpacity: PAPYRUS_COLOR_TOKENS.states.focusOpacity,
+          selectedOpacity: PAPYRUS_COLOR_TOKENS.states.selectedOpacity,
+          disabledBackground: PAPYRUS_COLOR_TOKENS.states.disabledBackground,
         },
       },
       shape: {
-        borderRadius: DOCUFLOW_SHAPE_TOKENS.borderRadiusBase,
+        borderRadius: PAPYRUS_SHAPE_TOKENS.borderRadiusBase,
       },
-      spacing: DOCUFLOW_SPACING_TOKENS.unit,
+      spacing: PAPYRUS_SPACING_TOKENS.unit,
       typography: {
-        fontFamily: DOCUFLOW_TYPOGRAPHY_TOKENS.fontFamily,
-        h1: DOCUFLOW_TYPOGRAPHY_TOKENS.h1,
-        h2: DOCUFLOW_TYPOGRAPHY_TOKENS.h2,
-        h3: DOCUFLOW_TYPOGRAPHY_TOKENS.h3,
-        subtitle1: DOCUFLOW_TYPOGRAPHY_TOKENS.subtitle1,
-        body1: DOCUFLOW_TYPOGRAPHY_TOKENS.body1,
-        body2: DOCUFLOW_TYPOGRAPHY_TOKENS.body2,
-        caption: DOCUFLOW_TYPOGRAPHY_TOKENS.caption,
-        button: DOCUFLOW_TYPOGRAPHY_TOKENS.button,
+        fontFamily: PAPYRUS_TYPOGRAPHY_TOKENS.fontFamily,
+        h1: PAPYRUS_TYPOGRAPHY_TOKENS.h1,
+        h2: PAPYRUS_TYPOGRAPHY_TOKENS.h2,
+        h3: PAPYRUS_TYPOGRAPHY_TOKENS.h3,
+        subtitle1: PAPYRUS_TYPOGRAPHY_TOKENS.subtitle1,
+        body1: PAPYRUS_TYPOGRAPHY_TOKENS.body1,
+        body2: PAPYRUS_TYPOGRAPHY_TOKENS.body2,
+        caption: PAPYRUS_TYPOGRAPHY_TOKENS.caption,
+        button: PAPYRUS_TYPOGRAPHY_TOKENS.button,
       },
       components: {
         MuiCssBaseline: {
           styleOverrides: {
             body: {
-              backgroundColor: DOCUFLOW_COLOR_TOKENS.surface.background,
-              color: DOCUFLOW_COLOR_TOKENS.text.primary,
+              backgroundColor: PAPYRUS_COLOR_TOKENS.surface.background,
+              color: PAPYRUS_COLOR_TOKENS.text.primary,
             },
           },
         },
@@ -106,32 +106,32 @@ export function createDocuflowTheme(): Theme {
           },
           styleOverrides: {
             root: {
-              minHeight: DOCUFLOW_DENSITY_TOKENS.buttonMinHeight,
-              borderRadius: DOCUFLOW_SHAPE_TOKENS.md,
+              minHeight: PAPYRUS_DENSITY_TOKENS.buttonMinHeight,
+              borderRadius: PAPYRUS_SHAPE_TOKENS.md,
               paddingInline: 16,
             },
           },
         },
         MuiTextField: {
           defaultProps: {
-            size: DOCUFLOW_DENSITY_TOKENS.inputSize,
+            size: PAPYRUS_DENSITY_TOKENS.inputSize,
             variant: "outlined",
           },
         },
         MuiOutlinedInput: {
           styleOverrides: {
             root: {
-              borderRadius: DOCUFLOW_SHAPE_TOKENS.sm,
-              backgroundColor: DOCUFLOW_COLOR_TOKENS.surface.containerLowest,
+              borderRadius: PAPYRUS_SHAPE_TOKENS.sm,
+              backgroundColor: PAPYRUS_COLOR_TOKENS.surface.containerLowest,
               "& .MuiOutlinedInput-notchedOutline": {
-                borderColor: DOCUFLOW_COLOR_TOKENS.surface.outlineVariant,
+                borderColor: PAPYRUS_COLOR_TOKENS.surface.outlineVariant,
               },
               "&:hover .MuiOutlinedInput-notchedOutline": {
-                borderColor: DOCUFLOW_COLOR_TOKENS.surface.outline,
+                borderColor: PAPYRUS_COLOR_TOKENS.surface.outline,
               },
               "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
                 borderWidth: 2,
-                borderColor: DOCUFLOW_COLOR_TOKENS.primary.main,
+                borderColor: PAPYRUS_COLOR_TOKENS.primary.main,
               },
             },
           },
@@ -143,26 +143,26 @@ export function createDocuflowTheme(): Theme {
           styleOverrides: {
             root: {
               backgroundImage: "none",
-              border: `1px solid ${DOCUFLOW_COLOR_TOKENS.surface.outlineVariant}`,
-              borderRadius: DOCUFLOW_SHAPE_TOKENS.lg,
+              border: `1px solid ${PAPYRUS_COLOR_TOKENS.surface.outlineVariant}`,
+              borderRadius: PAPYRUS_SHAPE_TOKENS.lg,
             },
           },
         },
         MuiTable: {
           defaultProps: {
-            size: DOCUFLOW_DENSITY_TOKENS.tableSize,
+            size: PAPYRUS_DENSITY_TOKENS.tableSize,
           },
         },
         MuiTableCell: {
           styleOverrides: {
             root: {
-              paddingBlock: DOCUFLOW_SPACING_TOKENS.compactCellPaddingY,
-              paddingInline: DOCUFLOW_SPACING_TOKENS.compactCellPaddingX,
-              borderBottomColor: DOCUFLOW_COLOR_TOKENS.surface.divider,
+              paddingBlock: PAPYRUS_SPACING_TOKENS.compactCellPaddingY,
+              paddingInline: PAPYRUS_SPACING_TOKENS.compactCellPaddingX,
+              borderBottomColor: PAPYRUS_COLOR_TOKENS.surface.divider,
             },
             head: {
-              backgroundColor: DOCUFLOW_COLOR_TOKENS.surface.containerLow,
-              color: DOCUFLOW_COLOR_TOKENS.text.secondary,
+              backgroundColor: PAPYRUS_COLOR_TOKENS.surface.containerLow,
+              color: PAPYRUS_COLOR_TOKENS.text.secondary,
               fontWeight: 600,
             },
           },
@@ -170,7 +170,7 @@ export function createDocuflowTheme(): Theme {
         MuiChip: {
           styleOverrides: {
             root: {
-              borderRadius: DOCUFLOW_SHAPE_TOKENS.sm,
+              borderRadius: PAPYRUS_SHAPE_TOKENS.sm,
               fontWeight: 500,
             },
           },
@@ -178,7 +178,7 @@ export function createDocuflowTheme(): Theme {
         MuiToolbar: {
           styleOverrides: {
             root: {
-              minHeight: DOCUFLOW_DENSITY_TOKENS.toolbarMinHeight,
+              minHeight: PAPYRUS_DENSITY_TOKENS.toolbarMinHeight,
             },
           },
         },
@@ -188,4 +188,8 @@ export function createDocuflowTheme(): Theme {
   );
 }
 
-export const docuflowTheme = createDocuflowTheme();
+export const papyrusTheme = createPapyrusTheme();
+
+// Aliases de compatibilidade mantidos até a migração técnica dos pacotes na Fase 4.
+export const createDocuflowTheme = createPapyrusTheme;
+export const docuflowTheme = papyrusTheme;

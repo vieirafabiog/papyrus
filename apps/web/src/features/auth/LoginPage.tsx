@@ -3,8 +3,7 @@ import {
   apiErrorResponseSchema,
   loginRequestSchema,
 } from "@docuflow/contracts";
-import { DOCUFLOW_COLOR_TOKENS } from "@docuflow/ui";
-import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
+import { PAPYRUS_COLOR_TOKENS, PapyrusLogo } from "@docuflow/ui";
 import VisibilityOffOutlinedIcon from "@mui/icons-material/VisibilityOffOutlined";
 import VisibilityOutlinedIcon from "@mui/icons-material/VisibilityOutlined";
 import {
@@ -191,32 +190,20 @@ export function LoginPage() {
           width: "100%",
           maxWidth: 420,
           p: { xs: 3, sm: 4 },
-          bgcolor: DOCUFLOW_COLOR_TOKENS.surface.containerLowest,
+          bgcolor: PAPYRUS_COLOR_TOKENS.surface.containerLowest,
         }}
       >
         <Stack spacing={3}>
-          <Stack spacing={1} alignItems="flex-start">
-            <Box
-              sx={{
-                width: 40,
-                height: 40,
-                borderRadius: 2,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                bgcolor: DOCUFLOW_COLOR_TOKENS.primary.container,
-                color: DOCUFLOW_COLOR_TOKENS.primary.onContainer,
-              }}
-              aria-hidden="true"
-            >
-              <LockOutlinedIcon fontSize="small" />
+          <Stack spacing={1.5} alignItems="flex-start">
+            <PapyrusLogo size="md" />
+            <Box>
+              <Typography variant="h1" component="h1">
+                Entrar no papyrus
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+                Acesse o repositório documental da sua organização.
+              </Typography>
             </Box>
-            <Typography variant="h1" component="h1">
-              Entrar no DocuFlow
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              Acesse o repositório documental da sua organização.
-            </Typography>
           </Stack>
 
           {submitError ? (

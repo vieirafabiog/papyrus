@@ -15,12 +15,30 @@ export {
   type FilterBarSelect,
 } from "./components/FilterBar.js";
 export { LoadingState, type LoadingStateProps } from "./components/LoadingState.js";
+export {
+  PapyrusLogo,
+  type PapyrusLogoProps,
+  type PapyrusLogoSize,
+  type PapyrusLogoVariant,
+  PapyrusMark,
+  type PapyrusMarkProps,
+} from "./components/PapyrusLogo.js";
 
-export { createDocuflowTheme, docuflowTheme } from "./theme/theme.js";
+export {
+  createDocuflowTheme,
+  createPapyrusTheme,
+  docuflowTheme,
+  papyrusTheme,
+} from "./theme/theme.js";
 export {
   DOCUFLOW_COLOR_TOKENS,
   DOCUFLOW_DENSITY_TOKENS,
   DOCUFLOW_SHAPE_TOKENS,
   DOCUFLOW_SPACING_TOKENS,
   DOCUFLOW_TYPOGRAPHY_TOKENS,
+  PAPYRUS_COLOR_TOKENS,
+  PAPYRUS_DENSITY_TOKENS,
+  PAPYRUS_SHAPE_TOKENS,
+  PAPYRUS_SPACING_TOKENS,
+  PAPYRUS_TYPOGRAPHY_TOKENS,
 } from "./theme/tokens.js";

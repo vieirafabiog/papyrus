@@ -399,7 +399,7 @@ test.describe("Acessibilidade WCAG 2.2 AA dos fluxos críticos", () => {
     // 1. Fluxo de Login: auditoria de labels/contraste + navegação e submissão integralmente via teclado
     await page.goto(env.baseUrl);
     await expect(page).toHaveURL(/\/login$/);
-    await expect(page.getByRole("heading", { name: "DocuFlow" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "papyrus" })).toBeVisible();
     await auditViewAccessibility(page, "Login");
 
     const emailInput = page.getByLabel(/E-mail corporativo/i);
