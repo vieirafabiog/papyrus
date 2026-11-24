@@ -15,31 +15,20 @@ import { DocumentListPage } from "../features/documents/DocumentListPage.js";
 import { TrashDocumentsPage } from "../features/documents/TrashDocumentsPage.js";
 import { ExpirationsPage } from "../features/expirations/ExpirationsPage.js";
 import { FoldersPage } from "../features/folders/FoldersPage.js";
+import { ReportsPage } from "../features/reports/ReportsPage.js";
 import { TagsPage } from "../features/tags/TagsPage.js";
 import { TaskInboxPage } from "../features/tasks/TaskInboxPage.js";
 import { TaskReviewPage } from "../features/tasks/TaskReviewPage.js";
+import { WorkflowsPage } from "../features/workflows/WorkflowsPage.js";
 import { AppShell } from "../layout/AppShell.js";
 import { RedirectIfAuthenticated, RequireAuth } from "./route-guards.js";
 
-interface RouteSectionProps {
+interface PublicRouteViewProps {
   readonly title: string;
   readonly description: string;
 }
 
-function RouteSectionView({ title, description }: RouteSectionProps) {
-  return (
-    <Box>
-      <Typography variant="h1" gutterBottom>
-        {title}
-      </Typography>
-      <Typography variant="body1" color="text.secondary">
-        {description}
-      </Typography>
-    </Box>
-  );
-}
-
-function PublicRouteView({ title, description }: RouteSectionProps) {
+function PublicRouteView({ title, description }: PublicRouteViewProps) {
   return (
     <Box component="main" sx={{ p: 3 }}>
       <Typography variant="h1" gutterBottom>
@@ -78,27 +67,11 @@ export function AppRoutes() {
           <Route path="/pastas/:folderId" element={<FoldersPage />} />
           <Route path="/categorias" element={<CategoriesPage />} />
           <Route path="/etiquetas" element={<TagsPage />} />
-          <Route
-            path="/fluxos"
-            element={
-              <RouteSectionView
-                title="Fluxos de aprovação"
-                description="Definições sequenciais de revisão e aprovação."
-              />
-            }
-          />
+          <Route path="/fluxos" element={<WorkflowsPage />} />
           <Route path="/tarefas" element={<TaskInboxPage />} />
           <Route path="/tarefas/:id" element={<TaskReviewPage />} />
           <Route path="/vencimentos" element={<ExpirationsPage />} />
-          <Route
-            path="/relatorios"
-            element={
-              <RouteSectionView
-                title="Relatórios"
-                description="Visão consolidada do acervo documental."
-              />
-            }
-          />
+          <Route path="/relatorios" element={<ReportsPage />} />
           <Route path="/admin/usuarios" element={<UsersPage />} />
           <Route path="/admin/grupos" element={<GroupsPage />} />
           <Route path="/admin/permissoes" element={<PermissionsPage />} />

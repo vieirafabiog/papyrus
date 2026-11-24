@@ -20,6 +20,7 @@ import {
   createOrganizationRepository,
   createOutboxRepository,
   createPermissionScopeRepository,
+  createReportRepository,
   createRetentionPolicyRepository,
   createSessionStoreRepository,
   createStorageConnectionRepository,
@@ -43,6 +44,7 @@ import {
   DOMAIN_DEFAULT_UPLOAD_MAX_BYTES,
   DOMAIN_MAX_SYSTEM_UPLOAD_BYTES,
   DOMAIN_MIN_UPLOAD_MAX_BYTES,
+  DomainError,
   archiveDocumentUseCase,
   createCategoryFieldService,
   createCategoryService,
@@ -62,6 +64,7 @@ import {
   createUploadLimitsService,
   createUploadSessionService,
   createUserAdministrationService,
+  createWorkflowDefinitionService,
   createWorkflowTasksUseCase,
   moveDocumentUseCase,
   restoreDocumentUseCase,
@@ -150,6 +153,7 @@ export function createStandaloneApiRuntime(
   const documentExpirationRepository = createDocumentExpirationRepository(db);
   const documentTrashRepository = createDocumentTrashRepository(db);
   const dashboardRepository = createDashboardRepository(db);
+  const reportRepository = createReportRepository(db);
   const categoryRepository = createCategoryRepository(db);
   const folderRepository = createFolderRepository(db);
   const tagRepository = createTagRepository(db);
@@ -386,6 +390,42 @@ export function createStandaloneApiRuntime(
     generateId: () => randomUUID(),
   });
 
+  const workflowDefinitionService = createWorkflowDefinitionService({
+    definitions: workflowDefinitionRepository,
+    transactions,
+    audit: auditRepository,
+    generateId: () => randomUUID(),
+    validateAssigneeTarget: async (organizationId, assignee) => {
+      if (assignee.type === "USER") {
+        const user = await userRepository.findById(assignee.userId);
+        if (!user || user.organizationId !== organizationId || user.status !== "ACTIVE") {
+          throw new DomainError(
+            "WORKFLOW_ASSIGNEE_NOT_FOUND",
+            "O usuário aprovador selecionado não existe ou está inativo nesta organização.",
+          );
+        }
+        return;
+      }
+      if (assignee.type === "GROUP") {
+        const group = await groupRepository.findById(assignee.groupId);
+        if (!group || group.organizationId !== organizationId) {
+          throw new DomainError(
+            "WORKFLOW_ASSIGNEE_NOT_FOUND",
+            "O grupo aprovador selecionado não existe nesta organização.",
+          );
+        }
+        return;
+      }
+      const role = await permissionScopeRepository.findRoleById(organizationId, assignee.roleId);
+      if (!role) {
+        throw new DomainError(
+          "WORKFLOW_ASSIGNEE_NOT_FOUND",
+          "O papel aprovador selecionado não existe nesta organização.",
+        );
+      }
+    },
+  });
+
   const startWorkflowService = createStartWorkflowUseCase({
     documents: documentRepository,
     documentVersions: documentVersionRepository,
@@ -507,6 +547,7 @@ export function createStandaloneApiRuntime(
       storageConnections: connectionRepository,
       storageRegistry,
       dashboardRepository,
+      reportRepository,
     },
     folderDeps: {
       authzRepository,
@@ -552,6 +593,36 @@ export function createStandaloneApiRuntime(
       authzRepository,
       documentRepository,
       workflowDefinitionRepository,
+      workflowDefinitionService,
+      assigneeCatalog: {
+        async listCatalog(organizationId) {
+          const [orgUsers, orgGroups, orgRoles] = await Promise.all([
+            userRepository.listByOrganization(organizationId),
+            groupRepository.listByOrganization(organizationId),
+            permissionScopeRepository.listRolesWithPermissions
+              ? permissionScopeRepository.listRolesWithPermissions(organizationId)
+              : Promise.resolve([]),
+          ]);
+          return {
+            users: orgUsers
+              .filter((user) => user.status === "ACTIVE")
+              .map((user) => ({
+                id: user.id,
+                fullName: user.fullName,
+                email: user.email,
+              })),
+            groups: orgGroups.map((group) => ({
+              id: group.id,
+              name: group.name,
+            })),
+            roles: orgRoles.map((role) => ({
+              id: role.id,
+              key: role.key,
+              name: role.name,
+            })),
+          };
+        },
+      },
       workflowTimelineRepository,
       startWorkflowService,
       createWorkflowTasksService,

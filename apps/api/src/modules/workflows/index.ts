@@ -1,1 +1,5 @@
-export { registerWorkflowRoutes, type WorkflowRoutesDependencies } from "./workflows.routes.js";
+export {
+  registerWorkflowRoutes,
+  type WorkflowAssigneeCatalogPort,
+  type WorkflowRoutesDependencies,
+} from "./workflows.routes.js";

@@ -78,6 +78,15 @@ export {
   type DashboardSummaryRecord,
 } from "./repositories/dashboard-repository.js";
 export {
+  createReportRepository,
+  type ReportRepository,
+  type RepositoryReportCategoryItem,
+  type RepositoryReportQueryInput,
+  type RepositoryReportRecord,
+  type RepositoryReportStatusItem,
+  type RepositoryReportStorageConnectionItem,
+} from "./repositories/report-repository.js";
+export {
   createDocumentSearchRepository,
   type DocumentMetadataSearchFilter,
   type DocumentSearchFilter,

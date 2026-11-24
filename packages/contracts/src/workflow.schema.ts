@@ -39,11 +39,19 @@ export const workflowAssigneeTargetSchema = z.discriminatedUnion("type", [
 ]);
 export type WorkflowAssigneeTarget = z.infer<typeof workflowAssigneeTargetSchema>;
 
+export const workflowStepCommentRulesSchema = z.object({
+  requireOnApprove: z.boolean(),
+  requireOnReject: z.literal(true),
+  requireOnRequestChanges: z.literal(true),
+});
+export type WorkflowStepCommentRulesContract = z.infer<typeof workflowStepCommentRulesSchema>;
+
 export const workflowStepDefinitionSchema = z.object({
   stepOrder: z.number().int().min(1),
   name: z.string().trim().min(1).max(120),
   assignee: workflowAssigneeTargetSchema,
   dueDays: z.number().int().min(1).max(365).nullable(),
+  commentRules: workflowStepCommentRulesSchema.optional(),
 });
 export type WorkflowStepDefinition = z.infer<typeof workflowStepDefinitionSchema>;
 
@@ -110,13 +118,6 @@ export const workflowDecisionRecordSchema = z.object({
   createdAt: isoDateTimeSchema,
 });
 export type WorkflowDecisionRecord = z.infer<typeof workflowDecisionRecordSchema>;
-
-export const workflowStepCommentRulesSchema = z.object({
-  requireOnApprove: z.boolean(),
-  requireOnReject: z.literal(true),
-  requireOnRequestChanges: z.literal(true),
-});
-export type WorkflowStepCommentRulesContract = z.infer<typeof workflowStepCommentRulesSchema>;
 
 export const taskInboxSortSchema = createSortSchema([
   "dueAt",
@@ -259,3 +260,131 @@ export const startDocumentWorkflowResponseSchema = createApiResponseSchema(
   startDocumentWorkflowResultSchema,
 );
 export type StartDocumentWorkflowResponse = z.infer<typeof startDocumentWorkflowResponseSchema>;
+
+export const workflowStepInputSchema = z.object({
+  stepOrder: z.number().int().min(1).max(20),
+  name: z
+    .string()
+    .trim()
+    .min(1, "O nome da etapa é obrigatório.")
+    .max(120, "O nome da etapa deve ter no máximo 120 caracteres."),
+  assignee: workflowAssigneeTargetSchema,
+  dueDays: z.number().int().min(1).max(365).nullable().optional(),
+  commentRules: z
+    .object({
+      requireOnApprove: z.boolean().optional(),
+    })
+    .optional(),
+});
+export type WorkflowStepInput = z.infer<typeof workflowStepInputSchema>;
+
+export const createWorkflowDefinitionRequestSchema = z.object({
+  name: z
+    .string()
+    .trim()
+    .min(1, "O nome da definição de fluxo é obrigatório.")
+    .max(120, "O nome da definição de fluxo deve ter no máximo 120 caracteres."),
+  description: z
+    .string()
+    .trim()
+    .max(500, "A descrição do fluxo deve ter no máximo 500 caracteres.")
+    .nullable()
+    .optional(),
+  steps: z
+    .array(workflowStepInputSchema)
+    .min(1, "O fluxo deve possuir ao menos uma etapa.")
+    .max(20, "O fluxo deve possuir no máximo 20 etapas."),
+});
+export type CreateWorkflowDefinitionRequest = z.infer<typeof createWorkflowDefinitionRequestSchema>;
+
+export const publishWorkflowDefinitionVersionRequestSchema = z.object({
+  steps: z
+    .array(workflowStepInputSchema)
+    .min(1, "O fluxo deve possuir ao menos uma etapa.")
+    .max(20, "O fluxo deve possuir no máximo 20 etapas."),
+});
+export type PublishWorkflowDefinitionVersionRequest = z.infer<
+  typeof publishWorkflowDefinitionVersionRequestSchema
+>;
+
+export const updateWorkflowDefinitionStatusRequestSchema = z.object({
+  isActive: z.boolean(),
+});
+export type UpdateWorkflowDefinitionStatusRequest = z.infer<
+  typeof updateWorkflowDefinitionStatusRequestSchema
+>;
+
+export const workflowDefinitionEntitySchema = workflowDefinitionSummarySchema.extend({
+  createdAt: isoDateTimeSchema,
+  updatedAt: isoDateTimeSchema,
+});
+export type WorkflowDefinitionEntityRecord = z.infer<typeof workflowDefinitionEntitySchema>;
+
+export const workflowDefinitionWithVersionsSchema = z.object({
+  definition: workflowDefinitionEntitySchema,
+  versions: z.array(workflowDefinitionVersionSchema),
+});
+export type WorkflowDefinitionWithVersionsRecord = z.infer<
+  typeof workflowDefinitionWithVersionsSchema
+>;
+
+export const workflowDefinitionDetailResponseSchema = createApiResponseSchema(
+  workflowDefinitionWithVersionsSchema,
+);
+export type WorkflowDefinitionDetailResponse = z.infer<
+  typeof workflowDefinitionDetailResponseSchema
+>;
+
+export const workflowDefinitionMutationResultSchema = z.object({
+  definition: workflowDefinitionEntitySchema,
+  version: workflowDefinitionVersionSchema,
+});
+export type WorkflowDefinitionMutationResult = z.infer<
+  typeof workflowDefinitionMutationResultSchema
+>;
+
+export const workflowDefinitionMutationResponseSchema = createApiResponseSchema(
+  workflowDefinitionMutationResultSchema,
+);
+export type WorkflowDefinitionMutationResponse = z.infer<
+  typeof workflowDefinitionMutationResponseSchema
+>;
+
+export const workflowDefinitionStatusResponseSchema = createApiResponseSchema(
+  workflowDefinitionEntitySchema,
+);
+export type WorkflowDefinitionStatusResponse = z.infer<
+  typeof workflowDefinitionStatusResponseSchema
+>;
+
+export const workflowAssigneeUserOptionSchema = z.object({
+  id: uuidSchema,
+  fullName: z.string().min(1).max(160),
+  email: z.string().email(),
+});
+export type WorkflowAssigneeUserOption = z.infer<typeof workflowAssigneeUserOptionSchema>;
+
+export const workflowAssigneeGroupOptionSchema = z.object({
+  id: uuidSchema,
+  name: z.string().min(1).max(120),
+});
+export type WorkflowAssigneeGroupOption = z.infer<typeof workflowAssigneeGroupOptionSchema>;
+
+export const workflowAssigneeRoleOptionSchema = z.object({
+  id: uuidSchema,
+  key: z.string().min(1).max(64),
+  name: z.string().min(1).max(120),
+});
+export type WorkflowAssigneeRoleOption = z.infer<typeof workflowAssigneeRoleOptionSchema>;
+
+export const workflowAssigneeCatalogSchema = z.object({
+  users: z.array(workflowAssigneeUserOptionSchema),
+  groups: z.array(workflowAssigneeGroupOptionSchema),
+  roles: z.array(workflowAssigneeRoleOptionSchema),
+});
+export type WorkflowAssigneeCatalog = z.infer<typeof workflowAssigneeCatalogSchema>;
+
+export const workflowAssigneeCatalogResponseSchema = createApiResponseSchema(
+  workflowAssigneeCatalogSchema,
+);
+export type WorkflowAssigneeCatalogResponse = z.infer<typeof workflowAssigneeCatalogResponseSchema>;

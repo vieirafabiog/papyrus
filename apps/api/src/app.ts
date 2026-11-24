@@ -5,6 +5,7 @@ import type {
   DocumentExpirationRepository,
   DocumentSearchRepository,
   DocumentTrashRepository,
+  ReportRepository,
   TaskInboxRepository,
   WorkflowTimelineRepository,
 } from "@docuflow/database";
@@ -40,6 +41,7 @@ import type {
   UploadSessionService,
   UserAdministrationService,
   WorkflowDefinitionRepositoryPort,
+  WorkflowDefinitionService,
 } from "@docuflow/domain";
 import type { InAppNotificationService } from "@docuflow/notifications";
 import type { StorageProviderRegistry } from "@docuflow/storage-core";
@@ -63,6 +65,7 @@ import { registerHealthRoutes } from "./modules/health/health.routes.js";
 import type { ApiHealthDependencies } from "./modules/health/health.service.js";
 import { registerNotificationRoutes } from "./modules/notifications/index.js";
 import { registerOrganizationRoutes } from "./modules/organization/organization.routes.js";
+import { registerReportRoutes } from "./modules/reports/index.js";
 import { registerRetentionRoutes } from "./modules/retention/retention.routes.js";
 import { registerSetupRoutes } from "./modules/setup/setup.routes.js";
 import type { SetupService } from "./modules/setup/setup.service.js";
@@ -76,7 +79,10 @@ import {
   registerUploadRoutes,
 } from "./modules/uploads/upload.routes.js";
 import { registerUserRoutes } from "./modules/users/users.routes.js";
-import { registerWorkflowRoutes } from "./modules/workflows/index.js";
+import {
+  type WorkflowAssigneeCatalogPort,
+  registerWorkflowRoutes,
+} from "./modules/workflows/index.js";
 import {
   createCategoryAuthorizationGuard,
   createDocumentAuthorizationGuard,
@@ -118,6 +124,8 @@ export interface AppOptions {
         readonly storageRegistry?: StorageProviderRegistry | undefined;
         readonly dashboardRepository?: DashboardRepository | undefined;
         readonly dashboardNow?: (() => Date) | undefined;
+        readonly reportRepository?: ReportRepository | undefined;
+        readonly reportNow?: (() => Date) | undefined;
       }
     | undefined;
   readonly folderDeps?:
@@ -168,6 +176,8 @@ export interface AppOptions {
         readonly authzRepository: AuthorizationRepository;
         readonly documentRepository: DocumentRepositoryPort;
         readonly workflowDefinitionRepository: WorkflowDefinitionRepositoryPort;
+        readonly workflowDefinitionService?: WorkflowDefinitionService | undefined;
+        readonly assigneeCatalog?: WorkflowAssigneeCatalogPort | undefined;
         readonly workflowTimelineRepository?: WorkflowTimelineRepository | undefined;
         readonly startWorkflowService: StartWorkflowService;
         readonly createWorkflowTasksService: CreateWorkflowTasksService;
@@ -326,6 +336,14 @@ export function buildApp(options: AppOptions = {}): FastifyInstance {
             now: documentDeps.dashboardNow,
           });
         }
+        if (documentDeps.reportRepository) {
+          await registerReportRoutes(instance, {
+            guard,
+            reportRepository: documentDeps.reportRepository,
+            auditRepository: documentDeps.auditRepository,
+            now: documentDeps.reportNow,
+          });
+        }
         if (
           documentDeps.documentVersionRepository &&
           documentDeps.uploadRepository &&
@@ -466,6 +484,8 @@ export function buildApp(options: AppOptions = {}): FastifyInstance {
         await registerWorkflowRoutes(instance, {
           guard: workflowGuard,
           workflowDefinitionRepository: workflowDeps.workflowDefinitionRepository,
+          workflowDefinitionService: workflowDeps.workflowDefinitionService,
+          assigneeCatalog: workflowDeps.assigneeCatalog,
           workflowTimelineRepository: workflowDeps.workflowTimelineRepository,
           startWorkflowService: workflowDeps.startWorkflowService,
           createWorkflowTasksService: workflowDeps.createWorkflowTasksService,

@@ -12,7 +12,7 @@ build/
 coverage/
 playwright-report/
 test-results/
-reports/
+/reports/
 
 # Environment variables (preserve .env.example)
 .env

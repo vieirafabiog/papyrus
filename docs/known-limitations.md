@@ -35,7 +35,7 @@ As funcionalidades abaixo pertencem ao roadmap pós-MVP e **não** estão presen
 
 ### 2.4 Fluxos, Lixeira e Interface Web
 - **Envio à lixeira via API:** a interface web (`/lixeira` e detalhes de documento `DELETED`) permite pesquisar itens na lixeira, acompanhar o prazo de carência e executar **Restaurar**, enquanto a movimentação lógica de um documento ativo para a lixeira é feita via `POST /api/v1/documents/:id/trash` ou `DELETE /api/v1/documents/:id`.
-- **Seções `/fluxos` e `/relatorios`:** exibem visões introdutórias; a inicialização e o acompanhamento de fluxos ocorrem em `/documentos/:id` e a revisão em `/tarefas` (**Minhas tarefas**).
+- **Seções `/fluxos` e `/relatorios`:** `/fluxos` permite criar definições sequenciais versionadas, publicar novas versões imutáveis e ativar/inativar fluxos; `/relatorios` consolida métricas autorizadas do acervo com filtros no PostgreSQL e exportação CSV auditada. A inicialização e o acompanhamento por documento continuam em `/documentos/:id` e a revisão em `/tarefas` (**Minhas tarefas**).
 - **Backup e restore:** não há disparo de backup/restore pela UI administrativa; utilize exclusivamente `scripts/backup/*` e `scripts/restore/*`.
 
 ### 2.5 Dependências, Backups e Observabilidade
