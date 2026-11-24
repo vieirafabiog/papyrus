@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
+  PERMISSION_CATALOG,
+  SYSTEM_ROLE_DEFINITIONS,
   buildSystemRolePermissionMap,
   evaluateAuthorization,
-  PERMISSION_CATALOG,
   roleGrantsPermission,
-  SYSTEM_ROLE_DEFINITIONS,
 } from "../src/index.js";
 
 describe("Role catalog and default-deny authorization", () => {
@@ -23,7 +23,9 @@ describe("Role catalog and default-deny authorization", () => {
       {
         userId: "u1",
         organizationId: "org1",
-        assignments: [{ roleId: "viewer", scope: { type: "GLOBAL" }, effect: "ALLOW", source: "USER" }],
+        assignments: [
+          { roleId: "viewer", scope: { type: "GLOBAL" }, effect: "ALLOW", source: "USER" },
+        ],
       },
       { action: "DELETE", resource: "DOCUMENT", scope: { type: "GLOBAL" } },
       rolePermissions,
@@ -75,7 +77,12 @@ describe("Role catalog and default-deny authorization", () => {
         organizationId: "org1",
         assignments: [
           { roleId: "admin", scope: { type: "GLOBAL" }, effect: "ALLOW", source: "USER" },
-          { roleId: "viewer", scope: { type: "DOCUMENT", documentId: "doc-1" }, effect: "DENY", source: "GROUP" },
+          {
+            roleId: "viewer",
+            scope: { type: "DOCUMENT", documentId: "doc-1" },
+            effect: "DENY",
+            source: "GROUP",
+          },
         ],
       },
       { action: "READ", resource: "DOCUMENT", scope: { type: "DOCUMENT", documentId: "doc-1" } },
@@ -87,8 +94,14 @@ describe("Role catalog and default-deny authorization", () => {
 
   it("exposes expected system roles and permission catalog", () => {
     expect(PERMISSION_CATALOG.length).toBeGreaterThan(20);
-    expect(roleGrantsPermission(SYSTEM_ROLE_DEFINITIONS.admin.permissions, "MANAGE_STORAGE", "STORAGE")).toBe(true);
-    expect(roleGrantsPermission(SYSTEM_ROLE_DEFINITIONS.reviewer.permissions, "APPROVE", "WORKFLOW")).toBe(true);
-    expect(roleGrantsPermission(SYSTEM_ROLE_DEFINITIONS.viewer.permissions, "CREATE", "DOCUMENT")).toBe(false);
+    expect(
+      roleGrantsPermission(SYSTEM_ROLE_DEFINITIONS.admin.permissions, "MANAGE_STORAGE", "STORAGE"),
+    ).toBe(true);
+    expect(
+      roleGrantsPermission(SYSTEM_ROLE_DEFINITIONS.reviewer.permissions, "APPROVE", "WORKFLOW"),
+    ).toBe(true);
+    expect(
+      roleGrantsPermission(SYSTEM_ROLE_DEFINITIONS.viewer.permissions, "CREATE", "DOCUMENT"),
+    ).toBe(false);
   });
 });

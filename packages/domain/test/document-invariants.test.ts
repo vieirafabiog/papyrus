@@ -1,13 +1,13 @@
 import { describe, expect, it } from "vitest";
 import {
-  assertDocumentStatusTransition,
-  buildNextDocumentVersion,
-  canSubmitDocumentForReview,
   type DocumentEntity,
   type DocumentStatus,
   type DocumentVersionEntity,
   DomainError,
   type FileObjectStatus,
+  assertDocumentStatusTransition,
+  buildNextDocumentVersion,
+  canSubmitDocumentForReview,
   isFileObjectDownloadable,
   resolveCurrentVersion,
   restoreHistoricalVersion,
@@ -125,4 +125,3 @@ describe("Document domain invariants", () => {
     expect(canPhysicallyPurge).toBe(false);
   });
 });
-

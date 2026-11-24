@@ -45,10 +45,7 @@ export interface SetupBootstrapRepositoryPort {
 
 export interface SetupService {
   getStatus(): Promise<{ readonly initialized: boolean }>;
-  bootstrapFirstAdmin(
-    rawInput: unknown,
-    requestId: string,
-  ): Promise<BootstrapAdminResult>;
+  bootstrapFirstAdmin(rawInput: unknown, requestId: string): Promise<BootstrapAdminResult>;
 }
 
 export function createSetupService(deps: {
@@ -61,10 +58,7 @@ export function createSetupService(deps: {
       return { initialized: hasAdmin };
     },
 
-    async bootstrapFirstAdmin(
-      rawInput: unknown,
-      requestId: string,
-    ): Promise<BootstrapAdminResult> {
+    async bootstrapFirstAdmin(rawInput: unknown, requestId: string): Promise<BootstrapAdminResult> {
       const parsed = bootstrapAdminInputSchema.parse(rawInput);
 
       const alreadyInitialized = await deps.repository.hasAnyActiveAdmin();

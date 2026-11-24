@@ -1,17 +1,11 @@
 import type { TransactionContext, TransactionManagerPort } from "@docuflow/domain";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 
-export type DrizzleDbExecutor = Pick<
-  NodePgDatabase,
-  "select" | "insert" | "update" | "delete"
->;
+export type DrizzleDbExecutor = Pick<NodePgDatabase, "select" | "insert" | "update" | "delete">;
 
 const txExecutorMap = new WeakMap<TransactionContext, DrizzleDbExecutor>();
 
-export function resolveDbExecutor(
-  db: NodePgDatabase,
-  tx?: TransactionContext,
-): DrizzleDbExecutor {
+export function resolveDbExecutor(db: NodePgDatabase, tx?: TransactionContext): DrizzleDbExecutor {
   if (!tx) {
     return db;
   }

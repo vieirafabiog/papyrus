@@ -2,11 +2,11 @@ import { randomUUID } from "node:crypto";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import {
-  createPasswordService,
-  createSessionService,
   type CreateSessionRecordInput,
   type SessionStorePort,
   type StoredSessionRecord,
+  createPasswordService,
+  createSessionService,
 } from "@docuflow/auth";
 import {
   createAuditRepository,
@@ -38,7 +38,7 @@ describe("User administration integration", () => {
   let pool: Pool;
 
   beforeAll(async () => {
-    const externalUrl = process.env["DATABASE_URL"];
+    const externalUrl = process.env.DATABASE_URL;
     let connectionString: string;
     if (externalUrl && externalUrl.trim().length > 0) {
       connectionString = externalUrl;
@@ -141,9 +141,7 @@ describe("User administration integration", () => {
             })
             .from(userRoleScopes)
             .innerJoin(roles, eq(roles.id, userRoleScopes.roleId))
-            .where(
-              and(eq(userRoleScopes.userId, userId), eq(userRoleScopes.effect, "ALLOW")),
-            );
+            .where(and(eq(userRoleScopes.userId, userId), eq(userRoleScopes.effect, "ALLOW")));
           return {
             user: {
               id: row.id,

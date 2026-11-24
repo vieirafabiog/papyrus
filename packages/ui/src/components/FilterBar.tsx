@@ -84,17 +84,18 @@ export function FilterBar({
                     <SearchOutlinedIcon fontSize="small" color="action" />
                   </InputAdornment>
                 ),
-                endAdornment: searchValue.length > 0 ? (
-                  <InputAdornment position="end">
-                    <IconButton
-                      size="small"
-                      aria-label="Limpar busca"
-                      onClick={() => onSearchChange("")}
-                    >
-                      <ClearOutlinedIcon fontSize="small" />
-                    </IconButton>
-                  </InputAdornment>
-                ) : undefined,
+                endAdornment:
+                  searchValue.length > 0 ? (
+                    <InputAdornment position="end">
+                      <IconButton
+                        size="small"
+                        aria-label="Limpar busca"
+                        onClick={() => onSearchChange("")}
+                      >
+                        <ClearOutlinedIcon fontSize="small" />
+                      </IconButton>
+                    </InputAdornment>
+                  ) : undefined,
               },
             }}
           />

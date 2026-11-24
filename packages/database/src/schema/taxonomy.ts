@@ -46,13 +46,20 @@ export const folders = pgTable(
     updatedAt: timestamp("updated_at", { withTimezone: true, mode: "date" }).notNull().defaultNow(),
   },
   (table) => [
-    uniqueIndex("folders_org_parent_name_unique").on(table.organizationId, table.parentId, table.name),
+    uniqueIndex("folders_org_parent_name_unique").on(
+      table.organizationId,
+      table.parentId,
+      table.name,
+    ),
     uniqueIndex("folders_org_root_name_unique")
       .on(table.organizationId, table.name)
       .where(sql`${table.parentId} IS NULL`),
     index("folders_org_parent_status_idx").on(table.organizationId, table.parentId, table.status),
     index("folders_org_path_idx").on(table.organizationId, table.materializedPath),
-    check("folders_no_self_parent_chk", sql`${table.parentId} IS NULL OR ${table.parentId} <> ${table.id}`),
+    check(
+      "folders_no_self_parent_chk",
+      sql`${table.parentId} IS NULL OR ${table.parentId} <> ${table.id}`,
+    ),
   ],
 );
 
@@ -117,6 +124,9 @@ export const tags = pgTable(
   },
   (table) => [
     uniqueIndex("tags_org_normalized_name_unique").on(table.organizationId, table.normalizedName),
-    check("tags_normalized_lowercase_chk", sql`${table.normalizedName} = lower(${table.normalizedName})`),
+    check(
+      "tags_normalized_lowercase_chk",
+      sql`${table.normalizedName} = lower(${table.normalizedName})`,
+    ),
   ],
 );

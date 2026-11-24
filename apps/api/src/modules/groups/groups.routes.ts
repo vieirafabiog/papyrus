@@ -1,7 +1,7 @@
 import {
-  addGroupMemberRequestSchema,
   type AuthMeResponse,
   CONTRACTS_API_PREFIX,
+  addGroupMemberRequestSchema,
   createGroupRequestSchema,
   uuidSchema,
 } from "@docuflow/contracts";

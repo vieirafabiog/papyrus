@@ -51,12 +51,7 @@ export function ConfirmDialog({
         <Button onClick={onCancel} disabled={loading} variant="text">
           {cancelLabel}
         </Button>
-        <Button
-          onClick={onConfirm}
-          disabled={loading}
-          color={confirmColor}
-          variant="contained"
-        >
+        <Button onClick={onConfirm} disabled={loading} color={confirmColor} variant="contained">
           {loading ? "Processando..." : confirmLabel}
         </Button>
       </DialogActions>

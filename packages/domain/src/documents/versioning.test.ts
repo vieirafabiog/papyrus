@@ -1,14 +1,14 @@
 import { describe, expect, it } from "vitest";
 import {
-  assertApprovalMatchesVersion,
-  buildNextDocumentVersion,
   type DocumentEntity,
   type DocumentVersionEntity,
   DomainError,
+  type WorkflowInstanceEntity,
+  assertApprovalMatchesVersion,
+  buildNextDocumentVersion,
   getNextVersionNumber,
   resolveCurrentVersion,
   restoreHistoricalVersion,
-  type WorkflowInstanceEntity,
 } from "../index.js";
 
 const DOC_ID = "550e8400-e29b-41d4-a716-446655440000";

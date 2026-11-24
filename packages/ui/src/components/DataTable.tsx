@@ -137,8 +137,7 @@ export function DataTable<TRow>({
       return;
     }
     const isCurrent = sortBy === columnId;
-    const nextDirection: "asc" | "desc" =
-      isCurrent && sortDirection === "asc" ? "desc" : "asc";
+    const nextDirection: "asc" | "desc" = isCurrent && sortDirection === "asc" ? "desc" : "asc";
     onSortChange(columnId, nextDirection);
   };
 
@@ -198,10 +197,7 @@ export function DataTable<TRow>({
                   sx={onRowClick ? { cursor: "pointer" } : undefined}
                 >
                   {selectionEnabled ? (
-                    <TableCell
-                      padding="checkbox"
-                      onClick={(event) => event.stopPropagation()}
-                    >
+                    <TableCell padding="checkbox" onClick={(event) => event.stopPropagation()}>
                       <Checkbox
                         checked={isSelected}
                         onChange={() => handleToggleRow(rowId)}

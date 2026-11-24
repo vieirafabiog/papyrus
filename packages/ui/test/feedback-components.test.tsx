@@ -5,10 +5,10 @@ import type { ReactNode } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   ConfirmDialog,
-  docuflowTheme,
   EmptyState,
   ErrorState,
   LoadingState,
+  docuflowTheme,
 } from "../src/index.js";
 
 function renderWithTheme(ui: ReactNode) {
@@ -37,7 +37,9 @@ describe("Shared feedback components", () => {
       />,
     );
 
-    expect(screen.getByRole("heading", { name: "Nenhum documento encontrado" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "Nenhum documento encontrado" }),
+    ).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Enviar documento" }));
     expect(onAction).toHaveBeenCalledTimes(1);
   });
@@ -51,9 +53,7 @@ describe("Shared feedback components", () => {
       />,
     );
 
-    expect(screen.getByRole("alert")).toHaveTextContent(
-      "Não foi possível carregar os dados",
-    );
+    expect(screen.getByRole("alert")).toHaveTextContent("Não foi possível carregar os dados");
     fireEvent.click(screen.getByRole("button", { name: "Tentar novamente" }));
     expect(onRetry).toHaveBeenCalledTimes(1);
   });

@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
+  DomainError,
   assertDocumentStatusTransition,
   canSubmitDocumentForReview,
   canTransitionDocumentStatus,
-  DomainError,
   isFileObjectDownloadable,
 } from "../index.js";
 

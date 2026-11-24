@@ -1,9 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  normalizeStorageError,
-  sanitizeStorageErrorMessage,
-  StorageError,
-} from "../src/index.js";
+import { StorageError, normalizeStorageError, sanitizeStorageErrorMessage } from "../src/index.js";
 
 describe("Storage core contracts and errors", () => {
   it("sanitizes secrets from error messages", () => {

@@ -30,15 +30,9 @@ function assertPositiveInt(name: string, value: number): number {
 }
 
 export function createPasswordService(options: PasswordServiceOptions = {}): PasswordService {
-  const memoryCost = assertPositiveInt(
-    "memoryCost",
-    options.memoryCost ?? DEFAULT_MEMORY_COST_KIB,
-  );
+  const memoryCost = assertPositiveInt("memoryCost", options.memoryCost ?? DEFAULT_MEMORY_COST_KIB);
   const timeCost = assertPositiveInt("timeCost", options.timeCost ?? DEFAULT_TIME_COST);
-  const parallelism = assertPositiveInt(
-    "parallelism",
-    options.parallelism ?? DEFAULT_PARALLELISM,
-  );
+  const parallelism = assertPositiveInt("parallelism", options.parallelism ?? DEFAULT_PARALLELISM);
   const hashLength = assertPositiveInt("hashLength", options.hashLength ?? DEFAULT_HASH_LENGTH);
   const minPasswordLength = assertPositiveInt(
     "minPasswordLength",

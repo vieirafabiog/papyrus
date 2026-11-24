@@ -33,9 +33,7 @@ describe("Web main routing and session guards", () => {
   });
 
   it("redirects unauthenticated users from private routes to /login", async () => {
-    vi.spyOn(globalThis, "fetch").mockResolvedValue(
-      new Response(null, { status: 401 }),
-    );
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response(null, { status: 401 }));
 
     renderAt("/documentos");
 

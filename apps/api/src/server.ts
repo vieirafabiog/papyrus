@@ -16,8 +16,8 @@ function parsePort(rawPort: string | undefined): number {
 
 async function start(): Promise<void> {
   const app = buildApp({ logger: true });
-  const port = parsePort(process.env["PORT"]);
-  const host = process.env["HOST"] ?? DEFAULT_HOST;
+  const port = parsePort(process.env.PORT);
+  const host = process.env.HOST ?? DEFAULT_HOST;
 
   let isShuttingDown = false;
 

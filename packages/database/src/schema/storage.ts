@@ -142,10 +142,7 @@ export const fileObjects = pgTable(
     index("file_objects_org_status_idx").on(table.organizationId, table.status),
     index("file_objects_conn_idx").on(table.storageConnectionId),
     check("file_objects_size_non_neg_chk", sql`${table.sizeBytes} >= 0`),
-    check(
-      "file_objects_sha256_hex_chk",
-      sql`${table.checksumSha256} ~ '^[0-9a-fA-F]{64}$'`,
-    ),
+    check("file_objects_sha256_hex_chk", sql`${table.checksumSha256} ~ '^[0-9a-fA-F]{64}$'`),
   ],
 );
 
@@ -187,7 +184,10 @@ export const uploadSessions = pgTable(
     ),
     index("upload_sessions_file_obj_idx").on(table.fileObjectId),
     check("upload_sessions_size_positive_chk", sql`${table.declaredSizeBytes} > 0`),
-    check("upload_sessions_expires_after_created_chk", sql`${table.expiresAt} > ${table.createdAt}`),
+    check(
+      "upload_sessions_expires_after_created_chk",
+      sql`${table.expiresAt} > ${table.createdAt}`,
+    ),
   ],
 );
 

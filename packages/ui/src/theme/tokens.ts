@@ -74,7 +74,12 @@ export const DOCUFLOW_TYPOGRAPHY_TOKENS = {
   body1: { fontSize: "0.875rem", fontWeight: 400, lineHeight: 1.5 },
   body2: { fontSize: "0.8125rem", fontWeight: 400, lineHeight: 1.45 },
   caption: { fontSize: "0.75rem", fontWeight: 500, lineHeight: 1.35 },
-  button: { fontSize: "0.875rem", fontWeight: 600, lineHeight: 1.4, textTransform: "none" as const },
+  button: {
+    fontSize: "0.875rem",
+    fontWeight: 600,
+    lineHeight: 1.4,
+    textTransform: "none" as const,
+  },
 } as const;
 
 export const DOCUFLOW_SHAPE_TOKENS = {

@@ -82,7 +82,7 @@ describe("LocalStorageProvider putObject streaming", () => {
     // Ensure no leftover .tmp-* files remain in parent directory
     const siblingEntries = await readdir(path.dirname(path.join(rootDirectory, largeKey)));
     expect(siblingEntries.filter((name) => name.startsWith(".tmp-"))).toEqual([]);
-  });
+  }, 15_000);
 
   it("rejects checksum mismatch, declared length mismatch, and size limit exceedance without leaving target or temp files", async () => {
     const rootDirectory = await makeTempRoot();

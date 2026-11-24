@@ -11,13 +11,7 @@ export interface EmptyStateProps {
   readonly onAction?: () => void;
 }
 
-export function EmptyState({
-  title,
-  description,
-  icon,
-  actionLabel,
-  onAction,
-}: EmptyStateProps) {
+export function EmptyState({ title, description, icon, actionLabel, onAction }: EmptyStateProps) {
   return (
     <Paper
       sx={{

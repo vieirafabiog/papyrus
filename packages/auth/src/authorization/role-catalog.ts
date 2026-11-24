@@ -5,12 +5,7 @@ export interface PermissionPair {
   readonly resource: AccessResource;
 }
 
-export type SystemRoleKey =
-  | "admin"
-  | "document_manager"
-  | "collaborator"
-  | "reviewer"
-  | "viewer";
+export type SystemRoleKey = "admin" | "document_manager" | "collaborator" | "reviewer" | "viewer";
 
 export interface SystemRoleDefinition {
   readonly key: SystemRoleKey;

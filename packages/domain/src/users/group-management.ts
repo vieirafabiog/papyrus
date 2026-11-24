@@ -48,11 +48,7 @@ export function createGroupAdministrationService(
     async createGroup(command: CreateGroupCommand): Promise<GroupEntity> {
       const normalizedName = command.name.trim();
       return deps.transactions.runInTransaction(async (tx) => {
-        const existing = await deps.groups.findByName(
-          command.organizationId,
-          normalizedName,
-          tx,
-        );
+        const existing = await deps.groups.findByName(command.organizationId, normalizedName, tx);
         if (existing) {
           throw new DomainError(
             "GROUP_NAME_ALREADY_IN_USE",

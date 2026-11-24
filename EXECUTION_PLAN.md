@@ -1038,7 +1038,7 @@ docuflow/
   - **Ação:** Identificar dependências diretas/transitivas, licenças, CVEs relevantes e política de atualização. Resolver bloqueadores antes do release.
   - **Verificação:** Executar scanner escolhido e registrar resultado datado.
 
-- [ ] **Step 16.12 — Executar gate completo de qualidade**
+- [x] **Step 16.12 — Executar gate completo de qualidade**
   - **Arquivos:** raiz do monorepo e CI
   - **Ação:** Corrigir problemas de lint, typecheck, unit, integração, E2E e build; confirmar que lockfile está atualizado.
   - **Verificação:** `pnpm lint && pnpm typecheck && pnpm test && pnpm build`.

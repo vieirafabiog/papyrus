@@ -29,7 +29,7 @@ describe("PostgreSQL repositories integration", () => {
   let pool: Pool;
 
   beforeAll(async () => {
-    const externalUrl = process.env["DATABASE_URL"];
+    const externalUrl = process.env.DATABASE_URL;
     let connectionString: string;
     if (externalUrl && externalUrl.trim().length > 0) {
       connectionString = externalUrl;
@@ -67,7 +67,9 @@ describe("PostgreSQL repositories integration", () => {
     const connId = randomUUID();
     const roleId = randomUUID();
 
-    await db.insert(organizations).values({ id: orgId, name: "DocuFlow Org", slug: "docuflow-org" });
+    await db
+      .insert(organizations)
+      .values({ id: orgId, name: "DocuFlow Org", slug: "docuflow-org" });
     await userRepo.create({
       id: userId,
       organizationId: orgId,

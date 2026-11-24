@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
-  createSessionService,
   type CreateSessionRecordInput,
   type SessionStorePort,
   type StoredSessionRecord,
+  createSessionService,
 } from "../src/index.js";
 
 function createInMemorySessionStore(): {

@@ -67,10 +67,7 @@ export interface AuthService {
   getMe(rawToken: string | undefined): Promise<MeOutcome | null>;
 }
 
-function buildAuthMeResponse(
-  profile: AuthUserProfile,
-  sessionExpiresAt: Date,
-): AuthMeResponse {
+function buildAuthMeResponse(profile: AuthUserProfile, sessionExpiresAt: Date): AuthMeResponse {
   return {
     user: {
       id: profile.user.id,

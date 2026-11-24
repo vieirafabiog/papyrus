@@ -38,7 +38,6 @@ export function canSubmitDocumentForReview(
   fileObjectStatus: FileObjectStatus | null,
 ): boolean {
   return (
-    canTransitionDocumentStatus(documentStatus, "IN_REVIEW") &&
-    fileObjectStatus === "AVAILABLE"
+    canTransitionDocumentStatus(documentStatus, "IN_REVIEW") && fileObjectStatus === "AVAILABLE"
   );
 }

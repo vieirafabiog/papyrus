@@ -20,7 +20,7 @@ describe("Setup bootstrap admin integration", () => {
   let pool: Pool;
 
   beforeAll(async () => {
-    const externalUrl = process.env["DATABASE_URL"];
+    const externalUrl = process.env.DATABASE_URL;
     let connectionString: string;
     if (externalUrl && externalUrl.trim().length > 0) {
       connectionString = externalUrl;

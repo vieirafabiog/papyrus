@@ -1,5 +1,5 @@
-import { createTheme, type Theme } from "@mui/material/styles";
 import { ptBR } from "@mui/material/locale";
+import { type Theme, createTheme } from "@mui/material/styles";
 import {
   DOCUFLOW_COLOR_TOKENS,
   DOCUFLOW_DENSITY_TOKENS,

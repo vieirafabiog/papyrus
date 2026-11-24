@@ -24,11 +24,7 @@ export interface UserRepositoryPort {
   ): Promise<UserEntity | null>;
   listByOrganization(organizationId: string): Promise<readonly UserEntity[]>;
   create(input: CreateUserInput, tx?: TransactionContext): Promise<UserEntity>;
-  update(
-    id: string,
-    input: UpdateUserInput,
-    tx?: TransactionContext,
-  ): Promise<UserEntity | null>;
+  update(id: string, input: UpdateUserInput, tx?: TransactionContext): Promise<UserEntity | null>;
   countActiveAdmins(organizationId: string, tx?: TransactionContext): Promise<number>;
   isActiveGlobalAdmin(userId: string, tx?: TransactionContext): Promise<boolean>;
 }

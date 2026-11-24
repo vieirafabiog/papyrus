@@ -1,9 +1,5 @@
 import "@testing-library/jest-dom/vitest";
-import {
-  ConfirmDialog,
-  DOCUFLOW_COLOR_TOKENS,
-  docuflowTheme,
-} from "@docuflow/ui";
+import { ConfirmDialog, DOCUFLOW_COLOR_TOKENS, docuflowTheme } from "@docuflow/ui";
 import { CssBaseline, ThemeProvider } from "@mui/material";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
@@ -147,10 +143,7 @@ describe("Shell and shared states accessibility", () => {
       contrastRatio(DOCUFLOW_COLOR_TOKENS.text.secondary, DOCUFLOW_COLOR_TOKENS.surface.paper),
     ).toBeGreaterThanOrEqual(4.5);
     expect(
-      contrastRatio(
-        DOCUFLOW_COLOR_TOKENS.primary.contrastText,
-        DOCUFLOW_COLOR_TOKENS.primary.main,
-      ),
+      contrastRatio(DOCUFLOW_COLOR_TOKENS.primary.contrastText, DOCUFLOW_COLOR_TOKENS.primary.main),
     ).toBeGreaterThanOrEqual(4.5);
     expect(
       contrastRatio(

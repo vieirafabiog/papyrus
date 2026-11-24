@@ -5,7 +5,7 @@ import { useSessionQuery } from "./session.js";
 function SessionLoadingFallback() {
   return (
     <Box
-      role="status"
+      component="output"
       aria-live="polite"
       sx={{
         minHeight: "100vh",

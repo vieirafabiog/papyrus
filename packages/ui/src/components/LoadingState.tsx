@@ -5,13 +5,10 @@ export interface LoadingStateProps {
   readonly minHeight?: number;
 }
 
-export function LoadingState({
-  message = "Carregando...",
-  minHeight = 160,
-}: LoadingStateProps) {
+export function LoadingState({ message = "Carregando...", minHeight = 160 }: LoadingStateProps) {
   return (
     <Box
-      role="status"
+      component="output"
       aria-live="polite"
       sx={{
         minHeight,

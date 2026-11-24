@@ -31,7 +31,9 @@ export const auditEvents = pgTable(
     organizationId: uuid("organization_id")
       .notNull()
       .references(() => organizations.id, { onDelete: "restrict" }),
-    occurredAt: timestamp("occurred_at", { withTimezone: true, mode: "date" }).notNull().defaultNow(),
+    occurredAt: timestamp("occurred_at", { withTimezone: true, mode: "date" })
+      .notNull()
+      .defaultNow(),
     actorUserId: uuid("actor_user_id").references(() => users.id, { onDelete: "restrict" }),
     action: varchar("action", { length: 120 }).notNull(),
     resourceType: varchar("resource_type", { length: 64 }).notNull(),

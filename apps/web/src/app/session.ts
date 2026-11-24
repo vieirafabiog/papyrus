@@ -1,7 +1,7 @@
 import {
   type AuthMeResponse,
-  authMeResponseSchema,
   CONTRACTS_API_PREFIX,
+  authMeResponseSchema,
   createApiResponseSchema,
 } from "@docuflow/contracts";
 import { useQuery } from "@tanstack/react-query";

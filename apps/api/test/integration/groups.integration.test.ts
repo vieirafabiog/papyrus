@@ -2,11 +2,11 @@ import { randomUUID } from "node:crypto";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import {
-  createPasswordService,
-  createSessionService,
   type CreateSessionRecordInput,
   type SessionStorePort,
   type StoredSessionRecord,
+  createPasswordService,
+  createSessionService,
 } from "@docuflow/auth";
 import {
   createAuditRepository,
@@ -42,7 +42,7 @@ describe("Groups and membership integration", () => {
   let pool: Pool;
 
   beforeAll(async () => {
-    const externalUrl = process.env["DATABASE_URL"];
+    const externalUrl = process.env.DATABASE_URL;
     let connectionString: string;
     if (externalUrl && externalUrl.trim().length > 0) {
       connectionString = externalUrl;

@@ -7,7 +7,7 @@ import {
   type DeleteObjectCommandOutput,
   GetObjectCommand,
   type GetObjectCommandOutput,
-  HeadBucketCommand,
+  type HeadBucketCommand,
   type HeadBucketCommandOutput,
   HeadObjectCommand,
   type HeadObjectCommandOutput,

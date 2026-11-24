@@ -1,10 +1,7 @@
 import { CONTRACTS_API_PREFIX } from "@docuflow/contracts";
 import type { FastifyInstance } from "fastify";
 import { ZodError } from "zod";
-import {
-  BootstrapAlreadyCompletedError,
-  type SetupService,
-} from "./setup.service.js";
+import { BootstrapAlreadyCompletedError, type SetupService } from "./setup.service.js";
 
 export async function registerSetupRoutes(
   app: FastifyInstance,

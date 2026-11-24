@@ -85,11 +85,7 @@ export function createGroupRepository(db: NodePgDatabase): GroupRepositoryPort {
       return toGroupEntity(row);
     },
 
-    async isMember(
-      groupId: string,
-      userId: string,
-      tx?: TransactionContext,
-    ): Promise<boolean> {
+    async isMember(groupId: string, userId: string, tx?: TransactionContext): Promise<boolean> {
       const executor = resolveDbExecutor(db, tx);
       const [row] = await executor
         .select({ total: count() })
@@ -107,11 +103,7 @@ export function createGroupRepository(db: NodePgDatabase): GroupRepositoryPort {
       });
     },
 
-    async removeMember(
-      groupId: string,
-      userId: string,
-      tx?: TransactionContext,
-    ): Promise<boolean> {
+    async removeMember(groupId: string, userId: string, tx?: TransactionContext): Promise<boolean> {
       const executor = resolveDbExecutor(db, tx);
       const deleted = await executor
         .delete(userGroups)

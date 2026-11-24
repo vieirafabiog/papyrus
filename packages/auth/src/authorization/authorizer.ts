@@ -6,8 +6,8 @@ import type {
 } from "@docuflow/domain";
 import {
   type PermissionPair,
-  roleGrantsPermission,
   SYSTEM_ROLE_DEFINITIONS,
+  roleGrantsPermission,
 } from "./role-catalog.js";
 
 export interface PrincipalAssignment {
@@ -43,15 +43,13 @@ export function doesScopeMatch(assignmentScope: AccessScope, targetScope: Access
   switch (assignmentScope.type) {
     case "CATEGORY":
       return (
-        targetScope.type === "CATEGORY" &&
-        assignmentScope.categoryId === targetScope.categoryId
+        targetScope.type === "CATEGORY" && assignmentScope.categoryId === targetScope.categoryId
       );
     case "FOLDER":
       return targetScope.type === "FOLDER" && assignmentScope.folderId === targetScope.folderId;
     case "DOCUMENT":
       return (
-        targetScope.type === "DOCUMENT" &&
-        assignmentScope.documentId === targetScope.documentId
+        targetScope.type === "DOCUMENT" && assignmentScope.documentId === targetScope.documentId
       );
   }
 }

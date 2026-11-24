@@ -3,12 +3,7 @@ import { ThemeProvider } from "@mui/material/styles";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import {
-  DataTable,
-  type DataTableColumn,
-  docuflowTheme,
-  FilterBar,
-} from "../src/index.js";
+import { DataTable, type DataTableColumn, FilterBar, docuflowTheme } from "../src/index.js";
 
 interface SampleDoc {
   readonly id: string;

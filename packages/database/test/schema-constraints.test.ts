@@ -8,15 +8,15 @@ import { Pool } from "pg";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import {
   categories,
-  documents,
   documentVersions,
+  documents,
   fileObjects,
   organizations,
   storageConnections,
   users,
   workflowDecisions,
-  workflowDefinitions,
   workflowDefinitionVersions,
+  workflowDefinitions,
   workflowInstances,
   workflowTasks,
 } from "../src/index.js";
@@ -30,7 +30,7 @@ describe("PostgreSQL schema indexes and integrity constraints", () => {
   let pool: Pool;
 
   beforeAll(async () => {
-    const externalUrl = process.env["DATABASE_URL"];
+    const externalUrl = process.env.DATABASE_URL;
     let connectionString: string;
     if (externalUrl && externalUrl.trim().length > 0) {
       connectionString = externalUrl;

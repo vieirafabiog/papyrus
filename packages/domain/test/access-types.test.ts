@@ -28,11 +28,6 @@ describe("Access and session domain types", () => {
       { type: "DOCUMENT", documentId: "550e8400-e29b-41d4-a716-446655440002" },
     ];
 
-    expect(scopes.map((scope) => scope.type)).toEqual([
-      "GLOBAL",
-      "CATEGORY",
-      "FOLDER",
-      "DOCUMENT",
-    ]);
+    expect(scopes.map((scope) => scope.type)).toEqual(["GLOBAL", "CATEGORY", "FOLDER", "DOCUMENT"]);
   });
 });

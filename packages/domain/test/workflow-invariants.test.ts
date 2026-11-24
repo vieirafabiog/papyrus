@@ -1,14 +1,14 @@
 import { describe, expect, it } from "vitest";
 import {
-  assertApprovalMatchesVersion,
   type DocumentEntity,
   DomainError,
-  isTerminalInstanceStatus,
-  isTerminalTaskStatus,
   type WorkflowInstanceEntity,
   type WorkflowInstanceStatus,
   type WorkflowTaskEntity,
   type WorkflowTaskStatus,
+  assertApprovalMatchesVersion,
+  isTerminalInstanceStatus,
+  isTerminalTaskStatus,
 } from "../src/index.js";
 
 const DOC_ID = "550e8400-e29b-41d4-a716-446655440000";
@@ -92,4 +92,3 @@ describe("Workflow domain invariants", () => {
     expect(() => assertApprovalMatchesVersion(instanceForV1, DOC, "v1")).not.toThrow();
   });
 });
-
