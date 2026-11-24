@@ -1,5 +1,6 @@
 import {
   CONTRACTS_API_PREFIX,
+  type DocumentMetadataValue,
   apiErrorResponseSchema,
   createApiResponseSchema,
   createUploadSessionRequestSchema,
@@ -40,6 +41,7 @@ export interface UploadMetadataFormValues {
   readonly folderId: string | null;
   readonly expirationDate: string;
   readonly changeNote: string;
+  readonly metadata?: Readonly<Record<string, DocumentMetadataValue>> | undefined;
 }
 
 export interface UploadQueueItem {
@@ -614,7 +616,7 @@ export function useUploadDocuments(options: UseUploadDocumentsOptions = {}) {
             issueDate: null,
             expirationDate:
               metadata.expirationDate.trim().length > 0 ? metadata.expirationDate.trim() : null,
-            metadata: {},
+            metadata: metadata.metadata ?? {},
             uploadSessionId: sessionId,
             ...(metadata.changeNote.trim().length > 0
               ? { changeNote: metadata.changeNote.trim() }

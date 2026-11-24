@@ -1,3 +1,9 @@
+import {
+  CONTRACTS_API_PREFIX,
+  type CategoryFieldRecord,
+  type DocumentMetadataValue,
+  categoryFieldListResponseSchema,
+} from "@docuflow/contracts";
 import { DOCUFLOW_COLOR_TOKENS } from "@docuflow/ui";
 import CancelOutlinedIcon from "@mui/icons-material/CancelOutlined";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
@@ -12,22 +18,41 @@ import {
   Alert,
   Box,
   Button,
+  Checkbox,
   Chip,
+  CircularProgress,
   Dialog,
   DialogActions,
   DialogContent,
   DialogTitle,
+  Divider,
+  FormControl,
+  FormControlLabel,
+  FormHelperText,
   IconButton,
+  InputLabel,
   LinearProgress,
   List,
   ListItem,
+  ListItemText,
   MenuItem,
   Paper,
+  Select,
   Stack,
+  Switch,
   TextField,
   Typography,
 } from "@mui/material";
-import { type ChangeEvent, type DragEvent, type FormEvent, useId, useRef, useState } from "react";
+import {
+  type ChangeEvent,
+  type DragEvent,
+  type FormEvent,
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
   getFileProcessingDescriptor,
   sanitizeUserFacingRejectionMessage,
@@ -43,6 +68,7 @@ import {
 export interface UploadCategoryOption {
   readonly id: string;
   readonly name: string;
+  readonly fields?: readonly CategoryFieldRecord[] | undefined;
 }
 
 export interface UploadFolderOption {
@@ -63,6 +89,125 @@ export interface UploadDialogProps {
   readonly binaryUploader?: BinaryUploadExecutor | undefined;
   readonly fetchFn?: typeof fetch | undefined;
   readonly onUploadBatchFinished?: (() => void) | undefined;
+}
+
+function isValidIsoDateString(value: string): boolean {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    return false;
+  }
+  const [yRaw, mRaw, dRaw] = value.split("-");
+  const y = Number(yRaw);
+  const m = Number(mRaw);
+  const d = Number(dRaw);
+  const parsed = new Date(Date.UTC(y, m - 1, d));
+  return (
+    parsed.getUTCFullYear() === y && parsed.getUTCMonth() === m - 1 && parsed.getUTCDate() === d
+  );
+}
+
+function validateUploadCategoryFields(params: {
+  readonly fields: readonly CategoryFieldRecord[];
+  readonly textValues: Readonly<Record<string, string>>;
+  readonly booleanValues: Readonly<Record<string, boolean>>;
+  readonly multiValues: Readonly<Record<string, readonly string[]>>;
+}): {
+  readonly valid: boolean;
+  readonly fieldErrors: Record<string, string>;
+  readonly normalizedMetadata: Record<string, DocumentMetadataValue>;
+} {
+  const fieldErrors: Record<string, string> = {};
+  const normalizedMetadata: Record<string, DocumentMetadataValue> = {};
+
+  for (const field of params.fields) {
+    switch (field.type) {
+      case "TEXT": {
+        const value = (params.textValues[field.key] ?? "").trim();
+        if (value.length === 0) {
+          if (field.required) {
+            fieldErrors[field.key] = "Campo obrigatório não informado.";
+          } else {
+            normalizedMetadata[field.key] = null;
+          }
+        } else {
+          normalizedMetadata[field.key] = value;
+        }
+        break;
+      }
+      case "NUMBER": {
+        const raw = (params.textValues[field.key] ?? "").trim();
+        if (raw.length === 0) {
+          if (field.required) {
+            fieldErrors[field.key] = "Campo obrigatório não informado.";
+          } else {
+            normalizedMetadata[field.key] = null;
+          }
+        } else {
+          const normalizedNumeric =
+            raw.includes(",") && !raw.includes(".") ? raw.replace(",", ".") : raw;
+          const num = Number(normalizedNumeric);
+          if (!Number.isFinite(num)) {
+            fieldErrors[field.key] = "Deve ser um número válido.";
+          } else {
+            normalizedMetadata[field.key] = num;
+          }
+        }
+        break;
+      }
+      case "DATE": {
+        const raw = (params.textValues[field.key] ?? "").trim();
+        if (raw.length === 0) {
+          if (field.required) {
+            fieldErrors[field.key] = "Campo obrigatório não informado.";
+          } else {
+            normalizedMetadata[field.key] = null;
+          }
+        } else if (!isValidIsoDateString(raw)) {
+          fieldErrors[field.key] = "Informe uma data válida no formato AAAA-MM-DD.";
+        } else {
+          normalizedMetadata[field.key] = raw;
+        }
+        break;
+      }
+      case "BOOLEAN": {
+        normalizedMetadata[field.key] = params.booleanValues[field.key] ?? false;
+        break;
+      }
+      case "SINGLE_SELECT": {
+        const raw = (params.textValues[field.key] ?? "").trim();
+        const allowed = field.options ?? [];
+        if (raw.length === 0) {
+          if (field.required) {
+            fieldErrors[field.key] = "Selecione uma opção obrigatória.";
+          } else {
+            normalizedMetadata[field.key] = null;
+          }
+        } else if (!allowed.includes(raw)) {
+          fieldErrors[field.key] = "Opção selecionada não é permitida.";
+        } else {
+          normalizedMetadata[field.key] = raw;
+        }
+        break;
+      }
+      case "MULTI_SELECT": {
+        const selected = params.multiValues[field.key] ?? [];
+        const allowed = field.options ?? [];
+        if (field.required && selected.length === 0) {
+          fieldErrors[field.key] = "Selecione ao menos uma opção.";
+        } else if (selected.some((item) => !allowed.includes(item))) {
+          fieldErrors[field.key] = "Contém opção não permitida.";
+        } else {
+          normalizedMetadata[field.key] = [...selected];
+        }
+        break;
+      }
+    }
+  }
+
+  return {
+    valid: Object.keys(fieldErrors).length === 0,
+    fieldErrors,
+    normalizedMetadata,
+  };
 }
 
 function getStatusChipProps(status: UploadQueueItem["status"]): {
@@ -151,6 +296,7 @@ export function UploadDialog({
   const titleId = useId();
   const descriptionId = useId();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const fetchImpl = fetchFn ?? globalThis.fetch;
 
   const [isDragging, setIsDragging] = useState(false);
   const [title, setTitle] = useState("");
@@ -160,6 +306,105 @@ export function UploadDialog({
   const [changeNote, setChangeNote] = useState("");
   const [categoryError, setCategoryError] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
+
+  const [categoryFields, setCategoryFields] = useState<readonly CategoryFieldRecord[]>([]);
+  const [loadingCategoryFields, setLoadingCategoryFields] = useState(false);
+  const [categoryFieldsError, setCategoryFieldsError] = useState<string | null>(null);
+  const [customTextValues, setCustomTextValues] = useState<Record<string, string>>({});
+  const [customBooleanValues, setCustomBooleanValues] = useState<Record<string, boolean>>({});
+  const [customMultiValues, setCustomMultiValues] = useState<Record<string, string[]>>({});
+  const [customFieldErrors, setCustomFieldErrors] = useState<Record<string, string>>({});
+
+  const selectedCategory = useMemo(
+    () => categories.find((cat) => cat.id === categoryId),
+    [categories, categoryId],
+  );
+
+  const sortedCategoryFields = useMemo(
+    () => [...categoryFields].sort((a, b) => a.sortOrder - b.sortOrder),
+    [categoryFields],
+  );
+
+  const shouldLoadCategoryFields = Boolean(createDocumentOnFinalize) && !documentId;
+
+  useEffect(() => {
+    const trimmedCategoryId = categoryId.trim();
+    setCustomTextValues({});
+    setCustomBooleanValues({});
+    setCustomMultiValues({});
+    setCustomFieldErrors({});
+    setCategoryFieldsError(null);
+
+    if (!open || !shouldLoadCategoryFields || trimmedCategoryId.length === 0) {
+      setCategoryFields([]);
+      setLoadingCategoryFields(false);
+      return;
+    }
+
+    if (selectedCategory?.fields !== undefined) {
+      setCategoryFields(selectedCategory.fields);
+      setLoadingCategoryFields(false);
+      return;
+    }
+
+    const controller = new AbortController();
+    setLoadingCategoryFields(true);
+
+    void (async () => {
+      try {
+        const response = await fetchImpl(
+          `${CONTRACTS_API_PREFIX}/categories/${trimmedCategoryId}/fields`,
+          {
+            method: "GET",
+            credentials: "include",
+            headers: { Accept: "application/json" },
+            signal: controller.signal,
+          },
+        );
+        if (controller.signal.aborted) {
+          return;
+        }
+        if (response.status === 404) {
+          setCategoryFields([]);
+          return;
+        }
+        if (!response.ok) {
+          setCategoryFields([]);
+          setCategoryFieldsError(
+            "Não foi possível carregar os campos personalizados da categoria.",
+          );
+          return;
+        }
+        const rawJson: unknown = await response.json();
+        if (controller.signal.aborted) {
+          return;
+        }
+        const parsed = categoryFieldListResponseSchema.safeParse(rawJson);
+        if (!parsed.success) {
+          setCategoryFields([]);
+          setCategoryFieldsError("Resposta inválida ao carregar os campos da categoria.");
+          return;
+        }
+        setCategoryFields(parsed.data.data);
+      } catch (error) {
+        if (controller.signal.aborted) {
+          return;
+        }
+        if (error instanceof DOMException && error.name === "AbortError") {
+          return;
+        }
+        setCategoryFields([]);
+      } finally {
+        if (!controller.signal.aborted) {
+          setLoadingCategoryFields(false);
+        }
+      }
+    })();
+
+    return () => {
+      controller.abort();
+    };
+  }, [open, shouldLoadCategoryFields, categoryId, selectedCategory?.fields, fetchImpl]);
 
   const {
     items,
@@ -180,12 +425,54 @@ export function UploadDialog({
     fetchFn,
   });
 
-  const metadataValues: UploadMetadataFormValues = {
-    title,
-    categoryId,
-    folderId: folderId.trim().length > 0 ? folderId : null,
-    expirationDate,
-    changeNote,
+  const clearSingleCustomFieldError = (fieldKey: string): void => {
+    setCustomFieldErrors((prev) => {
+      if (prev[fieldKey] === undefined) {
+        return prev;
+      }
+      const next = { ...prev };
+      delete next[fieldKey];
+      return next;
+    });
+  };
+
+  const buildValidatedMetadataValues = (): UploadMetadataFormValues | null => {
+    setFormError(null);
+    setCategoryError(null);
+
+    if (categories.length > 0 && categoryId.trim().length === 0) {
+      setCategoryError("Selecione uma categoria documental antes de enviar.");
+      return null;
+    }
+
+    if (loadingCategoryFields) {
+      setFormError("Aguarde o carregamento dos campos personalizados da categoria.");
+      return null;
+    }
+
+    const customValidation = validateUploadCategoryFields({
+      fields: sortedCategoryFields,
+      textValues: customTextValues,
+      booleanValues: customBooleanValues,
+      multiValues: customMultiValues,
+    });
+
+    if (!customValidation.valid) {
+      setCustomFieldErrors(customValidation.fieldErrors);
+      setFormError("Preencha corretamente os campos personalizados obrigatórios da categoria.");
+      return null;
+    }
+
+    setCustomFieldErrors({});
+
+    return {
+      title,
+      categoryId,
+      folderId: folderId.trim().length > 0 ? folderId : null,
+      expirationDate,
+      changeNote,
+      metadata: customValidation.normalizedMetadata,
+    };
   };
 
   const handleFileInputChange = (event: ChangeEvent<HTMLInputElement>): void => {
@@ -215,29 +502,26 @@ export function UploadDialog({
     }
   };
 
-  const validateBeforeUpload = (): boolean => {
-    setFormError(null);
-    setCategoryError(null);
-
-    if (categories.length > 0 && categoryId.trim().length === 0) {
-      setCategoryError("Selecione uma categoria documental antes de enviar.");
-      return false;
-    }
-
-    if (summary.ready === 0) {
-      setFormError("Selecione ao menos um arquivo válido para iniciar o envio.");
-      return false;
-    }
-
-    return true;
-  };
-
   const handleSubmit = async (event: FormEvent<HTMLFormElement>): Promise<void> => {
     event.preventDefault();
-    if (!validateBeforeUpload()) {
+    const validatedMetadata = buildValidatedMetadataValues();
+    if (!validatedMetadata) {
       return;
     }
-    await startBatchUpload(metadataValues);
+    if (summary.ready === 0) {
+      setFormError("Selecione ao menos um arquivo válido para iniciar o envio.");
+      return;
+    }
+    await startBatchUpload(validatedMetadata);
+    onUploadBatchFinished?.();
+  };
+
+  const handleRetryItem = async (localId: string): Promise<void> => {
+    const validatedMetadata = buildValidatedMetadataValues();
+    if (!validatedMetadata) {
+      return;
+    }
+    await retryItem(localId, validatedMetadata);
     onUploadBatchFinished?.();
   };
 
@@ -377,6 +661,234 @@ export function UploadDialog({
                     fullWidth
                   />
                 </Box>
+
+                {shouldLoadCategoryFields &&
+                (loadingCategoryFields ||
+                  categoryFieldsError !== null ||
+                  sortedCategoryFields.length > 0) ? (
+                  <>
+                    <Divider />
+                    <Stack spacing={1.5}>
+                      <Typography variant="subtitle2" component="h3">
+                        Campos personalizados da categoria
+                      </Typography>
+
+                      {loadingCategoryFields ? (
+                        <Stack direction="row" spacing={1} alignItems="center">
+                          <CircularProgress size={16} />
+                          <Typography variant="body2" color="text.secondary">
+                            Carregando campos da categoria...
+                          </Typography>
+                        </Stack>
+                      ) : null}
+
+                      {categoryFieldsError ? (
+                        <Alert severity="warning" role="alert">
+                          {categoryFieldsError}
+                        </Alert>
+                      ) : null}
+
+                      {!loadingCategoryFields && sortedCategoryFields.length > 0 ? (
+                        <Box
+                          sx={{
+                            display: "grid",
+                            gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" },
+                            gap: 2,
+                          }}
+                        >
+                          {sortedCategoryFields.map((field) => {
+                            const errorMsg = customFieldErrors[field.key];
+                            const helperId = `upload-field-error-${field.key}`;
+
+                            switch (field.type) {
+                              case "TEXT":
+                                return (
+                                  <TextField
+                                    key={field.id}
+                                    fullWidth
+                                    required={field.required}
+                                    label={field.label}
+                                    value={customTextValues[field.key] ?? ""}
+                                    onChange={(event) => {
+                                      setCustomTextValues((prev) => ({
+                                        ...prev,
+                                        [field.key]: event.target.value,
+                                      }));
+                                      clearSingleCustomFieldError(field.key);
+                                    }}
+                                    error={Boolean(errorMsg)}
+                                    helperText={errorMsg}
+                                    disabled={summary.isUploading}
+                                  />
+                                );
+
+                              case "NUMBER":
+                                return (
+                                  <TextField
+                                    key={field.id}
+                                    fullWidth
+                                    required={field.required}
+                                    type="text"
+                                    inputMode="decimal"
+                                    label={field.label}
+                                    value={customTextValues[field.key] ?? ""}
+                                    onChange={(event) => {
+                                      setCustomTextValues((prev) => ({
+                                        ...prev,
+                                        [field.key]: event.target.value,
+                                      }));
+                                      clearSingleCustomFieldError(field.key);
+                                    }}
+                                    error={Boolean(errorMsg)}
+                                    helperText={errorMsg}
+                                    disabled={summary.isUploading}
+                                  />
+                                );
+
+                              case "DATE":
+                                return (
+                                  <TextField
+                                    key={field.id}
+                                    fullWidth
+                                    required={field.required}
+                                    type="date"
+                                    label={field.label}
+                                    value={customTextValues[field.key] ?? ""}
+                                    onChange={(event) => {
+                                      setCustomTextValues((prev) => ({
+                                        ...prev,
+                                        [field.key]: event.target.value,
+                                      }));
+                                      clearSingleCustomFieldError(field.key);
+                                    }}
+                                    slotProps={{ inputLabel: { shrink: true } }}
+                                    error={Boolean(errorMsg)}
+                                    helperText={errorMsg}
+                                    disabled={summary.isUploading}
+                                  />
+                                );
+
+                              case "BOOLEAN":
+                                return (
+                                  <FormControl
+                                    key={field.id}
+                                    error={Boolean(errorMsg)}
+                                    component="fieldset"
+                                  >
+                                    <FormControlLabel
+                                      control={
+                                        <Switch
+                                          checked={customBooleanValues[field.key] ?? false}
+                                          onChange={(event) => {
+                                            setCustomBooleanValues((prev) => ({
+                                              ...prev,
+                                              [field.key]: event.target.checked,
+                                            }));
+                                            clearSingleCustomFieldError(field.key);
+                                          }}
+                                          disabled={summary.isUploading}
+                                        />
+                                      }
+                                      label={field.required ? `${field.label} *` : field.label}
+                                    />
+                                    {errorMsg ? (
+                                      <FormHelperText id={helperId}>{errorMsg}</FormHelperText>
+                                    ) : null}
+                                  </FormControl>
+                                );
+
+                              case "SINGLE_SELECT": {
+                                const labelId = `upload-select-label-${field.key}`;
+                                return (
+                                  <FormControl
+                                    key={field.id}
+                                    fullWidth
+                                    required={field.required}
+                                    error={Boolean(errorMsg)}
+                                  >
+                                    <InputLabel id={labelId}>{field.label}</InputLabel>
+                                    <Select
+                                      labelId={labelId}
+                                      label={field.label}
+                                      value={customTextValues[field.key] ?? ""}
+                                      onChange={(event) => {
+                                        setCustomTextValues((prev) => ({
+                                          ...prev,
+                                          [field.key]: String(event.target.value),
+                                        }));
+                                        clearSingleCustomFieldError(field.key);
+                                      }}
+                                      disabled={summary.isUploading}
+                                      aria-describedby={errorMsg ? helperId : undefined}
+                                    >
+                                      <MenuItem value="">
+                                        <em>Selecione...</em>
+                                      </MenuItem>
+                                      {(field.options ?? []).map((option) => (
+                                        <MenuItem key={option} value={option}>
+                                          {option}
+                                        </MenuItem>
+                                      ))}
+                                    </Select>
+                                    {errorMsg ? (
+                                      <FormHelperText id={helperId}>{errorMsg}</FormHelperText>
+                                    ) : null}
+                                  </FormControl>
+                                );
+                              }
+
+                              case "MULTI_SELECT": {
+                                const labelId = `upload-multiselect-label-${field.key}`;
+                                const selectedValues = customMultiValues[field.key] ?? [];
+                                return (
+                                  <FormControl
+                                    key={field.id}
+                                    fullWidth
+                                    required={field.required}
+                                    error={Boolean(errorMsg)}
+                                  >
+                                    <InputLabel id={labelId}>{field.label}</InputLabel>
+                                    <Select
+                                      multiple
+                                      labelId={labelId}
+                                      label={field.label}
+                                      value={selectedValues}
+                                      onChange={(event) => {
+                                        const raw = event.target.value;
+                                        const next =
+                                          typeof raw === "string"
+                                            ? raw.split(",")
+                                            : Array.from(raw);
+                                        setCustomMultiValues((prev) => ({
+                                          ...prev,
+                                          [field.key]: next,
+                                        }));
+                                        clearSingleCustomFieldError(field.key);
+                                      }}
+                                      renderValue={(selected) => selected.join(", ")}
+                                      disabled={summary.isUploading}
+                                      aria-describedby={errorMsg ? helperId : undefined}
+                                    >
+                                      {(field.options ?? []).map((option) => (
+                                        <MenuItem key={option} value={option}>
+                                          <Checkbox checked={selectedValues.includes(option)} />
+                                          <ListItemText primary={option} />
+                                        </MenuItem>
+                                      ))}
+                                    </Select>
+                                    {errorMsg ? (
+                                      <FormHelperText id={helperId}>{errorMsg}</FormHelperText>
+                                    ) : null}
+                                  </FormControl>
+                                );
+                              }
+                            }
+                          })}
+                        </Box>
+                      ) : null}
+                    </Stack>
+                  </>
+                ) : null}
 
                 <TextField
                   label="Observação da versão"
@@ -527,7 +1039,7 @@ export function UploadDialog({
                                 size="small"
                                 variant="outlined"
                                 startIcon={<RefreshOutlinedIcon fontSize="small" />}
-                                onClick={() => void retryItem(item.localId, metadataValues)}
+                                onClick={() => void handleRetryItem(item.localId)}
                               >
                                 Tentar novamente {item.file.name}
                               </Button>

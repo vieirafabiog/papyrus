@@ -261,4 +261,143 @@ describe("UploadDialog and useUploadDocuments", () => {
     expect(await screen.findByText("Cancelado")).toBeInTheDocument();
     expect(screen.getByText("Envio cancelado pelo usuário.")).toBeInTheDocument();
   });
+
+  it("loads custom category fields, validates required fields, and sends metadata on document creation", async () => {
+    let capturedCreateDocBody: Record<string, unknown> | null = null;
+
+    const mockFetch: typeof fetch = vi.fn(async (input, init) => {
+      const url = typeof input === "string" ? input : input.toString();
+      if (url.endsWith(`/categories/${SAMPLE_UUID_1}/fields`)) {
+        return new Response(
+          JSON.stringify({
+            data: [
+              {
+                id: "550e8400-e29b-41d4-a716-446655440091",
+                categoryId: SAMPLE_UUID_1,
+                key: "n_do_ctrb",
+                label: "Nº do CTRB",
+                type: "TEXT",
+                required: true,
+                options: null,
+                sortOrder: 0,
+                createdAt: "2026-11-24T10:00:00.000Z",
+                updatedAt: "2026-11-24T10:00:00.000Z",
+              },
+              {
+                id: "550e8400-e29b-41d4-a716-446655440092",
+                categoryId: SAMPLE_UUID_1,
+                key: "valor_do_ctrb",
+                label: "Valor do CTRB",
+                type: "NUMBER",
+                required: true,
+                options: null,
+                sortOrder: 1,
+                createdAt: "2026-11-24T10:00:00.000Z",
+                updatedAt: "2026-11-24T10:00:00.000Z",
+              },
+            ],
+          }),
+          { status: 200 },
+        );
+      }
+      if (url.endsWith("/auth/csrf-token")) {
+        return new Response(JSON.stringify({ data: { csrfToken: "csrf-meta" } }), { status: 200 });
+      }
+      if (url.endsWith("/uploads/sessions")) {
+        return new Response(
+          JSON.stringify({
+            data: {
+              id: SAMPLE_UUID_1,
+              organizationId: SAMPLE_UUID_1,
+              userId: SAMPLE_UUID_2,
+              storageConnectionId: SAMPLE_UUID_3,
+              fileObjectId: SAMPLE_UUID_3,
+              objectKey: "org/1/documents/d/versions/v/obj",
+              declaredSizeBytes: 12,
+              declaredContentType: "application/pdf",
+              idempotencyKey: "idem-meta",
+              status: "PENDING",
+              expiresAt: "2026-11-24T14:00:00.000Z",
+              finalizedAt: null,
+              createdAt: "2026-11-24T12:00:00.000Z",
+              updatedAt: "2026-11-24T12:00:00.000Z",
+            },
+          }),
+          { status: 201 },
+        );
+      }
+      if (url.endsWith("/signed-target")) {
+        return new Response(
+          JSON.stringify({
+            data: {
+              sessionId: SAMPLE_UUID_1,
+              fileObjectId: SAMPLE_UUID_3,
+              storageConnectionId: SAMPLE_UUID_3,
+              uploadMode: "SIGNED_UPLOAD",
+              finalizationRequired: true,
+              status: "PENDING",
+              fileObjectStatus: "UPLOADING",
+              target: {
+                url: "https://minio.local/bucket/obj",
+                method: "PUT",
+                headers: { "content-type": "application/pdf", "content-length": "12" },
+                expiresAt: "2026-11-24T12:15:00.000Z",
+              },
+            },
+          }),
+          { status: 200 },
+        );
+      }
+      if (url.endsWith("/finalize")) {
+        return new Response(
+          JSON.stringify({
+            data: {
+              id: SAMPLE_UUID_1,
+              status: "FINALIZED",
+              fileObjectStatus: "QUARANTINED",
+            },
+          }),
+          { status: 200 },
+        );
+      }
+      if (url.endsWith("/documents") && init?.method === "POST") {
+        capturedCreateDocBody = JSON.parse(String(init.body)) as Record<string, unknown>;
+        return new Response(JSON.stringify({ data: { id: SAMPLE_UUID_2 } }), { status: 201 });
+      }
+      return new Response(null, { status: 404 });
+    });
+
+    renderDialog({
+      defaultCategoryId: SAMPLE_UUID_1,
+      createDocumentOnFinalize: true,
+      fetchFn: mockFetch,
+      binaryUploader: async () => ({ status: 200, responseText: "" }),
+    });
+
+    const numField = await screen.findByLabelText(/Nº do CTRB/);
+    const valField = await screen.findByLabelText(/Valor do CTRB/);
+
+    const fileInput = screen.getByLabelText("Selecionar arquivos para envio") as HTMLInputElement;
+    fireEvent.change(fileInput, {
+      target: { files: [new File(["%PDF-1.7-ctrb"], "ctrb.pdf", { type: "application/pdf" })] },
+    });
+
+    // Submitting with empty required fields blocks upload and displays errors
+    fireEvent.click(screen.getByRole("button", { name: "Iniciar envio (1)" }));
+    expect(await screen.findAllByText("Campo obrigatório não informado.")).toHaveLength(2);
+    expect(capturedCreateDocBody).toBeNull();
+
+    // Fill fields (including comma decimal for pt-BR NUMBER) and submit
+    fireEvent.change(numField, { target: { value: "CTRB-2026-01" } });
+    fireEvent.change(valField, { target: { value: "1250,50" } });
+    fireEvent.click(screen.getByRole("button", { name: "Iniciar envio (1)" }));
+
+    await waitFor(() => {
+      expect(capturedCreateDocBody).not.toBeNull();
+    });
+    expect(capturedCreateDocBody?.metadata).toEqual({
+      n_do_ctrb: "CTRB-2026-01",
+      valor_do_ctrb: 1250.5,
+    });
+  });
 });
