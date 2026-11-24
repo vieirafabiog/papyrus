@@ -1072,7 +1072,7 @@ docuflow/
   - **Ação:** Definir versão semântica, changelog, imagens fixadas, migrations incluídas e estratégia de atualização.
   - **Verificação:** Build de release e validação de versão dos containers.
 
-- [ ] **Step 17.06 — Executar checklist de aceitação do MVP**
+- [x] **Step 17.06 — Executar checklist de aceitação do MVP**
   - **Arquivo:** `docs/release-checklist.md`
   - **Ação:** Executar todos os critérios do `project.md` H.2/H.3, incluindo local, S3, permissões, fluxo, auditoria e restore.
   - **Verificação:** Todos os itens obrigatórios comprovados; itens não implementados devem permanecer explicitamente fora do escopo.
