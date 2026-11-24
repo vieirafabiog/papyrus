@@ -1,19 +1,19 @@
-name: docuflow
+name: papyrus
 
 services:
   postgres:
     image: postgres:16.8-alpine3.21
     restart: unless-stopped
     environment:
-      POSTGRES_DB: ${POSTGRES_DB:-docuflow}
-      POSTGRES_USER: ${POSTGRES_USER:-docuflow}
+      POSTGRES_DB: ${POSTGRES_DB:-papyrus}
+      POSTGRES_USER: ${POSTGRES_USER:-papyrus}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-}
     volumes:
-      - docuflow_postgres_data:/var/lib/postgresql/data
+      - papyrus_postgres_data:/var/lib/postgresql/data
     networks:
-      - docuflow_internal
+      - papyrus_internal
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER:-docuflow} -d $${POSTGRES_DB:-docuflow}"]
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER:-papyrus} -d $${POSTGRES_DB:-papyrus}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -26,9 +26,9 @@ services:
       context: ../..
       dockerfile: apps/api/Dockerfile
       args:
-        DOCUFLOW_VERSION: ${DOCUFLOW_IMAGE_TAG:-1.0.0-rc.1}
+        PAPYRUS_VERSION: ${PAPYRUS_IMAGE_TAG:-1.0.0-rc.1}
         VCS_REF: ${VCS_REF:-unknown}
-    image: docuflow-api:${DOCUFLOW_IMAGE_TAG:-1.0.0-rc.1}
+    image: papyrus-api:${PAPYRUS_IMAGE_TAG:-1.0.0-rc.1}
     restart: unless-stopped
     depends_on:
       postgres:
@@ -42,7 +42,7 @@ services:
       SESSION_SECRET: ${SESSION_SECRET:-}
       ENCRYPTION_KEY: ${ENCRYPTION_KEY:-}
       STORAGE_DEFAULT_CONNECTION: ${STORAGE_DEFAULT_CONNECTION:-local-default}
-      STORAGE_LOCAL_ROOT: /var/lib/docuflow/storage
+      STORAGE_LOCAL_ROOT: /var/lib/papyrus/storage
       UPLOAD_MAX_BYTES: ${UPLOAD_MAX_BYTES:-52428800}
       PROXY_MAX_BODY_BYTES: ${PROXY_MAX_BODY_BYTES:-54525952}
       UPLOAD_ALLOWED_EXTENSIONS: ${UPLOAD_ALLOWED_EXTENSIONS:-.pdf,.png,.jpg,.jpeg,.webp,.gif,.tif,.tiff,.txt,.csv,.docx,.xlsx,.pptx}
@@ -51,12 +51,12 @@ services:
     expose:
       - "3000"
     volumes:
-      - docuflow_storage_data:/var/lib/docuflow/storage
+      - papyrus_storage_data:/var/lib/papyrus/storage
     tmpfs:
       - /tmp
     networks:
-      - docuflow_internal
-      - docuflow_edge
+      - papyrus_internal
+      - papyrus_edge
     healthcheck:
       test:
         [
@@ -79,9 +79,9 @@ services:
       context: ../..
       dockerfile: apps/worker/Dockerfile
       args:
-        DOCUFLOW_VERSION: ${DOCUFLOW_IMAGE_TAG:-1.0.0-rc.1}
+        PAPYRUS_VERSION: ${PAPYRUS_IMAGE_TAG:-1.0.0-rc.1}
         VCS_REF: ${VCS_REF:-unknown}
-    image: docuflow-worker:${DOCUFLOW_IMAGE_TAG:-1.0.0-rc.1}
+    image: papyrus-worker:${PAPYRUS_IMAGE_TAG:-1.0.0-rc.1}
     restart: unless-stopped
     depends_on:
       postgres:
@@ -93,7 +93,7 @@ services:
       DATABASE_URL: ${DATABASE_URL:-}
       ENCRYPTION_KEY: ${ENCRYPTION_KEY:-}
       STORAGE_DEFAULT_CONNECTION: ${STORAGE_DEFAULT_CONNECTION:-local-default}
-      STORAGE_LOCAL_ROOT: /var/lib/docuflow/storage
+      STORAGE_LOCAL_ROOT: /var/lib/papyrus/storage
       UPLOAD_MAX_BYTES: ${UPLOAD_MAX_BYTES:-52428800}
       UPLOAD_ALLOWED_EXTENSIONS: ${UPLOAD_ALLOWED_EXTENSIONS:-.pdf,.png,.jpg,.jpeg,.webp,.gif,.tif,.tiff,.txt,.csv,.docx,.xlsx,.pptx}
       CLAMAV_HOST: ${CLAMAV_HOST:-clamav}
@@ -109,12 +109,12 @@ services:
     expose:
       - "3001"
     volumes:
-      - docuflow_storage_data:/var/lib/docuflow/storage
+      - papyrus_storage_data:/var/lib/papyrus/storage
     tmpfs:
       - /tmp
     networks:
-      - docuflow_internal
-      - docuflow_edge
+      - papyrus_internal
+      - papyrus_edge
     healthcheck:
       test:
         [
@@ -137,9 +137,9 @@ services:
       context: ../..
       dockerfile: apps/web/Dockerfile
       args:
-        DOCUFLOW_VERSION: ${DOCUFLOW_IMAGE_TAG:-1.0.0-rc.1}
+        PAPYRUS_VERSION: ${PAPYRUS_IMAGE_TAG:-1.0.0-rc.1}
         VCS_REF: ${VCS_REF:-unknown}
-    image: docuflow-web:${DOCUFLOW_IMAGE_TAG:-1.0.0-rc.1}
+    image: papyrus-web:${PAPYRUS_IMAGE_TAG:-1.0.0-rc.1}
     restart: unless-stopped
     depends_on:
       api:
@@ -147,7 +147,7 @@ services:
     ports:
       - "${WEB_BIND_IP:-127.0.0.1}:${WEB_PORT:-8080}:8080"
     networks:
-      - docuflow_edge
+      - papyrus_edge
     healthcheck:
       test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8080/healthz"]
       interval: 15s
@@ -160,12 +160,12 @@ services:
       - no-new-privileges:true
 
 volumes:
-  docuflow_postgres_data:
-  docuflow_storage_data:
+  papyrus_postgres_data:
+  papyrus_storage_data:
 
 networks:
-  docuflow_internal:
+  papyrus_internal:
     driver: bridge
     internal: true
-  docuflow_edge:
+  papyrus_edge:
     driver: bridge

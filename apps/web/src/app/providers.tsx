@@ -1,5 +1,5 @@
-import { UiLocaleProvider, createPapyrusTheme } from "@docuflow/ui";
 import { Box, Button, CssBaseline, Paper, Stack, ThemeProvider, Typography } from "@mui/material";
+import { UiLocaleProvider, createPapyrusTheme } from "@papyrus/ui";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Component, type ErrorInfo, type ReactNode, useMemo, useState } from "react";
 import { BrowserRouter } from "react-router-dom";

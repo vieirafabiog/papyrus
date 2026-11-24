@@ -12,7 +12,7 @@ import {
   type StoredSessionRecord,
   createPasswordService,
   createSessionService,
-} from "@docuflow/auth";
+} from "@papyrus/auth";
 import {
   categories,
   createAuditRepository,
@@ -47,7 +47,7 @@ import {
   storageConnections,
   userRoleScopes,
   users,
-} from "@docuflow/database";
+} from "@papyrus/database";
 import {
   createCategoryFieldService,
   createCategoryService,
@@ -63,10 +63,10 @@ import {
   createUserAdministrationService,
   createWorkflowDefinitionService,
   createWorkflowTasksUseCase,
-} from "@docuflow/domain";
-import type { AntivirusScannerPort } from "@docuflow/file-processing";
-import { createStorageProviderRegistry } from "@docuflow/storage-core";
-import { createLocalStorageProvider } from "@docuflow/storage-local";
+} from "@papyrus/domain";
+import type { AntivirusScannerPort } from "@papyrus/file-processing";
+import { createStorageProviderRegistry } from "@papyrus/storage-core";
+import { createLocalStorageProvider } from "@papyrus/storage-local";
 import { PostgreSqlContainer, type StartedPostgreSqlContainer } from "@testcontainers/postgresql";
 import { eq, inArray } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/node-postgres";
@@ -112,7 +112,7 @@ export interface E2eEnvironment {
 
 function createE2eCleanScanner(): AntivirusScannerPort {
   return {
-    providerName: "docuflow-e2e-scanner",
+    providerName: "papyrus-e2e-scanner",
     async checkHealth() {
       return {
         healthy: true,
@@ -208,11 +208,11 @@ export async function startE2eEnvironment(): Promise<E2eEnvironment> {
   const indexStat = await stat(path.join(WEB_DIST_DIR, "index.html")).catch(() => null);
   if (!indexStat?.isFile()) {
     throw new Error(
-      `Bundle web não encontrado em ${WEB_DIST_DIR}. Execute "pnpm --filter @docuflow/web build" antes dos testes E2E.`,
+      `Bundle web não encontrado em ${WEB_DIST_DIR}. Execute "pnpm --filter @papyrus/web build" antes dos testes E2E.`,
     );
   }
 
-  const localStorageRoot = await mkdtemp(path.join(os.tmpdir(), "docuflow-e2e-storage-"));
+  const localStorageRoot = await mkdtemp(path.join(os.tmpdir(), "papyrus-e2e-storage-"));
   let container: StartedPostgreSqlContainer | null = null;
 
   const externalUrl = process.env.DATABASE_URL;
@@ -241,9 +241,9 @@ export async function startE2eEnvironment(): Promise<E2eEnvironment> {
   const categoryName = "Contratos E2E";
   const folderName = "Jurídico E2E";
   const workflowDefinitionName = "Aprovação de Contratos E2E";
-  const adminEmail = `admin-e2e-${orgId.slice(0, 6)}@docuflow.local`;
-  const adminPassword = "DocuFlowE2E!2026";
-  const reviewerEmail = `revisor-e2e-${orgId.slice(0, 6)}@docuflow.local`;
+  const adminEmail = `admin-e2e-${orgId.slice(0, 6)}@papyrus.local`;
+  const adminPassword = "PapyrusE2E!2026";
+  const reviewerEmail = `revisor-e2e-${orgId.slice(0, 6)}@papyrus.local`;
   const reviewerPassword = "RevisorE2E!2026";
 
   const passwordService = createPasswordService({
@@ -283,7 +283,7 @@ export async function startE2eEnvironment(): Promise<E2eEnvironment> {
 
   await db.insert(organizations).values({
     id: orgId,
-    name: "DocuFlow E2E Ltda",
+    name: "papyrus E2E Ltda",
     slug: `org-e2e-${orgId.slice(0, 8)}`,
   });
 

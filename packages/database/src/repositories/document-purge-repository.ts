@@ -10,7 +10,7 @@ import {
   type TransactionContext,
   evaluateDocumentPurgeEligibility,
   selectApplicableRetentionPolicy,
-} from "@docuflow/domain";
+} from "@papyrus/domain";
 import { and, asc, eq, inArray, isNull, lte, or, sql } from "drizzle-orm";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 import {

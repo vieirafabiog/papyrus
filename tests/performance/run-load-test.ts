@@ -13,7 +13,7 @@ import {
   type StoredSessionRecord,
   createPasswordService,
   createSessionService,
-} from "@docuflow/auth";
+} from "@papyrus/auth";
 import {
   categories,
   createAuditRepository,
@@ -38,14 +38,14 @@ import {
   storageConnections,
   userRoleScopes,
   users,
-} from "@docuflow/database";
+} from "@papyrus/database";
 import {
   createFinalizeUploadService,
   createStorageRouterService,
   createUploadSessionService,
-} from "@docuflow/domain";
-import { createStorageProviderRegistry } from "@docuflow/storage-core";
-import { createLocalStorageProvider } from "@docuflow/storage-local";
+} from "@papyrus/domain";
+import { createStorageProviderRegistry } from "@papyrus/storage-core";
+import { createLocalStorageProvider } from "@papyrus/storage-local";
 import { PostgreSqlContainer, type StartedPostgreSqlContainer } from "@testcontainers/postgresql";
 import { eq, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/node-postgres";
@@ -59,16 +59,16 @@ const REPO_ROOT = path.resolve(CURRENT_DIR, "../..");
 const MIGRATIONS_FOLDER = path.resolve(REPO_ROOT, "packages/database/drizzle");
 const DEFAULT_REPORT_PATH = path.resolve(CURRENT_DIR, "report.md");
 
-const DATASET_DOCUMENT_COUNT = Number(process.env.DOCUFLOW_PERF_DOCS ?? 1000);
-const LOGIN_REQUESTS = Number(process.env.DOCUFLOW_PERF_LOGIN_REQS ?? 20);
-const LOGIN_CONCURRENCY = Number(process.env.DOCUFLOW_PERF_LOGIN_CONCURRENCY ?? 4);
-const LIST_REQUESTS = Number(process.env.DOCUFLOW_PERF_LIST_REQS ?? 120);
-const LIST_CONCURRENCY = Number(process.env.DOCUFLOW_PERF_LIST_CONCURRENCY ?? 12);
-const SEARCH_REQUESTS = Number(process.env.DOCUFLOW_PERF_SEARCH_REQS ?? 120);
-const SEARCH_CONCURRENCY = Number(process.env.DOCUFLOW_PERF_SEARCH_CONCURRENCY ?? 12);
-const UPLOAD_FLOWS = Number(process.env.DOCUFLOW_PERF_UPLOAD_FLOWS ?? 24);
-const UPLOAD_CONCURRENCY = Number(process.env.DOCUFLOW_PERF_UPLOAD_CONCURRENCY ?? 6);
-const UPLOAD_PAYLOAD_BYTES = Number(process.env.DOCUFLOW_PERF_UPLOAD_BYTES ?? 64 * 1024);
+const DATASET_DOCUMENT_COUNT = Number(process.env.PAPYRUS_PERF_DOCS ?? 1000);
+const LOGIN_REQUESTS = Number(process.env.PAPYRUS_PERF_LOGIN_REQS ?? 20);
+const LOGIN_CONCURRENCY = Number(process.env.PAPYRUS_PERF_LOGIN_CONCURRENCY ?? 4);
+const LIST_REQUESTS = Number(process.env.PAPYRUS_PERF_LIST_REQS ?? 120);
+const LIST_CONCURRENCY = Number(process.env.PAPYRUS_PERF_LIST_CONCURRENCY ?? 12);
+const SEARCH_REQUESTS = Number(process.env.PAPYRUS_PERF_SEARCH_REQS ?? 120);
+const SEARCH_CONCURRENCY = Number(process.env.PAPYRUS_PERF_SEARCH_CONCURRENCY ?? 12);
+const UPLOAD_FLOWS = Number(process.env.PAPYRUS_PERF_UPLOAD_FLOWS ?? 24);
+const UPLOAD_CONCURRENCY = Number(process.env.PAPYRUS_PERF_UPLOAD_CONCURRENCY ?? 6);
+const UPLOAD_PAYLOAD_BYTES = Number(process.env.PAPYRUS_PERF_UPLOAD_BYTES ?? 64 * 1024);
 
 interface ScenarioSample {
   readonly durationMs: number;
@@ -218,7 +218,7 @@ async function fetchCsrfAndSession(
     method: "POST",
     headers: {
       "content-type": "application/json",
-      cookie: `docuflow_csrf=${csrfToken}`,
+      cookie: `papyrus_csrf=${csrfToken}`,
       "x-csrf-token": csrfToken,
     },
     body: JSON.stringify({ email, password }),
@@ -229,13 +229,13 @@ async function fetchCsrfAndSession(
   }
 
   const loginCookies = extractCookiesMap(loginRes);
-  const sessionToken = loginCookies.get("docuflow_session");
+  const sessionToken = loginCookies.get("papyrus_session");
   if (!sessionToken) {
-    throw new Error("Cookie docuflow_session não emitido no login.");
+    throw new Error("Cookie papyrus_session não emitido no login.");
   }
 
   return {
-    cookieHeader: `docuflow_csrf=${csrfToken}; docuflow_session=${sessionToken}`,
+    cookieHeader: `papyrus_csrf=${csrfToken}; papyrus_session=${sessionToken}`,
     csrfToken,
   };
 }
@@ -244,7 +244,7 @@ function buildSeededUploadBuffer(byteLength: number): {
   readonly buffer: Buffer;
   readonly sha256: string;
 } {
-  const header = Buffer.from("%PDF-1.7\n%DocuFlowPerformanceTest\n", "utf8");
+  const header = Buffer.from("%PDF-1.7\n%PapyrusPerformanceTest\n", "utf8");
   const footer = Buffer.from("\n%%EOF\n", "utf8");
   const bodySize = Math.max(64, byteLength - header.length - footer.length);
   const filler = Buffer.alloc(bodySize, "A");
@@ -279,7 +279,7 @@ function formatReportMarkdown(params: {
     )
     .join("\n");
 
-  return `# Relatório de Teste de Carga Básico — DocuFlow
+  return `# Relatório de Teste de Carga Básico — papyrus
 
 > **Nota metodológica:** Os resultados abaixo foram medidos empiricamente na execução do script reproduzível [run-load-test.ts](./run-load-test.ts). Não representam metas ou SLAs contratuais nem garantias para hardware distinto.
 
@@ -291,7 +291,7 @@ function formatReportMarkdown(params: {
 - **Memória RAM total:** \`${totalRamGiB} GiB\`
 - **Runtime Node.js:** \`${process.version}\`
 - **PostgreSQL:** \`${params.postgresVersion}\` (container local isolado via Testcontainers)
-- **Armazenamento utilizado no teste:** Conector local em diretório temporário (\`@docuflow/storage-local\`)
+- **Armazenamento utilizado no teste:** Conector local em diretório temporário (\`@papyrus/storage-local\`)
 
 ## 2. Dataset Conhecido e Configuração
 
@@ -313,12 +313,12 @@ pnpm test:performance
 \`\`\`
 
 Variáveis opcionais para ajustar volume/concorrência mantendo a mesma medição:
-\`DOCUFLOW_PERF_DOCS\`, \`DOCUFLOW_PERF_LOGIN_REQS\`, \`DOCUFLOW_PERF_LIST_REQS\`, \`DOCUFLOW_PERF_SEARCH_REQS\`, \`DOCUFLOW_PERF_UPLOAD_FLOWS\`, \`DOCUFLOW_PERF_UPLOAD_BYTES\`.
+\`PAPYRUS_PERF_DOCS\`, \`PAPYRUS_PERF_LOGIN_REQS\`, \`PAPYRUS_PERF_LIST_REQS\`, \`PAPYRUS_PERF_SEARCH_REQS\`, \`PAPYRUS_PERF_UPLOAD_FLOWS\`, \`PAPYRUS_PERF_UPLOAD_BYTES\`.
 `;
 }
 
 async function main(): Promise<void> {
-  const localStorageRoot = await mkdtemp(path.join(os.tmpdir(), "docuflow-perf-storage-"));
+  const localStorageRoot = await mkdtemp(path.join(os.tmpdir(), "papyrus-perf-storage-"));
   let container: StartedPostgreSqlContainer | null = null;
   const externalUrl = process.env.DATABASE_URL;
   let connectionString: string;
@@ -347,8 +347,8 @@ async function main(): Promise<void> {
     const adminId = randomUUID();
     const adminRoleId = randomUUID();
     const storageConnId = randomUUID();
-    const email = `perf-admin-${orgId.slice(0, 6)}@docuflow.local`;
-    const password = "DocuFlowPerf!2026";
+    const email = `perf-admin-${orgId.slice(0, 6)}@papyrus.local`;
+    const password = "PapyrusPerf!2026";
 
     const passwordService = createPasswordService({
       memoryCost: 8_192,
@@ -737,7 +737,7 @@ async function main(): Promise<void> {
           method: "POST",
           headers: {
             "content-type": "application/json",
-            cookie: `docuflow_csrf=${loginCsrfToken}`,
+            cookie: `papyrus_csrf=${loginCsrfToken}`,
             "x-csrf-token": loginCsrfToken,
           },
           body: JSON.stringify({ email, password }),
@@ -928,7 +928,7 @@ async function main(): Promise<void> {
     );
 
     const summaries = [loginSummary, listSummary, searchSummary, uploadSummary];
-    const reportPath = process.env.DOCUFLOW_PERF_REPORT_PATH ?? DEFAULT_REPORT_PATH;
+    const reportPath = process.env.PAPYRUS_PERF_REPORT_PATH ?? DEFAULT_REPORT_PATH;
     const reportMarkdown = formatReportMarkdown({
       executedAtIso: new Date().toISOString(),
       postgresVersion,

@@ -1,5 +1,3 @@
-import type { WorkflowAssigneeCatalog, WorkflowAssigneeTarget } from "@docuflow/contracts";
-import { EmptyState, ErrorState, LoadingState, PAPYRUS_COLOR_TOKENS } from "@docuflow/ui";
 import AddOutlinedIcon from "@mui/icons-material/AddOutlined";
 import CloseOutlinedIcon from "@mui/icons-material/CloseOutlined";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
@@ -30,6 +28,8 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
+import type { WorkflowAssigneeCatalog, WorkflowAssigneeTarget } from "@papyrus/contracts";
+import { EmptyState, ErrorState, LoadingState, PAPYRUS_COLOR_TOKENS } from "@papyrus/ui";
 import { useMemo, useState } from "react";
 import { useSessionQuery } from "../../app/session.js";
 import { type MessageKey, useI18n } from "../../i18n/index.js";

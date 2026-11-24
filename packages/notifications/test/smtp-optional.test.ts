@@ -72,7 +72,7 @@ async function startLocalMockSmtpServer(options?: { readonly failAuth?: boolean 
     let dataLines: string[] = [];
 
     socket.setEncoding("utf8");
-    socket.write("220 mock-smtp.local ESMTP DocuFlow\r\n");
+    socket.write("220 mock-smtp.local ESMTP papyrus\r\n");
 
     socket.on("data", (chunk: string) => {
       buffer += chunk;
@@ -222,7 +222,7 @@ describe("Optional SMTP email service & secret protection", () => {
         port: server.port,
         securityMode: "NONE",
         fromAddress: "noreply@empresa.local",
-        fromName: "DocuFlow Corporativo",
+        fromName: "papyrus Corporativo",
         credentials: {
           username: "smtp-user@empresa.local",
           password: secretPassword,

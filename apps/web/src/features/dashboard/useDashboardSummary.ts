@@ -3,7 +3,7 @@ import {
   type DashboardSummary,
   createApiResponseSchema,
   dashboardSummarySchema,
-} from "@docuflow/contracts";
+} from "@papyrus/contracts";
 import { useQuery } from "@tanstack/react-query";
 import { extractUserErrorMessage } from "../../i18n/api-errors.js";
 import { translate } from "../../i18n/index.js";

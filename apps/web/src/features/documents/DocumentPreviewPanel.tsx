@@ -1,9 +1,3 @@
-import {
-  CONTRACTS_API_PREFIX,
-  type DocumentDetail,
-  apiErrorResponseSchema,
-} from "@docuflow/contracts";
-import { ErrorState, LoadingState, PAPYRUS_COLOR_TOKENS } from "@docuflow/ui";
 import DownloadOutlinedIcon from "@mui/icons-material/DownloadOutlined";
 import ImageOutlinedIcon from "@mui/icons-material/ImageOutlined";
 import InsertDriveFileOutlinedIcon from "@mui/icons-material/InsertDriveFileOutlined";
@@ -11,6 +5,12 @@ import OpenInNewOutlinedIcon from "@mui/icons-material/OpenInNewOutlined";
 import PictureAsPdfOutlinedIcon from "@mui/icons-material/PictureAsPdfOutlined";
 import RefreshOutlinedIcon from "@mui/icons-material/RefreshOutlined";
 import { Alert, Box, Button, Divider, Paper, Stack, Typography } from "@mui/material";
+import {
+  CONTRACTS_API_PREFIX,
+  type DocumentDetail,
+  apiErrorResponseSchema,
+} from "@papyrus/contracts";
+import { ErrorState, LoadingState, PAPYRUS_COLOR_TOKENS } from "@papyrus/ui";
 import { useEffect, useState } from "react";
 import { containsTechnicalJargon, getLocalizedApiErrorMessage } from "../../i18n/api-errors.js";
 import { type UiLocale, getCurrentUiLocale, translate, useI18n } from "../../i18n/index.js";

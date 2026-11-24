@@ -1,8 +1,8 @@
-import { CONTRACTS_API_PREFIX, loginRequestSchema } from "@docuflow/contracts";
+import { CONTRACTS_API_PREFIX, loginRequestSchema } from "@papyrus/contracts";
 import type { FastifyInstance, FastifyReply } from "fastify";
 import type { AuthService } from "./auth.service.js";
 
-export const SESSION_COOKIE_NAME = "docuflow_session";
+export const SESSION_COOKIE_NAME = "papyrus_session";
 
 export interface AuthRoutesOptions {
   readonly authService: AuthService;

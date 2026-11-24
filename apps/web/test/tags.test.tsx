@@ -1,6 +1,6 @@
 import "@testing-library/jest-dom/vitest";
-import { papyrusTheme } from "@docuflow/ui";
 import { CssBaseline, ThemeProvider } from "@mui/material";
+import { papyrusTheme } from "@papyrus/ui";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import type { ReactElement } from "react";

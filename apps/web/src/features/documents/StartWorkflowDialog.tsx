@@ -1,12 +1,4 @@
 import {
-  CONTRACTS_API_PREFIX,
-  type StartDocumentWorkflowRequest,
-  type StartDocumentWorkflowResult,
-  type WorkflowDefinitionSummary,
-  startDocumentWorkflowResponseSchema,
-  workflowDefinitionListResponseSchema,
-} from "@docuflow/contracts";
-import {
   Alert,
   Button,
   CircularProgress,
@@ -19,6 +11,14 @@ import {
   Stack,
   TextField,
 } from "@mui/material";
+import {
+  CONTRACTS_API_PREFIX,
+  type StartDocumentWorkflowRequest,
+  type StartDocumentWorkflowResult,
+  type WorkflowDefinitionSummary,
+  startDocumentWorkflowResponseSchema,
+  workflowDefinitionListResponseSchema,
+} from "@papyrus/contracts";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useId, useState } from "react";
 import { extractUserErrorMessage } from "../../i18n/api-errors.js";
@@ -27,7 +27,7 @@ import { TASK_INBOX_COUNTS_QUERY_KEY } from "../tasks/useTaskInbox.js";
 import { documentWorkflowTimelineQueryKey } from "./DocumentWorkflowTimeline.js";
 import { documentDetailsQueryKey } from "./useDocumentDetails.js";
 
-const CSRF_COOKIE_NAME = "docuflow_csrf";
+const CSRF_COOKIE_NAME = "papyrus_csrf";
 const CSRF_HEADER_NAME = "x-csrf-token";
 
 function readCookieValue(name: string): string | null {

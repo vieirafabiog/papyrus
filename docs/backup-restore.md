@@ -1,6 +1,6 @@
-# Guia de Backup e Restauração (DocuFlow)
+# Guia de Backup e Restauração (papyrus)
 
-Este guia define a política operacional e os procedimentos oficiais de cópia de segurança (*backup*) e recuperação de desastres (*disaster recovery*) do **DocuFlow** em implantação self-hosted.
+Este guia define a política operacional e os procedimentos oficiais de cópia de segurança (*backup*) e recuperação de desastres (*disaster recovery*) do **papyrus** em implantação self-hosted.
 
 ---
 
@@ -10,8 +10,8 @@ Uma restauração íntegra e operacional depende de **três conjuntos interdepen
 
 | Componente | O que contém | Mecanismo / Localização | Observação crítica |
 | --- | --- | --- | --- |
-| **1. Banco de dados PostgreSQL** | Documentos, metadados, versões (`document_versions`), aprovações, permissões, usuários, conexões de storage (`storage_connections.encrypted_secret_payload`), tabela `file_objects` e trilha `audit_events` | `scripts/backup/backup-database.sh` (volume `docuflow_postgres_data`) | Gera dump custom (`-Fc`, comprimido) validado com `pg_restore --list` |
-| **2. Arquivos binários locais** | Objetos armazenados no conector local sob `org/{organizationId}/documents/{documentId}/versions/{versionId}/{objectId}` | `scripts/backup/backup-files.sh` (volume `docuflow_storage_data` em `/var/lib/docuflow/storage` ou `STORAGE_LOCAL_ROOT`) | Obrigatório sempre que houver conector local ativo; acompanha `.manifest.sha256` |
+| **1. Banco de dados PostgreSQL** | Documentos, metadados, versões (`document_versions`), aprovações, permissões, usuários, conexões de storage (`storage_connections.encrypted_secret_payload`), tabela `file_objects` e trilha `audit_events` | `scripts/backup/backup-database.sh` (volume `papyrus_postgres_data`) | Gera dump custom (`-Fc`, comprimido) validado com `pg_restore --list` |
+| **2. Arquivos binários locais** | Objetos armazenados no conector local sob `org/{organizationId}/documents/{documentId}/versions/{versionId}/{objectId}` | `scripts/backup/backup-files.sh` (volume `papyrus_storage_data` em `/var/lib/papyrus/storage` ou `STORAGE_LOCAL_ROOT`) | Obrigatório sempre que houver conector local ativo; acompanha `.manifest.sha256` |
 | **3. Segredos e configuração externa** | `ENCRYPTION_KEY`, `ENCRYPTION_KEYRING` (se houve rotação), `SESSION_SECRET`, `DATABASE_URL` / `POSTGRES_PASSWORD`, configuração SMTP e domínio `APP_URL` | Arquivo `.env` de produção armazenado em cofre externo (`0600`) | **Nunca** gravados dentro do dump do PostgreSQL; sem `ENCRYPTION_KEY` os segredos S3/SMTP no banco não são decifrados |
 
 ### Objetos armazenados em S3 compatível (MinIO / provedor S3 externo)
@@ -28,7 +28,7 @@ O script `scripts/backup/backup-files.sh` captura apenas o armazenamento local (
 Para impedir que registros restaurados no PostgreSQL apontem para objetos inexistentes no armazenamento local:
 
 1. **Estabilize janelas de exclusão definitiva:** pause o container `worker` durante janelas críticas (ou agende o backup fora da janela do job de purga física de itens em `DELETE_PENDING`).
-2. **Capture o PostgreSQL primeiro (`backup-database.sh`):** o schema do DocuFlow grava o objeto binário antes da confirmação final da versão (*append-only*) e só agenda exclusões definitivas assincronamente depois da transição para `DELETE_PENDING`. Capturando o banco antes do snapshot de arquivos, toda referência registrada no dump já existe no storage local no momento da cópia seguinte.
+2. **Capture o PostgreSQL primeiro (`backup-database.sh`):** o schema do papyrus grava o objeto binário antes da confirmação final da versão (*append-only*) e só agenda exclusões definitivas assincronamente depois da transição para `DELETE_PENDING`. Capturando o banco antes do snapshot de arquivos, toda referência registrada no dump já existe no storage local no momento da cópia seguinte.
 3. **Capture os arquivos locais imediatamente em seguida (`backup-files.sh`).**
 4. **Reative o worker**, caso tenha sido pausado.
 5. **Mantenha cópia separada dos segredos (`.env` / cofre corporativo):** nunca armazene `ENCRYPTION_KEY` ou `ENCRYPTION_KEYRING` no mesmo arquivo compactado ou sem criptografia junto aos dumps em mídia compartilhada.
@@ -40,18 +40,18 @@ Para impedir que registros restaurados no PostgreSQL apontem para objetos inexis
 docker compose --env-file .env -f infra/compose/docker-compose.yml stop worker
 
 # 2. Backup do PostgreSQL primeiro (gera .dump + .sha256 com permissão 0600)
-DATABASE_URL="postgresql://docuflow:<SENHA>@postgres:5432/docuflow" \
+DATABASE_URL="postgresql://papyrus:<SENHA>@postgres:5432/papyrus" \
 BACKUP_MODE=docker \
-DOCKER_NETWORK=docuflow_docuflow_internal \
-BACKUP_DIR=/var/backups/docuflow/postgres \
+DOCKER_NETWORK=papyrus_papyrus_internal \
+BACKUP_DIR=/var/backups/papyrus/postgres \
 ./scripts/backup/backup-database.sh
 
 # Opcional quando o container PostgreSQL do compose estiver acessível diretamente por nome/ID:
-# DOCUFLOW_PG_CONTAINER=<id_ou_nome_postgres> BACKUP_MODE=docker ...
+# PAPYRUS_PG_CONTAINER=<id_ou_nome_postgres> BACKUP_MODE=docker ...
 
 # 3. Backup imediato do volume de arquivos locais (gera .tar.gz + .sha256 + .manifest.sha256)
-STORAGE_DOCKER_VOLUME=docuflow_docuflow_storage_data \
-BACKUP_DIR=/var/backups/docuflow/files \
+STORAGE_DOCKER_VOLUME=papyrus_papyrus_storage_data \
+BACKUP_DIR=/var/backups/papyrus/files \
 ./scripts/backup/backup-files.sh
 
 # 4. Reativar o worker
@@ -64,7 +64,7 @@ Em instalações sem volume Docker (diretório direto no host), substitua `STORA
 
 - Ambos os scripts aplicam `umask 077`, criam diretórios de destino com `chmod 700` e gravam dumps, arquivos e checksums com permissão `0600`.
 - Os logs JSON emitidos por `backup-database.sh` e `restore-database.sh` passam por `sanitize_text`, mascarando URIs `postgresql://` e senhas (`password`, `PGPASSWORD`).
-- Registre externamente para cada execução bem-sucedida: data/hora UTC, versão da stack (`DOCUFLOW_IMAGE_TAG`), identificador do destino off-site e os hashes SHA-256 gerados.
+- Registre externamente para cada execução bem-sucedida: data/hora UTC, versão da stack (`PAPYRUS_IMAGE_TAG`), identificador do destino off-site e os hashes SHA-256 gerados.
 
 ---
 
@@ -118,14 +118,14 @@ Este procedimento pressupõe um servidor novo ou uma instância completamente li
 
 ```bash
 CONFIRM_RESTORE=YES \
-PROTECTED_ENV_BACKUP=/cofre/docuflow-prod.env \
-TARGET_ENV_FILE=/opt/docuflow/.env \
-DATABASE_URL="postgresql://docuflow:<SENHA>@postgres:5432/docuflow" \
+PROTECTED_ENV_BACKUP=/cofre/papyrus-prod.env \
+TARGET_ENV_FILE=/opt/papyrus/.env \
+DATABASE_URL="postgresql://papyrus:<SENHA>@postgres:5432/papyrus" \
 RESTORE_MODE=docker \
-DOCKER_NETWORK=docuflow_docuflow_internal \
-DB_BACKUP_FILE=/var/backups/docuflow/postgres/docuflow-db-docuflow-YYYYMMDDTHHMMSSZ.dump \
-STORAGE_DOCKER_VOLUME=docuflow_docuflow_storage_data \
-FILES_BACKUP_ARCHIVE=/var/backups/docuflow/files/docuflow-files-YYYYMMDDTHHMMSSZ.tar.gz \
+DOCKER_NETWORK=papyrus_papyrus_internal \
+DB_BACKUP_FILE=/var/backups/papyrus/postgres/papyrus-db-papyrus-YYYYMMDDTHHMMSSZ.dump \
+STORAGE_DOCKER_VOLUME=papyrus_papyrus_storage_data \
+FILES_BACKUP_ARCHIVE=/var/backups/papyrus/files/papyrus-files-YYYYMMDDTHHMMSSZ.tar.gz \
 ./scripts/restore/restore-system.sh
 ```
 
@@ -141,14 +141,14 @@ Ordem estrita executada por `scripts/restore/restore-system.sh`:
 
 - **Somente PostgreSQL:**
   ```bash
-  BACKUP_FILE=/var/backups/docuflow/postgres/docuflow-db-docuflow-YYYYMMDDTHHMMSSZ.dump \
-  DATABASE_URL="postgresql://docuflow:<SENHA>@localhost:5432/docuflow" \
+  BACKUP_FILE=/var/backups/papyrus/postgres/papyrus-db-papyrus-YYYYMMDDTHHMMSSZ.dump \
+  DATABASE_URL="postgresql://papyrus:<SENHA>@localhost:5432/papyrus" \
   ./scripts/restore/restore-database.sh --confirm-restore
   ```
 - **Somente arquivos locais:**
   ```bash
-  BACKUP_ARCHIVE=/var/backups/docuflow/files/docuflow-files-YYYYMMDDTHHMMSSZ.tar.gz \
-  STORAGE_DOCKER_VOLUME=docuflow_docuflow_storage_data \
+  BACKUP_ARCHIVE=/var/backups/papyrus/files/papyrus-files-YYYYMMDDTHHMMSSZ.tar.gz \
+  STORAGE_DOCKER_VOLUME=papyrus_papyrus_storage_data \
   RESTORE_CLEAN_TARGET=true \
   ./scripts/restore/restore-files.sh --confirm-restore
   ```
@@ -157,7 +157,7 @@ Ordem estrita executada por `scripts/restore/restore-system.sh`:
 
 ## 6. Validação Pós-Restauração e Teste em Ambiente Limpo
 
-Após concluir a restauração, alinhe a versão da stack em `.env` (`DOCUFLOW_IMAGE_TAG` compatível com a versão que gerou o backup) e suba todos os serviços:
+Após concluir a restauração, alinhe a versão da stack em `.env` (`PAPYRUS_IMAGE_TAG` compatível com a versão que gerou o backup) e suba todos os serviços:
 
 ```bash
 docker compose --env-file .env -f infra/compose/docker-compose.yml up -d api worker web
@@ -181,7 +181,7 @@ O repositório inclui a suíte operacional [tests/operations/backup-restore.spec
 4. Sobe um **segundo PostgreSQL completamente vazio** e um **diretório de storage vazio**.
 5. Valida negativamente que `restore-system.sh` recusa rodar quando `CONFIRM_RESTORE=NO`.
 6. Executa `scripts/restore/restore-system.sh` com `CONFIRM_RESTORE=YES`.
-7. Compara linha a linha entre origem e destino restaurado (`documents`, `document_versions`, `document_metadata`, `document_tags`, `file_objects`, `audit_events`), decifra novamente `storage_connections.encrypted_secret_payload` com a `ENCRYPTION_KEY` restaurada e lê ambas as versões via `@docuflow/storage-local` conferindo igualdade exata de bytes e SHA-256.
+7. Compara linha a linha entre origem e destino restaurado (`documents`, `document_versions`, `document_metadata`, `document_tags`, `file_objects`, `audit_events`), decifra novamente `storage_connections.encrypted_secret_payload` com a `ENCRYPTION_KEY` restaurada e lê ambas as versões via `@papyrus/storage-local` conferindo igualdade exata de bytes e SHA-256.
 8. Valida negativamente que `restore-files.sh` aborta quando um snapshot `.tar.gz` é adulterado frente ao `.sha256`.
 
 ---

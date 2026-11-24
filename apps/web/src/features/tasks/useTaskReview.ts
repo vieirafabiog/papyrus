@@ -10,7 +10,7 @@ import {
   submitTaskDecisionInputSchema,
   submitTaskDecisionResponseSchema,
   taskDetailResponseSchema,
-} from "@docuflow/contracts";
+} from "@papyrus/contracts";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { getLocalizedApiErrorMessage } from "../../i18n/api-errors.js";
 import { type MessageKey, translate } from "../../i18n/index.js";
@@ -22,7 +22,7 @@ import {
 } from "../documents/useDocumentDetails.js";
 import { TASK_INBOX_COUNTS_QUERY_KEY } from "./useTaskInbox.js";
 
-const CSRF_COOKIE_NAME = "docuflow_csrf";
+const CSRF_COOKIE_NAME = "papyrus_csrf";
 const CSRF_HEADER_NAME = "x-csrf-token";
 
 export class TaskReviewRequestError extends Error {

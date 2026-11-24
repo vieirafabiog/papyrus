@@ -1,7 +1,7 @@
 import "@testing-library/jest-dom/vitest";
-import type { DocumentDetail, DocumentVersionHistoryItem } from "@docuflow/contracts";
-import { papyrusTheme } from "@docuflow/ui";
 import { CssBaseline, ThemeProvider } from "@mui/material";
+import type { DocumentDetail, DocumentVersionHistoryItem } from "@papyrus/contracts";
+import { papyrusTheme } from "@papyrus/ui";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -46,7 +46,7 @@ function createDocument(overrides?: Partial<DocumentDetail>): DocumentDetail {
     owner: {
       id: OWNER_ID,
       fullName: "Ana Souza",
-      email: "ana.souza@docuflow.local",
+      email: "ana.souza@papyrus.local",
     },
     currentVersion: null,
     tags: [],
@@ -104,7 +104,7 @@ describe("VersionHistory", () => {
         uploadedByUser: {
           id: AUTHOR_2_ID,
           fullName: "Carlos Lima",
-          email: "carlos.lima@docuflow.local",
+          email: "carlos.lima@papyrus.local",
         },
         changeNote: "Aditivo de reajuste",
         createdAt: "2026-01-15T14:30:00Z",
@@ -131,7 +131,7 @@ describe("VersionHistory", () => {
         uploadedByUser: {
           id: OWNER_ID,
           fullName: "Ana Souza",
-          email: "ana.souza@docuflow.local",
+          email: "ana.souza@papyrus.local",
         },
         changeNote: null,
         createdAt: "2026-01-10T10:00:00Z",
@@ -194,7 +194,7 @@ describe("VersionHistory", () => {
         uploadedByUser: {
           id: AUTHOR_2_ID,
           fullName: "Carlos Lima",
-          email: "carlos.lima@docuflow.local",
+          email: "carlos.lima@papyrus.local",
         },
         changeNote: "Versão com erro",
         createdAt: "2026-01-15T14:30:00Z",
@@ -221,7 +221,7 @@ describe("VersionHistory", () => {
         uploadedByUser: {
           id: OWNER_ID,
           fullName: "Ana Souza",
-          email: "ana.souza@docuflow.local",
+          email: "ana.souza@papyrus.local",
         },
         changeNote: "Versão inicial aprovada",
         createdAt: "2026-01-10T10:00:00Z",
@@ -266,7 +266,7 @@ describe("VersionHistory", () => {
             uploadedByUser: {
               id: OWNER_ID,
               fullName: "Ana Souza",
-              email: "ana.souza@docuflow.local",
+              email: "ana.souza@papyrus.local",
             },
             changeNote: "Retorno à redação validada",
             createdAt: "2026-01-16T09:00:00Z",
@@ -396,7 +396,7 @@ describe("VersionHistory", () => {
                 uploadedByUser: {
                   id: OWNER_ID,
                   fullName: "Ana Souza",
-                  email: "ana.souza@docuflow.local",
+                  email: "ana.souza@papyrus.local",
                 },
                 changeNote: "Versão 1",
                 createdAt: "2026-01-10T10:00:00Z",

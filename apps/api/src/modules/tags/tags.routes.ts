@@ -1,4 +1,4 @@
-import { roleGrantsPermission } from "@docuflow/auth";
+import { roleGrantsPermission } from "@papyrus/auth";
 import {
   CONTRACTS_API_PREFIX,
   type ErrorCode,
@@ -6,8 +6,8 @@ import {
   createTagInputSchema,
   tagListQuerySchema,
   uuidSchema,
-} from "@docuflow/contracts";
-import { type AccessAction, DomainError, type TagService } from "@docuflow/domain";
+} from "@papyrus/contracts";
+import { type AccessAction, DomainError, type TagService } from "@papyrus/domain";
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import type {
   AuthenticatedAuthorizationContext,

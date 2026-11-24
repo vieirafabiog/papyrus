@@ -1,11 +1,11 @@
-# Scripts de Backup do DocuFlow
+# Scripts de Backup do papyrus
 
 Este diretório reúne os scripts operacionais de backup de banco e armazenamento local.
 
 ## Scripts disponíveis
 
-- `backup-database.sh`: gera dump custom do PostgreSQL (`docuflow-db-<db>-<timestamp>.dump`) com `.sha256`, validação via `pg_restore --list`, política de retenção e logs sem segredos.
-- `backup-files.sh`: gera snapshot compactado (`docuflow-files-<timestamp>.tar.gz`) de `STORAGE_LOCAL_ROOT` ou volume Docker `STORAGE_DOCKER_VOLUME`, acompanhado de `.tar.gz.sha256` e manifesto por arquivo `.manifest.sha256`.
+- `backup-database.sh`: gera dump custom do PostgreSQL (`papyrus-db-<db>-<timestamp>.dump`) com `.sha256`, validação via `pg_restore --list`, política de retenção e logs sem segredos.
+- `backup-files.sh`: gera snapshot compactado (`papyrus-files-<timestamp>.tar.gz`) de `STORAGE_LOCAL_ROOT` ou volume Docker `STORAGE_DOCKER_VOLUME`, acompanhado de `.tar.gz.sha256` e manifesto por arquivo `.manifest.sha256`.
 
 ## Consistência entre banco e arquivos locais
 

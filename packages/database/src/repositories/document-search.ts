@@ -3,7 +3,7 @@ import type {
   DocumentSortField,
   DocumentStatus,
   PaginatedResult,
-} from "@docuflow/domain";
+} from "@papyrus/domain";
 import {
   type SQL,
   and,

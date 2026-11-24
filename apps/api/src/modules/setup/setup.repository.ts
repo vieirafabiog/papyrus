@@ -1,5 +1,5 @@
-import { PERMISSION_CATALOG, SYSTEM_ROLE_DEFINITIONS } from "@docuflow/auth";
-import { type DatabaseClient, createSystemBootstrapRepository } from "@docuflow/database";
+import { PERMISSION_CATALOG, SYSTEM_ROLE_DEFINITIONS } from "@papyrus/auth";
+import { type DatabaseClient, createSystemBootstrapRepository } from "@papyrus/database";
 import {
   BootstrapAlreadyCompletedError,
   type SetupBootstrapRepositoryPort,

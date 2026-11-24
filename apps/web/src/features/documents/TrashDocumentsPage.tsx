@@ -1,9 +1,3 @@
-import type {
-  RestoreTrashedDocumentTargetStatus,
-  TrashDocumentListItem,
-  TrashDocumentsSortField,
-} from "@docuflow/contracts";
-import { DataTable, type DataTableColumn, FilterBar, PAPYRUS_COLOR_TOKENS } from "@docuflow/ui";
 import DeleteSweepOutlinedIcon from "@mui/icons-material/DeleteSweepOutlined";
 import OpenInNewOutlinedIcon from "@mui/icons-material/OpenInNewOutlined";
 import RestoreFromTrashOutlinedIcon from "@mui/icons-material/RestoreFromTrashOutlined";
@@ -23,6 +17,12 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
+import type {
+  RestoreTrashedDocumentTargetStatus,
+  TrashDocumentListItem,
+  TrashDocumentsSortField,
+} from "@papyrus/contracts";
+import { DataTable, type DataTableColumn, FilterBar, PAPYRUS_COLOR_TOKENS } from "@papyrus/ui";
 import { useId, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { containsTechnicalJargon } from "../../i18n/api-errors.js";

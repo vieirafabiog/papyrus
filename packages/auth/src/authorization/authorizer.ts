@@ -3,7 +3,7 @@ import type {
   AccessScope,
   AuthorizationDecision,
   AuthorizationRequest,
-} from "@docuflow/domain";
+} from "@papyrus/domain";
 import {
   type PermissionPair,
   SYSTEM_ROLE_DEFINITIONS,

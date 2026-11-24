@@ -1,19 +1,3 @@
-import type {
-  AccessAction,
-  AccessEffect,
-  AccessResource,
-  AccessScopeType,
-  PermissionScopeAssignmentItem,
-} from "@docuflow/contracts";
-import {
-  ConfirmDialog,
-  DataTable,
-  type DataTableColumn,
-  ErrorState,
-  FilterBar,
-  LoadingState,
-  PAPYRUS_COLOR_TOKENS,
-} from "@docuflow/ui";
 import AddModeratorOutlinedIcon from "@mui/icons-material/AddModeratorOutlined";
 import CheckCircleOutlinedIcon from "@mui/icons-material/CheckCircleOutlined";
 import DeleteOutlineOutlinedIcon from "@mui/icons-material/DeleteOutlineOutlined";
@@ -40,6 +24,22 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
+import type {
+  AccessAction,
+  AccessEffect,
+  AccessResource,
+  AccessScopeType,
+  PermissionScopeAssignmentItem,
+} from "@papyrus/contracts";
+import {
+  ConfirmDialog,
+  DataTable,
+  type DataTableColumn,
+  ErrorState,
+  FilterBar,
+  LoadingState,
+  PAPYRUS_COLOR_TOKENS,
+} from "@papyrus/ui";
 import { useId, useMemo, useState } from "react";
 import { useSessionQuery } from "../../app/session.js";
 import { type MessageKey, useI18n } from "../../i18n/index.js";

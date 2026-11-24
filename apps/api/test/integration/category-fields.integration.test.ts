@@ -8,7 +8,7 @@ import {
   type StoredSessionRecord,
   createPasswordService,
   createSessionService,
-} from "@docuflow/auth";
+} from "@papyrus/auth";
 import {
   auditEvents,
   createAuditRepository,
@@ -24,8 +24,8 @@ import {
   sessions,
   userRoleScopes,
   users,
-} from "@docuflow/database";
-import { createCategoryFieldService, createCategoryService } from "@docuflow/domain";
+} from "@papyrus/database";
+import { createCategoryFieldService, createCategoryService } from "@papyrus/domain";
 import { PostgreSqlContainer, type StartedPostgreSqlContainer } from "@testcontainers/postgresql";
 import { and, eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/node-postgres";
@@ -111,7 +111,7 @@ describe("Category custom fields configuration and metadata compatibility integr
 
     await db.insert(organizations).values({
       id: orgId,
-      name: "DocuFlow Category Fields Corp",
+      name: "papyrus Category Fields Corp",
       slug: `cat-fields-${orgId.slice(0, 8)}`,
     });
 
@@ -170,7 +170,7 @@ describe("Category custom fields configuration and metadata compatibility integr
       {
         id: adminUserId,
         organizationId: orgId,
-        email: `admin-fields-${orgId.slice(0, 6)}@docuflow.local`,
+        email: `admin-fields-${orgId.slice(0, 6)}@papyrus.local`,
         fullName: "Admin Fields",
         passwordHash,
         status: "ACTIVE",
@@ -178,7 +178,7 @@ describe("Category custom fields configuration and metadata compatibility integr
       {
         id: viewerUserId,
         organizationId: orgId,
-        email: `viewer-fields-${orgId.slice(0, 6)}@docuflow.local`,
+        email: `viewer-fields-${orgId.slice(0, 6)}@papyrus.local`,
         fullName: "Viewer Fields",
         passwordHash,
         status: "ACTIVE",
@@ -288,7 +288,7 @@ describe("Category custom fields configuration and metadata compatibility integr
       cookies: { [CSRF_COOKIE_NAME]: csrfToken },
       headers: { [CSRF_HEADER_NAME]: csrfToken },
       payload: {
-        email: `admin-fields-${orgId.slice(0, 6)}@docuflow.local`,
+        email: `admin-fields-${orgId.slice(0, 6)}@papyrus.local`,
         password: "FieldsTest!2026",
       },
     });
@@ -556,7 +556,7 @@ describe("Category custom fields configuration and metadata compatibility integr
       cookies: { [CSRF_COOKIE_NAME]: csrfToken },
       headers: { [CSRF_HEADER_NAME]: csrfToken },
       payload: {
-        email: `viewer-fields-${orgId.slice(0, 6)}@docuflow.local`,
+        email: `viewer-fields-${orgId.slice(0, 6)}@papyrus.local`,
         password: "FieldsTest!2026",
       },
     });

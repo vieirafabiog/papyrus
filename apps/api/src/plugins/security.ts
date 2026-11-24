@@ -1,8 +1,8 @@
 import { randomBytes, timingSafeEqual } from "node:crypto";
-import { CONTRACTS_API_PREFIX } from "@docuflow/contracts";
+import { CONTRACTS_API_PREFIX } from "@papyrus/contracts";
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 
-export const CSRF_COOKIE_NAME = "docuflow_csrf";
+export const CSRF_COOKIE_NAME = "papyrus_csrf";
 export const CSRF_HEADER_NAME = "x-csrf-token";
 
 const MUTATING_METHODS = new Set(["POST", "PUT", "PATCH", "DELETE"]);

@@ -8,7 +8,7 @@ import {
   type StoredSessionRecord,
   createPasswordService,
   createSessionService,
-} from "@docuflow/auth";
+} from "@papyrus/auth";
 import {
   auditEvents,
   categories,
@@ -31,8 +31,8 @@ import {
   storageConnections,
   userRoleScopes,
   users,
-} from "@docuflow/database";
-import { restoreDocumentUseCase, trashDocumentUseCase } from "@docuflow/domain";
+} from "@papyrus/database";
+import { restoreDocumentUseCase, trashDocumentUseCase } from "@papyrus/domain";
 import { PostgreSqlContainer, type StartedPostgreSqlContainer } from "@testcontainers/postgresql";
 import { and, desc, eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/node-postgres";
@@ -140,7 +140,7 @@ describe("Document trash restore window, permissions preservation and audit inte
       {
         id: managerId,
         organizationId: orgId,
-        email: `manager-restore-${orgId.slice(0, 6)}@docuflow.local`,
+        email: `manager-restore-${orgId.slice(0, 6)}@papyrus.local`,
         fullName: "Gestor Restauração",
         passwordHash,
         status: "ACTIVE",
@@ -148,7 +148,7 @@ describe("Document trash restore window, permissions preservation and audit inte
       {
         id: collabId,
         organizationId: orgId,
-        email: `collab-restore-${orgId.slice(0, 6)}@docuflow.local`,
+        email: `collab-restore-${orgId.slice(0, 6)}@papyrus.local`,
         fullName: "Colaborador Sem Permissão",
         passwordHash,
         status: "ACTIVE",
@@ -156,7 +156,7 @@ describe("Document trash restore window, permissions preservation and audit inte
       {
         id: deniedAdminId,
         organizationId: orgId,
-        email: `denied-restore-${orgId.slice(0, 6)}@docuflow.local`,
+        email: `denied-restore-${orgId.slice(0, 6)}@papyrus.local`,
         fullName: "Gestor Com Negação Explícita",
         passwordHash,
         status: "ACTIVE",
@@ -278,7 +278,7 @@ describe("Document trash restore window, permissions preservation and audit inte
       kind: "local",
       status: "ACTIVE",
       isDefault: true,
-      nonSecretConfig: { rootDirectory: "/tmp/docuflow-restore-test" },
+      nonSecretConfig: { rootDirectory: "/tmp/papyrus-restore-test" },
     });
 
     await db.insert(fileObjects).values([
@@ -482,13 +482,13 @@ describe("Document trash restore window, permissions preservation and audit inte
     }
 
     const managerAuth = await loginAndGetHeaders(
-      `manager-restore-${orgId.slice(0, 6)}@docuflow.local`,
+      `manager-restore-${orgId.slice(0, 6)}@papyrus.local`,
     );
     const collabAuth = await loginAndGetHeaders(
-      `collab-restore-${orgId.slice(0, 6)}@docuflow.local`,
+      `collab-restore-${orgId.slice(0, 6)}@papyrus.local`,
     );
     const deniedAuth = await loginAndGetHeaders(
-      `denied-restore-${orgId.slice(0, 6)}@docuflow.local`,
+      `denied-restore-${orgId.slice(0, 6)}@papyrus.local`,
     );
 
     // 1. Manager sends restorable document to trash

@@ -1,11 +1,3 @@
-import type {
-  DocumentMetadataValue,
-  DocumentStatus,
-  SubmitTaskDecisionResult,
-  WorkflowDecisionType,
-  WorkflowTaskStatus,
-} from "@docuflow/contracts";
-import { EmptyState, ErrorState, LoadingState, PAPYRUS_COLOR_TOKENS } from "@docuflow/ui";
 import ArrowBackOutlinedIcon from "@mui/icons-material/ArrowBackOutlined";
 import CheckCircleOutlineOutlinedIcon from "@mui/icons-material/CheckCircleOutlineOutlined";
 import EditNoteOutlinedIcon from "@mui/icons-material/EditNoteOutlined";
@@ -29,6 +21,14 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
+import type {
+  DocumentMetadataValue,
+  DocumentStatus,
+  SubmitTaskDecisionResult,
+  WorkflowDecisionType,
+  WorkflowTaskStatus,
+} from "@papyrus/contracts";
+import { EmptyState, ErrorState, LoadingState, PAPYRUS_COLOR_TOKENS } from "@papyrus/ui";
 import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { type MessageKey, useI18n } from "../../i18n/index.js";

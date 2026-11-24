@@ -1,5 +1,5 @@
 {
-  "name": "@docuflow/storage-core",
+  "name": "@papyrus/storage-core",
   "version": "1.0.0-rc.1",
   "private": true,
   "type": "module",

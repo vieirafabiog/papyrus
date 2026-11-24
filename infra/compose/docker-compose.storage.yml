@@ -10,10 +10,10 @@ services:
     expose:
       - "3310"
     volumes:
-      - docuflow_clamav_data:/var/lib/clamav
+      - papyrus_clamav_data:/var/lib/clamav
     networks:
-      - docuflow_internal
-      - docuflow_edge
+      - papyrus_internal
+      - papyrus_edge
     healthcheck:
       test: ["CMD-SHELL", "clamdcheck.sh"]
       interval: 30s
@@ -37,10 +37,10 @@ services:
       - "${MINIO_BIND_IP:-127.0.0.1}:${MINIO_API_PORT:-9000}:9000"
       - "${MINIO_BIND_IP:-127.0.0.1}:${MINIO_CONSOLE_PORT:-9001}:9001"
     volumes:
-      - docuflow_minio_data:/data
+      - papyrus_minio_data:/data
     networks:
-      - docuflow_internal
-      - docuflow_edge
+      - papyrus_internal
+      - papyrus_edge
     healthcheck:
       test: ["CMD-SHELL", "mc ready local >/dev/null 2>&1 || curl -fsS http://127.0.0.1:9000/minio/health/live >/dev/null"]
       interval: 15s
@@ -53,5 +53,5 @@ services:
       - no-new-privileges:true
 
 volumes:
-  docuflow_clamav_data:
-  docuflow_minio_data:
+  papyrus_clamav_data:
+  papyrus_minio_data:

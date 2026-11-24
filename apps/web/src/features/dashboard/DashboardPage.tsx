@@ -1,4 +1,3 @@
-import { EmptyState, ErrorState, LoadingState, PAPYRUS_COLOR_TOKENS } from "@docuflow/ui";
 import DescriptionOutlinedIcon from "@mui/icons-material/DescriptionOutlined";
 import EventBusyOutlinedIcon from "@mui/icons-material/EventBusyOutlined";
 import PendingActionsOutlinedIcon from "@mui/icons-material/PendingActionsOutlined";
@@ -16,6 +15,7 @@ import {
   Stack,
   Typography,
 } from "@mui/material";
+import { EmptyState, ErrorState, LoadingState, PAPYRUS_COLOR_TOKENS } from "@papyrus/ui";
 import type { ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 import { type MessageKey, useI18n } from "../../i18n/index.js";

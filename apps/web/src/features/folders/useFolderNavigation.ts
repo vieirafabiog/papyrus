@@ -7,7 +7,7 @@ import {
   folderListResponseSchema,
   folderResponseSchema,
   uuidSchema,
-} from "@docuflow/contracts";
+} from "@papyrus/contracts";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { extractUserErrorMessage } from "../../i18n/api-errors.js";
 import {

@@ -3,13 +3,13 @@ import {
   type TaskInboxQuery,
   taskInboxQuerySchema,
   uuidSchema,
-} from "@docuflow/contracts";
-import type { TaskInboxRepository } from "@docuflow/database";
+} from "@papyrus/contracts";
+import type { TaskInboxRepository } from "@papyrus/database";
 import {
   type CreateWorkflowTasksService,
   type DecideTaskService,
   DomainError,
-} from "@docuflow/domain";
+} from "@papyrus/domain";
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import {

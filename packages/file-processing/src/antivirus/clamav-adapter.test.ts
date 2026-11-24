@@ -272,7 +272,7 @@ describe("ClamAV adapter (zPING / zINSTREAM)", () => {
   });
 
   it("supports Unix socket transport when configured", async () => {
-    const dir = await mkdtemp(path.join(os.tmpdir(), "docuflow-clamav-unix-"));
+    const dir = await mkdtemp(path.join(os.tmpdir(), "papyrus-clamav-unix-"));
     tempDirs.push(dir);
     const socketPath = path.join(dir, "clamd.sock");
 

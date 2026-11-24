@@ -8,7 +8,7 @@ import {
   type StoredSessionRecord,
   createPasswordService,
   createSessionService,
-} from "@docuflow/auth";
+} from "@papyrus/auth";
 import {
   categories,
   createAuditRepository,
@@ -25,7 +25,7 @@ import {
   tags,
   userRoleScopes,
   users,
-} from "@docuflow/database";
+} from "@papyrus/database";
 import { PostgreSqlContainer, type StartedPostgreSqlContainer } from "@testcontainers/postgresql";
 import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/node-postgres";
@@ -110,7 +110,7 @@ describe("Paginated document listing with PostgreSQL filtering, pre-count authz 
 
     await db.insert(organizations).values({
       id: orgId,
-      name: "DocuFlow Docs List Corp",
+      name: "papyrus Docs List Corp",
       slug: `docs-list-${orgId.slice(0, 8)}`,
     });
 
@@ -152,7 +152,7 @@ describe("Paginated document listing with PostgreSQL filtering, pre-count authz 
       {
         id: userAId,
         organizationId: orgId,
-        email: `viewer-list-${orgId.slice(0, 6)}@docuflow.local`,
+        email: `viewer-list-${orgId.slice(0, 6)}@papyrus.local`,
         fullName: "Viewer A",
         passwordHash,
         status: "ACTIVE",
@@ -160,7 +160,7 @@ describe("Paginated document listing with PostgreSQL filtering, pre-count authz 
       {
         id: userBId,
         organizationId: orgId,
-        email: `owner-list-${orgId.slice(0, 6)}@docuflow.local`,
+        email: `owner-list-${orgId.slice(0, 6)}@papyrus.local`,
         fullName: "Owner B",
         passwordHash,
         status: "ACTIVE",
@@ -355,7 +355,7 @@ describe("Paginated document listing with PostgreSQL filtering, pre-count authz 
       cookies: { [CSRF_COOKIE_NAME]: csrfToken },
       headers: { [CSRF_HEADER_NAME]: csrfToken },
       payload: {
-        email: `viewer-list-${orgId.slice(0, 6)}@docuflow.local`,
+        email: `viewer-list-${orgId.slice(0, 6)}@papyrus.local`,
         password: "DocsList!2026",
       },
     });

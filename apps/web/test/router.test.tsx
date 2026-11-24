@@ -1,6 +1,6 @@
 import "@testing-library/jest-dom/vitest";
-import { UiLocaleProvider, papyrusTheme } from "@docuflow/ui";
 import { CssBaseline, ThemeProvider } from "@mui/material";
+import { UiLocaleProvider, papyrusTheme } from "@papyrus/ui";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter, useLocation } from "react-router-dom";
@@ -72,7 +72,7 @@ describe("Web main routing and session guards", () => {
                 user: {
                   id: validUuid,
                   organizationId: validUuid,
-                  email: "usuario@docuflow.invalid",
+                  email: "usuario@papyrus.invalid",
                   fullName: "Usuário Teste",
                   status: "ACTIVE",
                   createdAt: "2026-11-20T10:00:00Z",
@@ -109,7 +109,7 @@ describe("Web main routing and session guards", () => {
             user: {
               id: validUuid,
               organizationId: validUuid,
-              email: "usuario@docuflow.invalid",
+              email: "usuario@papyrus.invalid",
               fullName: "Usuário Teste",
               status: "ACTIVE",
               createdAt: "2026-11-20T10:00:00Z",

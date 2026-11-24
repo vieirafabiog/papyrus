@@ -4,8 +4,8 @@ import {
   type NotificationItem,
   notificationListQuerySchema,
   uuidSchema,
-} from "@docuflow/contracts";
-import type { InAppNotificationRecord, InAppNotificationService } from "@docuflow/notifications";
+} from "@papyrus/contracts";
+import type { InAppNotificationRecord, InAppNotificationService } from "@papyrus/notifications";
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { SESSION_COOKIE_NAME } from "../auth/auth.routes.js";
 import type { AuthService } from "../auth/auth.service.js";

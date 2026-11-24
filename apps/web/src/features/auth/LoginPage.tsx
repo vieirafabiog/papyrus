@@ -1,9 +1,3 @@
-import {
-  CONTRACTS_API_PREFIX,
-  apiErrorResponseSchema,
-  loginRequestSchema,
-} from "@docuflow/contracts";
-import { PAPYRUS_COLOR_TOKENS, PapyrusLogo } from "@docuflow/ui";
 import VisibilityOffOutlinedIcon from "@mui/icons-material/VisibilityOffOutlined";
 import VisibilityOutlinedIcon from "@mui/icons-material/VisibilityOutlined";
 import {
@@ -19,6 +13,12 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
+import {
+  CONTRACTS_API_PREFIX,
+  apiErrorResponseSchema,
+  loginRequestSchema,
+} from "@papyrus/contracts";
+import { PAPYRUS_COLOR_TOKENS, PapyrusLogo } from "@papyrus/ui";
 import { useQueryClient } from "@tanstack/react-query";
 import { type FormEvent, useRef, useState } from "react";
 import { Link as RouterLink, useLocation, useNavigate } from "react-router-dom";
@@ -27,7 +27,7 @@ import { LanguageSwitcher } from "../../components/LanguageSwitcher.js";
 import { getLocalizedApiErrorMessage } from "../../i18n/api-errors.js";
 import { useI18n } from "../../i18n/index.js";
 
-const CSRF_COOKIE_NAME = "docuflow_csrf";
+const CSRF_COOKIE_NAME = "papyrus_csrf";
 const CSRF_HEADER_NAME = "x-csrf-token";
 
 interface FieldErrors {

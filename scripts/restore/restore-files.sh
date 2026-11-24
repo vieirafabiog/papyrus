@@ -3,7 +3,7 @@ set -euo pipefail
 umask 077
 
 # ==============================================================================
-# DocuFlow — Restauração segura de arquivos locais
+# papyrus — Restauração segura de arquivos locais
 # Valida checksum do arquivo .tar.gz, extrai em staging temporário, valida
 # integridade por arquivo contra o .manifest.sha256 e aplica no destino.
 # ==============================================================================
@@ -20,7 +20,7 @@ TMP_DIR=""
 
 usage() {
   cat <<'EOF'
-Uso: BACKUP_ARCHIVE=/caminho/docuflow-files-*.tar.gz CONFIRM_RESTORE=YES ./scripts/restore/restore-files.sh
+Uso: BACKUP_ARCHIVE=/caminho/papyrus-files-*.tar.gz CONFIRM_RESTORE=YES ./scripts/restore/restore-files.sh
 Variáveis:
   BACKUP_ARCHIVE        Caminho obrigatório do arquivo .tar.gz
   CONFIRM_RESTORE       Deve ser YES para autorizar restauração no destino
@@ -38,10 +38,10 @@ log_json() {
   local ts
   ts=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
   if [ -n "$extra" ]; then
-    printf '{"timestamp":"%s","level":"%s","service":"docuflow-files-restore","message":"%s",%s}\n' \
+    printf '{"timestamp":"%s","level":"%s","service":"papyrus-files-restore","message":"%s",%s}\n' \
       "$ts" "$level" "$message" "$extra"
   else
-    printf '{"timestamp":"%s","level":"%s","service":"docuflow-files-restore","message":"%s"}\n' \
+    printf '{"timestamp":"%s","level":"%s","service":"papyrus-files-restore","message":"%s"}\n' \
       "$ts" "$level" "$message"
   fi
 }
@@ -188,7 +188,7 @@ main() {
     fi
   fi
 
-  TMP_DIR=$(mktemp -d /tmp/docuflow-files-restore-XXXXXX)
+  TMP_DIR=$(mktemp -d /tmp/papyrus-files-restore-XXXXXX)
   chmod 700 "$TMP_DIR"
 
   log_json "info" "Iniciando restauracao de arquivos locais" "\"file\":\"${archive_base}\""

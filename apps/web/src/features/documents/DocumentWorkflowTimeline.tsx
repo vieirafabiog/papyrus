@@ -1,3 +1,10 @@
+import AccountTreeOutlinedIcon from "@mui/icons-material/AccountTreeOutlined";
+import CheckCircleOutlineOutlinedIcon from "@mui/icons-material/CheckCircleOutlineOutlined";
+import EditNoteOutlinedIcon from "@mui/icons-material/EditNoteOutlined";
+import HighlightOffOutlinedIcon from "@mui/icons-material/HighlightOffOutlined";
+import RadioButtonUncheckedOutlinedIcon from "@mui/icons-material/RadioButtonUncheckedOutlined";
+import ScheduleOutlinedIcon from "@mui/icons-material/ScheduleOutlined";
+import { Alert, Box, Chip, Divider, Paper, Stack, Typography } from "@mui/material";
 import {
   CONTRACTS_API_PREFIX,
   type DocumentWorkflowTimelineInstance,
@@ -7,15 +14,8 @@ import {
   type WorkflowTimelineStep,
   apiErrorResponseSchema,
   documentWorkflowTimelineResponseSchema,
-} from "@docuflow/contracts";
-import { EmptyState, ErrorState, PAPYRUS_COLOR_TOKENS } from "@docuflow/ui";
-import AccountTreeOutlinedIcon from "@mui/icons-material/AccountTreeOutlined";
-import CheckCircleOutlineOutlinedIcon from "@mui/icons-material/CheckCircleOutlineOutlined";
-import EditNoteOutlinedIcon from "@mui/icons-material/EditNoteOutlined";
-import HighlightOffOutlinedIcon from "@mui/icons-material/HighlightOffOutlined";
-import RadioButtonUncheckedOutlinedIcon from "@mui/icons-material/RadioButtonUncheckedOutlined";
-import ScheduleOutlinedIcon from "@mui/icons-material/ScheduleOutlined";
-import { Alert, Box, Chip, Divider, Paper, Stack, Typography } from "@mui/material";
+} from "@papyrus/contracts";
+import { EmptyState, ErrorState, PAPYRUS_COLOR_TOKENS } from "@papyrus/ui";
 import { useQuery } from "@tanstack/react-query";
 import { getLocalizedApiErrorMessage } from "../../i18n/api-errors.js";
 import { type MessageKey, translate, useI18n } from "../../i18n/index.js";

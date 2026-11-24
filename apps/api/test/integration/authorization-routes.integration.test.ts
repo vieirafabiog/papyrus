@@ -7,7 +7,7 @@ import {
   type StoredSessionRecord,
   createPasswordService,
   createSessionService,
-} from "@docuflow/auth";
+} from "@papyrus/auth";
 import {
   categories,
   createAuditRepository,
@@ -19,7 +19,7 @@ import {
   sessions,
   userRoleScopes,
   users,
-} from "@docuflow/database";
+} from "@papyrus/database";
 import { PostgreSqlContainer, type StartedPostgreSqlContainer } from "@testcontainers/postgresql";
 import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/node-postgres";
@@ -295,13 +295,13 @@ describe("Route and repository authorization integration", () => {
       headers: { [CSRF_HEADER_NAME]: csrfToken },
       payload: { email: "colab@authz.invalid", password: userPassword },
     });
-    const sessionCookie = loginRes.cookies.find((c) => c.name === "docuflow_session")?.value ?? "";
+    const sessionCookie = loginRes.cookies.find((c) => c.name === "papyrus_session")?.value ?? "";
 
     // 1. Listing counts and returns ONLY the 1 authorized document (no count leak!)
     const listRes = await app.inject({
       method: "GET",
       url: "/api/v1/documents",
-      cookies: { docuflow_session: sessionCookie },
+      cookies: { papyrus_session: sessionCookie },
     });
     expect(listRes.statusCode).toBe(200);
     expect(listRes.json().pagination.totalItems).toBe(1);
@@ -313,7 +313,7 @@ describe("Route and repository authorization integration", () => {
         await app.inject({
           method: "GET",
           url: `/api/v1/documents/${docAllowedId}`,
-          cookies: { docuflow_session: sessionCookie },
+          cookies: { papyrus_session: sessionCookie },
         })
       ).statusCode,
     ).toBe(200);
@@ -322,7 +322,7 @@ describe("Route and repository authorization integration", () => {
       const res = await app.inject({
         method: "GET",
         url: `/api/v1/documents/${deniedId}`,
-        cookies: { docuflow_session: sessionCookie },
+        cookies: { papyrus_session: sessionCookie },
       });
       expect(res.statusCode).toBe(403);
     }
@@ -331,7 +331,7 @@ describe("Route and repository authorization integration", () => {
     const patchDenied = await app.inject({
       method: "PATCH",
       url: `/api/v1/documents/${docDeniedExceptionId}`,
-      cookies: { docuflow_session: sessionCookie, [CSRF_COOKIE_NAME]: csrfToken },
+      cookies: { papyrus_session: sessionCookie, [CSRF_COOKIE_NAME]: csrfToken },
       headers: { [CSRF_HEADER_NAME]: csrfToken },
       payload: { expectedVersion: 1, title: "Tentativa Indevida" },
     });
@@ -341,7 +341,7 @@ describe("Route and repository authorization integration", () => {
     const createDenied = await app.inject({
       method: "POST",
       url: "/api/v1/documents",
-      cookies: { docuflow_session: sessionCookie, [CSRF_COOKIE_NAME]: csrfToken },
+      cookies: { papyrus_session: sessionCookie, [CSRF_COOKIE_NAME]: csrfToken },
       headers: { [CSRF_HEADER_NAME]: csrfToken },
       payload: {
         title: "Novo em pasta negada",

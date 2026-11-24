@@ -11,9 +11,9 @@ import {
   type StoredSessionRecord,
   createPasswordService,
   createSessionService,
-} from "@docuflow/auth";
-import { CONTRACTS_API_PREFIX } from "@docuflow/contracts";
-import type { AuthorizationRepository, LoadedAuthorizationSubject } from "@docuflow/database";
+} from "@papyrus/auth";
+import { CONTRACTS_API_PREFIX } from "@papyrus/contracts";
+import type { AuthorizationRepository, LoadedAuthorizationSubject } from "@papyrus/database";
 import {
   type AuditEventInput,
   type AuditEventRecord,
@@ -39,10 +39,10 @@ import {
   createStorageRouterService,
   createUploadSessionService,
   isFileObjectDownloadable,
-} from "@docuflow/domain";
-import { createClamAvScanner, inspectFileContent } from "@docuflow/file-processing";
-import { createStorageProviderRegistry } from "@docuflow/storage-core";
-import { createLocalStorageProvider } from "@docuflow/storage-local";
+} from "@papyrus/domain";
+import { createClamAvScanner, inspectFileContent } from "@papyrus/file-processing";
+import { createStorageProviderRegistry } from "@papyrus/storage-core";
+import { createLocalStorageProvider } from "@papyrus/storage-local";
 import { afterAll, describe, expect, it } from "vitest";
 import { buildApp } from "../../src/app.js";
 import {
@@ -614,7 +614,7 @@ function createInMemoryUploadHarness(localRoot: string, tempRoot: string, maxUpl
         headers: { origin: "http://localhost:5173", [CSRF_HEADER_NAME]: csrfToken },
         payload: { email, password },
       });
-      const cookie = res.cookies.find((c) => c.name === "docuflow_session")?.value ?? "";
+      const cookie = res.cookies.find((c) => c.name === "papyrus_session")?.value ?? "";
       return { cookie, csrfToken };
     };
 
@@ -660,8 +660,8 @@ describe("Upload abuse & security tests", () => {
   });
 
   it("blocks oversized payloads, empty files, malicious filenames/traversal, and truncated interrupted uploads without temp leftovers", async () => {
-    const localRoot = await mkdtemp(path.join(os.tmpdir(), "docuflow-abuse-store-"));
-    const tempRoot = await mkdtemp(path.join(os.tmpdir(), "docuflow-abuse-temp-"));
+    const localRoot = await mkdtemp(path.join(os.tmpdir(), "papyrus-abuse-store-"));
+    const tempRoot = await mkdtemp(path.join(os.tmpdir(), "papyrus-abuse-temp-"));
     cleanupDirs.push(localRoot, tempRoot);
 
     const h = createInMemoryUploadHarness(localRoot, tempRoot, 2048);
@@ -671,7 +671,7 @@ describe("Upload abuse & security tests", () => {
     const oversizedCreateRes = await h.app.inject({
       method: "POST",
       url: `${CONTRACTS_API_PREFIX}/uploads/sessions`,
-      cookies: { docuflow_session: uploader.cookie, [CSRF_COOKIE_NAME]: uploader.csrfToken },
+      cookies: { papyrus_session: uploader.cookie, [CSRF_COOKIE_NAME]: uploader.csrfToken },
       headers: { origin: "http://localhost:5173", [CSRF_HEADER_NAME]: uploader.csrfToken },
       payload: {
         categoryId: h.categoryId,
@@ -687,7 +687,7 @@ describe("Upload abuse & security tests", () => {
     const normalSessRes = await h.app.inject({
       method: "POST",
       url: `${CONTRACTS_API_PREFIX}/uploads/sessions`,
-      cookies: { docuflow_session: uploader.cookie, [CSRF_COOKIE_NAME]: uploader.csrfToken },
+      cookies: { papyrus_session: uploader.cookie, [CSRF_COOKIE_NAME]: uploader.csrfToken },
       headers: { origin: "http://localhost:5173", [CSRF_HEADER_NAME]: uploader.csrfToken },
       payload: {
         categoryId: h.categoryId,
@@ -701,7 +701,7 @@ describe("Upload abuse & security tests", () => {
     const normalSessId = (normalSessRes.json() as { data: { id: string } }).data.id;
 
     const oversizedMultipart = buildMultipartPayload(
-      "----DocuFlowAbuseBoundary",
+      "----PapyrusAbuseBoundary",
       "normal.pdf",
       "application/pdf",
       Buffer.alloc(1024, 0x41),
@@ -709,11 +709,11 @@ describe("Upload abuse & security tests", () => {
     const oversizedStreamRes = await h.app.inject({
       method: "POST",
       url: `${CONTRACTS_API_PREFIX}/uploads/sessions/${normalSessId}/content`,
-      cookies: { docuflow_session: uploader.cookie, [CSRF_COOKIE_NAME]: uploader.csrfToken },
+      cookies: { papyrus_session: uploader.cookie, [CSRF_COOKIE_NAME]: uploader.csrfToken },
       headers: {
         origin: "http://localhost:5173",
         [CSRF_HEADER_NAME]: uploader.csrfToken,
-        "content-type": "multipart/form-data; boundary=----DocuFlowAbuseBoundary",
+        "content-type": "multipart/form-data; boundary=----PapyrusAbuseBoundary",
       },
       payload: oversizedMultipart,
     });
@@ -724,7 +724,7 @@ describe("Upload abuse & security tests", () => {
     const emptySessionRes = await h.app.inject({
       method: "POST",
       url: `${CONTRACTS_API_PREFIX}/uploads/sessions`,
-      cookies: { docuflow_session: uploader.cookie, [CSRF_COOKIE_NAME]: uploader.csrfToken },
+      cookies: { papyrus_session: uploader.cookie, [CSRF_COOKIE_NAME]: uploader.csrfToken },
       headers: { origin: "http://localhost:5173", [CSRF_HEADER_NAME]: uploader.csrfToken },
       payload: {
         categoryId: h.categoryId,
@@ -737,7 +737,7 @@ describe("Upload abuse & security tests", () => {
     expect(emptySessionRes.statusCode).toBe(400);
 
     const emptyMultipart = buildMultipartPayload(
-      "----DocuFlowEmptyBoundary",
+      "----PapyrusEmptyBoundary",
       "normal.pdf",
       "application/pdf",
       Buffer.alloc(0),
@@ -745,11 +745,11 @@ describe("Upload abuse & security tests", () => {
     const emptyStreamRes = await h.app.inject({
       method: "POST",
       url: `${CONTRACTS_API_PREFIX}/uploads/sessions/${normalSessId}/content`,
-      cookies: { docuflow_session: uploader.cookie, [CSRF_COOKIE_NAME]: uploader.csrfToken },
+      cookies: { papyrus_session: uploader.cookie, [CSRF_COOKIE_NAME]: uploader.csrfToken },
       headers: {
         origin: "http://localhost:5173",
         [CSRF_HEADER_NAME]: uploader.csrfToken,
-        "content-type": "multipart/form-data; boundary=----DocuFlowEmptyBoundary",
+        "content-type": "multipart/form-data; boundary=----PapyrusEmptyBoundary",
       },
       payload: emptyMultipart,
     });
@@ -759,7 +759,7 @@ describe("Upload abuse & security tests", () => {
     const truncatedRes = await h.app.inject({
       method: "PUT",
       url: `${CONTRACTS_API_PREFIX}/uploads/sessions/${normalSessId}/content`,
-      cookies: { docuflow_session: uploader.cookie, [CSRF_COOKIE_NAME]: uploader.csrfToken },
+      cookies: { papyrus_session: uploader.cookie, [CSRF_COOKIE_NAME]: uploader.csrfToken },
       headers: {
         origin: "http://localhost:5173",
         [CSRF_HEADER_NAME]: uploader.csrfToken,
@@ -785,7 +785,7 @@ describe("Upload abuse & security tests", () => {
     const traversalSessRes = await h.app.inject({
       method: "POST",
       url: `${CONTRACTS_API_PREFIX}/uploads/sessions`,
-      cookies: { docuflow_session: uploader.cookie, [CSRF_COOKIE_NAME]: uploader.csrfToken },
+      cookies: { papyrus_session: uploader.cookie, [CSRF_COOKIE_NAME]: uploader.csrfToken },
       headers: { origin: "http://localhost:5173", [CSRF_HEADER_NAME]: uploader.csrfToken },
       payload: {
         categoryId: h.categoryId,
@@ -807,7 +807,7 @@ describe("Upload abuse & security tests", () => {
     const invalidNameRes = await h.app.inject({
       method: "POST",
       url: `${CONTRACTS_API_PREFIX}/uploads/sessions`,
-      cookies: { docuflow_session: uploader.cookie, [CSRF_COOKIE_NAME]: uploader.csrfToken },
+      cookies: { papyrus_session: uploader.cookie, [CSRF_COOKIE_NAME]: uploader.csrfToken },
       headers: { origin: "http://localhost:5173", [CSRF_HEADER_NAME]: uploader.csrfToken },
       payload: {
         categoryId: h.categoryId,
@@ -823,8 +823,8 @@ describe("Upload abuse & security tests", () => {
   });
 
   it("blocks spoofed MIME/polyglots, prevents replay abuse or duplicate versions, and fails closed on session timeout or unavailable ClamAV", async () => {
-    const localRoot = await mkdtemp(path.join(os.tmpdir(), "docuflow-abuse-store2-"));
-    const tempRoot = await mkdtemp(path.join(os.tmpdir(), "docuflow-abuse-temp2-"));
+    const localRoot = await mkdtemp(path.join(os.tmpdir(), "papyrus-abuse-store2-"));
+    const tempRoot = await mkdtemp(path.join(os.tmpdir(), "papyrus-abuse-temp2-"));
     cleanupDirs.push(localRoot, tempRoot);
 
     const h = createInMemoryUploadHarness(localRoot, tempRoot, 10_240);
@@ -873,7 +873,7 @@ describe("Upload abuse & security tests", () => {
     const createRes1 = await h.app.inject({
       method: "POST",
       url: `${CONTRACTS_API_PREFIX}/uploads/sessions`,
-      cookies: { docuflow_session: uploader.cookie, [CSRF_COOKIE_NAME]: uploader.csrfToken },
+      cookies: { papyrus_session: uploader.cookie, [CSRF_COOKIE_NAME]: uploader.csrfToken },
       headers: { origin: "http://localhost:5173", [CSRF_HEADER_NAME]: uploader.csrfToken },
       payload: {
         documentId: docId,
@@ -891,7 +891,7 @@ describe("Upload abuse & security tests", () => {
     const replayConflictingCreate = await h.app.inject({
       method: "POST",
       url: `${CONTRACTS_API_PREFIX}/uploads/sessions`,
-      cookies: { docuflow_session: uploader.cookie, [CSRF_COOKIE_NAME]: uploader.csrfToken },
+      cookies: { papyrus_session: uploader.cookie, [CSRF_COOKIE_NAME]: uploader.csrfToken },
       headers: { origin: "http://localhost:5173", [CSRF_HEADER_NAME]: uploader.csrfToken },
       payload: {
         documentId: docId,
@@ -907,7 +907,7 @@ describe("Upload abuse & security tests", () => {
     const uploadOnce = await h.app.inject({
       method: "PUT",
       url: `${CONTRACTS_API_PREFIX}/uploads/sessions/${sessionId}/content`,
-      cookies: { docuflow_session: uploader.cookie, [CSRF_COOKIE_NAME]: uploader.csrfToken },
+      cookies: { papyrus_session: uploader.cookie, [CSRF_COOKIE_NAME]: uploader.csrfToken },
       headers: {
         origin: "http://localhost:5173",
         [CSRF_HEADER_NAME]: uploader.csrfToken,
@@ -920,7 +920,7 @@ describe("Upload abuse & security tests", () => {
     const replayBinaryUpload = await h.app.inject({
       method: "PUT",
       url: `${CONTRACTS_API_PREFIX}/uploads/sessions/${sessionId}/content`,
-      cookies: { docuflow_session: uploader.cookie, [CSRF_COOKIE_NAME]: uploader.csrfToken },
+      cookies: { papyrus_session: uploader.cookie, [CSRF_COOKIE_NAME]: uploader.csrfToken },
       headers: {
         origin: "http://localhost:5173",
         [CSRF_HEADER_NAME]: uploader.csrfToken,
@@ -957,7 +957,7 @@ describe("Upload abuse & security tests", () => {
     const expiringRes = await h.app.inject({
       method: "POST",
       url: `${CONTRACTS_API_PREFIX}/uploads/sessions`,
-      cookies: { docuflow_session: uploader.cookie, [CSRF_COOKIE_NAME]: uploader.csrfToken },
+      cookies: { papyrus_session: uploader.cookie, [CSRF_COOKIE_NAME]: uploader.csrfToken },
       headers: { origin: "http://localhost:5173", [CSRF_HEADER_NAME]: uploader.csrfToken },
       payload: {
         categoryId: h.categoryId,
@@ -975,7 +975,7 @@ describe("Upload abuse & security tests", () => {
     const expiredUploadAttempt = await h.app.inject({
       method: "PUT",
       url: `${CONTRACTS_API_PREFIX}/uploads/sessions/${expiringId}/content`,
-      cookies: { docuflow_session: uploader.cookie, [CSRF_COOKIE_NAME]: uploader.csrfToken },
+      cookies: { papyrus_session: uploader.cookie, [CSRF_COOKIE_NAME]: uploader.csrfToken },
       headers: {
         origin: "http://localhost:5173",
         [CSRF_HEADER_NAME]: uploader.csrfToken,

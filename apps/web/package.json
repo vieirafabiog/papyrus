@@ -1,5 +1,5 @@
 {
-  "name": "@docuflow/web",
+  "name": "@papyrus/web",
   "version": "1.0.0-rc.1",
   "private": true,
   "type": "module",
@@ -10,8 +10,8 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@docuflow/contracts": "workspace:*",
-    "@docuflow/ui": "workspace:*",
+    "@papyrus/contracts": "workspace:*",
+    "@papyrus/ui": "workspace:*",
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.13.5",
     "@mui/icons-material": "^7.0.0",

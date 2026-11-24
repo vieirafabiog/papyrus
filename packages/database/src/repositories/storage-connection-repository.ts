@@ -7,7 +7,7 @@ import type {
   TransactionContext,
   UpdateStorageConnectionInput,
   UpsertStorageRoutingRuleInput,
-} from "@docuflow/domain";
+} from "@papyrus/domain";
 import { and, asc, count, eq, isNull } from "drizzle-orm";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 import { fileObjects, storageConnections, storageRoutingRules } from "../schema/storage.js";

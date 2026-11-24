@@ -299,7 +299,7 @@ async function openAndAuthenticateSession(config: {
     const greeting = await reader.readResponse();
     assertExpectedCode(greeting, [220], "GREETING");
 
-    let ehlo = await sendCommand(socket, reader, "EHLO docuflow.local");
+    let ehlo = await sendCommand(socket, reader, "EHLO papyrus.local");
     assertExpectedCode(ehlo, [250], "EHLO");
 
     if (config.securityMode === "STARTTLS") {
@@ -310,7 +310,7 @@ async function openAndAuthenticateSession(config: {
         socket = tlsSocket;
         reader.replaceSocket(tlsSocket);
       }
-      ehlo = await sendCommand(socket, reader, "EHLO docuflow.local");
+      ehlo = await sendCommand(socket, reader, "EHLO papyrus.local");
       assertExpectedCode(ehlo, [250], "EHLO_TLS");
     }
 
@@ -357,8 +357,8 @@ export function createNodeSmtpTransport(): SmtpTransportPort {
       const cleanFrom = assertNoHeaderInjection(request.fromAddress, "fromAddress");
       const cleanTo = assertNoHeaderInjection(request.toAddress, "toAddress");
       const domainPart = cleanFrom.includes("@")
-        ? (cleanFrom.split("@")[1] ?? "docuflow.local")
-        : "docuflow.local";
+        ? (cleanFrom.split("@")[1] ?? "papyrus.local")
+        : "papyrus.local";
       const messageId = `<${randomUUID()}@${domainPart}>`;
       const mimeData = buildMimePayload(request, messageId);
 

@@ -1,6 +1,6 @@
 import "@testing-library/jest-dom/vitest";
-import { UiLocaleProvider, papyrusTheme } from "@docuflow/ui";
 import { CssBaseline, ThemeProvider } from "@mui/material";
+import { UiLocaleProvider, papyrusTheme } from "@papyrus/ui";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
@@ -20,7 +20,7 @@ function buildSessionPayload(roles: string[]) {
       user: {
         id: USER_1_ID,
         organizationId: ORG_ID,
-        email: "admin@docuflow.local",
+        email: "admin@papyrus.local",
         fullName: "Admin Principal",
         status: "ACTIVE",
         createdAt: "2026-01-01T10:00:00.000Z",
@@ -92,7 +92,7 @@ describe("UsersPage and GroupsPage (Step 14.02)", () => {
       {
         id: USER_1_ID,
         organizationId: ORG_ID,
-        email: "admin@docuflow.local",
+        email: "admin@papyrus.local",
         fullName: "Admin Principal",
         status: "ACTIVE",
         createdAt: "2026-01-01T10:00:00.000Z",
@@ -178,7 +178,7 @@ describe("UsersPage and GroupsPage (Step 14.02)", () => {
       target: { value: "Mariana Souza" },
     });
     fireEvent.change(within(createDialog).getByLabelText(/Work email/i), {
-      target: { value: "mariana@docuflow.local" },
+      target: { value: "mariana@papyrus.local" },
     });
     fireEvent.change(within(createDialog).getByLabelText(/Initial password/i), {
       target: { value: "SenhaSegura!2026" },
@@ -245,7 +245,7 @@ describe("UsersPage and GroupsPage (Step 14.02)", () => {
       {
         id: USER_2_ID,
         organizationId: ORG_ID,
-        email: "analista@docuflow.local",
+        email: "analista@papyrus.local",
         fullName: "Carlos Analista",
         status: "ACTIVE",
         createdAt: "2026-01-01T10:00:00.000Z",

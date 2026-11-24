@@ -9,7 +9,7 @@ import type {
   UploadSessionEntity,
   UploadSessionRepositoryPort,
   UploadSessionStatus,
-} from "@docuflow/domain";
+} from "@papyrus/domain";
 import { and, eq, inArray } from "drizzle-orm";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 import { fileObjects, uploadSessions } from "../schema/storage.js";

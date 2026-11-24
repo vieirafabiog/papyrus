@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { createPasswordService, createSessionService } from "@docuflow/auth";
+import { createPasswordService, createSessionService } from "@papyrus/auth";
 import {
   type DatabaseClient,
   createAuditRepository,
@@ -37,7 +37,7 @@ import {
   createWorkflowInstanceRepository,
   createWorkflowTaskRepository,
   createWorkflowTimelineRepository,
-} from "@docuflow/database";
+} from "@papyrus/database";
 import {
   DOMAIN_DEFAULT_PROXY_MAX_BODY_BYTES,
   DOMAIN_DEFAULT_UPLOAD_ALLOWED_EXTENSIONS,
@@ -69,9 +69,9 @@ import {
   moveDocumentUseCase,
   restoreDocumentUseCase,
   trashDocumentUseCase,
-} from "@docuflow/domain";
-import { createInAppNotificationService } from "@docuflow/notifications";
-import { createStorageSecretVault } from "@docuflow/storage-core";
+} from "@papyrus/domain";
+import { createInAppNotificationService } from "@papyrus/notifications";
+import { createStorageSecretVault } from "@papyrus/storage-core";
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { buildApp } from "./app.js";
@@ -140,7 +140,7 @@ export function createStandaloneApiRuntime(
 
   const dbClient = createDatabaseClient({
     connectionString: config.DATABASE_URL,
-    applicationName: "docuflow-api",
+    applicationName: "papyrus-api",
   });
 
   const { db } = dbClient;

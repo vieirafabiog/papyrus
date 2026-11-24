@@ -3,7 +3,7 @@ import {
   type DocumentStatus,
   type PaginatedResult,
   evaluateTrashRestoreWindow,
-} from "@docuflow/domain";
+} from "@papyrus/domain";
 import { type SQL, and, asc, count, desc, eq, ilike, inArray, sql } from "drizzle-orm";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 import { documents } from "../schema/documents.js";

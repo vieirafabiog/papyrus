@@ -1,5 +1,5 @@
 {
-  "name": "@docuflow/worker",
+  "name": "@papyrus/worker",
   "version": "1.0.0-rc.1",
   "private": true,
   "type": "module",
@@ -11,14 +11,14 @@
     "test:integration": "vitest run test/integration"
   },
   "dependencies": {
-    "@docuflow/contracts": "workspace:*",
-    "@docuflow/database": "workspace:*",
-    "@docuflow/domain": "workspace:*",
-    "@docuflow/file-processing": "workspace:*",
-    "@docuflow/notifications": "workspace:*",
-    "@docuflow/storage-core": "workspace:*",
-    "@docuflow/storage-local": "workspace:*",
-    "@docuflow/storage-s3": "workspace:*",
+    "@papyrus/contracts": "workspace:*",
+    "@papyrus/database": "workspace:*",
+    "@papyrus/domain": "workspace:*",
+    "@papyrus/file-processing": "workspace:*",
+    "@papyrus/notifications": "workspace:*",
+    "@papyrus/storage-core": "workspace:*",
+    "@papyrus/storage-local": "workspace:*",
+    "@papyrus/storage-s3": "workspace:*",
     "zod": "^3.24.2"
   },
   "devDependencies": {

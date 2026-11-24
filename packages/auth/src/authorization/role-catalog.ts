@@ -1,4 +1,4 @@
-import type { AccessAction, AccessResource } from "@docuflow/domain";
+import type { AccessAction, AccessResource } from "@papyrus/domain";
 
 export interface PermissionPair {
   readonly action: AccessAction;

@@ -11,22 +11,22 @@ import {
   createTransactionManager,
   createUploadPolicyRepository,
   createUploadSessionRepository,
-} from "@docuflow/database";
+} from "@papyrus/database";
 import {
   DOMAIN_DEFAULT_UPLOAD_ALLOWED_EXTENSIONS,
   DOMAIN_DEFAULT_UPLOAD_MAX_BYTES,
   DOMAIN_MAX_SYSTEM_UPLOAD_BYTES,
   DOMAIN_MIN_UPLOAD_MAX_BYTES,
   createUploadLimitsService,
-} from "@docuflow/domain";
-import { createClamAvScanner } from "@docuflow/file-processing";
+} from "@papyrus/domain";
+import { createClamAvScanner } from "@papyrus/file-processing";
 import {
   type StorageProviderRegistry,
   createStorageProviderRegistry,
   createStorageSecretVault,
-} from "@docuflow/storage-core";
-import { createLocalStorageProvider } from "@docuflow/storage-local";
-import { createS3StorageProvider } from "@docuflow/storage-s3";
+} from "@papyrus/storage-core";
+import { createLocalStorageProvider } from "@papyrus/storage-local";
+import { createS3StorageProvider } from "@papyrus/storage-s3";
 import { z } from "zod";
 import { createProcessUploadJobHandler } from "./jobs/process-upload.js";
 import { createPurgeDeletedDocumentsHandler } from "./jobs/purge-deleted-documents.js";
@@ -175,7 +175,7 @@ export function createStandaloneWorkerJobs(
 
   const dbClient = createDatabaseClient({
     connectionString: config.DATABASE_URL,
-    applicationName: "docuflow-worker",
+    applicationName: "papyrus-worker",
     logger,
   });
 

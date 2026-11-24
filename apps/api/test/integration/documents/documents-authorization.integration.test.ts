@@ -11,8 +11,8 @@ import {
   type StoredSessionRecord,
   createPasswordService,
   createSessionService,
-} from "@docuflow/auth";
-import { CONTRACTS_API_PREFIX } from "@docuflow/contracts";
+} from "@papyrus/auth";
+import { CONTRACTS_API_PREFIX } from "@papyrus/contracts";
 import {
   categories,
   createAuditRepository,
@@ -38,14 +38,14 @@ import {
   uploadSessions,
   userRoleScopes,
   users,
-} from "@docuflow/database";
+} from "@papyrus/database";
 import {
   createDocumentUseCase,
   createDocumentVersionUseCase,
   trashDocumentUseCase,
-} from "@docuflow/domain";
-import { createStorageProviderRegistry } from "@docuflow/storage-core";
-import { createLocalStorageProvider } from "@docuflow/storage-local";
+} from "@papyrus/domain";
+import { createStorageProviderRegistry } from "@papyrus/storage-core";
+import { createLocalStorageProvider } from "@papyrus/storage-local";
 import { PostgreSqlContainer, type StartedPostgreSqlContainer } from "@testcontainers/postgresql";
 import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/node-postgres";
@@ -66,7 +66,7 @@ describe("Document API authorization, explicit DENY precedence, and tenant isola
   let localStorageRoot = "";
 
   beforeAll(async () => {
-    localStorageRoot = await mkdtemp(path.join(os.tmpdir(), "docuflow-doc-authz-"));
+    localStorageRoot = await mkdtemp(path.join(os.tmpdir(), "papyrus-doc-authz-"));
     const externalUrl = process.env.DATABASE_URL;
     let connectionString: string;
     if (externalUrl && externalUrl.trim().length > 0) {
@@ -196,9 +196,9 @@ describe("Document API authorization, explicit DENY precedence, and tenant isola
         .values(ids.map((permissionId) => ({ roleId: target.roleId, permissionId })));
     }
 
-    const scopedEmail = `scoped-mgr-${orgAId.slice(0, 6)}@docuflow.local`;
-    const viewerEmail = `viewer-${orgAId.slice(0, 6)}@docuflow.local`;
-    const orgBEmail = `admin-b-${orgBId.slice(0, 6)}@docuflow.local`;
+    const scopedEmail = `scoped-mgr-${orgAId.slice(0, 6)}@papyrus.local`;
+    const viewerEmail = `viewer-${orgAId.slice(0, 6)}@papyrus.local`;
+    const orgBEmail = `admin-b-${orgBId.slice(0, 6)}@papyrus.local`;
 
     await db.insert(users).values([
       {

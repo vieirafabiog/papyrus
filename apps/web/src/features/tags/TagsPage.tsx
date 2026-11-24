@@ -1,5 +1,3 @@
-import type { TagRecord } from "@docuflow/contracts";
-import { DataTable, type DataTableColumn, FilterBar } from "@docuflow/ui";
 import AddOutlinedIcon from "@mui/icons-material/AddOutlined";
 import {
   Alert,
@@ -14,6 +12,8 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
+import type { TagRecord } from "@papyrus/contracts";
+import { DataTable, type DataTableColumn, FilterBar } from "@papyrus/ui";
 import { type FormEvent, useMemo, useState } from "react";
 import { containsTechnicalJargon } from "../../i18n/api-errors.js";
 import { useI18n } from "../../i18n/index.js";

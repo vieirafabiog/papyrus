@@ -8,7 +8,7 @@ import {
   type StoredSessionRecord,
   createPasswordService,
   createSessionService,
-} from "@docuflow/auth";
+} from "@papyrus/auth";
 import {
   auditEvents,
   createAuditRepository,
@@ -23,8 +23,8 @@ import {
   sessions,
   userRoleScopes,
   users,
-} from "@docuflow/database";
-import { createFolderService } from "@docuflow/domain";
+} from "@papyrus/database";
+import { createFolderService } from "@papyrus/domain";
 import { PostgreSqlContainer, type StartedPostgreSqlContainer } from "@testcontainers/postgresql";
 import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/node-postgres";
@@ -111,7 +111,7 @@ describe("Folder CRUD, hierarchy cycle prevention and inherited permissions inte
 
     await db.insert(organizations).values({
       id: orgId,
-      name: "DocuFlow Folders Integration Corp",
+      name: "papyrus Folders Integration Corp",
       slug: `folders-org-${orgId.slice(0, 8)}`,
     });
 
@@ -187,7 +187,7 @@ describe("Folder CRUD, hierarchy cycle prevention and inherited permissions inte
       {
         id: adminUserId,
         organizationId: orgId,
-        email: `admin-folders-${orgId.slice(0, 6)}@docuflow.local`,
+        email: `admin-folders-${orgId.slice(0, 6)}@papyrus.local`,
         fullName: "Admin Folders",
         passwordHash,
         status: "ACTIVE",
@@ -195,7 +195,7 @@ describe("Folder CRUD, hierarchy cycle prevention and inherited permissions inte
       {
         id: scopedManagerId,
         organizationId: orgId,
-        email: `scoped-folders-${orgId.slice(0, 6)}@docuflow.local`,
+        email: `scoped-folders-${orgId.slice(0, 6)}@papyrus.local`,
         fullName: "Scoped Manager",
         passwordHash,
         status: "ACTIVE",
@@ -287,7 +287,7 @@ describe("Folder CRUD, hierarchy cycle prevention and inherited permissions inte
       cookies: { [CSRF_COOKIE_NAME]: csrfToken },
       headers: { [CSRF_HEADER_NAME]: csrfToken },
       payload: {
-        email: `admin-folders-${orgId.slice(0, 6)}@docuflow.local`,
+        email: `admin-folders-${orgId.slice(0, 6)}@papyrus.local`,
         password: "FoldersTest!2026",
       },
     });
@@ -458,7 +458,7 @@ describe("Folder CRUD, hierarchy cycle prevention and inherited permissions inte
       cookies: { [CSRF_COOKIE_NAME]: csrfToken },
       headers: { [CSRF_HEADER_NAME]: csrfToken },
       payload: {
-        email: `scoped-folders-${orgId.slice(0, 6)}@docuflow.local`,
+        email: `scoped-folders-${orgId.slice(0, 6)}@papyrus.local`,
         password: "FoldersTest!2026",
       },
     });

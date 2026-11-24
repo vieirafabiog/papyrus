@@ -7,7 +7,7 @@ import {
   type StoredSessionRecord,
   createPasswordService,
   createSessionService,
-} from "@docuflow/auth";
+} from "@papyrus/auth";
 import {
   createAuditRepository,
   createTransactionManager,
@@ -16,8 +16,8 @@ import {
   sessions,
   userRoleScopes,
   users,
-} from "@docuflow/database";
-import { createUserAdministrationService } from "@docuflow/domain";
+} from "@papyrus/database";
+import { createUserAdministrationService } from "@papyrus/domain";
 import { PostgreSqlContainer, type StartedPostgreSqlContainer } from "@testcontainers/postgresql";
 import { and, eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/node-postgres";
@@ -200,13 +200,13 @@ describe("User administration integration", () => {
       payload: { email: "admin@teste.invalid", password: adminPass },
     });
     expect(adminLogin.statusCode).toBe(200);
-    const adminCookie = adminLogin.cookies.find((c) => c.name === "docuflow_session")?.value ?? "";
+    const adminCookie = adminLogin.cookies.find((c) => c.name === "papyrus_session")?.value ?? "";
 
     // Cannot deactivate the last active admin
     const selfDeactivate = await app.inject({
       method: "POST",
       url: `/api/v1/admin/users/${bootstrapped.adminUserId}/deactivate`,
-      cookies: { docuflow_session: adminCookie, [CSRF_COOKIE_NAME]: csrfToken },
+      cookies: { papyrus_session: adminCookie, [CSRF_COOKIE_NAME]: csrfToken },
       headers: { [CSRF_HEADER_NAME]: csrfToken },
     });
     expect(selfDeactivate.statusCode).toBe(409);
@@ -216,7 +216,7 @@ describe("User administration integration", () => {
     const createColab = await app.inject({
       method: "POST",
       url: "/api/v1/admin/users",
-      cookies: { docuflow_session: adminCookie, [CSRF_COOKIE_NAME]: csrfToken },
+      cookies: { papyrus_session: adminCookie, [CSRF_COOKIE_NAME]: csrfToken },
       headers: { [CSRF_HEADER_NAME]: csrfToken },
       payload: {
         email: "colab@teste.invalid",
@@ -235,11 +235,11 @@ describe("User administration integration", () => {
       headers: { [CSRF_HEADER_NAME]: csrfToken },
       payload: { email: "colab@teste.invalid", password: colabPass },
     });
-    const colabCookie = colabLogin.cookies.find((c) => c.name === "docuflow_session")?.value ?? "";
+    const colabCookie = colabLogin.cookies.find((c) => c.name === "papyrus_session")?.value ?? "";
     const forbiddenList = await app.inject({
       method: "GET",
       url: "/api/v1/admin/users",
-      cookies: { docuflow_session: colabCookie },
+      cookies: { papyrus_session: colabCookie },
     });
     expect(forbiddenList.statusCode).toBe(403);
 
@@ -247,7 +247,7 @@ describe("User administration integration", () => {
     const editColab = await app.inject({
       method: "PATCH",
       url: `/api/v1/admin/users/${colabId}`,
-      cookies: { docuflow_session: adminCookie, [CSRF_COOKIE_NAME]: csrfToken },
+      cookies: { papyrus_session: adminCookie, [CSRF_COOKIE_NAME]: csrfToken },
       headers: { [CSRF_HEADER_NAME]: csrfToken },
       payload: { fullName: "Colaborador Renomeado" },
     });
@@ -257,7 +257,7 @@ describe("User administration integration", () => {
     const deactivateColab = await app.inject({
       method: "POST",
       url: `/api/v1/admin/users/${colabId}/deactivate`,
-      cookies: { docuflow_session: adminCookie, [CSRF_COOKIE_NAME]: csrfToken },
+      cookies: { papyrus_session: adminCookie, [CSRF_COOKIE_NAME]: csrfToken },
       headers: { [CSRF_HEADER_NAME]: csrfToken },
     });
     expect(deactivateColab.statusCode).toBe(200);
@@ -266,7 +266,7 @@ describe("User administration integration", () => {
     const reactivateColab = await app.inject({
       method: "POST",
       url: `/api/v1/admin/users/${colabId}/reactivate`,
-      cookies: { docuflow_session: adminCookie, [CSRF_COOKIE_NAME]: csrfToken },
+      cookies: { papyrus_session: adminCookie, [CSRF_COOKIE_NAME]: csrfToken },
       headers: { [CSRF_HEADER_NAME]: csrfToken },
     });
     expect(reactivateColab.statusCode).toBe(200);
@@ -293,7 +293,7 @@ describe("User administration integration", () => {
     const deactivateFirstAdmin = await app.inject({
       method: "POST",
       url: `/api/v1/admin/users/${bootstrapped.adminUserId}/deactivate`,
-      cookies: { docuflow_session: adminCookie, [CSRF_COOKIE_NAME]: csrfToken },
+      cookies: { papyrus_session: adminCookie, [CSRF_COOKIE_NAME]: csrfToken },
       headers: { [CSRF_HEADER_NAME]: csrfToken },
     });
     expect(deactivateFirstAdmin.statusCode).toBe(200);
@@ -303,7 +303,7 @@ describe("User administration integration", () => {
     const deactivateSecondAdmin = await app.inject({
       method: "POST",
       url: `/api/v1/admin/users/${colabId}/deactivate`,
-      cookies: { docuflow_session: colabCookie, [CSRF_COOKIE_NAME]: csrfToken },
+      cookies: { papyrus_session: colabCookie, [CSRF_COOKIE_NAME]: csrfToken },
       headers: { [CSRF_HEADER_NAME]: csrfToken },
     });
     expect(deactivateSecondAdmin.statusCode).toBe(409);

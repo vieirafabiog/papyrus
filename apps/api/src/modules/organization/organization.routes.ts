@@ -1,11 +1,11 @@
-import { evaluateAuthorization } from "@docuflow/auth";
+import { evaluateAuthorization } from "@papyrus/auth";
 import {
   CONTRACTS_API_PREFIX,
   type ErrorCode,
   updateOrganizationSettingsRequestSchema,
-} from "@docuflow/contracts";
-import type { AuthorizationRepository } from "@docuflow/database";
-import { DomainError, type OrganizationService } from "@docuflow/domain";
+} from "@papyrus/contracts";
+import type { AuthorizationRepository } from "@papyrus/database";
+import { DomainError, type OrganizationService } from "@papyrus/domain";
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { buildRolePermissionsLookup, toSubjectContext } from "../../plugins/authorization.js";
 import { SESSION_COOKIE_NAME } from "../auth/auth.routes.js";

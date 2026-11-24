@@ -8,7 +8,7 @@ import {
   type StoredSessionRecord,
   createPasswordService,
   createSessionService,
-} from "@docuflow/auth";
+} from "@papyrus/auth";
 import {
   auditEvents,
   categories,
@@ -26,8 +26,8 @@ import {
   sessions,
   userRoleScopes,
   users,
-} from "@docuflow/database";
-import { archiveDocumentUseCase, moveDocumentUseCase } from "@docuflow/domain";
+} from "@papyrus/database";
+import { archiveDocumentUseCase, moveDocumentUseCase } from "@papyrus/domain";
 import { PostgreSqlContainer, type StartedPostgreSqlContainer } from "@testcontainers/postgresql";
 import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/node-postgres";
@@ -131,7 +131,7 @@ describe("Document move and archive permissions, concurrency and audit integrati
       {
         id: collabId,
         organizationId: orgId,
-        email: `collab-ma-${orgId.slice(0, 6)}@docuflow.local`,
+        email: `collab-ma-${orgId.slice(0, 6)}@papyrus.local`,
         fullName: "Colaborador Move",
         passwordHash,
         status: "ACTIVE",
@@ -139,7 +139,7 @@ describe("Document move and archive permissions, concurrency and audit integrati
       {
         id: viewerId,
         organizationId: orgId,
-        email: `viewer-ma-${orgId.slice(0, 6)}@docuflow.local`,
+        email: `viewer-ma-${orgId.slice(0, 6)}@papyrus.local`,
         fullName: "Consulta Move",
         passwordHash,
         status: "ACTIVE",
@@ -372,7 +372,7 @@ describe("Document move and archive permissions, concurrency and audit integrati
       cookies: { [CSRF_COOKIE_NAME]: csrfToken },
       headers: { [CSRF_HEADER_NAME]: csrfToken },
       payload: {
-        email: `collab-ma-${orgId.slice(0, 6)}@docuflow.local`,
+        email: `collab-ma-${orgId.slice(0, 6)}@papyrus.local`,
         password: "MoveArchive!2026",
       },
     });
@@ -386,7 +386,7 @@ describe("Document move and archive permissions, concurrency and audit integrati
       cookies: { [CSRF_COOKIE_NAME]: csrfToken },
       headers: { [CSRF_HEADER_NAME]: csrfToken },
       payload: {
-        email: `viewer-ma-${orgId.slice(0, 6)}@docuflow.local`,
+        email: `viewer-ma-${orgId.slice(0, 6)}@papyrus.local`,
         password: "MoveArchive!2026",
       },
     });

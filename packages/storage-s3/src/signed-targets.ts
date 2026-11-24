@@ -6,7 +6,7 @@ import {
   type SignedUploadTargetInput,
   StorageError,
   normalizeStorageError,
-} from "@docuflow/storage-core";
+} from "@papyrus/storage-core";
 import type { S3StorageConfig } from "./s3-config.schema.js";
 
 export const DEFAULT_MIN_SIGNED_EXPIRATION_SECONDS = 10;

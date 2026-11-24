@@ -1,6 +1,6 @@
 import "@testing-library/jest-dom/vitest";
-import { UiLocaleProvider, createPapyrusTheme } from "@docuflow/ui";
 import { CssBaseline, ThemeProvider } from "@mui/material";
+import { UiLocaleProvider, createPapyrusTheme } from "@papyrus/ui";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";

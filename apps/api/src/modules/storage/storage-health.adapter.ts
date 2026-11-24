@@ -2,9 +2,9 @@ import type {
   StorageConnectionEntity,
   StorageConnectionHealthOutput,
   StorageConnectionHealthTesterPort,
-} from "@docuflow/domain";
-import type { StorageSecretVault } from "@docuflow/storage-core";
-import type { S3EndpointSecurityPolicy } from "@docuflow/storage-s3";
+} from "@papyrus/domain";
+import type { StorageSecretVault } from "@papyrus/storage-core";
+import type { S3EndpointSecurityPolicy } from "@papyrus/storage-s3";
 import { createApiStorageProviderRegistry } from "./storage-provider.registry.js";
 
 export interface StorageHealthTesterOptions {

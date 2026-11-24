@@ -3,7 +3,7 @@ set -euo pipefail
 umask 077
 
 # ==============================================================================
-# DocuFlow — Restauração coordenada completa
+# papyrus — Restauração coordenada completa
 # Orquestra em ordem segura:
 #   1) Validação/restauração de configuração protegida (.env) e ENCRYPTION_KEY
 #   2) Restauração do PostgreSQL (restore-database.sh)
@@ -23,7 +23,7 @@ log_json() {
   local message="$2"
   local ts
   ts=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
-  printf '{"timestamp":"%s","level":"%s","service":"docuflow-system-restore","message":"%s"}\n' \
+  printf '{"timestamp":"%s","level":"%s","service":"papyrus-system-restore","message":"%s"}\n' \
     "$ts" "$level" "$message"
 }
 

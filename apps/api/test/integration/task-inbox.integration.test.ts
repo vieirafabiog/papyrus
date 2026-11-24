@@ -8,12 +8,12 @@ import {
   type StoredSessionRecord,
   createPasswordService,
   createSessionService,
-} from "@docuflow/auth";
+} from "@papyrus/auth";
 import {
   CONTRACTS_API_PREFIX,
   taskDetailResponseSchema,
   taskInboxListResponseSchema,
-} from "@docuflow/contracts";
+} from "@papyrus/contracts";
 import {
   categories,
   createAuthorizationRepository,
@@ -36,7 +36,7 @@ import {
   users,
   workflowInstances,
   workflowTasks,
-} from "@docuflow/database";
+} from "@papyrus/database";
 import { PostgreSqlContainer, type StartedPostgreSqlContainer } from "@testcontainers/postgresql";
 import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/node-postgres";
@@ -111,7 +111,7 @@ describe("Task inbox HTTP filtering, pagination and scope authorization integrat
       {
         id: aliceId,
         organizationId: orgId,
-        email: "alice-inbox@docuflow.local",
+        email: "alice-inbox@papyrus.local",
         fullName: "Alice Revisora",
         passwordHash,
         status: "ACTIVE",
@@ -119,7 +119,7 @@ describe("Task inbox HTTP filtering, pagination and scope authorization integrat
       {
         id: bobId,
         organizationId: orgId,
-        email: "bob-inbox@docuflow.local",
+        email: "bob-inbox@papyrus.local",
         fullName: "Bob Revisor",
         passwordHash,
         status: "ACTIVE",
@@ -679,7 +679,7 @@ describe("Task inbox HTTP filtering, pagination and scope authorization integrat
     });
     expect(anonRes.statusCode).toBe(401);
 
-    const aliceCookies = await login("alice-inbox@docuflow.local");
+    const aliceCookies = await login("alice-inbox@papyrus.local");
 
     // 1. Alice sees her USER + GROUP tasks (3 total), excluding Bob's task, deleted doc task, and foreign task
     const allAliceRes = await app.inject({

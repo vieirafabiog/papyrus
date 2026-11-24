@@ -1,5 +1,3 @@
-import type { FileObjectStatus } from "@docuflow/contracts";
-import { PAPYRUS_COLOR_TOKENS } from "@docuflow/ui";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
 import DownloadOutlinedIcon from "@mui/icons-material/DownloadOutlined";
 import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
@@ -8,6 +6,8 @@ import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
 import UploadFileOutlinedIcon from "@mui/icons-material/UploadFileOutlined";
 import VisibilityOutlinedIcon from "@mui/icons-material/VisibilityOutlined";
 import { Alert, Box, Button, Chip, Paper, Stack, Typography } from "@mui/material";
+import type { FileObjectStatus } from "@papyrus/contracts";
+import { PAPYRUS_COLOR_TOKENS } from "@papyrus/ui";
 import type { ReactNode } from "react";
 import {
   type MessageKey,

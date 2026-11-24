@@ -4,13 +4,13 @@ import {
   type StorageConnectionEntity,
   type StorageConnectionRepositoryPort,
   createAuditWriter,
-} from "@docuflow/domain";
-import { ChecksumValidationError, verifyStreamSha256 } from "@docuflow/file-processing";
+} from "@papyrus/domain";
+import { ChecksumValidationError, verifyStreamSha256 } from "@papyrus/file-processing";
 import {
   type StorageProvider,
   type StorageProviderRegistry,
   sanitizeStorageErrorMessage,
-} from "@docuflow/storage-core";
+} from "@papyrus/storage-core";
 
 const DEFAULT_BATCH_SIZE = 100;
 const MAX_BATCH_SIZE = 500;

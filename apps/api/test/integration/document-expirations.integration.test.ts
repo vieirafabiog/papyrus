@@ -8,7 +8,7 @@ import {
   type StoredSessionRecord,
   createPasswordService,
   createSessionService,
-} from "@docuflow/auth";
+} from "@papyrus/auth";
 import {
   categories,
   createAuditRepository,
@@ -24,7 +24,7 @@ import {
   sessions,
   userRoleScopes,
   users,
-} from "@docuflow/database";
+} from "@papyrus/database";
 import { PostgreSqlContainer, type StartedPostgreSqlContainer } from "@testcontainers/postgresql";
 import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/node-postgres";
@@ -113,7 +113,7 @@ describe("Document expirations listing, timezone awareness, and authorization in
       {
         id: managerId,
         organizationId: orgId,
-        email: `manager-exp-${orgId.slice(0, 6)}@docuflow.local`,
+        email: `manager-exp-${orgId.slice(0, 6)}@papyrus.local`,
         fullName: "Gestor Vencimentos",
         passwordHash,
         status: "ACTIVE",
@@ -121,7 +121,7 @@ describe("Document expirations listing, timezone awareness, and authorization in
       {
         id: scopedReaderId,
         organizationId: orgId,
-        email: `scoped-exp-${orgId.slice(0, 6)}@docuflow.local`,
+        email: `scoped-exp-${orgId.slice(0, 6)}@papyrus.local`,
         fullName: "Leitor Pasta A",
         passwordHash,
         status: "ACTIVE",
@@ -129,7 +129,7 @@ describe("Document expirations listing, timezone awareness, and authorization in
       {
         id: unprivilegedId,
         organizationId: orgId,
-        email: `noperm-exp-${orgId.slice(0, 6)}@docuflow.local`,
+        email: `noperm-exp-${orgId.slice(0, 6)}@papyrus.local`,
         fullName: "Sem Permissão",
         passwordHash,
         status: "ACTIVE",
@@ -452,9 +452,9 @@ describe("Document expirations listing, timezone awareness, and authorization in
       return { [SESSION_COOKIE_NAME]: cookie, [CSRF_COOKIE_NAME]: csrfToken };
     };
 
-    const managerCookies = await loginAs(`manager-exp-${orgId.slice(0, 6)}@docuflow.local`);
-    const scopedCookies = await loginAs(`scoped-exp-${orgId.slice(0, 6)}@docuflow.local`);
-    const unprivCookies = await loginAs(`noperm-exp-${orgId.slice(0, 6)}@docuflow.local`);
+    const managerCookies = await loginAs(`manager-exp-${orgId.slice(0, 6)}@papyrus.local`);
+    const scopedCookies = await loginAs(`scoped-exp-${orgId.slice(0, 6)}@papyrus.local`);
+    const unprivCookies = await loginAs(`noperm-exp-${orgId.slice(0, 6)}@papyrus.local`);
 
     // 1. Default organization timezone (America/Sao_Paulo -> 2026-11-21)
     // For manager (non-archived, non-deleted):

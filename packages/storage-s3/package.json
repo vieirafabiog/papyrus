@@ -1,5 +1,5 @@
 {
-  "name": "@docuflow/storage-s3",
+  "name": "@papyrus/storage-s3",
   "version": "1.0.0-rc.1",
   "private": true,
   "type": "module",
@@ -20,7 +20,7 @@
   "dependencies": {
     "@aws-sdk/client-s3": "^3.758.0",
     "@aws-sdk/s3-request-presigner": "^3.758.0",
-    "@docuflow/storage-core": "workspace:*",
+    "@papyrus/storage-core": "workspace:*",
     "zod": "^3.24.2"
   },
   "devDependencies": {

@@ -1,12 +1,12 @@
-# Guia de Conectores de Armazenamento (DocuFlow)
+# Guia de Conectores de Armazenamento (papyrus)
 
-Este guia descreve a configuração, os controles de segurança, os testes de saúde e as limitações dos conectores de armazenamento do **DocuFlow** no MVP self-hosted: **Filesystem Local (`local`)** e **S3 Compatível (`s3`)**.
+Este guia descreve a configuração, os controles de segurança, os testes de saúde e as limitações dos conectores de armazenamento do **papyrus** no MVP self-hosted: **Filesystem Local (`local`)** e **S3 Compatível (`s3`)**.
 
 ---
 
 ## 1. Visão Arquitetural e Chaves Opacas
 
-O domínio documental e a API comunicam-se com arquivos binários exclusivamente através da abstração `@docuflow/storage-core` (`StorageProvider` e `StorageProviderRegistry`):
+O domínio documental e a API comunicam-se com arquivos binários exclusivamente através da abstração `@papyrus/storage-core` (`StorageProvider` e `StorageProviderRegistry`):
 
 - **Identidade lógica separada do binário:** cada registro em `file_objects` guarda `storage_connection_id`, `object_key`, `size_bytes`, `detected_content_type` e `checksum_sha256`.
 - **Chave opaca gerada no servidor:** todos os objetos seguem o padrão sem PII nem nome original do arquivo:
@@ -17,7 +17,7 @@ O domínio documental e a API comunicam-se com arquivos binários exclusivamente
 
 - **Matriz de capacidades atual (`StorageCapabilities`):**
 
-| Capacidade | Local (`@docuflow/storage-local`) | S3 Compatível (`@docuflow/storage-s3`) |
+| Capacidade | Local (`@papyrus/storage-local`) | S3 Compatível (`@papyrus/storage-s3`) |
 | --- | --- | --- |
 | Leitura por stream (`streamingRead`) | Sim | Sim |
 | Escrita por stream (`streamingWrite`) | Sim | Sim |
@@ -32,40 +32,40 @@ Quando URLs assinadas não estão disponíveis ou suportadas pelo conector, uplo
 
 ## 2. Conector Filesystem Local (`kind: "local"`)
 
-Implementado em `@docuflow/storage-local` para armazenamentos persistentes locais (disco local, volume Docker, NFS confiável montado no servidor).
+Implementado em `@papyrus/storage-local` para armazenamentos persistentes locais (disco local, volume Docker, NFS confiável montado no servidor).
 
 ### 2.1 Configuração na administração
 
 | Campo | Obrigatório | Descrição |
 | --- | --- | --- |
 | Nome da conexão | Sim | Identificador único da conexão na organização |
-| Diretório raiz (`rootDirectory`) | Sim | Caminho absoluto persistente dentro do container/host (ex.: `/var/lib/docuflow/storage`) |
+| Diretório raiz (`rootDirectory`) | Sim | Caminho absoluto persistente dentro do container/host (ex.: `/var/lib/papyrus/storage`) |
 | Tamanho máximo por objeto (`maxObjectSizeBytes`) | Não | Limite adicional por objeto em bytes aplicado pelo conector |
 | Espaço livre mínimo (`minFreeBytes`) | Não | Limiar mínimo em bytes verificado durante o health check |
 
 ### 2.2 Permissões mínimas no sistema de arquivos
 
 - Os containers `api` e `worker` executam com usuário não-root **`node` (`UID 1000 / GID 1000`)**.
-- No Compose padrão (`infra/compose/docker-compose.yml`), o volume nomeado `docuflow_storage_data` é montado em `/var/lib/docuflow/storage` em ambos os containers (`api` e `worker`).
+- No Compose padrão (`infra/compose/docker-compose.yml`), o volume nomeado `papyrus_storage_data` é montado em `/var/lib/papyrus/storage` em ambos os containers (`api` e `worker`).
 - Se utilizar bind mount no host, garanta propriedade e permissão restrita:
 
 ```bash
-mkdir -p /var/lib/docuflow/storage
-chown -R 1000:1000 /var/lib/docuflow/storage
-chmod 750 /var/lib/docuflow/storage
+mkdir -p /var/lib/papyrus/storage
+chown -R 1000:1000 /var/lib/papyrus/storage
+chmod 750 /var/lib/papyrus/storage
 ```
 
 ### 2.3 Garantias de segurança local
 
 - Escrita atômica via arquivo temporário `.tmp-*` seguido de `fsync` opcional e `rename`, prevenindo leitura de objetos parciais.
-- Metadados técnicos armazenados em sidecar JSON sob `.docuflow-meta/`.
+- Metadados técnicos armazenados em sidecar JSON sob `.papyrus-meta/`.
 - Rejeição estrita de *path traversal* (`..`, `\`, URL-encoding, bytes nulos, dotfiles ou nomes reservados) e bloqueio de **symlinks** em qualquer componente do caminho (`safe-path.ts`).
 
 ---
 
 ## 3. Conector S3 Compatível (`kind: "s3"`)
 
-Implementado em `@docuflow/storage-s3` com AWS SDK v3 isolado de domínio, banco e frontend. Testado contra **MinIO** e endpoints compatíveis com API S3.
+Implementado em `@papyrus/storage-s3` com AWS SDK v3 isolado de domínio, banco e frontend. Testado contra **MinIO** e endpoints compatíveis com API S3.
 
 ### 3.1 Parâmetros de configuração
 
@@ -95,20 +95,20 @@ Antes de cadastrar ou operar um endpoint S3, `validateS3EndpointUrl` e `validate
 
 ### 3.3 Permissões mínimas recomendadas no bucket (IAM / MinIO Policy)
 
-O DocuFlow **não cria nem exclui buckets**. Conceda à chave de serviço apenas o conjunto mínimo no bucket/prefixo alvo:
+O papyrus **não cria nem exclui buckets**. Conceda à chave de serviço apenas o conjunto mínimo no bucket/prefixo alvo:
 
 ```json
 {
   "Version": "2012-10-17",
   "Statement": [
     {
-      "Sid": "DocuflowBucketCheck",
+      "Sid": "PapyrusBucketCheck",
       "Effect": "Allow",
       "Action": ["s3:ListBucket", "s3:GetBucketLocation"],
       "Resource": "arn:aws:s3:::SEU_BUCKET"
     },
     {
-      "Sid": "DocuflowObjectOperations",
+      "Sid": "PapyrusObjectOperations",
       "Effect": "Allow",
       "Action": ["s3:PutObject", "s3:GetObject", "s3:DeleteObject"],
       "Resource": "arn:aws:s3:::SEU_BUCKET/*"
@@ -124,7 +124,7 @@ Se utilizar `keyPrefix`, restrinja o recurso de objetos a `arn:aws:s3:::SEU_BUCK
 O repositório disponibiliza o serviço opcional `minio` em [docker-compose.storage.yml](../infra/compose/docker-compose.storage.yml) sob os perfis `minio` e `lab-storage`:
 
 ```bash
-MINIO_ROOT_USER=docuflow-minio \
+MINIO_ROOT_USER=papyrus-minio \
 MINIO_ROOT_PASSWORD='<SENHA_FORTE_MINIO>' \
 docker compose --env-file .env \
   -f infra/compose/docker-compose.yml \
@@ -132,23 +132,23 @@ docker compose --env-file .env \
   --profile minio up -d
 ```
 
-Checklist para conectar o MinIO no DocuFlow:
+Checklist para conectar o MinIO no papyrus:
 
-1. Crie o bucket previamente no MinIO (ex.: `docuflow`) e uma *Access Key* com a política mínima da seção 3.3.
+1. Crie o bucket previamente no MinIO (ex.: `papyrus`) e uma *Access Key* com a política mínima da seção 3.3.
 2. Utilize **`forcePathStyle: true`** no cadastro da conexão S3.
 3. Em produção, exponha o MinIO atrás de TLS válido (`https://storage.suaempresa.com.br`) com certificado confiável ou informe a CA interna em `caCertificatePem`.
 4. Apenas em laboratório local sem TLS (`http://127.0.0.1:9000` ou `http://minio:9000`), habilite explicitamente `allowInsecureHttp` e a política controlada de endpoints privados (`S3EndpointSecurityPolicy`); nunca utilize HTTP em produção aberta.
 
 ### 3.5 Checksums e URLs pré-assinadas
 
-- No modo padrão `checksumSupport: "auto"`, o conector envia SHA-256 nativo S3 e mantém fallback seguro para validação via metadado `x-amz-meta-docuflow-sha256` combinada à conferência de hash no stream de upload/download quando o provedor não suporta checksum nativo.
+- No modo padrão `checksumSupport: "auto"`, o conector envia SHA-256 nativo S3 e mantém fallback seguro para validação via metadado `x-amz-meta-papyrus-sha256` combinada à conferência de hash no stream de upload/download quando o provedor não suporta checksum nativo.
 - Quando `enableSignedTargets` está habilitado, as URLs geradas impõem TTL curto (limites de `15` a `120` segundos por padrão, teto administrativo `<= 900` s), chave de objeto única sem caracteres de controle, `Content-Disposition` sanitizado contra CRLF/traversal e bloqueio de exposição de segredos ou `sessionToken`.
 
 ---
 
 ## 4. Proteção de Credenciais e Rotação
 
-- As credenciais S3 (`accessKeyId`, `secretAccessKey`, `sessionToken`) são cifradas em AES-256-GCM pelo `@docuflow/storage-core` (`createStorageSecretVault`) utilizando a chave mestra `ENCRYPTION_KEY` (256 bits) externa ao banco antes de gravar `encrypted_secret_payload` no PostgreSQL.
+- As credenciais S3 (`accessKeyId`, `secretAccessKey`, `sessionToken`) são cifradas em AES-256-GCM pelo `@papyrus/storage-core` (`createStorageSecretVault`) utilizando a chave mestra `ENCRYPTION_KEY` (256 bits) externa ao banco antes de gravar `encrypted_secret_payload` no PostgreSQL.
 - A API e a UI **nunca** retornam segredos descriptografados nem URLs com credenciais (`hasCredentials: true` + máscara visual na UI).
 - Ao editar uma conexão S3 existente sem informar novas credenciais, os segredos cifrados anteriores são preservados.
 - Em erros e logs, URLs assinadas e mensagens com credenciais são sanitizadas antes do registro.
@@ -160,8 +160,8 @@ Checklist para conectar o MinIO no DocuFlow:
 
 ### 5.1 Verificação de saúde (`POST /api/v1/admin/storage-connections/:id/test`)
 
-- **Local:** verifica existência do diretório raiz, ausência de symlinks indevidos, permissões de leitura/escrita/execução, espaço disponível (`minFreeBytes`) e sonda controlada de criação/leitura/remoção (`.docuflow-health-*.tmp`).
-- **S3:** valida sintaxe e resolução DNS anti-SSRF, executa `HeadBucket` e, quando habilitada a sonda completa (`verifyReadWrite`), grava e remove um objeto temporário `.docuflow-health-probe-*` respeitando `keyPrefix`.
+- **Local:** verifica existência do diretório raiz, ausência de symlinks indevidos, permissões de leitura/escrita/execução, espaço disponível (`minFreeBytes`) e sonda controlada de criação/leitura/remoção (`.papyrus-health-*.tmp`).
+- **S3:** valida sintaxe e resolução DNS anti-SSRF, executa `HeadBucket` e, quando habilitada a sonda completa (`verifyReadWrite`), grava e remove um objeto temporário `.papyrus-health-probe-*` respeitando `keyPrefix`.
 - O resultado grava `lastHealthCheckAt`, `lastHealthMessage`, atualiza `status` (`ACTIVE` ou `ERROR`) e registra evento na tabela `audit_events`.
 
 ### 5.2 Conexão padrão, roteamento por categoria e conexões inativas

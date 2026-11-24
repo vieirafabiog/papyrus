@@ -1,6 +1,6 @@
 import "@testing-library/jest-dom/vitest";
-import { UiLocaleProvider, papyrusTheme } from "@docuflow/ui";
 import { CssBaseline, ThemeProvider } from "@mui/material";
+import { UiLocaleProvider, papyrusTheme } from "@papyrus/ui";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
@@ -17,7 +17,7 @@ function buildSession(roleKey: "admin" | "collaborator") {
     user: {
       id: "550e8400-e29b-41d4-a716-446655440010",
       organizationId: ORG_ID,
-      email: `${roleKey}@docuflow.local`,
+      email: `${roleKey}@papyrus.local`,
       fullName: roleKey === "admin" ? "Administradora" : "Colaborador",
       status: "ACTIVE",
       createdAt: "2026-01-01T10:00:00.000Z",

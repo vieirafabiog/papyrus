@@ -1,12 +1,3 @@
-import type { DocumentListItem, DocumentStatus, FolderRecord } from "@docuflow/contracts";
-import {
-  DataTable,
-  type DataTableColumn,
-  EmptyState,
-  ErrorState,
-  LoadingState,
-  PAPYRUS_COLOR_TOKENS,
-} from "@docuflow/ui";
 import ArchiveOutlinedIcon from "@mui/icons-material/ArchiveOutlined";
 import ArrowBackOutlinedIcon from "@mui/icons-material/ArrowBackOutlined";
 import CreateNewFolderOutlinedIcon from "@mui/icons-material/CreateNewFolderOutlined";
@@ -35,6 +26,15 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
+import type { DocumentListItem, DocumentStatus, FolderRecord } from "@papyrus/contracts";
+import {
+  DataTable,
+  type DataTableColumn,
+  EmptyState,
+  ErrorState,
+  LoadingState,
+  PAPYRUS_COLOR_TOKENS,
+} from "@papyrus/ui";
 import { type FormEvent, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { containsTechnicalJargon } from "../../i18n/api-errors.js";

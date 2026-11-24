@@ -1,6 +1,6 @@
 import "@testing-library/jest-dom/vitest";
-import { UiLocaleProvider, createPapyrusTheme } from "@docuflow/ui";
 import { CssBaseline, ThemeProvider } from "@mui/material";
+import { UiLocaleProvider, createPapyrusTheme } from "@papyrus/ui";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
@@ -118,7 +118,7 @@ function buildDocumentDetailPayload() {
     owner: {
       id: USER_ID,
       fullName: "Maria Silva",
-      email: "maria@docuflow.local",
+      email: "maria@papyrus.local",
     },
     currentVersion: {
       id: VER_3_ID,
@@ -164,7 +164,7 @@ function buildVersionsPayload() {
       fileObjectId: FILE_3_ID,
       uploadedByUserId: USER_ID,
       isCurrent: true,
-      uploadedByUser: { id: USER_ID, fullName: "Maria Silva", email: "maria@docuflow.local" },
+      uploadedByUser: { id: USER_ID, fullName: "Maria Silva", email: "maria@papyrus.local" },
       changeNote: "Versão posterior",
       createdAt: "2026-11-20T11:00:00Z",
       fileObject: {
@@ -184,7 +184,7 @@ function buildVersionsPayload() {
       fileObjectId: FILE_2_ID,
       uploadedByUserId: USER_ID,
       isCurrent: false,
-      uploadedByUser: { id: USER_ID, fullName: "Ana Revisora", email: "ana@docuflow.local" },
+      uploadedByUser: { id: USER_ID, fullName: "Ana Revisora", email: "ana@papyrus.local" },
       changeNote: "Ajustes de cláusula 4",
       createdAt: "2026-11-18T09:30:00Z",
       fileObject: {
@@ -204,7 +204,7 @@ function buildVersionsPayload() {
       fileObjectId: FILE_2_ID,
       uploadedByUserId: USER_ID,
       isCurrent: false,
-      uploadedByUser: { id: USER_ID, fullName: "Maria Silva", email: "maria@docuflow.local" },
+      uploadedByUser: { id: USER_ID, fullName: "Maria Silva", email: "maria@papyrus.local" },
       changeNote: "Versão inicial",
       createdAt: "2026-11-01T09:00:00Z",
       fileObject: null,

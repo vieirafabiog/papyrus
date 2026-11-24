@@ -8,7 +8,7 @@ import {
   type StoredSessionRecord,
   createPasswordService,
   createSessionService,
-} from "@docuflow/auth";
+} from "@papyrus/auth";
 import {
   auditEvents,
   createAuditRepository,
@@ -22,8 +22,8 @@ import {
   sessions,
   userRoleScopes,
   users,
-} from "@docuflow/database";
-import { createOrganizationService } from "@docuflow/domain";
+} from "@papyrus/database";
+import { createOrganizationService } from "@papyrus/domain";
 import { PostgreSqlContainer, type StartedPostgreSqlContainer } from "@testcontainers/postgresql";
 import { and, desc, eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/node-postgres";
@@ -122,7 +122,7 @@ describe("Organization data and preferences API integration (Step 14.01)", () =>
       {
         id: adminId,
         organizationId: orgId,
-        email: `admin-org-${orgId.slice(0, 6)}@docuflow.local`,
+        email: `admin-org-${orgId.slice(0, 6)}@papyrus.local`,
         fullName: "Administrador Organização",
         passwordHash,
         status: "ACTIVE",
@@ -130,7 +130,7 @@ describe("Organization data and preferences API integration (Step 14.01)", () =>
       {
         id: readOnlyId,
         organizationId: orgId,
-        email: `reader-org-${orgId.slice(0, 6)}@docuflow.local`,
+        email: `reader-org-${orgId.slice(0, 6)}@papyrus.local`,
         fullName: "Auditor Organização",
         passwordHash,
         status: "ACTIVE",
@@ -138,7 +138,7 @@ describe("Organization data and preferences API integration (Step 14.01)", () =>
       {
         id: collabId,
         organizationId: orgId,
-        email: `collab-org-${orgId.slice(0, 6)}@docuflow.local`,
+        email: `collab-org-${orgId.slice(0, 6)}@papyrus.local`,
         fullName: "Colaborador Comum",
         passwordHash,
         status: "ACTIVE",
@@ -319,9 +319,9 @@ describe("Organization data and preferences API integration (Step 14.01)", () =>
     const unauthRes = await app.inject({ method: "GET", url: "/api/v1/organization" });
     expect(unauthRes.statusCode).toBe(401);
 
-    const adminAuth = await loginAndGetHeaders(`admin-org-${orgId.slice(0, 6)}@docuflow.local`);
-    const readerAuth = await loginAndGetHeaders(`reader-org-${orgId.slice(0, 6)}@docuflow.local`);
-    const collabAuth = await loginAndGetHeaders(`collab-org-${orgId.slice(0, 6)}@docuflow.local`);
+    const adminAuth = await loginAndGetHeaders(`admin-org-${orgId.slice(0, 6)}@papyrus.local`);
+    const readerAuth = await loginAndGetHeaders(`reader-org-${orgId.slice(0, 6)}@papyrus.local`);
+    const collabAuth = await loginAndGetHeaders(`collab-org-${orgId.slice(0, 6)}@papyrus.local`);
 
     // 2. Collaborator without ORGANIZATION permissions receives 403 on GET and PATCH
     const collabGet = await app.inject({
@@ -400,7 +400,7 @@ describe("Organization data and preferences API integration (Step 14.01)", () =>
         [CSRF_HEADER_NAME]: adminAuth.csrfToken,
       },
       payload: {
-        name: "DocuFlow Corporativo S.A.",
+        name: "papyrus Corporativo S.A.",
         defaultLanguage: "en-US",
         timezone: "America/Manaus",
         preferences: {
@@ -417,7 +417,7 @@ describe("Organization data and preferences API integration (Step 14.01)", () =>
     expect(patchRes.json().data.canEdit).toBe(true);
     expect(patchRes.json().data.organization).toMatchObject({
       id: orgId,
-      name: "DocuFlow Corporativo S.A.",
+      name: "papyrus Corporativo S.A.",
       defaultLanguage: "en-US",
       timezone: "America/Manaus",
       preferences: {
@@ -437,7 +437,7 @@ describe("Organization data and preferences API integration (Step 14.01)", () =>
       headers: { cookie: adminAuth.cookieHeader },
     });
     expect(verifyGetRes.statusCode).toBe(200);
-    expect(verifyGetRes.json().data.organization.name).toBe("DocuFlow Corporativo S.A.");
+    expect(verifyGetRes.json().data.organization.name).toBe("papyrus Corporativo S.A.");
 
     const [auditRow] = await db
       .select()

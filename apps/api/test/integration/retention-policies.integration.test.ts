@@ -8,7 +8,7 @@ import {
   type StoredSessionRecord,
   createPasswordService,
   createSessionService,
-} from "@docuflow/auth";
+} from "@papyrus/auth";
 import {
   auditEvents,
   categories,
@@ -27,8 +27,8 @@ import {
   sessions,
   userRoleScopes,
   users,
-} from "@docuflow/database";
-import { createRetentionGovernanceService } from "@docuflow/domain";
+} from "@papyrus/database";
+import { createRetentionGovernanceService } from "@papyrus/domain";
 import { PostgreSqlContainer, type StartedPostgreSqlContainer } from "@testcontainers/postgresql";
 import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/node-postgres";
@@ -102,7 +102,7 @@ describe("Retention policies and legal holds API integration (Step 13.06)", () =
       {
         id: adminId,
         organizationId: orgId,
-        email: `admin-ret-${orgId.slice(0, 6)}@docuflow.local`,
+        email: `admin-ret-${orgId.slice(0, 6)}@papyrus.local`,
         fullName: "Admin Retenção",
         passwordHash,
         status: "ACTIVE",
@@ -110,7 +110,7 @@ describe("Retention policies and legal holds API integration (Step 13.06)", () =
       {
         id: viewerId,
         organizationId: orgId,
-        email: `viewer-ret-${orgId.slice(0, 6)}@docuflow.local`,
+        email: `viewer-ret-${orgId.slice(0, 6)}@papyrus.local`,
         fullName: "Leitor Comum",
         passwordHash,
         status: "ACTIVE",
@@ -304,8 +304,8 @@ describe("Retention policies and legal holds API integration (Step 13.06)", () =
       return { [SESSION_COOKIE_NAME]: cookie, [CSRF_COOKIE_NAME]: csrfToken };
     };
 
-    const adminCookies = await loginAs(`admin-ret-${orgId.slice(0, 6)}@docuflow.local`);
-    const viewerCookies = await loginAs(`viewer-ret-${orgId.slice(0, 6)}@docuflow.local`);
+    const adminCookies = await loginAs(`admin-ret-${orgId.slice(0, 6)}@papyrus.local`);
+    const viewerCookies = await loginAs(`viewer-ret-${orgId.slice(0, 6)}@papyrus.local`);
 
     // Initially empty (no pre-seeded universal legal timeframes)
     const initialListRes = await app.inject({

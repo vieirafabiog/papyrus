@@ -5,7 +5,7 @@ import type {
   WorkflowStepCommentRules,
   WorkflowStepDefinition,
   WorkflowTaskStatus,
-} from "@docuflow/domain";
+} from "@papyrus/domain";
 import { type SQL, and, asc, count, desc, eq, inArray, isNotNull, lt, ne, or } from "drizzle-orm";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 import { documentVersions, documents } from "../schema/documents.js";

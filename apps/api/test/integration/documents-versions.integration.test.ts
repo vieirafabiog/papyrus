@@ -8,7 +8,7 @@ import {
   type StoredSessionRecord,
   createPasswordService,
   createSessionService,
-} from "@docuflow/auth";
+} from "@papyrus/auth";
 import {
   auditEvents,
   categories,
@@ -29,8 +29,8 @@ import {
   storageConnections,
   userRoleScopes,
   users,
-} from "@docuflow/database";
-import { createDocumentVersionUseCase } from "@docuflow/domain";
+} from "@papyrus/database";
+import { createDocumentVersionUseCase } from "@papyrus/domain";
 import { PostgreSqlContainer, type StartedPostgreSqlContainer } from "@testcontainers/postgresql";
 import { asc, eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/node-postgres";
@@ -116,7 +116,7 @@ describe("Append-only document version creation and concurrency control integrat
 
     await db.insert(organizations).values({
       id: orgId,
-      name: "DocuFlow Versions Corp",
+      name: "papyrus Versions Corp",
       slug: `doc-ver-${orgId.slice(0, 8)}`,
     });
 
@@ -178,7 +178,7 @@ describe("Append-only document version creation and concurrency control integrat
       {
         id: actorUserId,
         organizationId: orgId,
-        email: `colab-ver-${orgId.slice(0, 6)}@docuflow.local`,
+        email: `colab-ver-${orgId.slice(0, 6)}@papyrus.local`,
         fullName: "Collaborator Version",
         passwordHash,
         status: "ACTIVE",
@@ -186,7 +186,7 @@ describe("Append-only document version creation and concurrency control integrat
       {
         id: viewerUserId,
         organizationId: orgId,
-        email: `viewer-ver-${orgId.slice(0, 6)}@docuflow.local`,
+        email: `viewer-ver-${orgId.slice(0, 6)}@papyrus.local`,
         fullName: "Viewer Version",
         passwordHash,
         status: "ACTIVE",
@@ -236,7 +236,7 @@ describe("Append-only document version creation and concurrency control integrat
       kind: "local",
       status: "ACTIVE",
       isDefault: true,
-      nonSecretConfig: { rootDirectory: "/tmp/docuflow-versions" },
+      nonSecretConfig: { rootDirectory: "/tmp/papyrus-versions" },
     });
 
     await db.insert(fileObjects).values([
@@ -402,7 +402,7 @@ describe("Append-only document version creation and concurrency control integrat
       cookies: { [CSRF_COOKIE_NAME]: csrfToken },
       headers: { [CSRF_HEADER_NAME]: csrfToken },
       payload: {
-        email: `colab-ver-${orgId.slice(0, 6)}@docuflow.local`,
+        email: `colab-ver-${orgId.slice(0, 6)}@papyrus.local`,
         password: "Versions!2026",
       },
     });
@@ -500,7 +500,7 @@ describe("Append-only document version creation and concurrency control integrat
       cookies: { [CSRF_COOKIE_NAME]: csrfToken },
       headers: { [CSRF_HEADER_NAME]: csrfToken },
       payload: {
-        email: `viewer-ver-${orgId.slice(0, 6)}@docuflow.local`,
+        email: `viewer-ver-${orgId.slice(0, 6)}@papyrus.local`,
         password: "Versions!2026",
       },
     });

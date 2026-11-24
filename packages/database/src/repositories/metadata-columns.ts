@@ -1,4 +1,4 @@
-import type { CategoryFieldType, DocumentMetadataValue } from "@docuflow/domain";
+import type { CategoryFieldType, DocumentMetadataValue } from "@papyrus/domain";
 import type { DocumentMetadataColumnValue } from "../schema/documents.js";
 
 /**

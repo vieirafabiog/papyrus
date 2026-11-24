@@ -3,7 +3,7 @@ set -euo pipefail
 umask 077
 
 # ==============================================================================
-# DocuFlow — Backup de arquivos do armazenamento local
+# papyrus — Backup de arquivos do armazenamento local
 # Gera snapshot compactado (.tar.gz) preservando estrutura de diretórios e
 # integridade via manifesto SHA-256 por arquivo e checksum do arquivo final.
 #
@@ -31,10 +31,10 @@ log_json() {
   local ts
   ts=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
   if [ -n "$extra" ]; then
-    printf '{"timestamp":"%s","level":"%s","service":"docuflow-files-backup","message":"%s",%s}\n' \
+    printf '{"timestamp":"%s","level":"%s","service":"papyrus-files-backup","message":"%s",%s}\n' \
       "$ts" "$level" "$message" "$extra"
   else
-    printf '{"timestamp":"%s","level":"%s","service":"docuflow-files-backup","message":"%s"}\n' \
+    printf '{"timestamp":"%s","level":"%s","service":"papyrus-files-backup","message":"%s"}\n' \
       "$ts" "$level" "$message"
   fi
 }
@@ -71,7 +71,7 @@ apply_retention_policy() {
   local max_files="$4"
   local min_keep="$5"
 
-  mapfile -t all_archives < <(find "$backup_dir" -maxdepth 1 -type f -name 'docuflow-files-*.tar.gz' -printf '%T@ %p\n' | sort -rn | cut -d' ' -f2-)
+  mapfile -t all_archives < <(find "$backup_dir" -maxdepth 1 -type f -name 'papyrus-files-*.tar.gz' -printf '%T@ %p\n' | sort -rn | cut -d' ' -f2-)
   local total=${#all_archives[@]}
   local pruned=0
 
@@ -181,7 +181,7 @@ main() {
 
   local timestamp
   timestamp=$(date -u +"%Y%m%dT%H%M%SZ")
-  local base_prefix="docuflow-files-${timestamp}"
+  local base_prefix="papyrus-files-${timestamp}"
   local archive_name="${base_prefix}.tar.gz"
   local tmp_archive="${TMP_DIR}/${archive_name}"
   local tmp_manifest="${TMP_DIR}/${base_prefix}.manifest.sha256"

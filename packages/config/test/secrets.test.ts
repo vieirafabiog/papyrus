@@ -61,7 +61,7 @@ describe("External master key loading and validation", () => {
   });
 
   it("loads master key from ENCRYPTION_KEY_FILE and parses previous rotation keys", async () => {
-    const dir = await mkdtemp(path.join(os.tmpdir(), "docuflow-secret-"));
+    const dir = await mkdtemp(path.join(os.tmpdir(), "papyrus-secret-"));
     tempDirs.push(dir);
     const keyFile = path.join(dir, "master.key");
     const activeBytes = randomBytes(32);

@@ -1,8 +1,8 @@
 import { createHash } from "node:crypto";
 import { PassThrough, type Readable } from "node:stream";
-import { uuidSchema } from "@docuflow/contracts";
-import type { OutboxJobRecord, OutboxRepository } from "@docuflow/database";
-import { UPLOAD_PROCESSING_EVENT_TYPE } from "@docuflow/database";
+import { uuidSchema } from "@papyrus/contracts";
+import type { OutboxJobRecord, OutboxRepository } from "@papyrus/database";
+import { UPLOAD_PROCESSING_EVENT_TYPE } from "@papyrus/database";
 import type {
   AuditRepositoryPort,
   DocumentRepositoryPort,
@@ -10,15 +10,15 @@ import type {
   StorageConnectionRepositoryPort,
   TransactionManagerPort,
   UploadSessionRepositoryPort,
-} from "@docuflow/domain";
+} from "@papyrus/domain";
 import {
   type AntivirusScannerPort,
   type ContentDetectionPolicy,
   DEFAULT_HEADER_SAMPLE_BYTES,
   inspectFileContent,
   isChecksumEqualConstantTime,
-} from "@docuflow/file-processing";
-import { StorageError, type StorageProviderRegistry } from "@docuflow/storage-core";
+} from "@papyrus/file-processing";
+import { StorageError, type StorageProviderRegistry } from "@papyrus/storage-core";
 import { z } from "zod";
 
 const DEFAULT_MAX_ATTEMPTS = 5;

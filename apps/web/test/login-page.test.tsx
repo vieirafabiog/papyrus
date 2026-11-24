@@ -1,6 +1,6 @@
 import "@testing-library/jest-dom/vitest";
-import { UiLocaleProvider, papyrusTheme } from "@docuflow/ui";
 import { CssBaseline, ThemeProvider } from "@mui/material";
+import { UiLocaleProvider, papyrusTheme } from "@papyrus/ui";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
@@ -67,7 +67,7 @@ describe("LoginPage", () => {
     renderLoginPage();
 
     fireEvent.change(screen.getByLabelText(/Work email/i), {
-      target: { value: "usuario@docuflow.invalid" },
+      target: { value: "usuario@papyrus.invalid" },
     });
     fireEvent.change(screen.getByLabelText(/^Password/i), {
       target: { value: "SenhaSegura123!" },
@@ -109,7 +109,7 @@ describe("LoginPage", () => {
     renderLoginPage();
 
     fireEvent.change(screen.getByLabelText(/Work email/i), {
-      target: { value: "admin@docuflow.invalid" },
+      target: { value: "admin@papyrus.invalid" },
     });
     fireEvent.change(screen.getByLabelText(/^Password/i), {
       target: { value: "SenhaForte123!" },

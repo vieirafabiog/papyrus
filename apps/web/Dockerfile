@@ -11,27 +11,27 @@ COPY packages/contracts/package.json packages/contracts/package.json
 COPY packages/ui/package.json packages/ui/package.json
 COPY apps/web/package.json apps/web/package.json
 
-RUN pnpm install --frozen-lockfile --filter @docuflow/web...
+RUN pnpm install --frozen-lockfile --filter @papyrus/web...
 
 COPY packages/contracts packages/contracts
 COPY packages/ui packages/ui
 COPY apps/web apps/web
 
-RUN pnpm --filter @docuflow/contracts build \
-  && pnpm --filter @docuflow/ui build \
-  && pnpm --filter @docuflow/web build
+RUN pnpm --filter @papyrus/contracts build \
+  && pnpm --filter @papyrus/ui build \
+  && pnpm --filter @papyrus/web build
 
 FROM nginxinc/nginx-unprivileged:1.27.5-alpine3.21 AS runtime
 
-ARG DOCUFLOW_VERSION=1.0.0-rc.1
+ARG PAPYRUS_VERSION=1.0.0-rc.1
 ARG VCS_REF=unknown
 
-LABEL org.opencontainers.image.title="docuflow-web" \
-      org.opencontainers.image.description="DocuFlow web frontend static container" \
-      org.opencontainers.image.version="${DOCUFLOW_VERSION}" \
+LABEL org.opencontainers.image.title="papyrus-web" \
+      org.opencontainers.image.description="papyrus web frontend static container" \
+      org.opencontainers.image.version="${PAPYRUS_VERSION}" \
       org.opencontainers.image.revision="${VCS_REF}"
 
-ENV DOCUFLOW_VERSION="${DOCUFLOW_VERSION}"
+ENV PAPYRUS_VERSION="${PAPYRUS_VERSION}"
 
 USER 101
 

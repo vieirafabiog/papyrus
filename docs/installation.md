@@ -1,6 +1,6 @@
-# Guia de Instalação (DocuFlow)
+# Guia de Instalação (papyrus)
 
-Este guia descreve o passo a passo completo para implantar o **DocuFlow** em um servidor Linux limpo utilizando Docker Compose e Caddy como proxy HTTPS de referência.
+Este guia descreve o passo a passo completo para implantar o **papyrus** em um servidor Linux limpo utilizando Docker Compose e Caddy como proxy HTTPS de referência.
 
 ---
 
@@ -15,7 +15,7 @@ Este guia descreve o passo a passo completo para implantar o **DocuFlow** em um 
 ### Portas de rede
 - **Públicas (internet/rede corporativa):** `80/tcp` e `443/tcp` terminadas no proxy HTTPS (Caddy).
 - **Internas (não expor publicamente):**
-  - `postgres`: porta `5432` exclusivamente na rede isolada `docuflow_internal` (`internal: true`)
+  - `postgres`: porta `5432` exclusivamente na rede isolada `papyrus_internal` (`internal: true`)
   - `api`: porta `3000` apenas na rede interna/borda
   - `worker`: porta de health `3001` apenas na rede interna
   - `web`: porta `8080` (mapeada por padrão apenas para `127.0.0.1:8080`)
@@ -29,18 +29,18 @@ Este guia descreve o passo a passo completo para implantar o **DocuFlow** em um 
 ## 2. Obtenção do Código e Permissões
 
 ```bash
-git clone <URL_DO_REPOSITORIO> /opt/docuflow
-cd /opt/docuflow
+git clone <URL_DO_REPOSITORIO> /opt/papyrus
+cd /opt/papyrus
 ```
 
 ### Permissões de diretórios e volumes
 - Os containers `api` e `worker` executam com usuário não-root `node` (**UID `1000` / GID `1000`**).
 - O container `web` executa com usuário não-root `nginx` (**UID `101` / GID `101`**).
-- O volume nomeado `docuflow_storage_data` (montado em `/var/lib/docuflow/storage`) é gerenciado pelo Docker; caso utilize bind mount ou backup em host local, garanta que o diretório pertença ao UID `1000` e tenha permissão restrita:
+- O volume nomeado `papyrus_storage_data` (montado em `/var/lib/papyrus/storage`) é gerenciado pelo Docker; caso utilize bind mount ou backup em host local, garanta que o diretório pertença ao UID `1000` e tenha permissão restrita:
 
 ```bash
-mkdir -p /var/backups/docuflow/postgres /var/backups/docuflow/files
-chmod 700 /var/backups/docuflow /var/backups/docuflow/postgres /var/backups/docuflow/files
+mkdir -p /var/backups/papyrus/postgres /var/backups/papyrus/files
+chmod 700 /var/backups/papyrus /var/backups/papyrus/postgres /var/backups/papyrus/files
 ```
 
 ---
@@ -66,21 +66,21 @@ Edite `.env` ajustando no mínimo:
 
 ```dotenv
 NODE_ENV=production
-DOCUFLOW_IMAGE_TAG=v1.0.0
+PAPYRUS_IMAGE_TAG=v1.0.0
 
 APP_URL=https://ged.suaempresa.com.br
 API_URL=https://ged.suaempresa.com.br
 
-POSTGRES_DB=docuflow
-POSTGRES_USER=docuflow
+POSTGRES_DB=papyrus
+POSTGRES_USER=papyrus
 POSTGRES_PASSWORD=<SENHA_FORTE_GERADA>
-DATABASE_URL=postgresql://docuflow:<SENHA_FORTE_GERADA>@postgres:5432/docuflow
+DATABASE_URL=postgresql://papyrus:<SENHA_FORTE_GERADA>@postgres:5432/papyrus
 
 SESSION_SECRET=<HEX_64_CHARS_1>
 ENCRYPTION_KEY=<HEX_64_CHARS_2>
 
 STORAGE_DEFAULT_CONNECTION=local-default
-STORAGE_LOCAL_ROOT=/var/lib/docuflow/storage
+STORAGE_LOCAL_ROOT=/var/lib/papyrus/storage
 UPLOAD_MAX_BYTES=52428800
 PROXY_MAX_BODY_BYTES=54525952
 UPLOAD_ALLOWED_EXTENSIONS=.pdf,.png,.jpg,.jpeg,.webp,.gif,.tif,.tiff,.txt,.csv,.docx,.xlsx,.pptx
@@ -122,7 +122,7 @@ docker compose --env-file .env \
   --profile lab-storage up -d clamav minio
 ```
 
-Clientes que usam volume local (`docuflow_storage_data`) ou S3 externo **não** devem habilitar `minio`.
+Clientes que usam volume local (`papyrus_storage_data`) ou S3 externo **não** devem habilitar `minio`.
 
 ---
 
@@ -131,12 +131,12 @@ Clientes que usam volume local (`docuflow_storage_data`) ou S3 externo **não** 
 Execute as migrations antes de liberar o tráfego de usuários. O runner utiliza lock advisory no PostgreSQL e bloqueia qualquer seed destrutivo em `NODE_ENV=production`:
 
 ```bash
-pnpm --filter @docuflow/database build
-NODE_ENV=production DATABASE_URL="postgresql://docuflow:<SENHA>@127.0.0.1:5432/docuflow" \
+pnpm --filter @papyrus/database build
+NODE_ENV=production DATABASE_URL="postgresql://papyrus:<SENHA>@127.0.0.1:5432/papyrus" \
   ./scripts/maintenance/migrate-entrypoint.sh
 ```
 
-*(Caso o PostgreSQL esteja acessível apenas na rede Docker `docuflow_docuflow_internal`, execute `node packages/database/dist/migrate-cli.js` em container conectado a essa rede ou via `docker compose exec`.)*
+*(Caso o PostgreSQL esteja acessível apenas na rede Docker `papyrus_papyrus_internal`, execute `node packages/database/dist/migrate-cli.js` em container conectado a essa rede ou via `docker compose exec`.)*
 
 ---
 
@@ -156,7 +156,7 @@ docker run --rm \
   caddy:2.9.1-alpine caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile
 ```
 
-Certifique-se de que `DOCUFLOW_SITE_ADDRESS` aponta para `https://ged.suaempresa.com.br` (e `DOCUFLOW_TLS_EMAIL` está preenchido) ao subir o proxy conectado à rede `docuflow_docuflow_edge`.
+Certifique-se de que `PAPYRUS_SITE_ADDRESS` aponta para `https://ged.suaempresa.com.br` (e `PAPYRUS_TLS_EMAIL` está preenchido) ao subir o proxy conectado à rede `papyrus_papyrus_edge`.
 
 ---
 
@@ -170,20 +170,20 @@ Existem duas formas oficiais (ambas idempotentes — só funcionam enquanto não
 
 ### Opção B — Via linha de comando administrativa (automação)
 
-Utilizando o pacote compilado `@docuflow/api` (ou dentro do próprio container `api` em execução):
+Utilizando o pacote compilado `@papyrus/api` (ou dentro do próprio container `api` em execução):
 
 ```bash
-pnpm --filter @docuflow/api build
-DATABASE_URL="postgresql://docuflow:<SENHA>@<HOST_PG>:5432/docuflow" \
-DOCUFLOW_ORG_NAME="Sua Empresa" \
-DOCUFLOW_ORG_SLUG="sua-empresa" \
-DOCUFLOW_ADMIN_NAME="Administrador Inicial" \
-DOCUFLOW_ADMIN_EMAIL="admin@suaempresa.com.br" \
-DOCUFLOW_ADMIN_PASSWORD="<SENHA_ADMIN_FORTE>" \
-pnpm --filter @docuflow/api exec node --input-type=module -e '
+pnpm --filter @papyrus/api build
+DATABASE_URL="postgresql://papyrus:<SENHA>@<HOST_PG>:5432/papyrus" \
+PAPYRUS_ORG_NAME="Sua Empresa" \
+PAPYRUS_ORG_SLUG="sua-empresa" \
+PAPYRUS_ADMIN_NAME="Administrador Inicial" \
+PAPYRUS_ADMIN_EMAIL="admin@suaempresa.com.br" \
+PAPYRUS_ADMIN_PASSWORD="<SENHA_ADMIN_FORTE>" \
+pnpm --filter @papyrus/api exec node --input-type=module -e '
 import { randomUUID } from "node:crypto";
-import { createPasswordService } from "@docuflow/auth";
-import { createDatabaseClient } from "@docuflow/database";
+import { createPasswordService } from "@papyrus/auth";
+import { createDatabaseClient } from "@papyrus/database";
 import { createDrizzleSetupRepository } from "./dist/modules/setup/setup.repository.js";
 import { createSetupService } from "./dist/modules/setup/setup.service.js";
 const db = createDatabaseClient({ connectionString: process.env.DATABASE_URL });
@@ -193,11 +193,11 @@ try {
     passwordService: createPasswordService(),
   });
   const created = await service.bootstrapFirstAdmin({
-    organizationName: process.env.DOCUFLOW_ORG_NAME,
-    organizationSlug: process.env.DOCUFLOW_ORG_SLUG,
-    email: process.env.DOCUFLOW_ADMIN_EMAIL,
-    fullName: process.env.DOCUFLOW_ADMIN_NAME,
-    password: process.env.DOCUFLOW_ADMIN_PASSWORD,
+    organizationName: process.env.PAPYRUS_ORG_NAME,
+    organizationSlug: process.env.PAPYRUS_ORG_SLUG,
+    email: process.env.PAPYRUS_ADMIN_EMAIL,
+    fullName: process.env.PAPYRUS_ADMIN_NAME,
+    password: process.env.PAPYRUS_ADMIN_PASSWORD,
   }, randomUUID());
   console.log(JSON.stringify({ status: "created", ...created }));
 } finally {

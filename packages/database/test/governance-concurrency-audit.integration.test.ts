@@ -11,7 +11,7 @@ import {
   createWorkflowTasksUseCase,
   restoreDocumentUseCase,
   trashDocumentUseCase,
-} from "@docuflow/domain";
+} from "@papyrus/domain";
 import { PostgreSqlContainer, type StartedPostgreSqlContainer } from "@testcontainers/postgresql";
 import { and, asc, eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/node-postgres";
@@ -104,7 +104,7 @@ describe("Governance concurrency invariants and append-only audit trail integrat
 
     await db.insert(organizations).values({
       id: orgId,
-      name: "DocuFlow Governance Org",
+      name: "papyrus Governance Org",
       slug: `gov-org-${orgId.slice(0, 8)}`,
       locale: "pt-BR",
       timezone: "America/Sao_Paulo",
@@ -113,7 +113,7 @@ describe("Governance concurrency invariants and append-only audit trail integrat
     await userRepo.create({
       id: authorId,
       organizationId: orgId,
-      email: `author-${orgId.slice(0, 6)}@docuflow.local`,
+      email: `author-${orgId.slice(0, 6)}@papyrus.local`,
       fullName: "Autor Documental",
       passwordHash: "$argon2id$v=19$m=65536,t=3,p=1$salt$hash",
       status: "ACTIVE",
@@ -121,7 +121,7 @@ describe("Governance concurrency invariants and append-only audit trail integrat
     await userRepo.create({
       id: reviewerId,
       organizationId: orgId,
-      email: `reviewer-${orgId.slice(0, 6)}@docuflow.local`,
+      email: `reviewer-${orgId.slice(0, 6)}@papyrus.local`,
       fullName: "Revisor Sênior",
       passwordHash: "$argon2id$v=19$m=65536,t=3,p=1$salt$hash",
       status: "ACTIVE",
@@ -140,7 +140,7 @@ describe("Governance concurrency invariants and append-only audit trail integrat
       name: "Local Governança",
       kind: "local",
       isDefault: true,
-      nonSecretConfig: { rootDirectory: "/tmp/docuflow-gov-test" },
+      nonSecretConfig: { rootDirectory: "/tmp/papyrus-gov-test" },
       createdBy: authorId,
     });
 

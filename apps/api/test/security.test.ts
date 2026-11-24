@@ -4,7 +4,7 @@ import {
   type StoredSessionRecord,
   createPasswordService,
   createSessionService,
-} from "@docuflow/auth";
+} from "@papyrus/auth";
 import { describe, expect, it } from "vitest";
 import { buildApp } from "../src/app.js";
 import { createAuthService } from "../src/modules/auth/auth.service.js";
@@ -93,7 +93,7 @@ describe("Security plugin (CORS, CSRF, headers, and login rate limit)", () => {
     const missingCsrf = await app.inject({
       method: "POST",
       url: "/api/v1/auth/login",
-      payload: { email: "user@docuflow.invalid", password: "Password123!" },
+      payload: { email: "user@papyrus.invalid", password: "Password123!" },
     });
     expect(missingCsrf.statusCode).toBe(403);
     expect(missingCsrf.json().error.code).toBe("FORBIDDEN");
@@ -106,7 +106,7 @@ describe("Security plugin (CORS, CSRF, headers, and login rate limit)", () => {
       url: "/api/v1/auth/login",
       cookies: { [CSRF_COOKIE_NAME]: csrfToken },
       headers: { [CSRF_HEADER_NAME]: csrfToken },
-      payload: { email: "user@docuflow.invalid", password: "Password123!" },
+      payload: { email: "user@papyrus.invalid", password: "Password123!" },
     });
     expect(withCsrf.statusCode).toBe(401);
 
@@ -145,7 +145,7 @@ describe("Security plugin (CORS, CSRF, headers, and login rate limit)", () => {
         url: "/api/v1/auth/login",
         cookies: { [CSRF_COOKIE_NAME]: csrfToken },
         headers: { [CSRF_HEADER_NAME]: csrfToken },
-        payload: { email: "user@docuflow.invalid", password: "Password123!" },
+        payload: { email: "user@papyrus.invalid", password: "Password123!" },
       });
 
     expect((await attempt()).statusCode).toBe(401);

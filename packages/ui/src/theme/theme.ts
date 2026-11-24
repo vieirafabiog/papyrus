@@ -201,7 +201,3 @@ export function createPapyrusTheme(locale: PapyrusLocale = DEFAULT_PAPYRUS_LOCAL
 }
 
 export const papyrusTheme = createPapyrusTheme();
-
-// Aliases de compatibilidade mantidos até a migração técnica dos pacotes na Fase 4.
-export const createDocuflowTheme = createPapyrusTheme;
-export const docuflowTheme = papyrusTheme;

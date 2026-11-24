@@ -1,9 +1,3 @@
-import {
-  PAPYRUS_COLOR_TOKENS,
-  PAPYRUS_DENSITY_TOKENS,
-  PAPYRUS_SHAPE_TOKENS,
-  PapyrusLogo,
-} from "@docuflow/ui";
 import AssessmentOutlinedIcon from "@mui/icons-material/AssessmentOutlined";
 import CategoryOutlinedIcon from "@mui/icons-material/CategoryOutlined";
 import DashboardOutlinedIcon from "@mui/icons-material/DashboardOutlined";
@@ -32,6 +26,12 @@ import {
   Toolbar,
   Typography,
 } from "@mui/material";
+import {
+  PAPYRUS_COLOR_TOKENS,
+  PAPYRUS_DENSITY_TOKENS,
+  PAPYRUS_SHAPE_TOKENS,
+  PapyrusLogo,
+} from "@papyrus/ui";
 import type { ReactElement } from "react";
 import { Link as RouterLink, useLocation } from "react-router-dom";
 import { type MessageKey, useI18n } from "../i18n/index.js";

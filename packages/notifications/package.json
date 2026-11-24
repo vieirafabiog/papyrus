@@ -1,5 +1,5 @@
 {
-  "name": "@docuflow/notifications",
+  "name": "@papyrus/notifications",
   "version": "1.0.0-rc.1",
   "private": true,
   "type": "module",

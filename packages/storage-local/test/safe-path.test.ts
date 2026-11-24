@@ -1,7 +1,7 @@
 import { mkdir, mkdtemp, rm, symlink, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { StorageError } from "@docuflow/storage-core";
+import { StorageError } from "@papyrus/storage-core";
 import { afterEach, describe, expect, it } from "vitest";
 import {
   resolveSafeLocalPath,
@@ -28,7 +28,7 @@ afterEach(async () => {
 
 describe("Local safe path resolution", () => {
   it("resolves valid opaque object keys inside the configured root", async () => {
-    const rootDir = await makeTempDir("docuflow-local-root-");
+    const rootDir = await makeTempDir("papyrus-local-root-");
     const key =
       "org/11111111-1111-4111-8111-111111111111/documents/22222222-2222-4222-8222-222222222222/versions/33333333-3333-4333-8333-333333333333/44444444-4444-4444-8444-444444444444";
 
@@ -39,7 +39,7 @@ describe("Local safe path resolution", () => {
   });
 
   it("rejects path traversal, backslashes, hidden segments, control characters, and unexpected object names", async () => {
-    const rootDir = await makeTempDir("docuflow-local-invalid-");
+    const rootDir = await makeTempDir("papyrus-local-invalid-");
     const maliciousKeys = [
       "",
       "   ",
@@ -71,8 +71,8 @@ describe("Local safe path resolution", () => {
   });
 
   it("blocks symlink escapes in both intermediate directories and leaf object targets", async () => {
-    const rootDir = await makeTempDir("docuflow-local-sym-root-");
-    const outsideDir = await makeTempDir("docuflow-local-outside-");
+    const rootDir = await makeTempDir("papyrus-local-sym-root-");
+    const outsideDir = await makeTempDir("papyrus-local-outside-");
     const outsideFile = path.join(outsideDir, "secret.txt");
     await writeFile(outsideFile, "outside-secret");
 
@@ -115,12 +115,12 @@ describe("Local safe path resolution", () => {
       code: "INVALID_KEY",
     });
 
-    const missingDir = path.join(os.tmpdir(), "docuflow-definitely-missing-root-dir");
+    const missingDir = path.join(os.tmpdir(), "papyrus-definitely-missing-root-dir");
     await expect(resolveSafeLocalRoot(missingDir)).rejects.toMatchObject({
       code: "NOT_FOUND",
     });
 
-    const parent = await makeTempDir("docuflow-local-file-root-");
+    const parent = await makeTempDir("papyrus-local-file-root-");
     const fileInsteadOfDir = path.join(parent, "not-a-dir");
     await writeFile(fileInsteadOfDir, "x");
     await expect(resolveSafeLocalRoot(fileInsteadOfDir)).rejects.toMatchObject({
@@ -128,7 +128,7 @@ describe("Local safe path resolution", () => {
     });
 
     // Collision: object prefix segment is an existing file, and leaf key is an existing directory
-    const rootDir = await makeTempDir("docuflow-local-collision-");
+    const rootDir = await makeTempDir("papyrus-local-collision-");
     await writeFile(path.join(rootDir, "org"), "blocking-file");
     await expect(resolveSafeLocalPath(rootDir, "org/child-obj")).rejects.toMatchObject({
       code: "CONFLICT",

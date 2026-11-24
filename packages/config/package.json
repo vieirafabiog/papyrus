@@ -1,5 +1,5 @@
 {
-  "name": "@docuflow/config",
+  "name": "@papyrus/config",
   "version": "1.0.0-rc.1",
   "private": true,
   "type": "module",

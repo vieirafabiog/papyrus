@@ -16,7 +16,7 @@ import {
 const VALID_CONFIG = parseS3StorageConfig({
   endpoint: "https://s3.valid.example.com",
   region: "sa-east-1",
-  bucket: "docuflow-health-bucket",
+  bucket: "papyrus-health-bucket",
   forcePathStyle: true,
   keyPrefix: "tenant-1",
   credentials: {
@@ -40,12 +40,12 @@ describe("S3 health check", () => {
       ) {
         if (command instanceof HeadBucketCommand) {
           executedCommands.push("HeadBucket");
-          expect(command.input.Bucket).toBe("docuflow-health-bucket");
+          expect(command.input.Bucket).toBe("papyrus-health-bucket");
           return { $metadata: { httpStatusCode: 200 } };
         }
         if (command instanceof PutObjectCommand) {
           executedCommands.push("PutObject");
-          expect(command.input.Key).toMatch(/^tenant-1\/\.docuflow-health-probe-/);
+          expect(command.input.Key).toMatch(/^tenant-1\/\.papyrus-health-probe-/);
           return { $metadata: { httpStatusCode: 200 } };
         }
         if (command instanceof DeleteObjectCommand) {

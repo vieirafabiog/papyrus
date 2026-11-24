@@ -1,9 +1,3 @@
-import type {
-  WorkflowAssigneeCatalog,
-  WorkflowStepDefinition,
-  WorkflowStepInput,
-} from "@docuflow/contracts";
-import { PAPYRUS_COLOR_TOKENS } from "@docuflow/ui";
 import AddOutlinedIcon from "@mui/icons-material/AddOutlined";
 import ArrowDownwardOutlinedIcon from "@mui/icons-material/ArrowDownwardOutlined";
 import ArrowUpwardOutlinedIcon from "@mui/icons-material/ArrowUpwardOutlined";
@@ -26,6 +20,12 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
+import type {
+  WorkflowAssigneeCatalog,
+  WorkflowStepDefinition,
+  WorkflowStepInput,
+} from "@papyrus/contracts";
+import { PAPYRUS_COLOR_TOKENS } from "@papyrus/ui";
 import { type FormEvent, useEffect, useId, useState } from "react";
 import { useI18n } from "../../i18n/index.js";
 

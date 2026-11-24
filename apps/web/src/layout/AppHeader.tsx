@@ -1,5 +1,3 @@
-import { CONTRACTS_API_PREFIX } from "@docuflow/contracts";
-import { PAPYRUS_COLOR_TOKENS, PAPYRUS_DENSITY_TOKENS } from "@docuflow/ui";
 import AccountCircleOutlinedIcon from "@mui/icons-material/AccountCircleOutlined";
 import LogoutOutlinedIcon from "@mui/icons-material/LogoutOutlined";
 import MenuIcon from "@mui/icons-material/Menu";
@@ -15,6 +13,8 @@ import {
   Toolbar,
   Typography,
 } from "@mui/material";
+import { CONTRACTS_API_PREFIX } from "@papyrus/contracts";
+import { PAPYRUS_COLOR_TOKENS, PAPYRUS_DENSITY_TOKENS } from "@papyrus/ui";
 import { useQueryClient } from "@tanstack/react-query";
 import { type MouseEvent, useState } from "react";
 import { useNavigate } from "react-router-dom";

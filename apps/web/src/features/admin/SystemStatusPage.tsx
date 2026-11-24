@@ -1,5 +1,3 @@
-import type { OperationalDependencyStateContract } from "@docuflow/contracts";
-import { EmptyState, ErrorState, LoadingState, PAPYRUS_COLOR_TOKENS } from "@docuflow/ui";
 import CheckCircleOutlineOutlinedIcon from "@mui/icons-material/CheckCircleOutlineOutlined";
 import DnsOutlinedIcon from "@mui/icons-material/DnsOutlined";
 import ErrorOutlineOutlinedIcon from "@mui/icons-material/ErrorOutlineOutlined";
@@ -25,6 +23,8 @@ import {
   TableRow,
   Typography,
 } from "@mui/material";
+import type { OperationalDependencyStateContract } from "@papyrus/contracts";
+import { EmptyState, ErrorState, LoadingState, PAPYRUS_COLOR_TOKENS } from "@papyrus/ui";
 import { Link as RouterLink } from "react-router-dom";
 import { useSessionQuery } from "../../app/session.js";
 import { type MessageKey, useI18n } from "../../i18n/index.js";

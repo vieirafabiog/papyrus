@@ -1,17 +1,17 @@
-import { evaluateAuthorization } from "@docuflow/auth";
+import { evaluateAuthorization } from "@papyrus/auth";
 import {
   type AuthMeResponse,
   CONTRACTS_API_PREFIX,
   auditEventsExportQuerySchema,
   auditEventsQuerySchema,
-} from "@docuflow/contracts";
-import type { AuthorizationRepository } from "@docuflow/database";
+} from "@papyrus/contracts";
+import type { AuthorizationRepository } from "@papyrus/database";
 import {
   type AuditEventRecord,
   type AuditRepositoryPort,
   type AuditWriter,
   createAuditWriter,
-} from "@docuflow/domain";
+} from "@papyrus/domain";
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { buildRolePermissionsLookup, toSubjectContext } from "../../plugins/authorization.js";
 import { SESSION_COOKIE_NAME } from "../auth/auth.routes.js";
@@ -348,7 +348,7 @@ export async function registerAuditRoutes(
       reply.header("Content-Type", "application/json; charset=utf-8");
       reply.header(
         "Content-Disposition",
-        `attachment; filename="auditoria-docuflow-${dateStamp}.json"`,
+        `attachment; filename="auditoria-papyrus-${dateStamp}.json"`,
       );
       return reply.status(200).send(
         JSON.stringify(
@@ -366,7 +366,7 @@ export async function registerAuditRoutes(
     reply.header("Content-Type", "text/csv; charset=utf-8");
     reply.header(
       "Content-Disposition",
-      `attachment; filename="auditoria-docuflow-${dateStamp}.csv"`,
+      `attachment; filename="auditoria-papyrus-${dateStamp}.csv"`,
     );
     return reply.status(200).send(formatAuditEventsCsv(items));
   });

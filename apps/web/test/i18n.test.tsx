@@ -1,5 +1,5 @@
 import "@testing-library/jest-dom/vitest";
-import { DataTable, ErrorState, PapyrusLogo } from "@docuflow/ui";
+import { DataTable, ErrorState, PapyrusLogo } from "@papyrus/ui";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { AppProviders } from "../src/app/providers.js";
@@ -56,7 +56,7 @@ function I18nTestHarness() {
   );
 }
 
-describe("Web i18n and dynamic MUI + @docuflow/ui localization", () => {
+describe("Web i18n and dynamic MUI + @papyrus/ui localization", () => {
   let originalLocalStorageDescriptor: PropertyDescriptor | undefined;
 
   beforeEach(() => {

@@ -1,4 +1,4 @@
-import type { TransactionContext, TransactionManagerPort } from "@docuflow/domain";
+import type { TransactionContext, TransactionManagerPort } from "@papyrus/domain";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 
 export type DrizzleDbExecutor = Pick<NodePgDatabase, "select" | "insert" | "update" | "delete">;

@@ -1,20 +1,20 @@
 import { randomUUID } from "node:crypto";
-import { createPasswordService } from "@docuflow/auth";
-import { createDatabaseClient } from "@docuflow/database";
+import { createPasswordService } from "@papyrus/auth";
+import { createDatabaseClient } from "@papyrus/database";
 import { createDrizzleSetupRepository } from "../../apps/api/src/modules/setup/setup.repository.js";
 import { createSetupService } from "../../apps/api/src/modules/setup/setup.service.js";
 
 async function main(): Promise<void> {
   const databaseUrl = process.env.DATABASE_URL;
-  const email = process.env.DOCUFLOW_ADMIN_EMAIL;
-  const fullName = process.env.DOCUFLOW_ADMIN_NAME;
-  const password = process.env.DOCUFLOW_ADMIN_PASSWORD;
-  const organizationName = process.env.DOCUFLOW_ORG_NAME ?? "DocuFlow";
-  const organizationSlug = process.env.DOCUFLOW_ORG_SLUG ?? "default";
+  const email = process.env.PAPYRUS_ADMIN_EMAIL;
+  const fullName = process.env.PAPYRUS_ADMIN_NAME;
+  const password = process.env.PAPYRUS_ADMIN_PASSWORD;
+  const organizationName = process.env.PAPYRUS_ORG_NAME ?? "papyrus";
+  const organizationSlug = process.env.PAPYRUS_ORG_SLUG ?? "default";
 
   if (!databaseUrl || !email || !fullName || !password) {
     throw new Error(
-      "Defina DATABASE_URL, DOCUFLOW_ADMIN_EMAIL, DOCUFLOW_ADMIN_NAME e DOCUFLOW_ADMIN_PASSWORD.",
+      "Defina DATABASE_URL, PAPYRUS_ADMIN_EMAIL, PAPYRUS_ADMIN_NAME e PAPYRUS_ADMIN_PASSWORD.",
     );
   }
 

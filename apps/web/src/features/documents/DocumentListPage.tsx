@@ -1,7 +1,7 @@
-import type { DocumentListItem, DocumentStatus } from "@docuflow/contracts";
-import { DataTable, type DataTableColumn } from "@docuflow/ui";
 import OpenInNewOutlinedIcon from "@mui/icons-material/OpenInNewOutlined";
 import { Box, Button, Chip, Stack, Typography } from "@mui/material";
+import type { DocumentListItem, DocumentStatus } from "@papyrus/contracts";
+import { DataTable, type DataTableColumn } from "@papyrus/ui";
 import { useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";

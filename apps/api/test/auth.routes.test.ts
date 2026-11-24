@@ -4,8 +4,8 @@ import {
   type StoredSessionRecord,
   createPasswordService,
   createSessionService,
-} from "@docuflow/auth";
-import { authMeResponseSchema, createApiResponseSchema } from "@docuflow/contracts";
+} from "@papyrus/auth";
+import { authMeResponseSchema, createApiResponseSchema } from "@papyrus/contracts";
 import { describe, expect, it } from "vitest";
 import { buildApp } from "../src/app.js";
 import {
@@ -66,8 +66,8 @@ describe("Auth routes (/api/v1/auth/*)", () => {
       user: {
         id: userId,
         organizationId: orgId,
-        email: "admin@docuflow.invalid",
-        fullName: "Administrador DocuFlow",
+        email: "admin@papyrus.invalid",
+        fullName: "Administrador papyrus",
         status: "ACTIVE",
         createdAt: "2026-11-20T10:00:00.000Z",
         updatedAt: "2026-11-20T10:00:00.000Z",
@@ -106,9 +106,9 @@ describe("Auth routes (/api/v1/auth/*)", () => {
     const badLogin = await app.inject({
       method: "POST",
       url: "/api/v1/auth/login",
-      cookies: { docuflow_csrf: csrfToken },
+      cookies: { papyrus_csrf: csrfToken },
       headers: { "x-csrf-token": csrfToken },
-      payload: { email: "admin@docuflow.invalid", password: "wrong" },
+      payload: { email: "admin@papyrus.invalid", password: "wrong" },
     });
     expect(badLogin.statusCode).toBe(401);
 
@@ -116,9 +116,9 @@ describe("Auth routes (/api/v1/auth/*)", () => {
     const loginRes = await app.inject({
       method: "POST",
       url: "/api/v1/auth/login",
-      cookies: { docuflow_csrf: csrfToken },
+      cookies: { papyrus_csrf: csrfToken },
       headers: { "x-csrf-token": csrfToken },
-      payload: { email: "Admin@Docuflow.Invalid", password: "SenhaSegura123!" },
+      payload: { email: "Admin@papyrus.Invalid", password: "SenhaSegura123!" },
     });
     expect(loginRes.statusCode).toBe(200);
     const bodyText = loginRes.body;
@@ -130,29 +130,29 @@ describe("Auth routes (/api/v1/auth/*)", () => {
 
     const setCookieHeader = loginRes.headers["set-cookie"];
     const cookieStr = Array.isArray(setCookieHeader) ? setCookieHeader[0] : setCookieHeader;
-    expect(cookieStr).toContain("docuflow_session=");
+    expect(cookieStr).toContain("papyrus_session=");
     expect(cookieStr).toContain("HttpOnly");
     expect(cookieStr).toContain("SameSite=Lax");
 
-    const sessionCookie = loginRes.cookies.find((c) => c.name === "docuflow_session");
+    const sessionCookie = loginRes.cookies.find((c) => c.name === "papyrus_session");
     expect(sessionCookie).toBeDefined();
 
     // 4. Authenticated /auth/me succeeds
     const meRes = await app.inject({
       method: "GET",
       url: "/api/v1/auth/me",
-      cookies: { docuflow_session: sessionCookie?.value ?? "" },
+      cookies: { papyrus_session: sessionCookie?.value ?? "" },
     });
     expect(meRes.statusCode).toBe(200);
-    expect(meRes.json().data.user.email).toBe("admin@docuflow.invalid");
+    expect(meRes.json().data.user.email).toBe("admin@papyrus.invalid");
 
     // 5. Logout revokes session so /auth/me returns 401 afterwards
     const logoutRes = await app.inject({
       method: "POST",
       url: "/api/v1/auth/logout",
       cookies: {
-        docuflow_session: sessionCookie?.value ?? "",
-        docuflow_csrf: csrfToken,
+        papyrus_session: sessionCookie?.value ?? "",
+        papyrus_csrf: csrfToken,
       },
       headers: { "x-csrf-token": csrfToken },
     });
@@ -161,7 +161,7 @@ describe("Auth routes (/api/v1/auth/*)", () => {
     const postLogoutMe = await app.inject({
       method: "GET",
       url: "/api/v1/auth/me",
-      cookies: { docuflow_session: sessionCookie?.value ?? "" },
+      cookies: { papyrus_session: sessionCookie?.value ?? "" },
     });
     expect(postLogoutMe.statusCode).toBe(401);
 

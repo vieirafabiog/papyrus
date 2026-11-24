@@ -7,13 +7,13 @@ import {
   signedUploadTargetResponseSchema,
   uploadContentResponseSchema,
   uploadSessionRecordSchema,
-} from "@docuflow/contracts";
+} from "@papyrus/contracts";
 import { useCallback, useMemo, useRef, useState } from "react";
 import { containsTechnicalJargon, extractUserErrorMessage } from "../../i18n/api-errors.js";
 import { formatBytes, getCurrentUiLocale, translate } from "../../i18n/index.js";
 
 const DEFAULT_MAX_FILE_BYTES = 50 * 1024 * 1024;
-const CSRF_COOKIE_NAME = "docuflow_csrf";
+const CSRF_COOKIE_NAME = "papyrus_csrf";
 const CSRF_HEADER_NAME = "x-csrf-token";
 
 const uploadSessionEnvelopeSchema = createApiResponseSchema(uploadSessionRecordSchema);

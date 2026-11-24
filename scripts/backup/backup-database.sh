@@ -3,7 +3,7 @@ set -euo pipefail
 umask 077
 
 # ==============================================================================
-# DocuFlow — Backup seguro do PostgreSQL
+# papyrus — Backup seguro do PostgreSQL
 # Gera dumps em formato custom (-Fc) com escrita atômica, checksum SHA-256,
 # validação de integridade, política de retenção e logs livres de segredos.
 # ==============================================================================
@@ -14,9 +14,9 @@ BACKUP_MAX_FILES="${BACKUP_MAX_FILES:-0}"
 BACKUP_MIN_KEEP="${BACKUP_MIN_KEEP:-1}"
 BACKUP_MODE="${BACKUP_MODE:-auto}"
 POSTGRES_IMAGE="${POSTGRES_IMAGE:-postgres:16.8-alpine3.21}"
-DOCUFLOW_PG_CONTAINER="${DOCUFLOW_PG_CONTAINER:-}"
+PAPYRUS_PG_CONTAINER="${PAPYRUS_PG_CONTAINER:-}"
 DOCKER_NETWORK="${DOCKER_NETWORK:-}"
-DB_NAME_LABEL="${POSTGRES_DB:-docuflow}"
+DB_NAME_LABEL="${POSTGRES_DB:-papyrus}"
 
 TMP_DIR=""
 
@@ -27,10 +27,10 @@ log_json() {
   local ts
   ts=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
   if [ -n "$extra" ]; then
-    printf '{"timestamp":"%s","level":"%s","service":"docuflow-db-backup","message":"%s",%s}\n' \
+    printf '{"timestamp":"%s","level":"%s","service":"papyrus-db-backup","message":"%s",%s}\n' \
       "$ts" "$level" "$message" "$extra"
   else
-    printf '{"timestamp":"%s","level":"%s","service":"docuflow-db-backup","message":"%s"}\n' \
+    printf '{"timestamp":"%s","level":"%s","service":"papyrus-db-backup","message":"%s"}\n' \
       "$ts" "$level" "$message"
   fi
 }
@@ -98,7 +98,7 @@ extract_db_label_from_url() {
   if [ -n "$safe" ]; then
     printf '%s' "$safe"
   else
-    printf 'docuflow'
+    printf 'papyrus'
   fi
 }
 
@@ -111,7 +111,7 @@ run_pg_dump_local() {
   else
     pg_dump --format=custom --compress=9 --no-owner --no-privileges \
       -h "${PGHOST:-127.0.0.1}" -p "${PGPORT:-5432}" \
-      -U "${PGUSER:-docuflow}" -d "${PGDATABASE:-docuflow}" \
+      -U "${PGUSER:-papyrus}" -d "${PGDATABASE:-papyrus}" \
       >"$out_file" 2>"$err_file"
   fi
 }
@@ -125,10 +125,10 @@ run_pg_restore_list_local() {
 run_pg_dump_docker() {
   local out_file="$1"
   local err_file="$2"
-  if [ -n "$DOCUFLOW_PG_CONTAINER" ]; then
-    docker exec -i "$DOCUFLOW_PG_CONTAINER" \
+  if [ -n "$PAPYRUS_PG_CONTAINER" ]; then
+    docker exec -i "$PAPYRUS_PG_CONTAINER" \
       pg_dump --format=custom --compress=9 --no-owner --no-privileges \
-      -U "${PGUSER:-docuflow}" -d "${PGDATABASE:-docuflow}" \
+      -U "${PGUSER:-papyrus}" -d "${PGDATABASE:-papyrus}" \
       >"$out_file" 2>"$err_file"
     return $?
   fi
@@ -144,8 +144,8 @@ run_pg_dump_docker() {
     docker_args+=(
       -e PGHOST="${PGHOST:-postgres}"
       -e PGPORT="${PGPORT:-5432}"
-      -e PGUSER="${PGUSER:-docuflow}"
-      -e PGDATABASE="${PGDATABASE:-docuflow}"
+      -e PGUSER="${PGUSER:-papyrus}"
+      -e PGDATABASE="${PGDATABASE:-papyrus}"
       -e PGPASSWORD="${PGPASSWORD:-}"
       "$POSTGRES_IMAGE"
       pg_dump --format=custom --compress=9 --no-owner --no-privileges
@@ -163,8 +163,8 @@ run_pg_restore_list_docker() {
   dump_dir=$(cd "$(dirname "$dump_file")" && pwd)
   dump_base=$(basename "$dump_file")
 
-  if [ -n "$DOCUFLOW_PG_CONTAINER" ]; then
-    docker exec -i "$DOCUFLOW_PG_CONTAINER" pg_restore --list <"$dump_file" >/dev/null 2>"$err_file"
+  if [ -n "$PAPYRUS_PG_CONTAINER" ]; then
+    docker exec -i "$PAPYRUS_PG_CONTAINER" pg_restore --list <"$dump_file" >/dev/null 2>"$err_file"
     return $?
   fi
 
@@ -179,7 +179,7 @@ apply_retention_policy() {
   local max_files="$4"
   local min_keep="$5"
 
-  mapfile -t all_dumps < <(find "$backup_dir" -maxdepth 1 -type f -name 'docuflow-db-*.dump' -printf '%T@ %p\n' | sort -rn | cut -d' ' -f2-)
+  mapfile -t all_dumps < <(find "$backup_dir" -maxdepth 1 -type f -name 'papyrus-db-*.dump' -printf '%T@ %p\n' | sort -rn | cut -d' ' -f2-)
   local total=${#all_dumps[@]}
   local pruned=0
 
@@ -229,8 +229,8 @@ main() {
   require_non_negative_int "BACKUP_MAX_FILES" "$BACKUP_MAX_FILES"
   require_positive_int "BACKUP_MIN_KEEP" "$BACKUP_MIN_KEEP"
 
-  if [ -z "${DATABASE_URL:-}" ] && [ -z "$DOCUFLOW_PG_CONTAINER" ] && [ -z "${PGHOST:-}" ]; then
-    log_json "error" "Defina DATABASE_URL, DOCUFLOW_PG_CONTAINER ou PGHOST/PGUSER/PGDATABASE." >&2
+  if [ -z "${DATABASE_URL:-}" ] && [ -z "$PAPYRUS_PG_CONTAINER" ] && [ -z "${PGHOST:-}" ]; then
+    log_json "error" "Defina DATABASE_URL, PAPYRUS_PG_CONTAINER ou PGHOST/PGUSER/PGDATABASE." >&2
     exit 1
   fi
 
@@ -241,7 +241,7 @@ main() {
     DB_NAME_LABEL=$(extract_db_label_from_url "$DATABASE_URL")
   elif [ -n "${PGDATABASE:-}" ]; then
     DB_NAME_LABEL=$(printf '%s' "$PGDATABASE" | tr -cd '[:alnum:]_-')
-    DB_NAME_LABEL="${DB_NAME_LABEL:-docuflow}"
+    DB_NAME_LABEL="${DB_NAME_LABEL:-papyrus}"
   fi
 
   mkdir -p "$BACKUP_DIR"
@@ -253,7 +253,7 @@ main() {
 
   local timestamp
   timestamp=$(date -u +"%Y%m%dT%H%M%SZ")
-  local base_name="docuflow-db-${DB_NAME_LABEL}-${timestamp}.dump"
+  local base_name="papyrus-db-${DB_NAME_LABEL}-${timestamp}.dump"
   local tmp_dump="${TMP_DIR}/${base_name}"
   local tmp_err="${TMP_DIR}/pg_dump.err"
   local final_dump="${BACKUP_DIR}/${base_name}"

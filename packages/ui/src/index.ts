@@ -33,17 +33,10 @@ export {
 } from "./locale.js";
 
 export {
-  createDocuflowTheme,
   createPapyrusTheme,
-  docuflowTheme,
   papyrusTheme,
 } from "./theme/theme.js";
 export {
-  DOCUFLOW_COLOR_TOKENS,
-  DOCUFLOW_DENSITY_TOKENS,
-  DOCUFLOW_SHAPE_TOKENS,
-  DOCUFLOW_SPACING_TOKENS,
-  DOCUFLOW_TYPOGRAPHY_TOKENS,
   PAPYRUS_COLOR_TOKENS,
   PAPYRUS_DENSITY_TOKENS,
   PAPYRUS_SHAPE_TOKENS,

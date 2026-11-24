@@ -1,4 +1,4 @@
-# Limitações Conhecidas e Notas de Atualização — DocuFlow 1.0.0-rc.1
+# Limitações Conhecidas e Notas de Atualização — papyrus 1.0.0-rc.1
 
 Este documento registra as **limitações técnicas e funcionais conhecidas** da versão candidata **`1.0.0-rc.1`** (tag `v1.0.0-rc.1`), as capacidades explicitamente **fora do escopo** do MVP 1.0 e as instruções de atualização aplicáveis.
 
@@ -25,7 +25,7 @@ As funcionalidades abaixo pertencem ao roadmap pós-MVP e **não** estão presen
 
 ### 2.2 Conectores de Armazenamento (`local` e `s3`)
 - **`multipartUpload` e `serverSideCopy`:** retornam `false` nas capacidades atuais; uploads respeitam o teto em stream único (`UPLOAD_MAX_BYTES`, até `1 GiB` na configuração, padrão `50 MiB`).
-- **Homologação S3:** o conector `@docuflow/storage-s3` foi comprovado contra **MinIO** em testes integrados de contrato e URL assinada; provedores S3 comerciais em nuvem (AWS S3, Cloudflare R2, etc.) exigem teste de saúde e upload/download prévio pelo operador com suas credenciais antes de uso em produção.
+- **Homologação S3:** o conector `@papyrus/storage-s3` foi comprovado contra **MinIO** em testes integrados de contrato e URL assinada; provedores S3 comerciais em nuvem (AWS S3, Cloudflare R2, etc.) exigem teste de saúde e upload/download prévio pelo operador com suas credenciais antes de uso em produção.
 - **Conexões inativas:** desativar uma conexão (`INACTIVE`) bloqueia novos uploads e downloads de arquivos gravados nela até reativação ou substituição futura; apenas a purga física (`allowInactive: true`) continua permitida.
 
 ### 2.3 Upload, Antivírus e Pré-visualização
@@ -48,7 +48,7 @@ As funcionalidades abaixo pertencem ao roadmap pós-MVP e **não** estão presen
 ## 3. Instruções de Instalação Nova e Atualização
 
 ### 3.1 Versão anterior suportada
-A tag **`v1.0.0-rc.1`** é a **primeira versão candidata pública** do DocuFlow. Não existe versão release anterior (`0.x` publicada) suportada para upgrade em produção:
+A tag **`v1.0.0-rc.1`** é a **primeira versão candidata pública** do papyrus. Não existe versão release anterior (`0.x` publicada) suportada para upgrade em produção:
 
 - **Instalação nova:** siga integralmente [docs/installation.md](./installation.md), aplicando todas as migrations (`0000_initial.sql` até `0003_eminent_odin.sql`) com `/app/scripts/maintenance/migrate-entrypoint.sh`.
 - **Atualização a partir de builds/commits de desenvolvimento anteriores (com schema `0000`–`0002`) ou futura atualização `1.0.0-rc.1` → `1.0.0`:**
@@ -57,10 +57,10 @@ A tag **`v1.0.0-rc.1`** é a **primeira versão candidata pública** do DocuFlow
      ```bash
      docker compose --env-file .env -f infra/compose/docker-compose.yml stop api worker web
      ```
-  3. Atualize `DOCUFLOW_IMAGE_TAG` no `.env` e construa/baixe as novas imagens fixadas (`docker compose --env-file .env -f infra/compose/docker-compose.yml build api worker web`).
+  3. Atualize `PAPYRUS_IMAGE_TAG` no `.env` e construa/baixe as novas imagens fixadas (`docker compose --env-file .env -f infra/compose/docker-compose.yml build api worker web`).
   4. Execute as migrations pendentes usando o runner com advisory lock incluído na imagem `api`:
      ```bash
      docker compose --env-file .env -f infra/compose/docker-compose.yml run --rm --no-deps api sh /app/scripts/maintenance/migrate-entrypoint.sh
      ```
-  5. Suba os serviços (`up -d api worker web`) e confirme `GET /api/v1/health/ready`, versão dos containers (`DOCUFLOW_VERSION`) e acesso aos dados preservados.
-  6. **Rollback:** se nenhuma migration foi aplicada, retorne `DOCUFLOW_IMAGE_TAG` e reinicie os containers; se houve migration de schema, restaure o backup pré-atualização via `scripts/restore/restore-system.sh --confirm-restore` antes de retornar às imagens anteriores.
+  5. Suba os serviços (`up -d api worker web`) e confirme `GET /api/v1/health/ready`, versão dos containers (`PAPYRUS_VERSION`) e acesso aos dados preservados.
+  6. **Rollback:** se nenhuma migration foi aplicada, retorne `PAPYRUS_IMAGE_TAG` e reinicie os containers; se houve migration de schema, restaure o backup pré-atualização via `scripts/restore/restore-system.sh --confirm-restore` antes de retornar às imagens anteriores.

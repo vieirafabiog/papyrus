@@ -1,4 +1,4 @@
-import { apiErrorResponseSchema } from "@docuflow/contracts";
+import { apiErrorResponseSchema } from "@papyrus/contracts";
 import { type MessageKey, getCurrentUiLocale, translate } from "./index.js";
 import type { UiLocale } from "./types.js";
 

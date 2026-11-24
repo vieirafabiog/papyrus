@@ -30,13 +30,13 @@ afterEach(async () => {
 
 describe("Local filesystem health check", () => {
   it("verifies existence, controlled R/W probe, available space, leaves no probe files, and hides host path", async () => {
-    const rootDirectory = await makeTempDir("docuflow-health-secret-mount-");
+    const rootDirectory = await makeTempDir("papyrus-health-secret-mount-");
     const result = await checkLocalStorageHealth({ rootDirectory });
 
     expect(result.healthy).toBe(true);
     expect(result.checkedAt).toBeInstanceOf(Date);
     expect(result.message).not.toContain(rootDirectory);
-    expect(result.message).not.toContain("docuflow-health-secret-mount");
+    expect(result.message).not.toContain("papyrus-health-secret-mount");
     expect(typeof result.availableBytes).toBe("number");
     expect(result.availableBytes ?? 0).toBeGreaterThan(0);
 
@@ -53,14 +53,14 @@ describe("Local filesystem health check", () => {
 
   it("reports unhealthy without leaking host paths when directory is missing, not a dir, lacks permissions, or lacks space", async () => {
     // 1. Missing directory
-    const missingPath = path.join(os.tmpdir(), "docuflow-nonexistent-mount-99999");
+    const missingPath = path.join(os.tmpdir(), "papyrus-nonexistent-mount-99999");
     const missingResult = await checkLocalStorageHealth({ rootDirectory: missingPath });
     expect(missingResult.healthy).toBe(false);
     expect(missingResult.message).not.toContain(missingPath);
-    expect(missingResult.message).not.toContain("docuflow-nonexistent-mount");
+    expect(missingResult.message).not.toContain("papyrus-nonexistent-mount");
 
     // 2. Path points to a regular file
-    const parentDir = await makeTempDir("docuflow-health-file-");
+    const parentDir = await makeTempDir("papyrus-health-file-");
     const filePath = path.join(parentDir, "regular-file.bin");
     await writeFile(filePath, "data");
     const fileResult = await checkLocalStorageHealth({ rootDirectory: filePath });
@@ -69,7 +69,7 @@ describe("Local filesystem health check", () => {
     expect(fileResult.message).not.toContain("regular-file.bin");
 
     // 3. Insufficient free space against configured threshold
-    const rootDirectory = await makeTempDir("docuflow-health-space-");
+    const rootDirectory = await makeTempDir("papyrus-health-space-");
     const tightThresholdResult = await checkLocalStorageHealth({
       rootDirectory,
       minFreeBytes: Number.MAX_SAFE_INTEGER,

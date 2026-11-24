@@ -11,7 +11,7 @@ import {
   type StoredSessionRecord,
   createPasswordService,
   createSessionService,
-} from "@docuflow/auth";
+} from "@papyrus/auth";
 import {
   auditEvents,
   categories,
@@ -47,7 +47,7 @@ import {
   uploadSessions,
   userRoleScopes,
   users,
-} from "@docuflow/database";
+} from "@papyrus/database";
 import {
   archiveDocumentUseCase,
   createDecideTaskUseCase,
@@ -59,9 +59,9 @@ import {
   createWorkflowTasksUseCase,
   moveDocumentUseCase,
   trashDocumentUseCase,
-} from "@docuflow/domain";
-import { createStorageProviderRegistry } from "@docuflow/storage-core";
-import { createLocalStorageProvider } from "@docuflow/storage-local";
+} from "@papyrus/domain";
+import { createStorageProviderRegistry } from "@papyrus/storage-core";
+import { createLocalStorageProvider } from "@papyrus/storage-local";
 import { PostgreSqlContainer, type StartedPostgreSqlContainer } from "@testcontainers/postgresql";
 import { asc, eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/node-postgres";
@@ -82,7 +82,7 @@ describe("Document, version, download, permission and workflow audit events (Ste
   let tempStorageDir: string;
 
   beforeAll(async () => {
-    tempStorageDir = await mkdtemp(path.join(os.tmpdir(), "docuflow-audit-events-test-"));
+    tempStorageDir = await mkdtemp(path.join(os.tmpdir(), "papyrus-audit-events-test-"));
     const externalUrl = process.env.DATABASE_URL;
     let connectionString: string;
     if (externalUrl && externalUrl.trim().length > 0) {
@@ -142,7 +142,7 @@ describe("Document, version, download, permission and workflow audit events (Ste
       {
         id: adminId,
         organizationId: orgId,
-        email: `admin-audit-${orgId.slice(0, 6)}@docuflow.local`,
+        email: `admin-audit-${orgId.slice(0, 6)}@papyrus.local`,
         fullName: "Admin Auditoria",
         passwordHash,
         status: "ACTIVE",
@@ -150,7 +150,7 @@ describe("Document, version, download, permission and workflow audit events (Ste
       {
         id: readerId,
         organizationId: orgId,
-        email: `reader-audit-${orgId.slice(0, 6)}@docuflow.local`,
+        email: `reader-audit-${orgId.slice(0, 6)}@papyrus.local`,
         fullName: "Leitor Auditoria",
         passwordHash,
         status: "ACTIVE",
@@ -158,7 +158,7 @@ describe("Document, version, download, permission and workflow audit events (Ste
       {
         id: deniedUserId,
         organizationId: orgId,
-        email: `denied-audit-${orgId.slice(0, 6)}@docuflow.local`,
+        email: `denied-audit-${orgId.slice(0, 6)}@papyrus.local`,
         fullName: "Negado Auditoria",
         passwordHash,
         status: "ACTIVE",
@@ -599,8 +599,8 @@ describe("Document, version, download, permission and workflow audit events (Ste
       return { [SESSION_COOKIE_NAME]: sessionCookie, [CSRF_COOKIE_NAME]: csrfToken };
     };
 
-    const adminCookies = await loginAs(`admin-audit-${orgId.slice(0, 6)}@docuflow.local`);
-    const deniedCookies = await loginAs(`denied-audit-${orgId.slice(0, 6)}@docuflow.local`);
+    const adminCookies = await loginAs(`admin-audit-${orgId.slice(0, 6)}@papyrus.local`);
+    const deniedCookies = await loginAs(`denied-audit-${orgId.slice(0, 6)}@papyrus.local`);
 
     const secretMetadataSentinel = "CONFIDENCIAL-SALARIO-999123";
 

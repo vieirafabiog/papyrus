@@ -9,13 +9,13 @@ import {
   evaluateDocumentAuthorization,
   evaluateFolderAuthorization,
   roleGrantsPermission,
-} from "@docuflow/auth";
-import type { AuthMeResponse } from "@docuflow/contracts";
+} from "@papyrus/auth";
+import type { AuthMeResponse } from "@papyrus/contracts";
 import type {
   AuthorizationRepository,
   AuthorizedDocumentQueryScope,
   LoadedAuthorizationSubject,
-} from "@docuflow/database";
+} from "@papyrus/database";
 import {
   type AccessAction,
   type AccessScope,
@@ -30,7 +30,7 @@ import {
   type FolderEntity,
   type FolderRepositoryPort,
   createAuditWriter,
-} from "@docuflow/domain";
+} from "@papyrus/domain";
 import type { FastifyReply, FastifyRequest } from "fastify";
 import { SESSION_COOKIE_NAME } from "../modules/auth/auth.routes.js";
 import type { AuthService } from "../modules/auth/auth.service.js";

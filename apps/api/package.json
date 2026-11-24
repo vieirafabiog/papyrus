@@ -1,5 +1,5 @@
 {
-  "name": "@docuflow/api",
+  "name": "@papyrus/api",
   "version": "1.0.0-rc.1",
   "private": true,
   "type": "module",
@@ -12,21 +12,21 @@
     "test:integration": "vitest run test/integration"
   },
   "dependencies": {
-    "@docuflow/auth": "workspace:*",
-    "@docuflow/contracts": "workspace:*",
-    "@docuflow/database": "workspace:*",
-    "@docuflow/domain": "workspace:*",
-    "@docuflow/notifications": "workspace:*",
-    "@docuflow/storage-core": "workspace:*",
-    "@docuflow/storage-local": "workspace:*",
-    "@docuflow/storage-s3": "workspace:*",
+    "@papyrus/auth": "workspace:*",
+    "@papyrus/contracts": "workspace:*",
+    "@papyrus/database": "workspace:*",
+    "@papyrus/domain": "workspace:*",
+    "@papyrus/notifications": "workspace:*",
+    "@papyrus/storage-core": "workspace:*",
+    "@papyrus/storage-local": "workspace:*",
+    "@papyrus/storage-s3": "workspace:*",
     "@fastify/busboy": "^3.2.6",
     "@fastify/cookie": "^11.0.2",
     "fastify": "^5.2.1",
     "zod": "^3.24.2"
   },
   "devDependencies": {
-    "@docuflow/file-processing": "workspace:*",
+    "@papyrus/file-processing": "workspace:*",
     "@testcontainers/postgresql": "^10.18.0",
     "drizzle-orm": "^0.45.4",
     "pg": "^8.14.1",

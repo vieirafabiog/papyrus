@@ -1,10 +1,3 @@
-import {
-  CONTRACTS_API_PREFIX,
-  type CategoryFieldRecord,
-  type DocumentMetadataValue,
-  categoryFieldListResponseSchema,
-} from "@docuflow/contracts";
-import { PAPYRUS_COLOR_TOKENS } from "@docuflow/ui";
 import CancelOutlinedIcon from "@mui/icons-material/CancelOutlined";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
 import CloseOutlinedIcon from "@mui/icons-material/CloseOutlined";
@@ -45,6 +38,13 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
+import {
+  CONTRACTS_API_PREFIX,
+  type CategoryFieldRecord,
+  type DocumentMetadataValue,
+  categoryFieldListResponseSchema,
+} from "@papyrus/contracts";
+import { PAPYRUS_COLOR_TOKENS } from "@papyrus/ui";
 import {
   type ChangeEvent,
   type DragEvent,

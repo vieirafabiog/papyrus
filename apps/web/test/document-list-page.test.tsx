@@ -1,6 +1,6 @@
 import "@testing-library/jest-dom/vitest";
-import { papyrusTheme } from "@docuflow/ui";
 import { CssBaseline, ThemeProvider } from "@mui/material";
+import { papyrusTheme } from "@papyrus/ui";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
@@ -47,7 +47,7 @@ function mockDocumentListFetch() {
             user: {
               id: OWNER_1_ID,
               organizationId: ORG_ID,
-              email: "admin@docuflow.local",
+              email: "admin@papyrus.local",
               fullName: "Ana Gestora",
               status: "ACTIVE",
               createdAt: "2026-01-01T10:00:00Z",
@@ -125,7 +125,7 @@ function mockDocumentListFetch() {
             {
               id: OWNER_1_ID,
               organizationId: ORG_ID,
-              email: "admin@docuflow.local",
+              email: "admin@papyrus.local",
               fullName: "Ana Gestora",
               status: "ACTIVE",
               createdAt: "2026-01-01T10:00:00Z",

@@ -1,6 +1,6 @@
 import "@testing-library/jest-dom/vitest";
-import { papyrusTheme } from "@docuflow/ui";
 import { CssBaseline, ThemeProvider } from "@mui/material";
+import { papyrusTheme } from "@papyrus/ui";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
@@ -100,7 +100,7 @@ describe("DocumentDetailsPage", () => {
               owner: {
                 id: OWNER_ID,
                 fullName: "Ana Souza",
-                email: "ana.souza@docuflow.local",
+                email: "ana.souza@papyrus.local",
               },
               currentVersion: {
                 id: VER_ID,
@@ -169,7 +169,7 @@ describe("DocumentDetailsPage", () => {
                 uploadedByUser: {
                   id: OWNER_ID,
                   fullName: "Ana Souza",
-                  email: "ana.souza@docuflow.local",
+                  email: "ana.souza@papyrus.local",
                 },
                 changeNote: "Versão assinada",
                 createdAt: "2026-01-10T12:00:00Z",

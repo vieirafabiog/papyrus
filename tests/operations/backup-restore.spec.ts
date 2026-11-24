@@ -29,9 +29,9 @@ import {
   storageConnections,
   tags,
   users,
-} from "@docuflow/database";
-import { createStorageSecretVault } from "@docuflow/storage-core";
-import { createLocalStorageProvider } from "@docuflow/storage-local";
+} from "@papyrus/database";
+import { createStorageSecretVault } from "@papyrus/storage-core";
+import { createLocalStorageProvider } from "@papyrus/storage-local";
 import { PostgreSqlContainer, type StartedPostgreSqlContainer } from "@testcontainers/postgresql";
 import { asc, eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/node-postgres";
@@ -135,7 +135,7 @@ describe("Backup e restauração coordenada de ambiente completo (Step 16.08)", 
   });
 
   it("installs temporary environment, creates versioned document + metadata, backs up DB/files, restores to clean environment, and verifies exact parity", async () => {
-    tempRootDir = await mkdtemp(path.join(os.tmpdir(), "docuflow-op-backup-restore-"));
+    tempRootDir = await mkdtemp(path.join(os.tmpdir(), "papyrus-op-backup-restore-"));
     const sourceStorageDir = path.join(tempRootDir, "source-storage");
     const targetStorageDir = path.join(tempRootDir, "target-storage");
     const backupDbDir = path.join(tempRootDir, "backups-postgres");
@@ -163,8 +163,8 @@ describe("Backup e restauração coordenada de ambiente completo (Step 16.08)", 
 
     // 1. Provision temporary source PostgreSQL and migrate schema
     sourceContainer = await new PostgreSqlContainer("postgres:16.8-alpine3.21")
-      .withDatabase("docuflow_ops")
-      .withUsername("docuflow_ops")
+      .withDatabase("papyrus_ops")
+      .withUsername("papyrus_ops")
       .withPassword("PgBackupOpsSecret2026!")
       .start();
     sourcePool = new Pool({ connectionString: sourceContainer.getConnectionUri() });
@@ -219,7 +219,7 @@ describe("Backup e restauração coordenada de ambiente completo (Step 16.08)", 
     await sourceDb.insert(users).values({
       id: userId,
       organizationId: orgId,
-      email: `ops-${orgId.slice(0, 6)}@docuflow.local`,
+      email: `ops-${orgId.slice(0, 6)}@papyrus.local`,
       fullName: "Operador Backup",
       passwordHash: "$argon2id$v=19$m=19456,t=2,p=1$fakehashforrestoretest",
       status: "ACTIVE",
@@ -444,7 +444,7 @@ describe("Backup e restauração coordenada de ambiente completo (Step 16.08)", 
     const dbBackupRun = await runBashScript(BACKUP_DB_SCRIPT, {
       BACKUP_DIR: backupDbDir,
       BACKUP_MODE: "docker",
-      DOCUFLOW_PG_CONTAINER: sourceContainer.getId(),
+      PAPYRUS_PG_CONTAINER: sourceContainer.getId(),
       PGUSER: sourceContainer.getUsername(),
       PGDATABASE: sourceContainer.getDatabase(),
     });
@@ -482,8 +482,8 @@ describe("Backup e restauração coordenada de ambiente completo (Step 16.08)", 
 
     // 4. Spin up a brand-new EMPTY PostgreSQL container (disaster recovery target)
     targetContainer = await new PostgreSqlContainer("postgres:16.8-alpine3.21")
-      .withDatabase("docuflow_ops")
-      .withUsername("docuflow_ops")
+      .withDatabase("papyrus_ops")
+      .withUsername("papyrus_ops")
       .withPassword("PgBackupOpsSecret2026!")
       .start();
 
@@ -495,7 +495,7 @@ describe("Backup e restauração coordenada de ambiente completo (Step 16.08)", 
         TARGET_ENV_FILE: targetEnvPath,
         DB_BACKUP_FILE: dumpFilePath,
         FILES_BACKUP_ARCHIVE: archiveFilePath,
-        DOCUFLOW_PG_CONTAINER: targetContainer.getId(),
+        PAPYRUS_PG_CONTAINER: targetContainer.getId(),
         PGUSER: targetContainer.getUsername(),
         PGDATABASE: targetContainer.getDatabase(),
         STORAGE_LOCAL_ROOT: targetStorageDir,
@@ -510,7 +510,7 @@ describe("Backup e restauração coordenada de ambiente completo (Step 16.08)", 
       TARGET_ENV_FILE: targetEnvPath,
       DB_BACKUP_FILE: dumpFilePath,
       FILES_BACKUP_ARCHIVE: archiveFilePath,
-      DOCUFLOW_PG_CONTAINER: targetContainer.getId(),
+      PAPYRUS_PG_CONTAINER: targetContainer.getId(),
       PGUSER: targetContainer.getUsername(),
       PGDATABASE: targetContainer.getDatabase(),
       STORAGE_LOCAL_ROOT: targetStorageDir,
@@ -617,7 +617,7 @@ describe("Backup e restauração coordenada de ambiente completo (Step 16.08)", 
       secretAccessKey: secretAccessKeyValue,
     });
 
-    // Read BOTH restored files through @docuflow/storage-local and compare exact bytes & SHA-256
+    // Read BOTH restored files through @papyrus/storage-local and compare exact bytes & SHA-256
     const restoredStorageProvider = createLocalStorageProvider({ rootDirectory: targetStorageDir });
     const headV1 = await restoredStorageProvider.headObject({ value: objectKeyV1 });
     const headV2 = await restoredStorageProvider.headObject({ value: objectKeyV2 });

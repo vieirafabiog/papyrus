@@ -1,6 +1,6 @@
 import "@testing-library/jest-dom/vitest";
-import { UiLocaleProvider, papyrusTheme } from "@docuflow/ui";
 import { CssBaseline, ThemeProvider } from "@mui/material";
+import { UiLocaleProvider, papyrusTheme } from "@papyrus/ui";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
@@ -46,7 +46,7 @@ function buildSessionPayload(hasAuditPermission: boolean) {
       user: {
         id: USER_ADMIN_ID,
         organizationId: ORG_ID,
-        email: hasAuditPermission ? "auditor@docuflow.local" : "consulta@docuflow.local",
+        email: hasAuditPermission ? "auditor@papyrus.local" : "consulta@papyrus.local",
         fullName: hasAuditPermission ? "Auditor Autorizado" : "Usuário Sem Auditoria",
         status: "ACTIVE",
         createdAt: "2026-11-20T10:00:00Z",
@@ -102,12 +102,12 @@ describe("AuditPage (Step 13.03)", () => {
                 {
                   id: USER_ADMIN_ID,
                   fullName: "Auditor Autorizado",
-                  email: "auditor@docuflow.local",
+                  email: "auditor@papyrus.local",
                 },
                 {
                   id: USER_GESTOR_ID,
                   fullName: "Gestor Documental",
-                  email: "gestor@docuflow.local",
+                  email: "gestor@papyrus.local",
                 },
               ],
               actions: ["DOCUMENT_CREATED", "DOCUMENT_DOWNLOADED"],
@@ -138,7 +138,7 @@ describe("AuditPage (Step 13.03)", () => {
                 occurredAt: "2026-11-21T14:30:00Z",
                 actorUserId: USER_GESTOR_ID,
                 actorName: "Gestor Documental",
-                actorEmail: "gestor@docuflow.local",
+                actorEmail: "gestor@papyrus.local",
                 action: "DOCUMENT_DOWNLOADED",
                 resourceType: "DOCUMENT",
                 resourceId: DOC_1_ID,
@@ -168,7 +168,7 @@ describe("AuditPage (Step 13.03)", () => {
     // Filter by user
     fireEvent.mouseDown(screen.getByLabelText("User"));
     const userListbox = await screen.findByRole("listbox");
-    fireEvent.click(within(userListbox).getByText("Gestor Documental (gestor@docuflow.local)"));
+    fireEvent.click(within(userListbox).getByText("Gestor Documental (gestor@papyrus.local)"));
 
     // Filter by action
     fireEvent.mouseDown(screen.getByLabelText("Action"));

@@ -92,7 +92,7 @@ describe("Document advanced search repository PostgreSQL integration", () => {
       {
         id: authorAId,
         organizationId: orgId,
-        email: "author-a@docuflow.local",
+        email: "author-a@papyrus.local",
         fullName: "Autor A",
         passwordHash: "$argon2id$v=19$m=8192,t=2,p=1$salt$hash",
         status: "ACTIVE",
@@ -100,7 +100,7 @@ describe("Document advanced search repository PostgreSQL integration", () => {
       {
         id: authorBId,
         organizationId: orgId,
-        email: "author-b@docuflow.local",
+        email: "author-b@papyrus.local",
         fullName: "Autor B",
         passwordHash: "$argon2id$v=19$m=8192,t=2,p=1$salt$hash",
         status: "ACTIVE",
@@ -108,7 +108,7 @@ describe("Document advanced search repository PostgreSQL integration", () => {
       {
         id: ownerAId,
         organizationId: orgId,
-        email: "owner-a@docuflow.local",
+        email: "owner-a@papyrus.local",
         fullName: "Responsável A",
         passwordHash: "$argon2id$v=19$m=8192,t=2,p=1$salt$hash",
         status: "ACTIVE",
@@ -116,7 +116,7 @@ describe("Document advanced search repository PostgreSQL integration", () => {
       {
         id: ownerBId,
         organizationId: orgId,
-        email: "owner-b@docuflow.local",
+        email: "owner-b@papyrus.local",
         fullName: "Responsável B",
         passwordHash: "$argon2id$v=19$m=8192,t=2,p=1$salt$hash",
         status: "ACTIVE",
@@ -207,7 +207,7 @@ describe("Document advanced search repository PostgreSQL integration", () => {
       kind: "local",
       status: "ACTIVE",
       isDefault: true,
-      nonSecretConfig: { rootDirectory: "/tmp/docuflow-search-test" },
+      nonSecretConfig: { rootDirectory: "/tmp/papyrus-search-test" },
     });
 
     const tagPriority = await tagRepo.create({

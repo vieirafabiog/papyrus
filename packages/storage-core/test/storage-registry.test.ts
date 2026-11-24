@@ -53,7 +53,7 @@ function makeConnection(
     name: "Local Primary",
     kind: "local",
     status: "ACTIVE",
-    nonSecretConfig: { rootPath: "/var/lib/docuflow/storage" },
+    nonSecretConfig: { rootPath: "/var/lib/papyrus/storage" },
     encryptedSecretRef: null,
     ...overrides,
   };
@@ -96,11 +96,11 @@ describe("StorageProviderRegistry", () => {
     expect(factory).toHaveBeenCalledTimes(1);
 
     const updatedConn = makeConnection({
-      nonSecretConfig: { rootPath: "/var/lib/docuflow/storage-v2" },
+      nonSecretConfig: { rootPath: "/var/lib/papyrus/storage-v2" },
     });
     const third = await registry.resolveProvider(updatedConn);
     expect(third).not.toBe(first);
-    expect((await third.checkHealth()).message).toBe("/var/lib/docuflow/storage-v2");
+    expect((await third.checkHealth()).message).toBe("/var/lib/papyrus/storage-v2");
     expect(factory).toHaveBeenCalledTimes(2);
 
     registry.invalidate(updatedConn.id);

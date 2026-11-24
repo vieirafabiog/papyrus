@@ -3,7 +3,7 @@ import { chmod, mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promis
 import os from "node:os";
 import path from "node:path";
 import { Readable } from "node:stream";
-import { StorageError } from "@docuflow/storage-core";
+import { StorageError } from "@papyrus/storage-core";
 import { afterEach, describe, expect, it } from "vitest";
 import { createLocalStorageProvider } from "../src/index.js";
 
@@ -11,7 +11,7 @@ const tempDirs: string[] = [];
 const permissionRestores: Array<() => Promise<void>> = [];
 
 async function makeTempRoot(): Promise<string> {
-  const dir = await mkdtemp(path.join(os.tmpdir(), "docuflow-put-"));
+  const dir = await mkdtemp(path.join(os.tmpdir(), "papyrus-put-"));
   tempDirs.push(dir);
   return dir;
 }
@@ -91,7 +91,7 @@ describe("LocalStorageProvider putObject streaming", () => {
       maxObjectSizeBytes: 1024,
     });
 
-    const payload = Buffer.from("conteudo-seguro-docuflow");
+    const payload = Buffer.from("conteudo-seguro-papyrus");
     const validChecksum = sha256Hex(payload);
 
     // Checksum mismatch
@@ -213,7 +213,7 @@ describe("LocalStorageProvider putObject streaming", () => {
     const provider = createLocalStorageProvider({ rootDirectory, fsync: false });
 
     const key = { value: "org/10/documents/20/versions/1/doc-read" };
-    const payload = Buffer.from("Conteúdo binário DocuFlow para leitura em streaming.");
+    const payload = Buffer.from("Conteúdo binário papyrus para leitura em streaming.");
     const checksum = sha256Hex(payload);
 
     // Non-existent object behavior
@@ -259,7 +259,7 @@ describe("LocalStorageProvider putObject streaming", () => {
     expect(Buffer.concat(readChunks)).toEqual(payload);
 
     // Sidecar missing fallback computes SHA-256 via stream cleanly
-    await rm(path.join(rootDirectory, ".docuflow-meta", `${key.value}.json`), { force: true });
+    await rm(path.join(rootDirectory, ".papyrus-meta", `${key.value}.json`), { force: true });
     const headWithoutSidecar = await provider.headObject(key);
     expect(headWithoutSidecar?.checksumSha256).toBe(checksum);
     expect(headWithoutSidecar?.contentLength).toBe(payload.length);

@@ -1,4 +1,4 @@
-# Checklist de Aceitação do MVP — DocuFlow 1.0.0-rc.1
+# Checklist de Aceitação do MVP — papyrus 1.0.0-rc.1
 
 Este checklist registra a execução e comprovação objetiva dos critérios de aceitação definidos em [project.md](../project.md) (**Entregáveis H.2, H.3, I.2 e I.3**) sobre a versão candidata **`1.0.0-rc.1`** (tag `v1.0.0-rc.1`).
 
@@ -14,10 +14,10 @@ Todas as verificações abaixo foram executadas após o congelamento da configur
 | **Lint e formatação** | `biome check .` | **458 arquivos** verificados, `0` erros |
 | **Build de pacotes e web** | `pnpm -r --if-present build` | Build completo (`tsc` + `vite build`) sem erros |
 | **Testes unitários e de contrato** | `vitest run` | **101 arquivos / 305 testes aprovados** |
-| **Integração PostgreSQL (`@docuflow/database`)** | `@docuflow/database test:integration` | **5 arquivos / 9 testes aprovados** (PostgreSQL 16 real) |
-| **Contrato MinIO (`@docuflow/storage-s3`)** | `@docuflow/storage-s3 test:integration` | **1 arquivo / 24 testes aprovados** (`minio-contract.integration.test.ts`) |
-| **Integração Worker (`@docuflow/worker`)** | `@docuflow/worker test:integration` | **3 arquivos / 4 testes aprovados** |
-| **Integração & Segurança API (`@docuflow/api`)** | `@docuflow/api test:integration` e `test` | **34 arquivos / 34 testes** de integração + testes de segurança aprovados |
+| **Integração PostgreSQL (`@papyrus/database`)** | `@papyrus/database test:integration` | **5 arquivos / 9 testes aprovados** (PostgreSQL 16 real) |
+| **Contrato MinIO (`@papyrus/storage-s3`)** | `@papyrus/storage-s3 test:integration` | **1 arquivo / 24 testes aprovados** (`minio-contract.integration.test.ts`) |
+| **Integração Worker (`@papyrus/worker`)** | `@papyrus/worker test:integration` | **3 arquivos / 4 testes aprovados** |
+| **Integração & Segurança API (`@papyrus/api`)** | `@papyrus/api test:integration` e `test` | **34 arquivos / 34 testes** de integração + testes de segurança aprovados |
 | **Backup & Restore em ambiente limpo** | `vitest run --root tests/operations` | **1 arquivo / 1 teste aprovado** ([backup-restore.spec.ts](../tests/operations/backup-restore.spec.ts)) |
 | **E2E no navegador real (Playwright)** | `playwright test` | **3 cenários aprovados em 32.4s** (`accessibility`, `documents`, `workflows`) |
 | **Auditoria de licenças e dependências** | `node scripts/ci/check-dependencies.mjs` | Aprovado (**187** deps prod, `0` críticas, exceção documentada Zod `1243066`) |
@@ -29,8 +29,8 @@ Todas as verificações abaixo foram executadas após o congelamento da configur
 
 | Capacidade (`project.md` H.2) | Status na `1.0.0-rc.1` | Evidência objetiva verificada |
 | --- | --- | --- |
-| **Instalação Docker** | **Comprovado** | `infra/compose/docker-compose.yml` validado; imagens pinadas `docuflow-api:1.0.0-rc.1`, `docuflow-worker:1.0.0-rc.1` e `docuflow-web:1.0.0-rc.1` construídas com migrations incluídas e guia [docs/installation.md](./installation.md) |
-| **Login local** | **Comprovado** | Argon2id, sessão server-side (`HttpOnly`, rotação), CSRF double-submit, logout e rate limit validados em `@docuflow/auth`, `apps/api/test/security.test.ts` e E2E (`documents.spec.ts`); rota `/recuperar-senha` e fluxo documentados em [docs/user-guide.md](./user-guide.md) |
+| **Instalação Docker** | **Comprovado** | `infra/compose/docker-compose.yml` validado; imagens pinadas `papyrus-api:1.0.0-rc.1`, `papyrus-worker:1.0.0-rc.1` e `papyrus-web:1.0.0-rc.1` construídas com migrations incluídas e guia [docs/installation.md](./installation.md) |
+| **Login local** | **Comprovado** | Argon2id, sessão server-side (`HttpOnly`, rotação), CSRF double-submit, logout e rate limit validados em `@papyrus/auth`, `apps/api/test/security.test.ts` e E2E (`documents.spec.ts`); rota `/recuperar-senha` e fluxo documentados em [docs/user-guide.md](./user-guide.md) |
 | **Usuários / grupos / papéis** | **Comprovado** | Precedência `DENY > ALLOW`, herança hierárquica e negação `403` comprovadas em `apps/api/test/security/authorization.spec.ts`, `access-control.test.ts`, `users.integration.test.ts` e `groups.integration.test.ts` |
 | **Pastas / categorias / tags** | **Comprovado** | Criação, edição, movimentação, desativação e filtros testados em `folders.integration.test.ts`, `categories.integration.test.ts`, `tags.integration.test.ts` e percorridos na UI na Step 17.04 |
 | **Metadados** | **Comprovado** | Campos tipados (`TEXT`, `NUMBER`, `DATE`, `BOOLEAN`, `SINGLE_SELECT`, `MULTI_SELECT`) validados no cliente e servidor em `category-fields.integration.test.ts` e `documents-create.integration.test.ts` |

@@ -9,8 +9,8 @@ import {
   type StoredSessionRecord,
   createPasswordService,
   createSessionService,
-} from "@docuflow/auth";
-import { CONTRACTS_API_PREFIX, uploadContentResponseSchema } from "@docuflow/contracts";
+} from "@papyrus/auth";
+import { CONTRACTS_API_PREFIX, uploadContentResponseSchema } from "@papyrus/contracts";
 import {
   categories,
   createAuditRepository,
@@ -28,10 +28,10 @@ import {
   storageConnections,
   userRoleScopes,
   users,
-} from "@docuflow/database";
-import { createStorageRouterService, createUploadSessionService } from "@docuflow/domain";
-import { createStorageProviderRegistry } from "@docuflow/storage-core";
-import { createLocalStorageProvider } from "@docuflow/storage-local";
+} from "@papyrus/database";
+import { createStorageRouterService, createUploadSessionService } from "@papyrus/domain";
+import { createStorageProviderRegistry } from "@papyrus/storage-core";
+import { createLocalStorageProvider } from "@papyrus/storage-local";
 import { PostgreSqlContainer, type StartedPostgreSqlContainer } from "@testcontainers/postgresql";
 import { count, eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/node-postgres";
@@ -95,7 +95,7 @@ describe("API local storage streaming upload integration", () => {
 
   it("streams multipart and raw binary uploads to temporary local storage with limits and progress state", async () => {
     const db = drizzle(pool);
-    const localStorageRoot = await mkdtemp(path.join(os.tmpdir(), "docuflow-api-local-upload-"));
+    const localStorageRoot = await mkdtemp(path.join(os.tmpdir(), "papyrus-api-local-upload-"));
     tempDirs.push(localStorageRoot);
 
     const passwordService = createPasswordService({
@@ -302,7 +302,7 @@ describe("API local storage streaming upload integration", () => {
         headers: { [CSRF_HEADER_NAME]: csrfToken },
         payload: { email, password },
       });
-      return res.cookies.find((c) => c.name === "docuflow_session")?.value ?? "";
+      return res.cookies.find((c) => c.name === "papyrus_session")?.value ?? "";
     };
 
     const uploaderCookie = await login("uploader@stream.invalid");
@@ -315,7 +315,7 @@ describe("API local storage streaming upload integration", () => {
     const session1Res = await app.inject({
       method: "POST",
       url: `${CONTRACTS_API_PREFIX}/uploads/sessions`,
-      cookies: { docuflow_session: uploaderCookie, [CSRF_COOKIE_NAME]: csrfToken },
+      cookies: { papyrus_session: uploaderCookie, [CSRF_COOKIE_NAME]: csrfToken },
       headers: { [CSRF_HEADER_NAME]: csrfToken },
       payload: {
         categoryId,
@@ -334,13 +334,13 @@ describe("API local storage streaming upload integration", () => {
     };
 
     // 2. Another user cannot upload binary to uploader's session (IDOR -> 403)
-    const boundary = "----DocuFlowBoundary777";
+    const boundary = "----PapyrusBoundary777";
     const multipartBody = buildMultipartPayload(boundary, "contrato-stream.pdf", pdfPayload);
 
     const idorUploadRes = await app.inject({
       method: "POST",
       url: `${CONTRACTS_API_PREFIX}/uploads/sessions/${session1.id}/content`,
-      cookies: { docuflow_session: otherCookie, [CSRF_COOKIE_NAME]: csrfToken },
+      cookies: { papyrus_session: otherCookie, [CSRF_COOKIE_NAME]: csrfToken },
       headers: {
         [CSRF_HEADER_NAME]: csrfToken,
         "content-type": `multipart/form-data; boundary=${boundary}`,
@@ -358,7 +358,7 @@ describe("API local storage streaming upload integration", () => {
     const oversizedRes = await app.inject({
       method: "POST",
       url: `${CONTRACTS_API_PREFIX}/uploads/sessions/${session1.id}/content`,
-      cookies: { docuflow_session: uploaderCookie, [CSRF_COOKIE_NAME]: csrfToken },
+      cookies: { papyrus_session: uploaderCookie, [CSRF_COOKIE_NAME]: csrfToken },
       headers: {
         [CSRF_HEADER_NAME]: csrfToken,
         "content-type": `multipart/form-data; boundary=${boundary}`,
@@ -371,7 +371,7 @@ describe("API local storage streaming upload integration", () => {
     const uploadRes = await app.inject({
       method: "POST",
       url: `${CONTRACTS_API_PREFIX}/uploads/sessions/${session1.id}/content`,
-      cookies: { docuflow_session: uploaderCookie, [CSRF_COOKIE_NAME]: csrfToken },
+      cookies: { papyrus_session: uploaderCookie, [CSRF_COOKIE_NAME]: csrfToken },
       headers: {
         [CSRF_HEADER_NAME]: csrfToken,
         "content-type": `multipart/form-data; boundary=${boundary}`,
@@ -403,7 +403,7 @@ describe("API local storage streaming upload integration", () => {
     const repeatRes = await app.inject({
       method: "POST",
       url: `${CONTRACTS_API_PREFIX}/uploads/sessions/${session1.id}/content`,
-      cookies: { docuflow_session: uploaderCookie, [CSRF_COOKIE_NAME]: csrfToken },
+      cookies: { papyrus_session: uploaderCookie, [CSRF_COOKIE_NAME]: csrfToken },
       headers: {
         [CSRF_HEADER_NAME]: csrfToken,
         "content-type": `multipart/form-data; boundary=${boundary}`,
@@ -417,7 +417,7 @@ describe("API local storage streaming upload integration", () => {
     const session2Res = await app.inject({
       method: "POST",
       url: `${CONTRACTS_API_PREFIX}/uploads/sessions`,
-      cookies: { docuflow_session: uploaderCookie, [CSRF_COOKIE_NAME]: csrfToken },
+      cookies: { papyrus_session: uploaderCookie, [CSRF_COOKIE_NAME]: csrfToken },
       headers: { [CSRF_HEADER_NAME]: csrfToken },
       payload: {
         categoryId,
@@ -437,7 +437,7 @@ describe("API local storage streaming upload integration", () => {
     const putRawRes = await app.inject({
       method: "PUT",
       url: `${CONTRACTS_API_PREFIX}/uploads/sessions/${session2.id}/content`,
-      cookies: { docuflow_session: uploaderCookie, [CSRF_COOKIE_NAME]: csrfToken },
+      cookies: { papyrus_session: uploaderCookie, [CSRF_COOKIE_NAME]: csrfToken },
       headers: {
         [CSRF_HEADER_NAME]: csrfToken,
         "content-type": "application/octet-stream",

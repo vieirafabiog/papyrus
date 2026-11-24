@@ -98,7 +98,7 @@ function createTestHarness() {
       {
         id: actorId,
         organizationId: orgId,
-        email: "actor@docuflow.local",
+        email: "actor@papyrus.local",
         fullName: "Actor User",
         status: "ACTIVE",
         createdAt: "2026-11-20T10:00:00Z",
@@ -110,7 +110,7 @@ function createTestHarness() {
       {
         id: ownerId,
         organizationId: orgId,
-        email: "owner@docuflow.local",
+        email: "owner@papyrus.local",
         fullName: "Owner User",
         status: "ACTIVE",
         createdAt: "2026-11-20T10:00:00Z",

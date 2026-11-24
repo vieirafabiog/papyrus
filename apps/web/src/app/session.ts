@@ -3,7 +3,7 @@ import {
   CONTRACTS_API_PREFIX,
   authMeResponseSchema,
   createApiResponseSchema,
-} from "@docuflow/contracts";
+} from "@papyrus/contracts";
 import { useQuery } from "@tanstack/react-query";
 import { translate } from "../i18n/index.js";
 

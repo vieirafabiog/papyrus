@@ -8,7 +8,7 @@ import type {
   RetentionPolicyRepositoryPort,
   TransactionContext,
   UpdateRetentionPolicyInput,
-} from "@docuflow/domain";
+} from "@papyrus/domain";
 import { and, asc, desc, eq, isNull, or } from "drizzle-orm";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 import { documents } from "../schema/documents.js";

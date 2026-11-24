@@ -6,15 +6,15 @@ import {
   buildStorageProviderContractScenarios,
   requireSignedDownloadTargetProvider,
   requireSignedUploadTargetProvider,
-} from "@docuflow/storage-core";
+} from "@papyrus/storage-core";
 import { GenericContainer, type StartedTestContainer, Wait } from "testcontainers";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { type S3StorageConfigInput, createS3StorageProvider } from "../../src/index.js";
 
 const MINIO_IMAGE = "cgr.dev/chainguard/minio:latest";
-const MINIO_ACCESS_KEY = "docuflowminio";
-const MINIO_SECRET_KEY = "DocuFlowMinioPassword2026!";
-const MINIO_BUCKET = "docuflow-integration";
+const MINIO_ACCESS_KEY = "papyrusminio";
+const MINIO_SECRET_KEY = "PapyrusMinioPassword2026!";
+const MINIO_BUCKET = "papyrus-integration";
 
 function sha256Hex(buffer: Buffer): string {
   return createHash("sha256").update(buffer).digest("hex");
@@ -179,7 +179,7 @@ describe("S3StorageProvider integration against MinIO", () => {
 
     // 2. Missing bucket fails health check cleanly
     const missingBucketProvider = createS3StorageProvider(
-      makeMinioConfig(endpoint, "non-existent-docuflow-bucket"),
+      makeMinioConfig(endpoint, "non-existent-papyrus-bucket"),
       { securityPolicy: { allowPrivateEndpoints: true } },
     );
     const missingBucketHealth = await missingBucketProvider.checkHealth();

@@ -11,7 +11,7 @@ import {
   StorageError,
   type StorageHealthCheckResult,
   normalizeStorageError,
-} from "@docuflow/storage-core";
+} from "@papyrus/storage-core";
 import {
   type DnsLookupAllFn,
   type S3EndpointSecurityPolicy,
@@ -44,7 +44,7 @@ export interface S3HealthCheckOptions {
 }
 
 function buildProbeKey(keyPrefix?: string): string {
-  const leaf = `.docuflow-health-probe-${randomUUID()}`;
+  const leaf = `.papyrus-health-probe-${randomUUID()}`;
   return keyPrefix ? `${keyPrefix}/${leaf}` : leaf;
 }
 
@@ -147,7 +147,7 @@ export async function checkS3StorageHealth(
 
   if (options.verifyReadWrite) {
     const probeKey = buildProbeKey(options.config.keyPrefix);
-    const probeBytes = Buffer.from("docuflow-s3-health-probe", "utf8");
+    const probeBytes = Buffer.from("papyrus-s3-health-probe", "utf8");
     try {
       await options.client.send(
         new PutObjectCommand({

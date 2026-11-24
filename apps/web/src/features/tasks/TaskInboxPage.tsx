@@ -1,5 +1,3 @@
-import type { DocumentStatus, TaskInboxItem, WorkflowTaskStatus } from "@docuflow/contracts";
-import { DataTable, type DataTableColumn, PAPYRUS_COLOR_TOKENS } from "@docuflow/ui";
 import OpenInNewOutlinedIcon from "@mui/icons-material/OpenInNewOutlined";
 import PendingActionsOutlinedIcon from "@mui/icons-material/PendingActionsOutlined";
 import RefreshOutlinedIcon from "@mui/icons-material/RefreshOutlined";
@@ -19,6 +17,8 @@ import {
   Switch,
   Typography,
 } from "@mui/material";
+import type { DocumentStatus, TaskInboxItem, WorkflowTaskStatus } from "@papyrus/contracts";
+import { DataTable, type DataTableColumn, PAPYRUS_COLOR_TOKENS } from "@papyrus/ui";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { type MessageKey, useI18n } from "../../i18n/index.js";

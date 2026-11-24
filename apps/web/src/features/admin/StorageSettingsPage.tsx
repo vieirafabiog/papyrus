@@ -1,23 +1,3 @@
-import type {
-  CategorySummaryRecord,
-  CreateStorageConnectionContract,
-  StorageConnectionKindContract,
-  StorageConnectionStatusContract,
-  StorageConnectionViewContract,
-  StorageRoutingRuleViewContract,
-  UpdateStorageConnectionContract,
-} from "@docuflow/contracts";
-import {
-  createStorageConnectionContractSchema,
-  updateStorageConnectionContractSchema,
-} from "@docuflow/contracts";
-import {
-  ConfirmDialog,
-  EmptyState,
-  ErrorState,
-  LoadingState,
-  PAPYRUS_COLOR_TOKENS,
-} from "@docuflow/ui";
 import AddOutlinedIcon from "@mui/icons-material/AddOutlined";
 import CheckCircleOutlineOutlinedIcon from "@mui/icons-material/CheckCircleOutlineOutlined";
 import DeleteOutlineOutlinedIcon from "@mui/icons-material/DeleteOutlineOutlined";
@@ -54,6 +34,26 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
+import type {
+  CategorySummaryRecord,
+  CreateStorageConnectionContract,
+  StorageConnectionKindContract,
+  StorageConnectionStatusContract,
+  StorageConnectionViewContract,
+  StorageRoutingRuleViewContract,
+  UpdateStorageConnectionContract,
+} from "@papyrus/contracts";
+import {
+  createStorageConnectionContractSchema,
+  updateStorageConnectionContractSchema,
+} from "@papyrus/contracts";
+import {
+  ConfirmDialog,
+  EmptyState,
+  ErrorState,
+  LoadingState,
+  PAPYRUS_COLOR_TOKENS,
+} from "@papyrus/ui";
 import { type FormEvent, useId, useMemo, useState } from "react";
 import { useSessionQuery } from "../../app/session.js";
 import { type MessageKey, useI18n } from "../../i18n/index.js";

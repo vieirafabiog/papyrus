@@ -5,8 +5,8 @@ import type {
   AuditRepositoryPort,
   StorageConnectionEntity,
   StorageConnectionRepositoryPort,
-} from "@docuflow/domain";
-import { type StorageProvider, createStorageProviderRegistry } from "@docuflow/storage-core";
+} from "@papyrus/domain";
+import { type StorageProvider, createStorageProviderRegistry } from "@papyrus/storage-core";
 import { describe, expect, it } from "vitest";
 import {
   type StorageIntegrityStorePort,
@@ -39,7 +39,7 @@ function createIntegrityTestHarness() {
     kind: "local",
     isDefault: true,
     status: "ACTIVE",
-    nonSecretConfig: { rootDirectory: "/var/lib/docuflow" },
+    nonSecretConfig: { rootDirectory: "/var/lib/papyrus" },
     encryptedSecretRef: null,
     lastHealthCheckAt: null,
     lastHealthMessage: null,

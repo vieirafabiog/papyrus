@@ -29,7 +29,7 @@ async function main(): Promise<void> {
   const nodeEnv = process.env.NODE_ENV ?? "production";
   const args = new Set(process.argv.slice(2));
   const requestedDestructiveSeed =
-    args.has("--seed-destructive") || parseBooleanEnv(process.env.DOCUFLOW_RUN_DESTRUCTIVE_SEED);
+    args.has("--seed-destructive") || parseBooleanEnv(process.env.PAPYRUS_RUN_DESTRUCTIVE_SEED);
 
   assertDestructiveSeedAllowed(nodeEnv, requestedDestructiveSeed);
 
@@ -55,12 +55,12 @@ async function main(): Promise<void> {
     logger: {
       info(message, context) {
         process.stdout.write(
-          `${JSON.stringify({ timestamp: new Date().toISOString(), level: "info", service: "docuflow-migrator", message, ...(context ?? {}) })}\n`,
+          `${JSON.stringify({ timestamp: new Date().toISOString(), level: "info", service: "papyrus-migrator", message, ...(context ?? {}) })}\n`,
         );
       },
       error(message, context) {
         process.stderr.write(
-          `${JSON.stringify({ timestamp: new Date().toISOString(), level: "error", service: "docuflow-migrator", message, ...(context ?? {}) })}\n`,
+          `${JSON.stringify({ timestamp: new Date().toISOString(), level: "error", service: "papyrus-migrator", message, ...(context ?? {}) })}\n`,
         );
       },
     },

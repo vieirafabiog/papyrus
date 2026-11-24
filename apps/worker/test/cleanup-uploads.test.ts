@@ -9,12 +9,12 @@ import type {
   TransactionContext,
   TransactionManagerPort,
   UploadSessionEntity,
-} from "@docuflow/domain";
+} from "@papyrus/domain";
 import {
   type StorageProvider,
   type StorageProviderKind,
   createStorageProviderRegistry,
-} from "@docuflow/storage-core";
+} from "@papyrus/storage-core";
 import { describe, expect, it } from "vitest";
 import {
   type AbandonedUploadCleanupStorePort,

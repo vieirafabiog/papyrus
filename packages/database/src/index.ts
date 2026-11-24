@@ -12,7 +12,7 @@ export {
   assertDestructiveSeedAllowed,
   DEFAULT_MIGRATION_LOCK_RETRY_INTERVAL_MS,
   DEFAULT_MIGRATION_LOCK_TIMEOUT_MS,
-  DOCUFLOW_MIGRATION_ADVISORY_LOCK_KEY,
+  PAPYRUS_MIGRATION_ADVISORY_LOCK_KEY,
   isProductionNodeEnv,
   MigrationGuardError,
   MigrationLockTimeoutError,

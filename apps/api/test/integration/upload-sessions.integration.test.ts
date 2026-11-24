@@ -7,8 +7,8 @@ import {
   type StoredSessionRecord,
   createPasswordService,
   createSessionService,
-} from "@docuflow/auth";
-import { CONTRACTS_API_PREFIX, uploadSessionRecordSchema } from "@docuflow/contracts";
+} from "@papyrus/auth";
+import { CONTRACTS_API_PREFIX, uploadSessionRecordSchema } from "@papyrus/contracts";
 import {
   categories,
   createAuditRepository,
@@ -29,8 +29,8 @@ import {
   uploadSessions,
   userRoleScopes,
   users,
-} from "@docuflow/database";
-import { createStorageRouterService, createUploadSessionService } from "@docuflow/domain";
+} from "@papyrus/database";
+import { createStorageRouterService, createUploadSessionService } from "@papyrus/domain";
 import { PostgreSqlContainer, type StartedPostgreSqlContainer } from "@testcontainers/postgresql";
 import { count, eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/node-postgres";
@@ -309,7 +309,7 @@ describe("Upload session creation integration", () => {
         headers: { [CSRF_HEADER_NAME]: csrfToken },
         payload: { email, password },
       });
-      return res.cookies.find((c) => c.name === "docuflow_session")?.value ?? "";
+      return res.cookies.find((c) => c.name === "papyrus_session")?.value ?? "";
     };
 
     const uploaderCookie = await login("uploader@uploads.invalid");
@@ -319,7 +319,7 @@ describe("Upload session creation integration", () => {
     const deniedViewerRes = await app.inject({
       method: "POST",
       url: `${CONTRACTS_API_PREFIX}/uploads/sessions`,
-      cookies: { docuflow_session: viewerCookie, [CSRF_COOKIE_NAME]: csrfToken },
+      cookies: { papyrus_session: viewerCookie, [CSRF_COOKIE_NAME]: csrfToken },
       headers: { [CSRF_HEADER_NAME]: csrfToken },
       payload: {
         categoryId: catContractsId,
@@ -335,7 +335,7 @@ describe("Upload session creation integration", () => {
     const oversizedRes = await app.inject({
       method: "POST",
       url: `${CONTRACTS_API_PREFIX}/uploads/sessions`,
-      cookies: { docuflow_session: uploaderCookie, [CSRF_COOKIE_NAME]: csrfToken },
+      cookies: { papyrus_session: uploaderCookie, [CSRF_COOKIE_NAME]: csrfToken },
       headers: { [CSRF_HEADER_NAME]: csrfToken },
       payload: {
         categoryId: catContractsId,
@@ -351,7 +351,7 @@ describe("Upload session creation integration", () => {
     const createRes = await app.inject({
       method: "POST",
       url: `${CONTRACTS_API_PREFIX}/uploads/sessions`,
-      cookies: { docuflow_session: uploaderCookie, [CSRF_COOKIE_NAME]: csrfToken },
+      cookies: { papyrus_session: uploaderCookie, [CSRF_COOKIE_NAME]: csrfToken },
       headers: { [CSRF_HEADER_NAME]: csrfToken },
       payload: {
         categoryId: catContractsId,
@@ -397,7 +397,7 @@ describe("Upload session creation integration", () => {
     const replayRes = await app.inject({
       method: "POST",
       url: `${CONTRACTS_API_PREFIX}/uploads/sessions`,
-      cookies: { docuflow_session: uploaderCookie, [CSRF_COOKIE_NAME]: csrfToken },
+      cookies: { papyrus_session: uploaderCookie, [CSRF_COOKIE_NAME]: csrfToken },
       headers: { [CSRF_HEADER_NAME]: csrfToken },
       payload: {
         categoryId: catContractsId,
@@ -418,7 +418,7 @@ describe("Upload session creation integration", () => {
     const conflictRes = await app.inject({
       method: "POST",
       url: `${CONTRACTS_API_PREFIX}/uploads/sessions`,
-      cookies: { docuflow_session: uploaderCookie, [CSRF_COOKIE_NAME]: csrfToken },
+      cookies: { papyrus_session: uploaderCookie, [CSRF_COOKIE_NAME]: csrfToken },
       headers: { [CSRF_HEADER_NAME]: csrfToken },
       payload: {
         categoryId: catContractsId,
@@ -434,14 +434,14 @@ describe("Upload session creation integration", () => {
     const idorGetRes = await app.inject({
       method: "GET",
       url: `${CONTRACTS_API_PREFIX}/uploads/sessions/${createdSession.id}`,
-      cookies: { docuflow_session: viewerCookie },
+      cookies: { papyrus_session: viewerCookie },
     });
     expect(idorGetRes.statusCode).toBe(403);
 
     const ownerGetRes = await app.inject({
       method: "GET",
       url: `${CONTRACTS_API_PREFIX}/uploads/sessions/${createdSession.id}`,
-      cookies: { docuflow_session: uploaderCookie },
+      cookies: { papyrus_session: uploaderCookie },
     });
     expect(ownerGetRes.statusCode).toBe(200);
     expect(ownerGetRes.json().data.id).toBe(createdSession.id);

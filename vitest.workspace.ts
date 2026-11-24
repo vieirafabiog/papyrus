@@ -5,7 +5,7 @@ export default defineWorkspace([
   "packages/ui/vitest.config.ts",
   {
     test: {
-      name: "docuflow-unit",
+      name: "papyrus-unit",
       environment: "node",
       passWithNoTests: true,
       testTimeout: 30_000,

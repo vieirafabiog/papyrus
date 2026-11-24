@@ -12,7 +12,7 @@ describe("Config schemas", () => {
       NODE_ENV: "test",
       PORT: "4000",
       APP_URL: "http://localhost:5173",
-      DATABASE_URL: "postgresql://user:super_secret_password@localhost:5432/docuflow",
+      DATABASE_URL: "postgresql://user:super_secret_password@localhost:5432/papyrus",
       SESSION_SECRET: "a".repeat(32),
       ENCRYPTION_KEY: "b".repeat(32),
     });

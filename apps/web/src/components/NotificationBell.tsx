@@ -1,12 +1,3 @@
-import {
-  CONTRACTS_API_PREFIX,
-  type NotificationItem,
-  type NotificationKindContract,
-  type NotificationListResponse,
-  notificationDetailResponseSchema,
-  notificationListResponseSchema,
-} from "@docuflow/contracts";
-import { PAPYRUS_COLOR_TOKENS } from "@docuflow/ui";
 import DoneOutlinedIcon from "@mui/icons-material/DoneOutlined";
 import EventBusyOutlinedIcon from "@mui/icons-material/EventBusyOutlined";
 import NotificationsNoneOutlinedIcon from "@mui/icons-material/NotificationsNoneOutlined";
@@ -30,13 +21,22 @@ import {
   ToggleButtonGroup,
   Typography,
 } from "@mui/material";
+import {
+  CONTRACTS_API_PREFIX,
+  type NotificationItem,
+  type NotificationKindContract,
+  type NotificationListResponse,
+  notificationDetailResponseSchema,
+  notificationListResponseSchema,
+} from "@papyrus/contracts";
+import { PAPYRUS_COLOR_TOKENS } from "@papyrus/ui";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { type MouseEvent, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { extractUserErrorMessage } from "../i18n/api-errors.js";
 import { type MessageKey, translate, useI18n } from "../i18n/index.js";
 
-const CSRF_COOKIE_NAME = "docuflow_csrf";
+const CSRF_COOKIE_NAME = "papyrus_csrf";
 const CSRF_HEADER_NAME = "x-csrf-token";
 
 const NOTIFICATION_KIND_META: Readonly<

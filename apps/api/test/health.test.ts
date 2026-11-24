@@ -5,8 +5,8 @@ import {
   type StoredSessionRecord,
   createPasswordService,
   createSessionService,
-} from "@docuflow/auth";
-import { CONTRACTS_API_PREFIX } from "@docuflow/contracts";
+} from "@papyrus/auth";
+import { CONTRACTS_API_PREFIX } from "@papyrus/contracts";
 import { describe, expect, it } from "vitest";
 import { buildApp } from "../src/app.js";
 import { type AuthCredentialRecord, createAuthService } from "../src/modules/auth/auth.service.js";
@@ -46,7 +46,7 @@ describe("Health & Readiness endpoints (Step 14.07)", () => {
         checkDatabase: async () => {
           if (!dbHealthy) {
             throw new Error(
-              "connect ECONNREFUSED postgresql://docuflow:SuperSecretDbPass@10.20.30.40:5432/prod_db",
+              "connect ECONNREFUSED postgresql://papyrus:SuperSecretDbPass@10.20.30.40:5432/prod_db",
             );
           }
           return { healthy: true, message: "PostgreSQL ativo" };
@@ -135,11 +135,11 @@ describe("Health & Readiness endpoints (Step 14.07)", () => {
     });
     const hash = await passwordService.hashPassword("SenhaOperacional!2026");
 
-    users.set("admin@docuflow.local", {
+    users.set("admin@papyrus.local", {
       user: {
         id: adminId,
         organizationId: orgId,
-        email: "admin@docuflow.local",
+        email: "admin@papyrus.local",
         fullName: "Admin",
         status: "ACTIVE",
         createdAt: now.toISOString(),
@@ -147,11 +147,11 @@ describe("Health & Readiness endpoints (Step 14.07)", () => {
       },
       passwordHash: hash,
     });
-    users.set("viewer@docuflow.local", {
+    users.set("viewer@papyrus.local", {
       user: {
         id: viewerId,
         organizationId: orgId,
-        email: "viewer@docuflow.local",
+        email: "viewer@papyrus.local",
         fullName: "Leitor",
         status: "ACTIVE",
         createdAt: now.toISOString(),
@@ -224,7 +224,7 @@ describe("Health & Readiness endpoints (Step 14.07)", () => {
       healthDeps: {
         checkDatabase: async () => ({
           healthy: false,
-          message: "Erro ao conectar em postgresql://dbuser:topsecret@db.internal:5432/docuflow",
+          message: "Erro ao conectar em postgresql://dbuser:topsecret@db.internal:5432/papyrus",
         }),
         checkWorker: async () => ({ healthy: true, message: "Em execução contínua" }),
         listStorageConnections: async () => [
@@ -262,11 +262,11 @@ describe("Health & Readiness endpoints (Step 14.07)", () => {
         headers: { origin: "http://localhost:5173", [CSRF_HEADER_NAME]: csrfToken },
         payload: { email, password: "SenhaOperacional!2026" },
       });
-      const sessionCookie = res.cookies.find((c) => c.name === "docuflow_session")?.value ?? "";
-      return `${CSRF_COOKIE_NAME}=${csrfToken}; docuflow_session=${sessionCookie}`;
+      const sessionCookie = res.cookies.find((c) => c.name === "papyrus_session")?.value ?? "";
+      return `${CSRF_COOKIE_NAME}=${csrfToken}; papyrus_session=${sessionCookie}`;
     };
 
-    const viewerCookie = await loginAs("viewer@docuflow.local");
+    const viewerCookie = await loginAs("viewer@papyrus.local");
     const forbidden = await app.inject({
       method: "GET",
       url: `${CONTRACTS_API_PREFIX}/admin/system-status`,
@@ -274,7 +274,7 @@ describe("Health & Readiness endpoints (Step 14.07)", () => {
     });
     expect(forbidden.statusCode).toBe(403);
 
-    const adminCookie = await loginAs("admin@docuflow.local");
+    const adminCookie = await loginAs("admin@papyrus.local");
     const okRes = await app.inject({
       method: "GET",
       url: `${CONTRACTS_API_PREFIX}/admin/system-status`,

@@ -1,4 +1,4 @@
-import type { TransactionContext } from "@docuflow/domain";
+import type { TransactionContext } from "@papyrus/domain";
 import type {
   CreateInAppNotificationRecordInput,
   InAppNotificationEventKind,
@@ -8,7 +8,7 @@ import type {
   ListInAppNotificationsQuery,
   ListInAppNotificationsResult,
   MarkInAppNotificationReadOutcome,
-} from "@docuflow/notifications";
+} from "@papyrus/notifications";
 import { and, count, desc, eq, isNull } from "drizzle-orm";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 import { notifications } from "../schema/workflows.js";

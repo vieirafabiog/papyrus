@@ -10,7 +10,7 @@ import {
   documentListResponseSchema,
   folderListResponseSchema,
   userSummarySchema,
-} from "@docuflow/contracts";
+} from "@papyrus/contracts";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { useSessionQuery } from "../../app/session.js";
 import { extractUserErrorMessage } from "../../i18n/api-errors.js";

@@ -10,7 +10,7 @@ import type {
   PaginatedResult,
   RenameFolderInput,
   TransactionContext,
-} from "@docuflow/domain";
+} from "@papyrus/domain";
 import {
   type SQL,
   and,

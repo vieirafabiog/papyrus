@@ -67,19 +67,17 @@ describe("PostgreSQL repositories integration", () => {
     const connId = randomUUID();
     const roleId = randomUUID();
 
-    await db
-      .insert(organizations)
-      .values({ id: orgId, name: "DocuFlow Org", slug: "docuflow-org" });
+    await db.insert(organizations).values({ id: orgId, name: "papyrus Org", slug: "papyrus-org" });
     await userRepo.create({
       id: userId,
       organizationId: orgId,
-      email: "Admin@Docuflow.Invalid",
+      email: "Admin@papyrus.Invalid",
       fullName: "Administrador Principal",
       passwordHash: "$argon2id$v=19$m=65536,t=3,p=1$salt$hash",
       status: "ACTIVE",
     });
 
-    const foundUser = await userRepo.findByEmail(orgId, "admin@docuflow.invalid");
+    const foundUser = await userRepo.findByEmail(orgId, "admin@papyrus.invalid");
     expect(foundUser?.id).toBe(userId);
 
     await db.insert(roles).values({

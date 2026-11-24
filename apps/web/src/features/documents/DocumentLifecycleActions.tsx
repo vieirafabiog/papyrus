@@ -1,4 +1,3 @@
-import type { DocumentDetail, RestoreTrashedDocumentTargetStatus } from "@docuflow/contracts";
 import ArchiveOutlinedIcon from "@mui/icons-material/ArchiveOutlined";
 import DriveFileMoveOutlinedIcon from "@mui/icons-material/DriveFileMoveOutlined";
 import FolderOutlinedIcon from "@mui/icons-material/FolderOutlined";
@@ -16,6 +15,7 @@ import {
   Stack,
   TextField,
 } from "@mui/material";
+import type { DocumentDetail, RestoreTrashedDocumentTargetStatus } from "@papyrus/contracts";
 import { useId, useMemo, useState } from "react";
 import { containsTechnicalJargon } from "../../i18n/api-errors.js";
 import { useI18n } from "../../i18n/index.js";

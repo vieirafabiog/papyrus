@@ -7,12 +7,12 @@ import {
   type StoredSessionRecord,
   createPasswordService,
   createSessionService,
-} from "@docuflow/auth";
+} from "@papyrus/auth";
 import {
   CONTRACTS_API_PREFIX,
   storageConnectionTestResultSchema,
   storageConnectionViewSchema,
-} from "@docuflow/contracts";
+} from "@papyrus/contracts";
 import {
   createAuditRepository,
   createStorageConnectionRepository,
@@ -22,9 +22,9 @@ import {
   storageConnections,
   userRoleScopes,
   users,
-} from "@docuflow/database";
-import { createStorageConnectionAdminService } from "@docuflow/domain";
-import { createStorageSecretVault } from "@docuflow/storage-core";
+} from "@papyrus/database";
+import { createStorageConnectionAdminService } from "@papyrus/domain";
+import { createStorageSecretVault } from "@papyrus/storage-core";
 import { PostgreSqlContainer, type StartedPostgreSqlContainer } from "@testcontainers/postgresql";
 import { and, eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/node-postgres";
@@ -45,7 +45,7 @@ const MIGRATIONS_FOLDER = path.resolve(CURRENT_DIR, "../../../../packages/databa
 const MINIO_IMAGE = "cgr.dev/chainguard/minio:latest";
 const MINIO_ACCESS_KEY = "AKIAMINIOADMIN2026";
 const MINIO_SECRET_KEY = "MinioSuperSecretKeyValue2026!";
-const MINIO_BUCKET = "docuflow-api-s3-bucket";
+const MINIO_BUCKET = "papyrus-api-s3-bucket";
 
 function hmacSha256(key: string | Buffer, data: string): Buffer {
   return createHmac("sha256", key).update(data).digest();
@@ -298,13 +298,13 @@ describe("S3 storage administrative routes integration", () => {
       payload: { email: "admin@s3api.invalid", password: adminPass },
     });
     expect(loginRes.statusCode).toBe(200);
-    const adminCookie = loginRes.cookies.find((c) => c.name === "docuflow_session")?.value ?? "";
+    const adminCookie = loginRes.cookies.find((c) => c.name === "papyrus_session")?.value ?? "";
 
     // 1. SSRF / cloud metadata endpoint is rejected with 400
     const ssrfRejectRes = await app.inject({
       method: "POST",
       url: `${CONTRACTS_API_PREFIX}/admin/storage-connections`,
-      cookies: { docuflow_session: adminCookie, [CSRF_COOKIE_NAME]: csrfToken },
+      cookies: { papyrus_session: adminCookie, [CSRF_COOKIE_NAME]: csrfToken },
       headers: { [CSRF_HEADER_NAME]: csrfToken },
       payload: {
         kind: "s3",
@@ -326,7 +326,7 @@ describe("S3 storage administrative routes integration", () => {
     const createS3Res = await app.inject({
       method: "POST",
       url: `${CONTRACTS_API_PREFIX}/admin/storage-connections`,
-      cookies: { docuflow_session: adminCookie, [CSRF_COOKIE_NAME]: csrfToken },
+      cookies: { papyrus_session: adminCookie, [CSRF_COOKIE_NAME]: csrfToken },
       headers: { [CSRF_HEADER_NAME]: csrfToken },
       payload: {
         kind: "s3",
@@ -369,7 +369,7 @@ describe("S3 storage administrative routes integration", () => {
     const failedTestRes = await app.inject({
       method: "POST",
       url: `${CONTRACTS_API_PREFIX}/admin/storage-connections/${connId}/test`,
-      cookies: { docuflow_session: adminCookie, [CSRF_COOKIE_NAME]: csrfToken },
+      cookies: { papyrus_session: adminCookie, [CSRF_COOKIE_NAME]: csrfToken },
       headers: { [CSRF_HEADER_NAME]: csrfToken },
     });
     expect(failedTestRes.statusCode).toBe(200);
@@ -381,7 +381,7 @@ describe("S3 storage administrative routes integration", () => {
     const patchRes = await app.inject({
       method: "PATCH",
       url: `${CONTRACTS_API_PREFIX}/admin/storage-connections/${connId}`,
-      cookies: { docuflow_session: adminCookie, [CSRF_COOKIE_NAME]: csrfToken },
+      cookies: { papyrus_session: adminCookie, [CSRF_COOKIE_NAME]: csrfToken },
       headers: { [CSRF_HEADER_NAME]: csrfToken },
       payload: {
         name: "MinIO Produção",
@@ -400,7 +400,7 @@ describe("S3 storage administrative routes integration", () => {
     const healthyTestRes = await app.inject({
       method: "POST",
       url: `${CONTRACTS_API_PREFIX}/admin/storage-connections/${connId}/test`,
-      cookies: { docuflow_session: adminCookie, [CSRF_COOKIE_NAME]: csrfToken },
+      cookies: { papyrus_session: adminCookie, [CSRF_COOKIE_NAME]: csrfToken },
       headers: { [CSRF_HEADER_NAME]: csrfToken },
     });
     expect(healthyTestRes.statusCode).toBe(200);
@@ -416,7 +416,7 @@ describe("S3 storage administrative routes integration", () => {
     const listRes = await app.inject({
       method: "GET",
       url: `${CONTRACTS_API_PREFIX}/admin/storage-connections`,
-      cookies: { docuflow_session: adminCookie },
+      cookies: { papyrus_session: adminCookie },
     });
     expect(listRes.statusCode).toBe(200);
     expect(listRes.body).not.toContain(MINIO_ACCESS_KEY);

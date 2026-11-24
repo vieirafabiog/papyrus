@@ -9,14 +9,14 @@ import {
   type StoredSessionRecord,
   createPasswordService,
   createSessionService,
-} from "@docuflow/auth";
-import { CONTRACTS_API_PREFIX } from "@docuflow/contracts";
+} from "@papyrus/auth";
+import { CONTRACTS_API_PREFIX } from "@papyrus/contracts";
 import type {
   AuthorizationRepository,
   LoadedAuthorizationSubject,
   OutboxJobRecord,
   OutboxRepository,
-} from "@docuflow/database";
+} from "@papyrus/database";
 import {
   type AuditEventInput,
   type AuditEventRecord,
@@ -44,10 +44,10 @@ import {
   createStorageRouterService,
   createUploadLimitsService,
   createUploadSessionService,
-} from "@docuflow/domain";
-import type { AntivirusScannerPort } from "@docuflow/file-processing";
-import { createStorageProviderRegistry } from "@docuflow/storage-core";
-import { createLocalStorageProvider } from "@docuflow/storage-local";
+} from "@papyrus/domain";
+import type { AntivirusScannerPort } from "@papyrus/file-processing";
+import { createStorageProviderRegistry } from "@papyrus/storage-core";
+import { createLocalStorageProvider } from "@papyrus/storage-local";
 import { afterAll, describe, expect, it } from "vitest";
 import { createProcessUploadJobHandler } from "../../worker/src/jobs/process-upload.js";
 import { buildApp } from "../src/app.js";
@@ -591,11 +591,11 @@ function createUploadLimitsHarness(localRoot: string, tempRoot: string) {
     const password = "SenhaForte!Upload2026";
     const passwordHash = await passwordService.hashPassword(password);
 
-    usersByEmail.set("admin@docuflow.local", {
+    usersByEmail.set("admin@papyrus.local", {
       user: {
         id: adminId,
         organizationId: orgId,
-        email: "admin@docuflow.local",
+        email: "admin@papyrus.local",
         fullName: "Admin Storage",
         status: "ACTIVE",
         createdAt: nowIso,
@@ -603,11 +603,11 @@ function createUploadLimitsHarness(localRoot: string, tempRoot: string) {
       },
       passwordHash,
     });
-    usersByEmail.set("viewer@docuflow.local", {
+    usersByEmail.set("viewer@papyrus.local", {
       user: {
         id: viewerId,
         organizationId: orgId,
-        email: "viewer@docuflow.local",
+        email: "viewer@papyrus.local",
         fullName: "Leitor",
         status: "ACTIVE",
         createdAt: nowIso,
@@ -677,17 +677,16 @@ function createUploadLimitsHarness(localRoot: string, tempRoot: string) {
         payload: { email, password },
       });
       expect(loginRes.statusCode).toBe(200);
-      const sessionCookie =
-        loginRes.cookies.find((c) => c.name === "docuflow_session")?.value ?? "";
+      const sessionCookie = loginRes.cookies.find((c) => c.name === "papyrus_session")?.value ?? "";
       return {
-        cookieHeader: `${CSRF_COOKIE_NAME}=${csrfToken}; docuflow_session=${sessionCookie}`,
+        cookieHeader: `${CSRF_COOKIE_NAME}=${csrfToken}; papyrus_session=${sessionCookie}`,
         csrfToken,
       };
     };
 
     return {
-      adminAuth: await doLogin("admin@docuflow.local"),
-      viewerAuth: await doLogin("viewer@docuflow.local"),
+      adminAuth: await doLogin("admin@papyrus.local"),
+      viewerAuth: await doLogin("viewer@papyrus.local"),
     };
   };
 
@@ -717,7 +716,7 @@ describe("Upload size and allowed extensions configuration across proxy, API, an
   });
 
   it("enforces admin permissions, proxy ceiling, and consistent API + worker validation after updating upload limits", async () => {
-    const baseDir = await mkdtemp(path.join(os.tmpdir(), "docuflow-upload-limits-"));
+    const baseDir = await mkdtemp(path.join(os.tmpdir(), "papyrus-upload-limits-"));
     const localRoot = path.join(baseDir, "storage");
     const tempRoot = path.join(baseDir, "tmp");
     await mkdir(localRoot, { recursive: true });

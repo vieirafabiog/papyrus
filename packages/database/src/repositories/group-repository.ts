@@ -5,7 +5,7 @@ import type {
   GroupRepositoryPort,
   TransactionContext,
   UserEntity,
-} from "@docuflow/domain";
+} from "@papyrus/domain";
 import { and, asc, count, eq } from "drizzle-orm";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 import { groups, userGroups, users } from "../schema/identity.js";

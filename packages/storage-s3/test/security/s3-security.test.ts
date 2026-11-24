@@ -7,7 +7,7 @@ import {
   createStorageProviderRegistry,
   requireSignedDownloadTargetProvider,
   requireSignedUploadTargetProvider,
-} from "@docuflow/storage-core";
+} from "@papyrus/storage-core";
 import { describe, expect, it } from "vitest";
 import {
   type S3CommandExecutor,
@@ -24,7 +24,7 @@ const SESSION_TOKEN = "FwoGZXIvYXdzEBYaDExampleSessionTokenSecret";
 const BASE_PUBLIC_S3_CONFIG = {
   endpoint: "https://s3.us-east-1.amazonaws.com",
   region: "us-east-1",
-  bucket: "docuflow-security-bucket",
+  bucket: "papyrus-security-bucket",
   forcePathStyle: true,
   keyPrefix: "tenant-sec",
   credentials: {

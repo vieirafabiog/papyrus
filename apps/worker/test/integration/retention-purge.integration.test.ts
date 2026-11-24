@@ -23,10 +23,10 @@ import {
   storageConnections,
   storageOperations,
   users,
-} from "@docuflow/database";
-import { createRetentionGovernanceService } from "@docuflow/domain";
-import { type StorageProvider, createStorageProviderRegistry } from "@docuflow/storage-core";
-import { createLocalStorageProvider } from "@docuflow/storage-local";
+} from "@papyrus/database";
+import { createRetentionGovernanceService } from "@papyrus/domain";
+import { type StorageProvider, createStorageProviderRegistry } from "@papyrus/storage-core";
+import { createLocalStorageProvider } from "@papyrus/storage-local";
 import { PostgreSqlContainer, type StartedPostgreSqlContainer } from "@testcontainers/postgresql";
 import { and, asc, eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/node-postgres";
@@ -73,8 +73,8 @@ describe("Retention hold, retry isolation, and audit preservation integration (S
       connectionString = container.getConnectionUri();
     }
 
-    storageDirPrimary = await mkdtemp(path.join(os.tmpdir(), "docuflow-ret-p1-"));
-    storageDirSecondary = await mkdtemp(path.join(os.tmpdir(), "docuflow-ret-p2-"));
+    storageDirPrimary = await mkdtemp(path.join(os.tmpdir(), "papyrus-ret-p1-"));
+    storageDirSecondary = await mkdtemp(path.join(os.tmpdir(), "papyrus-ret-p2-"));
     pool = new Pool({ connectionString });
     pool.on("error", () => {});
     const db = drizzle(pool);
@@ -122,7 +122,7 @@ describe("Retention hold, retry isolation, and audit preservation integration (S
       {
         id: adminId,
         organizationId: orgId,
-        email: `admin-ret-${orgId.slice(0, 6)}@docuflow.local`,
+        email: `admin-ret-${orgId.slice(0, 6)}@papyrus.local`,
         fullName: "Gestor Retenção",
         passwordHash: "hash-placeholder",
         status: "ACTIVE",
@@ -130,7 +130,7 @@ describe("Retention hold, retry isolation, and audit preservation integration (S
       {
         id: legalId,
         organizationId: orgId,
-        email: `legal-ret-${orgId.slice(0, 6)}@docuflow.local`,
+        email: `legal-ret-${orgId.slice(0, 6)}@papyrus.local`,
         fullName: "Jurídico Hold",
         passwordHash: "hash-placeholder",
         status: "ACTIVE",
@@ -380,7 +380,7 @@ describe("Retention hold, retry isolation, and audit preservation integration (S
     await db.insert(users).values({
       id: userId,
       organizationId: orgId,
-      email: `retry-${orgId.slice(0, 6)}@docuflow.local`,
+      email: `retry-${orgId.slice(0, 6)}@papyrus.local`,
       fullName: "Operador Retry",
       passwordHash: "hash-placeholder",
       status: "ACTIVE",

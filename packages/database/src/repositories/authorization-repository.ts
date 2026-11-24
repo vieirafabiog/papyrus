@@ -11,7 +11,7 @@ import type {
   DocumentSortField,
   DocumentVersionHistoryQueryItem,
   PaginatedResult,
-} from "@docuflow/domain";
+} from "@papyrus/domain";
 import {
   type SQL,
   and,

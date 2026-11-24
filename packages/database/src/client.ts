@@ -90,7 +90,7 @@ export function createDatabaseClient(options: DatabaseClientOptions): DatabaseCl
     connectionTimeoutMillis,
     statement_timeout: statementTimeout,
     query_timeout: queryTimeout,
-    application_name: options.applicationName ?? "docuflow",
+    application_name: options.applicationName ?? "papyrus",
   };
 
   const pool = new Pool(poolConfig);

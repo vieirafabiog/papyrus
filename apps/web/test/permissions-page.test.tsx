@@ -1,6 +1,6 @@
 import "@testing-library/jest-dom/vitest";
-import { UiLocaleProvider, papyrusTheme } from "@docuflow/ui";
 import { CssBaseline, ThemeProvider } from "@mui/material";
+import { UiLocaleProvider, papyrusTheme } from "@papyrus/ui";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
@@ -23,7 +23,7 @@ function buildSession(isAdmin: boolean) {
       user: {
         id: USER_1_ID,
         organizationId: ORG_ID,
-        email: "admin@docuflow.local",
+        email: "admin@papyrus.local",
         fullName: "Admin Governança",
         status: "ACTIVE",
         createdAt: "2026-01-01T10:00:00.000Z",
@@ -203,7 +203,7 @@ describe("PermissionsPage (Step 14.03)", () => {
               {
                 id: USER_1_ID,
                 organizationId: ORG_ID,
-                email: "admin@docuflow.local",
+                email: "admin@papyrus.local",
                 fullName: "Admin Governança",
                 status: "ACTIVE",
                 createdAt: "2026-01-01T10:00:00.000Z",

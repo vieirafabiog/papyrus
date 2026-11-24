@@ -1,4 +1,4 @@
-import { CONTRACTS_API_PREFIX, uuidSchema } from "@docuflow/contracts";
+import { CONTRACTS_API_PREFIX, uuidSchema } from "@papyrus/contracts";
 import {
   type AuditRepositoryPort,
   type DocumentVersionRepositoryPort,
@@ -7,14 +7,14 @@ import {
   type UploadSessionRepositoryPort,
   createAuditWriter,
   isFileObjectDownloadable,
-} from "@docuflow/domain";
+} from "@papyrus/domain";
 import {
   StorageError,
   type StorageProviderRegistry,
   hasStorageCapability,
   requireSignedDownloadTargetProvider,
   resolveDownloadMode,
-} from "@docuflow/storage-core";
+} from "@papyrus/storage-core";
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { z } from "zod";
 import type { DocumentAuthorizationGuard } from "../../plugins/authorization.js";

@@ -6,12 +6,12 @@ import {
   documentTagListResponseSchema,
   tagListResponseSchema,
   tagResponseSchema,
-} from "@docuflow/contracts";
+} from "@papyrus/contracts";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { extractUserErrorMessage } from "../../i18n/api-errors.js";
 import { translate } from "../../i18n/index.js";
 
-const CSRF_COOKIE_NAME = "docuflow_csrf";
+const CSRF_COOKIE_NAME = "papyrus_csrf";
 const CSRF_HEADER_NAME = "x-csrf-token";
 
 function readCookieValue(name: string): string | null {

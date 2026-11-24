@@ -1,5 +1,5 @@
-import { CONTRACTS_API_PREFIX, documentExpirationsQuerySchema } from "@docuflow/contracts";
-import type { DocumentExpirationRepository } from "@docuflow/database";
+import { CONTRACTS_API_PREFIX, documentExpirationsQuerySchema } from "@papyrus/contracts";
+import type { DocumentExpirationRepository } from "@papyrus/database";
 import type { FastifyInstance } from "fastify";
 import {
   type DocumentAuthorizationGuard,

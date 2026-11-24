@@ -6,9 +6,9 @@ import { PostgreSqlContainer, type StartedPostgreSqlContainer } from "@testconta
 import { Pool } from "pg";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import {
-  DOCUFLOW_MIGRATION_ADVISORY_LOCK_KEY,
   MigrationGuardError,
   MigrationLockTimeoutError,
+  PAPYRUS_MIGRATION_ADVISORY_LOCK_KEY,
   assertDestructiveSeedAllowed,
   runMigrationsWithAdvisoryLock,
 } from "../src/index.js";
@@ -75,7 +75,7 @@ describe("PostgreSQL safe migration runner with advisory lock", () => {
       allowDestructiveSeed: false,
     });
 
-    expect(firstRun.lockKey).toBe(DOCUFLOW_MIGRATION_ADVISORY_LOCK_KEY);
+    expect(firstRun.lockKey).toBe(PAPYRUS_MIGRATION_ADVISORY_LOCK_KEY);
     expect(firstRun.appliedBefore).toBe(0);
     expect(firstRun.appliedAfter).toBeGreaterThan(0);
     expect(firstRun.newlyAppliedCount).toBe(firstRun.appliedAfter);
@@ -96,11 +96,11 @@ describe("PostgreSQL safe migration runner with advisory lock", () => {
     try {
       const checkRes = await checker.query<{ readonly acquired: boolean }>(
         "SELECT pg_try_advisory_lock($1::bigint) AS acquired",
-        [DOCUFLOW_MIGRATION_ADVISORY_LOCK_KEY],
+        [PAPYRUS_MIGRATION_ADVISORY_LOCK_KEY],
       );
       expect(checkRes.rows[0]?.acquired).toBe(true);
       await checker.query("SELECT pg_advisory_unlock($1::bigint)", [
-        DOCUFLOW_MIGRATION_ADVISORY_LOCK_KEY,
+        PAPYRUS_MIGRATION_ADVISORY_LOCK_KEY,
       ]);
     } finally {
       checker.release();
@@ -112,7 +112,7 @@ describe("PostgreSQL safe migration runner with advisory lock", () => {
     try {
       const lockRes = await holder.query<{ readonly acquired: boolean }>(
         "SELECT pg_try_advisory_lock($1::bigint) AS acquired",
-        [DOCUFLOW_MIGRATION_ADVISORY_LOCK_KEY],
+        [PAPYRUS_MIGRATION_ADVISORY_LOCK_KEY],
       );
       expect(lockRes.rows[0]?.acquired).toBe(true);
 
@@ -129,7 +129,7 @@ describe("PostgreSQL safe migration runner with advisory lock", () => {
       // Start second instance while lock is held, then release lock after 250ms
       const releaseTimer = setTimeout(() => {
         void holder.query("SELECT pg_advisory_unlock($1::bigint)", [
-          DOCUFLOW_MIGRATION_ADVISORY_LOCK_KEY,
+          PAPYRUS_MIGRATION_ADVISORY_LOCK_KEY,
         ]);
       }, 250);
 
@@ -146,14 +146,14 @@ describe("PostgreSQL safe migration runner with advisory lock", () => {
       }
     } finally {
       await holder
-        .query("SELECT pg_advisory_unlock($1::bigint)", [DOCUFLOW_MIGRATION_ADVISORY_LOCK_KEY])
+        .query("SELECT pg_advisory_unlock($1::bigint)", [PAPYRUS_MIGRATION_ADVISORY_LOCK_KEY])
         .catch(() => undefined);
       holder.release();
     }
   });
 
   it("prevents concurrent fresh migrations from colliding via Promise.all", async () => {
-    const dbName = "docuflow_concurrent_migrator_test";
+    const dbName = "papyrus_concurrent_migrator_test";
     await pool.query(`DROP DATABASE IF EXISTS ${dbName}`);
     await pool.query(`CREATE DATABASE ${dbName}`);
 
@@ -195,9 +195,9 @@ describe("PostgreSQL safe migration runner with advisory lock", () => {
         env: {
           ...process.env,
           NODE_ENV: "production",
-          DOCUFLOW_RUN_DESTRUCTIVE_SEED: "true",
+          PAPYRUS_RUN_DESTRUCTIVE_SEED: "true",
           DATABASE_URL: baseConnectionString,
-          DOCUFLOW_MIGRATE_SCRIPT: MIGRATE_CLI_DIST,
+          PAPYRUS_MIGRATE_SCRIPT: MIGRATE_CLI_DIST,
         },
       }),
     ).rejects.toThrow();
@@ -206,9 +206,9 @@ describe("PostgreSQL safe migration runner with advisory lock", () => {
       env: {
         ...process.env,
         NODE_ENV: "production",
-        DOCUFLOW_RUN_DESTRUCTIVE_SEED: "false",
+        PAPYRUS_RUN_DESTRUCTIVE_SEED: "false",
         DATABASE_URL: baseConnectionString,
-        DOCUFLOW_MIGRATE_SCRIPT: MIGRATE_CLI_DIST,
+        PAPYRUS_MIGRATE_SCRIPT: MIGRATE_CLI_DIST,
       },
     });
 

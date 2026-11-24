@@ -3,7 +3,7 @@ import type {
   AccessResource,
   AccessScope,
   AuthorizationDecision,
-} from "@docuflow/domain";
+} from "@papyrus/domain";
 import {
   type AuthorizationSubjectContext,
   type RolePermissionsLookup,

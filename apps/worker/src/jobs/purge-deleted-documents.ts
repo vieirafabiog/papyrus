@@ -6,8 +6,8 @@ import {
   type StorageConnectionRepositoryPort,
   type TransactionManagerPort,
   createAuditWriter,
-} from "@docuflow/domain";
-import { type StorageProviderRegistry, sanitizeStorageErrorMessage } from "@docuflow/storage-core";
+} from "@papyrus/domain";
+import { type StorageProviderRegistry, sanitizeStorageErrorMessage } from "@papyrus/storage-core";
 
 const DEFAULT_BATCH_SIZE = 100;
 const DEFAULT_MAX_DELETE_ATTEMPTS = 5;

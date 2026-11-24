@@ -1,8 +1,3 @@
-import type {
-  CategoryFieldDefinition,
-  DocumentDetail,
-  DocumentMetadataValue,
-} from "@docuflow/contracts";
 import SaveOutlinedIcon from "@mui/icons-material/SaveOutlined";
 import {
   Alert,
@@ -22,6 +17,11 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
+import type {
+  CategoryFieldDefinition,
+  DocumentDetail,
+  DocumentMetadataValue,
+} from "@papyrus/contracts";
 import { type FormEvent, useMemo, useState } from "react";
 import { containsTechnicalJargon } from "../../i18n/api-errors.js";
 import { type UiLocale, getCurrentUiLocale, translate, useI18n } from "../../i18n/index.js";

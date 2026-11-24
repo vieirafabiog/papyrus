@@ -6,8 +6,8 @@ import {
   moveFolderRequestSchema,
   renameFolderRequestSchema,
   uuidSchema,
-} from "@docuflow/contracts";
-import { DomainError, type FolderService } from "@docuflow/domain";
+} from "@papyrus/contracts";
+import { DomainError, type FolderService } from "@papyrus/domain";
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import {
   type FolderAuthorizationGuard,

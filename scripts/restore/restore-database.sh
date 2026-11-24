@@ -3,7 +3,7 @@ set -euo pipefail
 umask 077
 
 # ==============================================================================
-# DocuFlow — Restauração segura do PostgreSQL
+# papyrus — Restauração segura do PostgreSQL
 # Valida checksum SHA-256 e integridade do dump custom (-Fc) antes de restaurar
 # com pg_restore (--clean --if-exists --exit-on-error) e logs livres de segredos.
 # ==============================================================================
@@ -14,18 +14,18 @@ RESTORE_MODE="${RESTORE_MODE:-auto}"
 VERIFY_CHECKSUM="${VERIFY_CHECKSUM:-true}"
 CLEAN_BEFORE_RESTORE="${CLEAN_BEFORE_RESTORE:-true}"
 POSTGRES_IMAGE="${POSTGRES_IMAGE:-postgres:16.8-alpine3.21}"
-DOCUFLOW_PG_CONTAINER="${DOCUFLOW_PG_CONTAINER:-}"
+PAPYRUS_PG_CONTAINER="${PAPYRUS_PG_CONTAINER:-}"
 DOCKER_NETWORK="${DOCKER_NETWORK:-}"
 
 TMP_DIR=""
 
 usage() {
   cat <<'EOF'
-Uso: BACKUP_FILE=/caminho/docuflow-db-*.dump CONFIRM_RESTORE=YES ./scripts/restore/restore-database.sh
+Uso: BACKUP_FILE=/caminho/papyrus-db-*.dump CONFIRM_RESTORE=YES ./scripts/restore/restore-database.sh
 Variáveis:
   BACKUP_FILE            Caminho obrigatório do arquivo .dump
   CONFIRM_RESTORE        Deve ser YES para autorizar restauração no banco alvo
-  DATABASE_URL           URI PostgreSQL alvo (ou PGHOST/PGUSER/PGDATABASE/PGPASSWORD ou DOCUFLOW_PG_CONTAINER)
+  DATABASE_URL           URI PostgreSQL alvo (ou PGHOST/PGUSER/PGDATABASE/PGPASSWORD ou PAPYRUS_PG_CONTAINER)
   VERIFY_CHECKSUM        true (padrão) | false
   CLEAN_BEFORE_RESTORE   true (padrão) | false
   RESTORE_MODE           auto (padrão) | pg_restore | docker
@@ -39,10 +39,10 @@ log_json() {
   local ts
   ts=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
   if [ -n "$extra" ]; then
-    printf '{"timestamp":"%s","level":"%s","service":"docuflow-db-restore","message":"%s",%s}\n' \
+    printf '{"timestamp":"%s","level":"%s","service":"papyrus-db-restore","message":"%s",%s}\n' \
       "$ts" "$level" "$message" "$extra"
   else
-    printf '{"timestamp":"%s","level":"%s","service":"docuflow-db-restore","message":"%s"}\n' \
+    printf '{"timestamp":"%s","level":"%s","service":"papyrus-db-restore","message":"%s"}\n' \
       "$ts" "$level" "$message"
   fi
 }
@@ -111,8 +111,8 @@ main() {
     exit 1
   fi
 
-  if [ -z "${DATABASE_URL:-}" ] && [ -z "$DOCUFLOW_PG_CONTAINER" ] && [ -z "${PGHOST:-}" ]; then
-    log_json "error" "Defina DATABASE_URL, DOCUFLOW_PG_CONTAINER ou PGHOST/PGUSER/PGDATABASE." >&2
+  if [ -z "${DATABASE_URL:-}" ] && [ -z "$PAPYRUS_PG_CONTAINER" ] && [ -z "${PGHOST:-}" ]; then
+    log_json "error" "Defina DATABASE_URL, PAPYRUS_PG_CONTAINER ou PGHOST/PGUSER/PGDATABASE." >&2
     exit 1
   fi
 
@@ -135,7 +135,7 @@ main() {
     fi
   fi
 
-  TMP_DIR=$(mktemp -d /tmp/docuflow-db-restore-XXXXXX)
+  TMP_DIR=$(mktemp -d /tmp/papyrus-db-restore-XXXXXX)
   chmod 700 "$TMP_DIR"
   local err_file="${TMP_DIR}/pg_restore.err"
   local mode
@@ -166,7 +166,7 @@ main() {
     else
       if ! pg_restore "${restore_flags[@]}" \
         -h "${PGHOST:-127.0.0.1}" -p "${PGPORT:-5432}" \
-        -U "${PGUSER:-docuflow}" -d "${PGDATABASE:-docuflow}" \
+        -U "${PGUSER:-papyrus}" -d "${PGDATABASE:-papyrus}" \
         "$abs_dump" 2>"$err_file"; then
         local safe_err
         safe_err=$(sanitize_text "$(cat "$err_file" 2>/dev/null || true)")
@@ -175,15 +175,15 @@ main() {
       fi
     fi
   else
-    if [ -n "$DOCUFLOW_PG_CONTAINER" ]; then
-      if ! docker exec -i "$DOCUFLOW_PG_CONTAINER" pg_restore --list <"$abs_dump" >/dev/null 2>"$err_file"; then
+    if [ -n "$PAPYRUS_PG_CONTAINER" ]; then
+      if ! docker exec -i "$PAPYRUS_PG_CONTAINER" pg_restore --list <"$abs_dump" >/dev/null 2>"$err_file"; then
         local safe_err
         safe_err=$(sanitize_text "$(cat "$err_file" 2>/dev/null || true)")
         log_json "error" "Dump do PostgreSQL corrompido ou ilegivel" "\"detail\":\"${safe_err}\"" >&2
         exit 1
       fi
-      if ! docker exec -i "$DOCUFLOW_PG_CONTAINER" \
-        pg_restore "${restore_flags[@]}" -U "${PGUSER:-docuflow}" -d "${PGDATABASE:-docuflow}" \
+      if ! docker exec -i "$PAPYRUS_PG_CONTAINER" \
+        pg_restore "${restore_flags[@]}" -U "${PGUSER:-papyrus}" -d "${PGDATABASE:-papyrus}" \
         <"$abs_dump" 2>"$err_file"; then
         local safe_err
         safe_err=$(sanitize_text "$(cat "$err_file" 2>/dev/null || true)")
@@ -210,8 +210,8 @@ main() {
         docker_args+=(
           -e PGHOST="${PGHOST:-postgres}"
           -e PGPORT="${PGPORT:-5432}"
-          -e PGUSER="${PGUSER:-docuflow}"
-          -e PGDATABASE="${PGDATABASE:-docuflow}"
+          -e PGUSER="${PGUSER:-papyrus}"
+          -e PGDATABASE="${PGDATABASE:-papyrus}"
           -e PGPASSWORD="${PGPASSWORD:-}"
           "$POSTGRES_IMAGE"
           pg_restore "${restore_flags[@]}" "/backup/${dump_base}"

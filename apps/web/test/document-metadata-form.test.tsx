@@ -1,7 +1,7 @@
 import "@testing-library/jest-dom/vitest";
-import type { DocumentDetail } from "@docuflow/contracts";
-import { papyrusTheme } from "@docuflow/ui";
 import { CssBaseline, ThemeProvider } from "@mui/material";
+import type { DocumentDetail } from "@papyrus/contracts";
+import { papyrusTheme } from "@papyrus/ui";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -98,7 +98,7 @@ function createSampleDocument(): DocumentDetail {
     owner: {
       id: OWNER_ID,
       fullName: "Ana Souza",
-      email: "ana@docuflow.local",
+      email: "ana@papyrus.local",
     },
     currentVersion: null,
     tags: [],

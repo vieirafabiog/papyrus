@@ -3,14 +3,14 @@ import {
   type StorageProviderRegistry,
   type StorageSecretVault,
   createStorageProviderRegistry,
-} from "@docuflow/storage-core";
-import { createLocalStorageProvider } from "@docuflow/storage-local";
+} from "@papyrus/storage-core";
+import { createLocalStorageProvider } from "@papyrus/storage-local";
 import {
   type DnsLookupAllFn,
   type S3EndpointSecurityPolicy,
   type S3SignedTargetsOptions,
   createS3StorageProvider,
-} from "@docuflow/storage-s3";
+} from "@papyrus/storage-s3";
 
 function readNonEmptyString(value: string | number | boolean | null | undefined): string | null {
   if (typeof value !== "string") {
@@ -48,7 +48,7 @@ export interface ApiStorageProviderRegistryOptions {
 
 /**
  * Builds the API storage provider registry wiring both local filesystem and S3-compatible
- * connectors via `@docuflow/storage-core` without exposing provider SDKs to routes or domain.
+ * connectors via `@papyrus/storage-core` without exposing provider SDKs to routes or domain.
  */
 export function createApiStorageProviderRegistry(
   options: ApiStorageProviderRegistryOptions = {},

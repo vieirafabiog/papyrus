@@ -154,7 +154,7 @@ describe("Storage secret vault (AES-256-GCM)", () => {
       name: "S3 Vaulted",
       kind: "s3",
       status: "ACTIVE",
-      nonSecretConfig: { bucket: "docuflow" },
+      nonSecretConfig: { bucket: "papyrus" },
       encryptedSecretRef: newRef,
     });
     expect(provider.kind).toBe("s3");

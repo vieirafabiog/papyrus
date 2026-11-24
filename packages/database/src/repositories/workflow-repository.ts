@@ -24,7 +24,7 @@ import {
   type WorkflowStepDefinition,
   type WorkflowTaskEntity,
   type WorkflowTaskRepositoryPort,
-} from "@docuflow/domain";
+} from "@papyrus/domain";
 import { and, asc, desc, eq, ilike, inArray, or } from "drizzle-orm";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 import { documentVersions, documents } from "../schema/documents.js";

@@ -7,20 +7,20 @@ import {
   type StoredSessionRecord,
   createPasswordService,
   createSessionService,
-} from "@docuflow/auth";
+} from "@papyrus/auth";
 import {
   CONTRACTS_API_PREFIX,
   notificationDetailResponseSchema,
   notificationListResponseSchema,
-} from "@docuflow/contracts";
+} from "@papyrus/contracts";
 import {
   createInAppNotificationRepository,
   notifications,
   organizations,
   sessions,
   users,
-} from "@docuflow/database";
-import { createInAppNotificationService } from "@docuflow/notifications";
+} from "@papyrus/database";
+import { createInAppNotificationService } from "@papyrus/notifications";
 import { PostgreSqlContainer, type StartedPostgreSqlContainer } from "@testcontainers/postgresql";
 import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/node-postgres";
@@ -88,7 +88,7 @@ describe("Internal notifications HTTP API & idempotency integration", () => {
       {
         id: aliceId,
         organizationId: orgId,
-        email: "alice-notif@docuflow.local",
+        email: "alice-notif@papyrus.local",
         fullName: "Alice Revisora",
         passwordHash,
         status: "ACTIVE",
@@ -96,7 +96,7 @@ describe("Internal notifications HTTP API & idempotency integration", () => {
       {
         id: bobId,
         organizationId: orgId,
-        email: "bob-notif@docuflow.local",
+        email: "bob-notif@papyrus.local",
         fullName: "Bob Gestor",
         passwordHash,
         status: "ACTIVE",
@@ -283,8 +283,8 @@ describe("Internal notifications HTTP API & idempotency integration", () => {
         };
       };
 
-      const aliceAuth = await loginUser("alice-notif@docuflow.local");
-      const bobAuth = await loginUser("bob-notif@docuflow.local");
+      const aliceAuth = await loginUser("alice-notif@papyrus.local");
+      const bobAuth = await loginUser("bob-notif@papyrus.local");
 
       // Unauthenticated request rejected
       const unauthRes = await app.inject({

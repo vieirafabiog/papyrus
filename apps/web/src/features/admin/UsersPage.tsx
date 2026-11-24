@@ -1,13 +1,3 @@
-import type { UserStatus, UserSummary } from "@docuflow/contracts";
-import {
-  ConfirmDialog,
-  DataTable,
-  type DataTableColumn,
-  ErrorState,
-  FilterBar,
-  LoadingState,
-  PAPYRUS_COLOR_TOKENS,
-} from "@docuflow/ui";
 import BlockOutlinedIcon from "@mui/icons-material/BlockOutlined";
 import CheckCircleOutlineOutlinedIcon from "@mui/icons-material/CheckCircleOutlineOutlined";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
@@ -29,6 +19,16 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
+import type { UserStatus, UserSummary } from "@papyrus/contracts";
+import {
+  ConfirmDialog,
+  DataTable,
+  type DataTableColumn,
+  ErrorState,
+  FilterBar,
+  LoadingState,
+  PAPYRUS_COLOR_TOKENS,
+} from "@papyrus/ui";
 import { useId, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useSessionQuery } from "../../app/session.js";

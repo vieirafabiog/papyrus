@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { evaluateDocumentAuthorization } from "@docuflow/auth";
+import { evaluateDocumentAuthorization } from "@papyrus/auth";
 import {
   CONTRACTS_API_PREFIX,
   type ErrorCode,
@@ -16,8 +16,8 @@ import {
   trashDocumentsQuerySchema,
   updateDocumentRequestSchema,
   uuidSchema,
-} from "@docuflow/contracts";
-import type { AuthorizationRepository, DocumentTrashRepository } from "@docuflow/database";
+} from "@papyrus/contracts";
+import type { AuthorizationRepository, DocumentTrashRepository } from "@papyrus/database";
 import {
   type ArchiveDocumentService,
   type AuditRepositoryPort,
@@ -34,7 +34,7 @@ import {
   type TrashDocumentService,
   createAuditWriter,
   validateDocumentMetadata,
-} from "@docuflow/domain";
+} from "@papyrus/domain";
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { z } from "zod";
 import {

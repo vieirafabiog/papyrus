@@ -10,8 +10,8 @@ import {
   type StoredSessionRecord,
   createPasswordService,
   createSessionService,
-} from "@docuflow/auth";
-import { CONTRACTS_API_PREFIX } from "@docuflow/contracts";
+} from "@papyrus/auth";
+import { CONTRACTS_API_PREFIX } from "@papyrus/contracts";
 import {
   auditEvents,
   categories,
@@ -40,7 +40,7 @@ import {
   storageConnections,
   userRoleScopes,
   users,
-} from "@docuflow/database";
+} from "@papyrus/database";
 import {
   createDocumentUseCase,
   createDocumentVersionUseCase,
@@ -49,9 +49,9 @@ import {
   createUploadSessionService,
   restoreDocumentUseCase,
   trashDocumentUseCase,
-} from "@docuflow/domain";
-import { createStorageProviderRegistry } from "@docuflow/storage-core";
-import { createLocalStorageProvider } from "@docuflow/storage-local";
+} from "@papyrus/domain";
+import { createStorageProviderRegistry } from "@papyrus/storage-core";
+import { createLocalStorageProvider } from "@papyrus/storage-local";
 import { PostgreSqlContainer, type StartedPostgreSqlContainer } from "@testcontainers/postgresql";
 import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/node-postgres";
@@ -85,7 +85,7 @@ describe("Document API full lifecycle integration (upload -> create -> list -> d
   let localStorageRoot = "";
 
   beforeAll(async () => {
-    localStorageRoot = await mkdtemp(path.join(os.tmpdir(), "docuflow-doc-lifecycle-"));
+    localStorageRoot = await mkdtemp(path.join(os.tmpdir(), "papyrus-doc-lifecycle-"));
     const externalUrl = process.env.DATABASE_URL;
     let connectionString: string;
     if (externalUrl && externalUrl.trim().length > 0) {
@@ -194,7 +194,7 @@ describe("Document API full lifecycle integration (upload -> create -> list -> d
       })),
     );
 
-    const adminEmail = `admin-life-${orgId.slice(0, 6)}@docuflow.local`;
+    const adminEmail = `admin-life-${orgId.slice(0, 6)}@papyrus.local`;
     await db.insert(users).values({
       id: adminId,
       organizationId: orgId,
@@ -474,7 +474,7 @@ describe("Document API full lifecycle integration (upload -> create -> list -> d
         expect(sessionRes.statusCode).toBe(201);
         const sessionData = sessionRes.json().data as { id: string; fileObjectId: string };
 
-        const boundary = "----DocuFlowLifecycleBoundary";
+        const boundary = "----PapyrusLifecycleBoundary";
         const contentRes = await app.inject({
           method: "POST",
           url: `${CONTRACTS_API_PREFIX}/uploads/sessions/${sessionData.id}/content`,
@@ -546,7 +546,7 @@ describe("Document API full lifecycle integration (upload -> create -> list -> d
       expect(failCreateRes.json().error.details.domainCode).toBe("UPLOAD_NOT_FINALIZED");
 
       // 2. Finalized upload -> Create Document (v1)
-      const v1Payload = Buffer.from("%PDF-1.7\nDocuFlow Lifecycle Version 1\n%%EOF\n", "utf8");
+      const v1Payload = Buffer.from("%PDF-1.7\npapyrus Lifecycle Version 1\n%%EOF\n", "utf8");
       const v1Upload = await uploadAndFinalize("contrato-v1.pdf", v1Payload, "life-upload-v1");
 
       const createDocRes = await app.inject({
@@ -611,7 +611,7 @@ describe("Document API full lifecycle integration (upload -> create -> list -> d
 
       // 5. Upload finalized v2 -> Create Version 2 -> Verify version history & both downloadable
       const v2Payload = Buffer.from(
-        "%PDF-1.7\nDocuFlow Lifecycle Version 2 Updated\n%%EOF\n",
+        "%PDF-1.7\npapyrus Lifecycle Version 2 Updated\n%%EOF\n",
         "utf8",
       );
       const v2Upload = await uploadAndFinalize(

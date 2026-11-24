@@ -8,8 +8,8 @@ import {
   updateCategoryFieldInputSchema,
   updateCategoryInputSchema,
   uuidSchema,
-} from "@docuflow/contracts";
-import { type CategoryFieldService, type CategoryService, DomainError } from "@docuflow/domain";
+} from "@papyrus/contracts";
+import { type CategoryFieldService, type CategoryService, DomainError } from "@papyrus/domain";
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import {
   type CategoryAuthorizationGuard,

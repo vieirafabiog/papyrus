@@ -22,15 +22,15 @@ import {
   outboxEvents,
   storageConnections,
   users,
-} from "@docuflow/database";
+} from "@papyrus/database";
 import {
   createFinalizeUploadService,
   createStorageRouterService,
   createUploadSessionService,
-} from "@docuflow/domain";
-import { createClamAvScanner } from "@docuflow/file-processing";
-import { createStorageProviderRegistry } from "@docuflow/storage-core";
-import { createLocalStorageProvider } from "@docuflow/storage-local";
+} from "@papyrus/domain";
+import { createClamAvScanner } from "@papyrus/file-processing";
+import { createStorageProviderRegistry } from "@papyrus/storage-core";
+import { createLocalStorageProvider } from "@papyrus/storage-local";
 import { PostgreSqlContainer, type StartedPostgreSqlContainer } from "@testcontainers/postgresql";
 import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/node-postgres";
@@ -154,7 +154,7 @@ describe("Worker upload processing job integration", () => {
 
   it("consumes persisted outbox jobs, executes checksum + MIME + ClamAV checks, approves valid files, rejects threats, and fails closed when scanner is unavailable", async () => {
     const db = drizzle(pool);
-    const localRoot = await mkdtemp(path.join(os.tmpdir(), "docuflow-worker-storage-"));
+    const localRoot = await mkdtemp(path.join(os.tmpdir(), "papyrus-worker-storage-"));
     tempDirs.push(localRoot);
 
     const orgId = randomUUID();

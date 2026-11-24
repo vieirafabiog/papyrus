@@ -110,10 +110,3 @@ export const PAPYRUS_DENSITY_TOKENS = {
   toolbarMinHeight: 56,
   sidebarWidth: 260,
 } as const;
-
-// Aliases de compatibilidade mantidos até a migração técnica dos pacotes na Fase 4.
-export const DOCUFLOW_COLOR_TOKENS = PAPYRUS_COLOR_TOKENS;
-export const DOCUFLOW_TYPOGRAPHY_TOKENS = PAPYRUS_TYPOGRAPHY_TOKENS;
-export const DOCUFLOW_SHAPE_TOKENS = PAPYRUS_SHAPE_TOKENS;
-export const DOCUFLOW_SPACING_TOKENS = PAPYRUS_SPACING_TOKENS;
-export const DOCUFLOW_DENSITY_TOKENS = PAPYRUS_DENSITY_TOKENS;

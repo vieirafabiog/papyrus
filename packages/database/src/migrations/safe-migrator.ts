@@ -12,9 +12,9 @@ import {
 } from "../client.js";
 
 /**
- * Deterministic 64-bit PostgreSQL advisory lock key dedicated to DocuFlow schema migrations.
+ * Deterministic 64-bit PostgreSQL advisory lock key dedicated to papyrus schema migrations.
  */
-export const DOCUFLOW_MIGRATION_ADVISORY_LOCK_KEY = "7428910513001";
+export const PAPYRUS_MIGRATION_ADVISORY_LOCK_KEY = "7428910513001";
 export const DEFAULT_MIGRATION_LOCK_TIMEOUT_MS = 60_000;
 export const DEFAULT_MIGRATION_LOCK_RETRY_INTERVAL_MS = 100;
 const DEFAULT_MIGRATION_STATEMENT_TIMEOUT_MS = 120_000;
@@ -79,7 +79,7 @@ export function assertDestructiveSeedAllowed(
 }
 
 function validateAdvisoryLockKey(rawKey: string | undefined): string {
-  const key = (rawKey ?? DOCUFLOW_MIGRATION_ADVISORY_LOCK_KEY).trim();
+  const key = (rawKey ?? PAPYRUS_MIGRATION_ADVISORY_LOCK_KEY).trim();
   if (!/^-?\d{1,19}$/.test(key)) {
     throw new MigrationGuardError(`Chave de advisory lock inválida: "${key}".`);
   }
@@ -216,7 +216,7 @@ export async function runMigrationsWithAdvisoryLock(
       minPoolSize: 0,
       statementTimeoutMs,
       queryTimeoutMs: statementTimeoutMs,
-      applicationName: "docuflow-migrator",
+      applicationName: "papyrus-migrator",
       logger: options.logger,
     });
     activePool = ownedClient.pool;

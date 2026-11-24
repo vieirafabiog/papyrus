@@ -1,6 +1,6 @@
-# Auditoria de Dependências, Licenças e Política de Atualização (DocuFlow)
+# Auditoria de Dependências, Licenças e Política de Atualização (papyrus)
 
-Este documento registra o inventário de licenças, o resultado datado da auditoria de vulnerabilidades (CVEs), os bloqueadores resolvidos e a política contínua de manutenção de dependências do **DocuFlow**.
+Este documento registra o inventário de licenças, o resultado datado da auditoria de vulnerabilidades (CVEs), os bloqueadores resolvidos e a política contínua de manutenção de dependências do **papyrus**.
 
 ---
 
@@ -52,8 +52,8 @@ Durante a auditoria inicial de produção (`pnpm audit --prod`), foram corrigido
 | Advisory | Severidade | Pacote | Correção aplicada | Status |
 | --- | --- | --- | --- | --- |
 | `1116251` | Alta (`high`) | `drizzle-orm` | Atualizado `0.41.0` → `^0.45.4` (`0.45.4`) | **Resolvido** |
-| `1240982` | Alta (`high`) | `@fastify/busboy` (`@docuflow/api`) | Atualizado `2.1.1` → `^3.2.6` (`3.2.6`) | **Resolvido** |
-| `1241276` | Moderada (`moderate`) | `@fastify/busboy` (`@docuflow/api`) | Atualizado `2.1.1` → `^3.2.6` (`3.2.6`) | **Resolvido** |
+| `1240982` | Alta (`high`) | `@fastify/busboy` (`@papyrus/api`) | Atualizado `2.1.1` → `^3.2.6` (`3.2.6`) | **Resolvido** |
+| `1241276` | Moderada (`moderate`) | `@fastify/busboy` (`@papyrus/api`) | Atualizado `2.1.1` → `^3.2.6` (`3.2.6`) | **Resolvido** |
 
 ### 3.2 Resultados atuais em runtime de produção (`pnpm audit --prod`)
 

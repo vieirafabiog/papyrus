@@ -400,7 +400,7 @@ test.describe("Acessibilidade WCAG 2.2 AA dos fluxos críticos", () => {
     browser,
   }) => {
     const documentTitle = "Contrato Acessibilidade 2026";
-    const pdfBuffer = createSamplePdfBuffer("DocuFlow WCAG 2.2 AA Verification");
+    const pdfBuffer = createSamplePdfBuffer("papyrus WCAG 2.2 AA Verification");
 
     // 1. Fluxo de Login: auditoria de labels/contraste + navegação e submissão integralmente via teclado
     await page.goto(env.baseUrl);

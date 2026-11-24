@@ -15,7 +15,7 @@ import type {
   TransactionContext,
   UpdateCategoryFieldRecordInput,
   UpdateCategoryInput,
-} from "@docuflow/domain";
+} from "@papyrus/domain";
 import { type SQL, and, asc, count, desc, eq, ilike, inArray, ne, not, sql } from "drizzle-orm";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 import {

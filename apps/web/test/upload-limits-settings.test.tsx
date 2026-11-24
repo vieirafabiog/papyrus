@@ -1,7 +1,7 @@
 import "@testing-library/jest-dom/vitest";
-import { SAFE_UPLOAD_FORMAT_CATALOG } from "@docuflow/contracts";
-import { UiLocaleProvider, papyrusTheme } from "@docuflow/ui";
 import { CssBaseline, ThemeProvider } from "@mui/material";
+import { SAFE_UPLOAD_FORMAT_CATALOG } from "@papyrus/contracts";
+import { UiLocaleProvider, papyrusTheme } from "@papyrus/ui";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";

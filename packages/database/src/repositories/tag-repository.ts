@@ -7,7 +7,7 @@ import type {
   TagRepositoryPort,
   TagSortField,
   TransactionContext,
-} from "@docuflow/domain";
+} from "@papyrus/domain";
 import { type SQL, and, asc, count, desc, eq, ilike, or } from "drizzle-orm";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 import { documentTags } from "../schema/documents.js";

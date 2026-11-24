@@ -1,5 +1,3 @@
-import type { DocumentStatus } from "@docuflow/contracts";
-import { EmptyState, ErrorState, LoadingState, PAPYRUS_COLOR_TOKENS } from "@docuflow/ui";
 import DescriptionOutlinedIcon from "@mui/icons-material/DescriptionOutlined";
 import DownloadOutlinedIcon from "@mui/icons-material/DownloadOutlined";
 import EventBusyOutlinedIcon from "@mui/icons-material/EventBusyOutlined";
@@ -24,6 +22,8 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
+import type { DocumentStatus } from "@papyrus/contracts";
+import { EmptyState, ErrorState, LoadingState, PAPYRUS_COLOR_TOKENS } from "@papyrus/ui";
 import type { ReactNode } from "react";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";

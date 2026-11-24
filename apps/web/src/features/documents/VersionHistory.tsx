@@ -1,9 +1,3 @@
-import type {
-  DocumentDetail,
-  DocumentVersionHistoryItem,
-  FileObjectStatus,
-} from "@docuflow/contracts";
-import { EmptyState, ErrorState, LoadingState, PAPYRUS_COLOR_TOKENS } from "@docuflow/ui";
 import DownloadOutlinedIcon from "@mui/icons-material/DownloadOutlined";
 import HistoryOutlinedIcon from "@mui/icons-material/HistoryOutlined";
 import RestoreOutlinedIcon from "@mui/icons-material/RestoreOutlined";
@@ -29,6 +23,12 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
+import type {
+  DocumentDetail,
+  DocumentVersionHistoryItem,
+  FileObjectStatus,
+} from "@papyrus/contracts";
+import { EmptyState, ErrorState, LoadingState, PAPYRUS_COLOR_TOKENS } from "@papyrus/ui";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useId, useState } from "react";
 import { containsTechnicalJargon } from "../../i18n/api-errors.js";

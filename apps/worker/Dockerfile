@@ -17,7 +17,7 @@ COPY packages/storage-local/package.json packages/storage-local/package.json
 COPY packages/storage-s3/package.json packages/storage-s3/package.json
 COPY apps/worker/package.json apps/worker/package.json
 
-RUN pnpm install --frozen-lockfile --filter @docuflow/worker...
+RUN pnpm install --frozen-lockfile --filter @papyrus/worker...
 
 COPY packages/domain packages/domain
 COPY packages/contracts packages/contracts
@@ -29,7 +29,7 @@ COPY packages/storage-s3 packages/storage-s3
 COPY packages/database packages/database
 COPY apps/worker apps/worker
 
-RUN pnpm --filter @docuflow/worker... build
+RUN pnpm --filter @papyrus/worker... build
 
 FROM node:22.14.0-alpine3.21 AS prod-deps
 
@@ -48,29 +48,29 @@ COPY packages/storage-local/package.json packages/storage-local/package.json
 COPY packages/storage-s3/package.json packages/storage-s3/package.json
 COPY apps/worker/package.json apps/worker/package.json
 
-RUN pnpm install --prod --frozen-lockfile --filter-prod @docuflow/worker...
+RUN pnpm install --prod --frozen-lockfile --filter-prod @papyrus/worker...
 
 FROM node:22.14.0-alpine3.21 AS runtime
 
-ARG DOCUFLOW_VERSION=1.0.0-rc.1
+ARG PAPYRUS_VERSION=1.0.0-rc.1
 ARG VCS_REF=unknown
 
-LABEL org.opencontainers.image.title="docuflow-worker" \
-      org.opencontainers.image.description="DocuFlow background worker (upload scan, retention, notifications)" \
-      org.opencontainers.image.version="${DOCUFLOW_VERSION}" \
+LABEL org.opencontainers.image.title="papyrus-worker" \
+      org.opencontainers.image.description="papyrus background worker (upload scan, retention, notifications)" \
+      org.opencontainers.image.version="${PAPYRUS_VERSION}" \
       org.opencontainers.image.revision="${VCS_REF}"
 
 ENV NODE_ENV=production
 ENV WORKER_HEALTH_HOST=0.0.0.0
 ENV WORKER_HEALTH_PORT=3001
-ENV DOCUFLOW_VERSION="${DOCUFLOW_VERSION}"
+ENV PAPYRUS_VERSION="${PAPYRUS_VERSION}"
 
 WORKDIR /app
 
 # Remove package managers and dev tooling from final worker runtime image
 RUN rm -rf /usr/local/lib/node_modules /usr/local/bin/npm /usr/local/bin/npx /usr/local/bin/corepack /opt/yarn* \
-  && mkdir -p /var/lib/docuflow/storage \
-  && chown -R node:node /var/lib/docuflow/storage
+  && mkdir -p /var/lib/papyrus/storage \
+  && chown -R node:node /var/lib/papyrus/storage
 
 COPY --from=prod-deps --chown=node:node /app /app
 

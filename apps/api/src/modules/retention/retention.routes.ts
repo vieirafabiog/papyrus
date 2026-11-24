@@ -1,4 +1,4 @@
-import { evaluateAuthorization } from "@docuflow/auth";
+import { evaluateAuthorization } from "@papyrus/auth";
 import {
   CONTRACTS_API_PREFIX,
   type ErrorCode,
@@ -7,9 +7,9 @@ import {
   releaseDocumentHoldRequestSchema,
   updateRetentionPolicyRequestSchema,
   uuidSchema,
-} from "@docuflow/contracts";
-import type { AuthorizationRepository } from "@docuflow/database";
-import { DomainError, type RetentionGovernanceService } from "@docuflow/domain";
+} from "@papyrus/contracts";
+import type { AuthorizationRepository } from "@papyrus/database";
+import { DomainError, type RetentionGovernanceService } from "@papyrus/domain";
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import {
   type DocumentAuthorizationGuard,

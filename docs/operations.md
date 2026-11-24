@@ -1,6 +1,6 @@
-# Manual de Operação, Atualização e Troubleshooting (DocuFlow)
+# Manual de Operação, Atualização e Troubleshooting (papyrus)
 
-Este documento reúne os procedimentos operacionais contínuos do **DocuFlow** em ambiente self-hosted: monitoramento de saúde, atualização segura, rollback, rotação de chaves e resolução de incidentes comuns.
+Este documento reúne os procedimentos operacionais contínuos do **papyrus** em ambiente self-hosted: monitoramento de saúde, atualização segura, rollback, rotação de chaves e resolução de incidentes comuns.
 
 ---
 
@@ -29,7 +29,7 @@ docker compose --env-file .env -f infra/compose/docker-compose.yml logs --tail=1
 1. **Backup prévio obrigatório (banco + arquivos):**
    Siga [docs/backup-restore.md](./backup-restore.md) executando `scripts/backup/backup-database.sh` e `scripts/backup/backup-files.sh` antes de alterar imagens ou schema.
 2. **Defina a tag alvo no `.env`:**
-   Atualize `DOCUFLOW_IMAGE_TAG=<nova-versao>` (evite `latest` flutuante em produção).
+   Atualize `PAPYRUS_IMAGE_TAG=<nova-versao>` (evite `latest` flutuante em produção).
 3. **Baixe/compile as novas imagens sem interromper o PostgreSQL:**
    ```bash
    docker compose --env-file .env -f infra/compose/docker-compose.yml build api worker web
@@ -60,7 +60,7 @@ Se uma atualização apresentar falha funcional ou de compatibilidade:
    docker compose --env-file .env -f infra/compose/docker-compose.yml stop api worker web
    ```
 2. **Avalie se houve migration de banco executada:**
-   - Caso **não** tenha havido alteração de schema nesta release, basta retornar `DOCUFLOW_IMAGE_TAG=<versao-anterior>` no `.env` e subir `api worker web`.
+   - Caso **não** tenha havido alteração de schema nesta release, basta retornar `PAPYRUS_IMAGE_TAG=<versao-anterior>` no `.env` e subir `api worker web`.
    - Caso **tenha havido migration**, execute a restauração coordenada do backup pré-atualização seguindo [docs/backup-restore.md](./backup-restore.md) com `scripts/restore/restore-system.sh --confirm-restore` antes de subir a versão anterior das imagens. **Nunca** faça downgrade apenas dos binários deixando schema novo incompatível.
 3. **Suba a versão anterior e valide:**
    ```bash
@@ -80,7 +80,7 @@ Se uma atualização apresentar falha funcional ou de compatibilidade:
 
 ## 5. Troubleshooting
 
-### 1. Erro `EACCES` ou `Permission denied` ao gravar arquivos em `/var/lib/docuflow/storage`
+### 1. Erro `EACCES` ou `Permission denied` ao gravar arquivos em `/var/lib/papyrus/storage`
 - **Causa provável:** diretório montado do host pertence a `root` em vez do usuário `node` (`UID 1000`).
 - **Solução:** pare `api` e `worker`, ajuste `chown -R 1000:1000 <caminho_no_host>` e `chmod 750 <caminho_no_host>`, depois reinicie os serviços.
 
@@ -89,11 +89,11 @@ Se uma atualização apresentar falha funcional ou de compatibilidade:
 - **Solução:** restaure a chave mestra original do cofre (ou adicione a chave antiga ao `ENCRYPTION_KEYRING` se houve rotação) e reinicie `api` e `worker`.
 
 ### 3. Erro `413 Payload Too Large` durante upload
-- **Causa provável:** limite do proxy HTTPS (`DOCUFLOW_PROXY_MAX_BODY_SIZE` em `infra/caddy/Caddyfile`) menor que `UPLOAD_MAX_BYTES` / `PROXY_MAX_BODY_BYTES`.
-- **Solução:** alinhe `DOCUFLOW_PROXY_MAX_BODY_SIZE` (>= `PROXY_MAX_BODY_BYTES`, padrão `52MiB` para uploads de `50MiB`) e recarregue o Caddy.
+- **Causa provável:** limite do proxy HTTPS (`PAPYRUS_PROXY_MAX_BODY_SIZE` em `infra/caddy/Caddyfile`) menor que `UPLOAD_MAX_BYTES` / `PROXY_MAX_BODY_BYTES`.
+- **Solução:** alinhe `PAPYRUS_PROXY_MAX_BODY_SIZE` (>= `PROXY_MAX_BODY_BYTES`, padrão `52MiB` para uploads de `50MiB`) e recarregue o Caddy.
 
 ### 4. Uploads presos em quarentena (`QUARANTINED`)
-- **Causa provável:** scanner ClamAV indisponível, timeout ou assinatura detectada. O DocuFlow opera em **falha fechada** e não libera arquivos não verificados para download.
+- **Causa provável:** scanner ClamAV indisponível, timeout ou assinatura detectada. O papyrus opera em **falha fechada** e não libera arquivos não verificados para download.
 - **Solução:** verifique a saúde do serviço `clamav` (`clamdcheck.sh`) ou conectividade TCP na porta `3310`, e consulte os eventos de auditoria e logs do worker.
 
 ### 5. Migration runner falha com timeout de lock (`MigrationLockTimeoutError`)

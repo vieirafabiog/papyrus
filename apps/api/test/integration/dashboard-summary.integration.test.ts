@@ -8,8 +8,8 @@ import {
   type StoredSessionRecord,
   createPasswordService,
   createSessionService,
-} from "@docuflow/auth";
-import { CONTRACTS_API_PREFIX, dashboardSummarySchema } from "@docuflow/contracts";
+} from "@papyrus/auth";
+import { CONTRACTS_API_PREFIX, dashboardSummarySchema } from "@papyrus/contracts";
 import {
   auditEvents,
   categories,
@@ -34,7 +34,7 @@ import {
   workflowDefinitions,
   workflowInstances,
   workflowTasks,
-} from "@docuflow/database";
+} from "@papyrus/database";
 import { PostgreSqlContainer, type StartedPostgreSqlContainer } from "@testcontainers/postgresql";
 import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/node-postgres";
@@ -92,7 +92,7 @@ describe("Dashboard summary authorized PostgreSQL aggregations integration", () 
     const otherStorageId = randomUUID();
 
     await db.insert(organizations).values([
-      { id: orgId, name: "DocuFlow Dashboard Corp", slug: `dash-${orgId.slice(0, 8)}` },
+      { id: orgId, name: "papyrus Dashboard Corp", slug: `dash-${orgId.slice(0, 8)}` },
       { id: otherOrgId, name: "Outra Organização Corp", slug: `other-${otherOrgId.slice(0, 8)}` },
     ]);
 
@@ -108,7 +108,7 @@ describe("Dashboard summary authorized PostgreSQL aggregations integration", () 
       {
         id: adminId,
         organizationId: orgId,
-        email: "admin-dash@docuflow.local",
+        email: "admin-dash@papyrus.local",
         fullName: "Admin Dashboard",
         passwordHash,
         status: "ACTIVE",
@@ -116,7 +116,7 @@ describe("Dashboard summary authorized PostgreSQL aggregations integration", () 
       {
         id: scopedUserId,
         organizationId: orgId,
-        email: "scoped-dash@docuflow.local",
+        email: "scoped-dash@papyrus.local",
         fullName: "Scoped Dashboard",
         passwordHash,
         status: "ACTIVE",
@@ -736,8 +736,8 @@ describe("Dashboard summary authorized PostgreSQL aggregations integration", () 
       return { [SESSION_COOKIE_NAME]: sessionCookie };
     };
 
-    const adminCookies = await login("admin-dash@docuflow.local");
-    const scopedCookies = await login("scoped-dash@docuflow.local");
+    const adminCookies = await login("admin-dash@papyrus.local");
+    const scopedCookies = await login("scoped-dash@papyrus.local");
 
     // 1. Admin summary sees all non-deleted org docs (doc1, doc2, doc3 = 3),
     //    expiring soon (doc1 + doc3 = 2), quarantined linked to accessible docs (file2 = 1; excludes unlinked upload session owned by scopedUser),

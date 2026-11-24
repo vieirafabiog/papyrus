@@ -1,4 +1,4 @@
-# AGENTS.md — DocuFlow
+# AGENTS.md — papyrus
 
 Instruções permanentes para o agente de desenvolvimento neste repositório.
 Referências mestras obrigatórias: `project.md` e `EXECUTION_PLAN.md`.
@@ -7,7 +7,7 @@ Referências mestras obrigatórias: `project.md` e `EXECUTION_PLAN.md`.
 
 1. Ler `EXECUTION_PLAN.md` e localizar a primeira etapa marcada com `- [ ]`, salvo instrução explícita do usuário para outra etapa.
 2. Ler integralmente `project.md` (em blocos se necessário) antes de implementar quando ainda não estiver no contexto da sessão.
-3. Antes de modificar ou importar código de outro workspace (`@docuflow/*`), ler os arquivos alvo e o `src/index.ts` / `exports` públicos do pacote de origem. Nunca inventar imports cross-package nem importar caminhos internos de outro pacote.
+3. Antes de modificar ou importar código de outro workspace (`@papyrus/*`), ler os arquivos alvo e o `src/index.ts` / `exports` públicos do pacote de origem. Nunca inventar imports cross-package nem importar caminhos internos de outro pacote.
 4. Informar qual única etapa será executada.
 5. Implementar **somente** essa etapa, sem antecipar etapas futuras.
 6. Executar exatamente o comando de verificação indicado na etapa; corrigir qualquer falha e repetir até sair com código `0`. Quando contratos compartilhados mudarem, rodar também o `typecheck` dos consumidores afetados.

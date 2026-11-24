@@ -25,12 +25,12 @@ import {
   restoreTrashedDocumentRequestSchema,
   trashDocumentsListResponseSchema,
   updateDocumentRequestSchema,
-} from "@docuflow/contracts";
+} from "@papyrus/contracts";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { getLocalizedApiErrorMessage } from "../../i18n/api-errors.js";
 import { type MessageKey, getCurrentUiLocale, translate } from "../../i18n/index.js";
 
-const CSRF_COOKIE_NAME = "docuflow_csrf";
+const CSRF_COOKIE_NAME = "papyrus_csrf";
 const CSRF_HEADER_NAME = "x-csrf-token";
 
 const updatedDocumentEnvelopeSchema = createApiResponseSchema(documentRecordSchema);

@@ -8,7 +8,7 @@ import {
   type StoredSessionRecord,
   createPasswordService,
   createSessionService,
-} from "@docuflow/auth";
+} from "@papyrus/auth";
 import {
   auditEvents,
   createAuditRepository,
@@ -20,7 +20,7 @@ import {
   sessions,
   userRoleScopes,
   users,
-} from "@docuflow/database";
+} from "@papyrus/database";
 import { PostgreSqlContainer, type StartedPostgreSqlContainer } from "@testcontainers/postgresql";
 import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/node-postgres";
@@ -94,7 +94,7 @@ describe("Audit query, filters, and authorized export integration (Step 13.03)",
       {
         id: auditorId,
         organizationId: orgId,
-        email: `auditor-${orgId.slice(0, 6)}@docuflow.local`,
+        email: `auditor-${orgId.slice(0, 6)}@papyrus.local`,
         fullName: "Auditor Principal",
         passwordHash,
         status: "ACTIVE",
@@ -102,7 +102,7 @@ describe("Audit query, filters, and authorized export integration (Step 13.03)",
       {
         id: actorBId,
         organizationId: orgId,
-        email: `gestor-${orgId.slice(0, 6)}@docuflow.local`,
+        email: `gestor-${orgId.slice(0, 6)}@papyrus.local`,
         fullName: "Gestor Documental",
         passwordHash,
         status: "ACTIVE",
@@ -110,7 +110,7 @@ describe("Audit query, filters, and authorized export integration (Step 13.03)",
       {
         id: unauthorizedUserId,
         organizationId: orgId,
-        email: `viewer-${orgId.slice(0, 6)}@docuflow.local`,
+        email: `viewer-${orgId.slice(0, 6)}@papyrus.local`,
         fullName: "Consulta Comum",
         passwordHash,
         status: "ACTIVE",
@@ -118,7 +118,7 @@ describe("Audit query, filters, and authorized export integration (Step 13.03)",
       {
         id: deniedAuditorId,
         organizationId: orgId,
-        email: `denied-auditor-${orgId.slice(0, 6)}@docuflow.local`,
+        email: `denied-auditor-${orgId.slice(0, 6)}@papyrus.local`,
         fullName: "Auditor Bloqueado",
         passwordHash,
         status: "ACTIVE",
@@ -375,9 +375,9 @@ describe("Audit query, filters, and authorized export integration (Step 13.03)",
       return { [SESSION_COOKIE_NAME]: cookie, [CSRF_COOKIE_NAME]: csrfToken };
     };
 
-    const auditorCookies = await loginAs(`auditor-${orgId.slice(0, 6)}@docuflow.local`);
-    const viewerCookies = await loginAs(`viewer-${orgId.slice(0, 6)}@docuflow.local`);
-    const deniedCookies = await loginAs(`denied-auditor-${orgId.slice(0, 6)}@docuflow.local`);
+    const auditorCookies = await loginAs(`auditor-${orgId.slice(0, 6)}@papyrus.local`);
+    const viewerCookies = await loginAs(`viewer-${orgId.slice(0, 6)}@papyrus.local`);
+    const deniedCookies = await loginAs(`denied-auditor-${orgId.slice(0, 6)}@papyrus.local`);
 
     // 2. Unauthorized viewer & explicit DENY auditor receive 403 on query, facets & export
     expect(
@@ -483,7 +483,7 @@ describe("Audit query, filters, and authorized export integration (Step 13.03)",
     expect(csvExportRes.statusCode).toBe(200);
     expect(csvExportRes.headers["content-type"]).toContain("text/csv");
     expect(csvExportRes.headers["content-disposition"]).toContain(
-      "auditoria-docuflow-2026-11-21.csv",
+      "auditoria-papyrus-2026-11-21.csv",
     );
     expect(csvExportRes.body).toContain("AUTHORIZATION_DENIED");
     expect(csvExportRes.body).not.toContain("foreign");

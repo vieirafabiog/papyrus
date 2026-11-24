@@ -1,6 +1,6 @@
-import { CONTRACTS_API_PREFIX, repositoryReportQuerySchema } from "@docuflow/contracts";
-import type { ReportRepository, RepositoryReportRecord } from "@docuflow/database";
-import { type AuditRepositoryPort, createAuditWriter } from "@docuflow/domain";
+import { CONTRACTS_API_PREFIX, repositoryReportQuerySchema } from "@papyrus/contracts";
+import type { ReportRepository, RepositoryReportRecord } from "@papyrus/database";
+import { type AuditRepositoryPort, createAuditWriter } from "@papyrus/domain";
 import type { FastifyInstance, FastifyReply } from "fastify";
 import {
   type DocumentAuthorizationGuard,
@@ -221,7 +221,7 @@ export async function registerReportRoutes(
 
     setPrivateReportHeaders(reply);
     reply.header("Content-Type", "text/csv; charset=utf-8");
-    reply.header("Content-Disposition", 'attachment; filename="docuflow-relatorio-acervo.csv"');
+    reply.header("Content-Disposition", 'attachment; filename="papyrus-relatorio-acervo.csv"');
     return reply.status(200).send(formatRepositoryReportCsv(outcome.report));
   });
 }

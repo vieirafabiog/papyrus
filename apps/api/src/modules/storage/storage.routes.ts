@@ -5,18 +5,18 @@ import {
   updateStorageConnectionContractSchema,
   upsertStorageRoutingRuleRequestSchema,
   uuidSchema,
-} from "@docuflow/contracts";
+} from "@papyrus/contracts";
 import {
   DomainError,
   type StorageConnectionAdminService,
   type StorageRouterService,
-} from "@docuflow/domain";
-import { sanitizeStorageErrorMessage } from "@docuflow/storage-core";
+} from "@papyrus/domain";
+import { sanitizeStorageErrorMessage } from "@papyrus/storage-core";
 import {
   type S3EndpointSecurityPolicy,
   type S3StorageConfigInput,
   parseS3StorageConfig,
-} from "@docuflow/storage-s3";
+} from "@papyrus/storage-s3";
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { SESSION_COOKIE_NAME } from "../auth/auth.routes.js";
 import type { AuthService } from "../auth/auth.service.js";

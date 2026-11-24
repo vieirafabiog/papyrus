@@ -162,7 +162,7 @@ describe("StorageConnectionAdminService", () => {
       name: "Filesystem Local",
       kind: "local",
       isDefault: true,
-      nonSecretConfig: { rootDirectory: "/var/lib/docuflow/storage" },
+      nonSecretConfig: { rootDirectory: "/var/lib/papyrus/storage" },
     });
 
     expect(localConn.isDefault).toBe(true);
@@ -187,7 +187,7 @@ describe("StorageConnectionAdminService", () => {
       name: "MinIO Principal",
       kind: "s3",
       isDefault: true,
-      nonSecretConfig: { bucket: "docuflow", region: "us-east-1" },
+      nonSecretConfig: { bucket: "papyrus", region: "us-east-1" },
       credentials: { accessKeyId: "AKIA", secretAccessKey: "SECRET" },
     });
 

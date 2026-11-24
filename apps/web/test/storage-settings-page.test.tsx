@@ -1,6 +1,6 @@
 import "@testing-library/jest-dom/vitest";
-import { UiLocaleProvider, papyrusTheme } from "@docuflow/ui";
 import { CssBaseline, ThemeProvider } from "@mui/material";
+import { UiLocaleProvider, papyrusTheme } from "@papyrus/ui";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
@@ -21,7 +21,7 @@ function buildSession(isAdmin: boolean) {
     user: {
       id: "550e8400-e29b-41d4-a716-446655440010",
       organizationId: ORG_ID,
-      email: isAdmin ? "admin@docuflow.local" : "leitora@docuflow.local",
+      email: isAdmin ? "admin@papyrus.local" : "leitora@papyrus.local",
       fullName: isAdmin ? "Administradora Storage" : "Usuária Leitora",
       status: "ACTIVE",
       createdAt: "2026-01-01T10:00:00.000Z",
@@ -54,7 +54,7 @@ function createInitialConnections() {
       isDefault: true,
       status: "ACTIVE" as const,
       nonSecretConfig: {
-        rootDirectory: "/var/lib/docuflow/local",
+        rootDirectory: "/var/lib/papyrus/local",
         maxObjectSizeBytes: 52428800,
       },
       hasCredentials: false,
@@ -73,7 +73,7 @@ function createInitialConnections() {
       nonSecretConfig: {
         endpoint: "https://minio.interno.local",
         region: "us-east-1",
-        bucket: "docuflow-arquivo",
+        bucket: "papyrus-arquivo",
         forcePathStyle: true,
         tlsRejectUnauthorized: true,
         tlsAllowInsecureHttp: false,
@@ -258,7 +258,7 @@ describe("StorageSettingsPage (Step 14.04)", () => {
       target: { value: "Arquivo Secundário" },
     });
     fireEvent.change(within(createDialog).getByLabelText(/Folder path/i), {
-      target: { value: "/mnt/docuflow-secundario" },
+      target: { value: "/mnt/papyrus-secundario" },
     });
     fireEvent.click(within(createDialog).getByRole("button", { name: "Create connection" }));
 
@@ -268,7 +268,7 @@ describe("StorageSettingsPage (Step 14.04)", () => {
     expect(capturedCreateBody).toMatchObject({
       kind: "local",
       name: "Arquivo Secundário",
-      rootDirectory: "/mnt/docuflow-secundario",
+      rootDirectory: "/mnt/papyrus-secundario",
     });
     expect(await screen.findByText("Arquivo Secundário")).toBeInTheDocument();
   });

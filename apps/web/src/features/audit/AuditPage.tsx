@@ -1,16 +1,3 @@
-import type {
-  AuditEventRecord,
-  AuditExportFormat,
-  AuditResult,
-  AuthMeResponse,
-} from "@docuflow/contracts";
-import {
-  DataTable,
-  type DataTableColumn,
-  ErrorState,
-  LoadingState,
-  PAPYRUS_COLOR_TOKENS,
-} from "@docuflow/ui";
 import ClearOutlinedIcon from "@mui/icons-material/ClearOutlined";
 import DownloadOutlinedIcon from "@mui/icons-material/DownloadOutlined";
 import HistoryEduOutlinedIcon from "@mui/icons-material/HistoryEduOutlined";
@@ -38,6 +25,19 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
+import type {
+  AuditEventRecord,
+  AuditExportFormat,
+  AuditResult,
+  AuthMeResponse,
+} from "@papyrus/contracts";
+import {
+  DataTable,
+  type DataTableColumn,
+  ErrorState,
+  LoadingState,
+  PAPYRUS_COLOR_TOKENS,
+} from "@papyrus/ui";
 import { useMemo, useState } from "react";
 import { useSessionQuery } from "../../app/session.js";
 import { type MessageKey, useI18n } from "../../i18n/index.js";

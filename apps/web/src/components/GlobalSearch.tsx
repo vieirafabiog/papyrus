@@ -1,10 +1,3 @@
-import {
-  CONTRACTS_API_PREFIX,
-  type DocumentListItem,
-  type DocumentStatus,
-  documentListResponseSchema,
-} from "@docuflow/contracts";
-import { PAPYRUS_COLOR_TOKENS } from "@docuflow/ui";
 import ClearOutlinedIcon from "@mui/icons-material/ClearOutlined";
 import DescriptionOutlinedIcon from "@mui/icons-material/DescriptionOutlined";
 import SearchOutlinedIcon from "@mui/icons-material/SearchOutlined";
@@ -26,6 +19,13 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
+import {
+  CONTRACTS_API_PREFIX,
+  type DocumentListItem,
+  type DocumentStatus,
+  documentListResponseSchema,
+} from "@papyrus/contracts";
+import { PAPYRUS_COLOR_TOKENS } from "@papyrus/ui";
 import { type KeyboardEvent, useEffect, useId, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { extractUserErrorMessage } from "../i18n/api-errors.js";

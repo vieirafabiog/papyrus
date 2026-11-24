@@ -1,4 +1,4 @@
-import { CONTRACTS_API_PREFIX } from "@docuflow/contracts";
+import { CONTRACTS_API_PREFIX } from "@papyrus/contracts";
 import type { FastifyInstance } from "fastify";
 import { ZodError } from "zod";
 import { BootstrapAlreadyCompletedError, type SetupService } from "./setup.service.js";

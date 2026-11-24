@@ -7,8 +7,8 @@ import {
   createAuditWriter,
   diffCalendarDays,
   resolveLocalCalendarDate,
-} from "@docuflow/domain";
-import type { InAppNotificationService, OptionalSmtpEmailService } from "@docuflow/notifications";
+} from "@papyrus/domain";
+import type { InAppNotificationService, OptionalSmtpEmailService } from "@papyrus/notifications";
 
 export const DEFAULT_EXPIRATION_ALERT_THRESHOLDS_DAYS = [0, 7, 30] as const;
 const DEFAULT_BATCH_SIZE = 200;
@@ -151,20 +151,20 @@ function buildEmailSubjectAndBody(
     const overdueDays = Math.abs(daysUntilExpiration);
     const daysText = overdueDays === 1 ? "1 dia" : `${overdueDays} dias`;
     return {
-      subject: `[DocuFlow] Documento vencido: ${doc.title}`,
-      textBody: `O documento "${doc.title}" venceu em ${formattedDate} (há ${daysText}). Acesse o DocuFlow para verificar a renovação ou tratamento aplicável.`,
+      subject: `[papyrus] Documento vencido: ${doc.title}`,
+      textBody: `O documento "${doc.title}" venceu em ${formattedDate} (há ${daysText}). Acesse o papyrus para verificar a renovação ou tratamento aplicável.`,
     };
   }
   if (daysUntilExpiration === 0) {
     return {
-      subject: `[DocuFlow] Documento vence hoje: ${doc.title}`,
-      textBody: `O documento "${doc.title}" vence hoje (${formattedDate}). Acesse o DocuFlow para acompanhar o vencimento.`,
+      subject: `[papyrus] Documento vence hoje: ${doc.title}`,
+      textBody: `O documento "${doc.title}" vence hoje (${formattedDate}). Acesse o papyrus para acompanhar o vencimento.`,
     };
   }
   const daysText = daysUntilExpiration === 1 ? "1 dia" : `${daysUntilExpiration} dias`;
   return {
-    subject: `[DocuFlow] Vencimento próximo: ${doc.title}`,
-    textBody: `O documento "${doc.title}" vencerá em ${formattedDate} (em ${daysText}). Acesse o DocuFlow para tomar as ações necessárias.`,
+    subject: `[papyrus] Vencimento próximo: ${doc.title}`,
+    textBody: `O documento "${doc.title}" vencerá em ${formattedDate} (em ${daysText}). Acesse o papyrus para tomar as ações necessárias.`,
   };
 }
 

@@ -1,13 +1,3 @@
-import type { GroupSummary, UserSummary } from "@docuflow/contracts";
-import {
-  ConfirmDialog,
-  DataTable,
-  type DataTableColumn,
-  ErrorState,
-  FilterBar,
-  LoadingState,
-  PAPYRUS_COLOR_TOKENS,
-} from "@docuflow/ui";
 import DeleteOutlineOutlinedIcon from "@mui/icons-material/DeleteOutlineOutlined";
 import GroupAddOutlinedIcon from "@mui/icons-material/GroupAddOutlined";
 import GroupOutlinedIcon from "@mui/icons-material/GroupOutlined";
@@ -34,6 +24,16 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
+import type { GroupSummary, UserSummary } from "@papyrus/contracts";
+import {
+  ConfirmDialog,
+  DataTable,
+  type DataTableColumn,
+  ErrorState,
+  FilterBar,
+  LoadingState,
+  PAPYRUS_COLOR_TOKENS,
+} from "@papyrus/ui";
 import { useId, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useSessionQuery } from "../../app/session.js";

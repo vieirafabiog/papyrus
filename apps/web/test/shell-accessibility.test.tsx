@@ -1,6 +1,6 @@
 import "@testing-library/jest-dom/vitest";
-import { ConfirmDialog, PAPYRUS_COLOR_TOKENS, UiLocaleProvider, papyrusTheme } from "@docuflow/ui";
 import { CssBaseline, ThemeProvider } from "@mui/material";
+import { ConfirmDialog, PAPYRUS_COLOR_TOKENS, UiLocaleProvider, papyrusTheme } from "@papyrus/ui";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
@@ -40,7 +40,7 @@ function mockAuthenticatedFetch() {
               user: {
                 id: validUuid,
                 organizationId: validUuid,
-                email: "gestor@docuflow.invalid",
+                email: "gestor@papyrus.invalid",
                 fullName: "Gestor Documental",
                 status: "ACTIVE",
                 createdAt: "2026-11-20T10:00:00Z",

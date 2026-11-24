@@ -3,14 +3,14 @@ import {
   hasStorageCapability,
   requireSignedDownloadTargetProvider,
   requireSignedUploadTargetProvider,
-} from "@docuflow/storage-core";
+} from "@papyrus/storage-core";
 import { describe, expect, it } from "vitest";
 import { createS3StorageProvider, sanitizeDownloadFilename } from "../src/index.js";
 
 const VALID_S3_CONFIG = {
   endpoint: "https://s3.us-east-1.amazonaws.com",
   region: "us-east-1",
-  bucket: "docuflow-signed-bucket",
+  bucket: "papyrus-signed-bucket",
   forcePathStyle: true,
   keyPrefix: "tenant-alpha",
   credentials: {
@@ -62,7 +62,7 @@ describe("S3 optional signed upload/download targets", () => {
 
     const uploadUrl = new URL(uploadTarget.url);
     expect(uploadUrl.pathname).toContain(
-      "/docuflow-signed-bucket/tenant-alpha/org/1/documents/2/versions/1/obj-99",
+      "/papyrus-signed-bucket/tenant-alpha/org/1/documents/2/versions/1/obj-99",
     );
     expect(uploadUrl.searchParams.get("X-Amz-Algorithm")).toBe("AWS4-HMAC-SHA256");
     expect(uploadUrl.searchParams.get("X-Amz-Expires")).toBe("120");

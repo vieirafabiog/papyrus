@@ -3,8 +3,8 @@ import type {
   StorageConnectionRepositoryPort,
   TransactionContext,
   TransactionManagerPort,
-} from "@docuflow/domain";
-import { type StorageProviderRegistry, sanitizeStorageErrorMessage } from "@docuflow/storage-core";
+} from "@papyrus/domain";
+import { type StorageProviderRegistry, sanitizeStorageErrorMessage } from "@papyrus/storage-core";
 
 const DEFAULT_SAFETY_WINDOW_MS = 30 * 60 * 1000;
 const DEFAULT_BATCH_SIZE = 100;

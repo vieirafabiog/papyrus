@@ -1,7 +1,7 @@
 import "@testing-library/jest-dom/vitest";
-import { CONTRACTS_API_PREFIX } from "@docuflow/contracts";
-import { papyrusTheme } from "@docuflow/ui";
 import { CssBaseline, ThemeProvider } from "@mui/material";
+import { CONTRACTS_API_PREFIX } from "@papyrus/contracts";
+import { papyrusTheme } from "@papyrus/ui";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { UploadDialog, type UploadDialogProps } from "../src/features/documents/UploadDialog.js";

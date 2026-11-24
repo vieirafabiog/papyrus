@@ -1,5 +1,5 @@
 {
-  "name": "@docuflow/storage-local",
+  "name": "@papyrus/storage-local",
   "version": "1.0.0-rc.1",
   "private": true,
   "type": "module",
@@ -17,6 +17,6 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@docuflow/storage-core": "workspace:*"
+    "@papyrus/storage-core": "workspace:*"
   }
 }

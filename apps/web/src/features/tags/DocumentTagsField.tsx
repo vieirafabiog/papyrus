@@ -1,4 +1,3 @@
-import type { TagRecord } from "@docuflow/contracts";
 import AddOutlinedIcon from "@mui/icons-material/AddOutlined";
 import LabelOutlinedIcon from "@mui/icons-material/LabelOutlined";
 import {
@@ -12,6 +11,7 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
+import type { TagRecord } from "@papyrus/contracts";
 import { useMemo, useState } from "react";
 import { containsTechnicalJargon } from "../../i18n/api-errors.js";
 import { useI18n } from "../../i18n/index.js";

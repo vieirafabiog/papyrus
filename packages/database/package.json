@@ -1,5 +1,5 @@
 {
-  "name": "@docuflow/database",
+  "name": "@papyrus/database",
   "version": "1.0.0-rc.1",
   "private": true,
   "type": "module",
@@ -20,8 +20,8 @@
     "db:migrate": "node dist/migrate-cli.js"
   },
   "dependencies": {
-    "@docuflow/domain": "workspace:*",
-    "@docuflow/notifications": "workspace:*",
+    "@papyrus/domain": "workspace:*",
+    "@papyrus/notifications": "workspace:*",
     "drizzle-orm": "^0.45.4",
     "pg": "^8.14.1"
   },

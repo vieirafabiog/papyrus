@@ -8,7 +8,7 @@ import {
   type StoredSessionRecord,
   createPasswordService,
   createSessionService,
-} from "@docuflow/auth";
+} from "@papyrus/auth";
 import {
   auditEvents,
   categories,
@@ -25,8 +25,8 @@ import {
   sessions,
   userRoleScopes,
   users,
-} from "@docuflow/database";
-import { createTagService } from "@docuflow/domain";
+} from "@papyrus/database";
+import { createTagService } from "@papyrus/domain";
 import { PostgreSqlContainer, type StartedPostgreSqlContainer } from "@testcontainers/postgresql";
 import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/node-postgres";
@@ -114,7 +114,7 @@ describe("Tags creation, document association, uniqueness and authorization inte
     await db.insert(organizations).values([
       {
         id: orgId,
-        name: "DocuFlow Tags Corp",
+        name: "papyrus Tags Corp",
         slug: `tags-org-${orgId.slice(0, 8)}`,
       },
       {
@@ -182,7 +182,7 @@ describe("Tags creation, document association, uniqueness and authorization inte
       {
         id: colabUserId,
         organizationId: orgId,
-        email: `colab-tags-${orgId.slice(0, 6)}@docuflow.local`,
+        email: `colab-tags-${orgId.slice(0, 6)}@papyrus.local`,
         fullName: "Collaborator Tags",
         passwordHash,
         status: "ACTIVE",
@@ -190,7 +190,7 @@ describe("Tags creation, document association, uniqueness and authorization inte
       {
         id: viewerUserId,
         organizationId: orgId,
-        email: `viewer-tags-${orgId.slice(0, 6)}@docuflow.local`,
+        email: `viewer-tags-${orgId.slice(0, 6)}@papyrus.local`,
         fullName: "Viewer Tags",
         passwordHash,
         status: "ACTIVE",
@@ -344,7 +344,7 @@ describe("Tags creation, document association, uniqueness and authorization inte
       cookies: { [CSRF_COOKIE_NAME]: csrfToken },
       headers: { [CSRF_HEADER_NAME]: csrfToken },
       payload: {
-        email: `colab-tags-${orgId.slice(0, 6)}@docuflow.local`,
+        email: `colab-tags-${orgId.slice(0, 6)}@papyrus.local`,
         password: "TagsTest!2026",
       },
     });
@@ -439,7 +439,7 @@ describe("Tags creation, document association, uniqueness and authorization inte
       cookies: { [CSRF_COOKIE_NAME]: csrfToken },
       headers: { [CSRF_HEADER_NAME]: csrfToken },
       payload: {
-        email: `viewer-tags-${orgId.slice(0, 6)}@docuflow.local`,
+        email: `viewer-tags-${orgId.slice(0, 6)}@papyrus.local`,
         password: "TagsTest!2026",
       },
     });

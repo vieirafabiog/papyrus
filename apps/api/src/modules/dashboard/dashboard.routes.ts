@@ -1,6 +1,6 @@
-import { evaluateAuthorization } from "@docuflow/auth";
-import { CONTRACTS_API_PREFIX } from "@docuflow/contracts";
-import type { DashboardRepository } from "@docuflow/database";
+import { evaluateAuthorization } from "@papyrus/auth";
+import { CONTRACTS_API_PREFIX } from "@papyrus/contracts";
+import type { DashboardRepository } from "@papyrus/database";
 import type { FastifyInstance } from "fastify";
 import {
   type DocumentAuthorizationGuard,

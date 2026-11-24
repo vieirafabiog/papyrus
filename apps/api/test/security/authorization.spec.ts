@@ -11,8 +11,8 @@ import {
   type StoredSessionRecord,
   createPasswordService,
   createSessionService,
-} from "@docuflow/auth";
-import { CONTRACTS_API_PREFIX } from "@docuflow/contracts";
+} from "@papyrus/auth";
+import { CONTRACTS_API_PREFIX } from "@papyrus/contracts";
 import {
   auditEvents,
   categories,
@@ -49,7 +49,7 @@ import {
   storageConnections,
   userRoleScopes,
   users,
-} from "@docuflow/database";
+} from "@papyrus/database";
 import {
   createDecideTaskUseCase,
   createDocumentUseCase,
@@ -57,9 +57,9 @@ import {
   createStartWorkflowUseCase,
   createWorkflowDefinitionService,
   createWorkflowTasksUseCase,
-} from "@docuflow/domain";
-import { createStorageProviderRegistry } from "@docuflow/storage-core";
-import { createLocalStorageProvider } from "@docuflow/storage-local";
+} from "@papyrus/domain";
+import { createStorageProviderRegistry } from "@papyrus/storage-core";
+import { createLocalStorageProvider } from "@papyrus/storage-local";
 import { PostgreSqlContainer, type StartedPostgreSqlContainer } from "@testcontainers/postgresql";
 import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/node-postgres";
@@ -183,7 +183,7 @@ describe("Authorization, multi-tenant isolation and IDOR security tests (Step 16
   const tenantBPdfBytes = Buffer.from("%PDF-1.7\nTenant B Isolated Document\n%%EOF\n", "utf8");
 
   beforeAll(async () => {
-    localStorageRoot = await mkdtemp(path.join(os.tmpdir(), "docuflow-authz-sec-"));
+    localStorageRoot = await mkdtemp(path.join(os.tmpdir(), "papyrus-authz-sec-"));
     const externalUrl = process.env.DATABASE_URL;
     let connectionString: string;
     if (externalUrl && externalUrl.trim().length > 0) {

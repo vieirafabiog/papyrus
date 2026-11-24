@@ -1,4 +1,4 @@
-import { StorageError } from "@docuflow/storage-core";
+import { StorageError } from "@papyrus/storage-core";
 import { describe, expect, it } from "vitest";
 import {
   isRestrictedIpAddress,
@@ -10,7 +10,7 @@ import {
 const BASE_VALID_CONFIG = {
   endpoint: "https://s3.us-east-1.amazonaws.com",
   region: "us-east-1",
-  bucket: "docuflow-corp-docs",
+  bucket: "papyrus-corp-docs",
   forcePathStyle: false,
   credentials: {
     accessKeyId: "AKIAIOSFODNN7EXAMPLE",
@@ -24,7 +24,7 @@ describe("S3 configuration schema and SSRF security validation", () => {
 
     expect(parsed.endpoint).toBe("https://s3.us-east-1.amazonaws.com");
     expect(parsed.region).toBe("us-east-1");
-    expect(parsed.bucket).toBe("docuflow-corp-docs");
+    expect(parsed.bucket).toBe("papyrus-corp-docs");
     expect(parsed.forcePathStyle).toBe(false);
     expect(parsed.tls.rejectUnauthorized).toBe(true);
     expect(parsed.tls.allowInsecureHttp).toBe(false);

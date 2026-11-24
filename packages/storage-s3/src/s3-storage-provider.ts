@@ -26,7 +26,7 @@ import {
   type StorageUploadInput,
   type StoredObject,
   normalizeStorageError,
-} from "@docuflow/storage-core";
+} from "@papyrus/storage-core";
 import {
   type DnsLookupAllFn,
   type S3EndpointSecurityPolicy,
@@ -39,7 +39,8 @@ import { checkS3StorageHealth } from "./s3-health.js";
 import { type S3SignedTargetsOptions, createS3SignedTargets } from "./signed-targets.js";
 
 const SHA256_HEX_PATTERN = /^[a-f0-9]{64}$/i;
-const DOCUFLOW_SHA256_META_KEY = "docuflow-sha256";
+const PAPYRUS_SHA256_META_KEY = "papyrus-sha256";
+const LEGACY_SHA256_META_KEY = "docuflow-sha256";
 const SAFE_SEGMENT_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/;
 
 export type S3SupportedCommand =
@@ -172,12 +173,16 @@ function buildS3UserMetadata(
   customMetadata?: Readonly<Record<string, string>>,
 ): Record<string, string> {
   const result: Record<string, string> = {
-    [DOCUFLOW_SHA256_META_KEY]: checksumSha256,
+    [PAPYRUS_SHA256_META_KEY]: checksumSha256,
   };
   if (customMetadata) {
     for (const [k, v] of Object.entries(customMetadata)) {
       const normalizedKey = k.trim().toLowerCase();
-      if (normalizedKey.length > 0 && normalizedKey !== DOCUFLOW_SHA256_META_KEY) {
+      if (
+        normalizedKey.length > 0 &&
+        normalizedKey !== PAPYRUS_SHA256_META_KEY &&
+        normalizedKey !== LEGACY_SHA256_META_KEY
+      ) {
         result[normalizedKey] = v;
       }
     }
@@ -193,7 +198,8 @@ function extractCustomMetadata(
   }
   const filtered: Record<string, string> = {};
   for (const [k, v] of Object.entries(rawMetadata)) {
-    if (k.toLowerCase() !== DOCUFLOW_SHA256_META_KEY) {
+    const lower = k.toLowerCase();
+    if (lower !== PAPYRUS_SHA256_META_KEY && lower !== LEGACY_SHA256_META_KEY) {
       filtered[k] = v;
     }
   }
@@ -220,7 +226,9 @@ function resolveVerifiedSha256(
   rawMetadata: Record<string, string> | undefined,
 ): string {
   const nativeHex = base64ChecksumToHex(nativeBase64Checksum)?.toLowerCase();
-  const metaHex = rawMetadata?.[DOCUFLOW_SHA256_META_KEY]?.trim().toLowerCase();
+  const metaHex = (rawMetadata?.[PAPYRUS_SHA256_META_KEY] ?? rawMetadata?.[LEGACY_SHA256_META_KEY])
+    ?.trim()
+    .toLowerCase();
   const validMetaHex = metaHex && SHA256_HEX_PATTERN.test(metaHex) ? metaHex : undefined;
 
   if (nativeHex && validMetaHex && nativeHex !== validMetaHex) {

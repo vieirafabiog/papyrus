@@ -1,11 +1,11 @@
-import type { PasswordService, SessionService, StoredSessionRecord } from "@docuflow/auth";
+import type { PasswordService, SessionService, StoredSessionRecord } from "@papyrus/auth";
 import type {
   AuthMeResponse,
   GroupSummary,
   PermissionRecord,
   RoleSummary,
   UserSummary,
-} from "@docuflow/contracts";
+} from "@papyrus/contracts";
 
 export interface AuthCredentialRecord {
   readonly user: UserSummary;

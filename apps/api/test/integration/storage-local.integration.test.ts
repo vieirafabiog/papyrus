@@ -9,8 +9,8 @@ import {
   type StoredSessionRecord,
   createPasswordService,
   createSessionService,
-} from "@docuflow/auth";
-import { CONTRACTS_API_PREFIX } from "@docuflow/contracts";
+} from "@papyrus/auth";
+import { CONTRACTS_API_PREFIX } from "@papyrus/contracts";
 import {
   createAuditRepository,
   createStorageConnectionRepository,
@@ -21,11 +21,11 @@ import {
   sessions,
   userRoleScopes,
   users,
-} from "@docuflow/database";
+} from "@papyrus/database";
 import {
   createStorageConnectionAdminService,
   createUserAdministrationService,
-} from "@docuflow/domain";
+} from "@papyrus/domain";
 import { PostgreSqlContainer, type StartedPostgreSqlContainer } from "@testcontainers/postgresql";
 import { and, eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/node-postgres";
@@ -239,14 +239,14 @@ describe("Local storage administrative routes integration", () => {
         payload: { email, password },
       });
       expect(res.statusCode).toBe(200);
-      return res.cookies.find((c) => c.name === "docuflow_session")?.value ?? "";
+      return res.cookies.find((c) => c.name === "papyrus_session")?.value ?? "";
     };
 
     const adminCookie = await login("admin@storage.invalid", adminPass);
     const collabCookie = await login("colab@storage.invalid", "ColabStoragePass2026!");
 
-    const storageDirPrimary = await mkdtemp(path.join(os.tmpdir(), "docuflow-api-storage-1-"));
-    const storageDirSecondary = await mkdtemp(path.join(os.tmpdir(), "docuflow-api-storage-2-"));
+    const storageDirPrimary = await mkdtemp(path.join(os.tmpdir(), "papyrus-api-storage-1-"));
+    const storageDirSecondary = await mkdtemp(path.join(os.tmpdir(), "papyrus-api-storage-2-"));
     tempDirs.push(storageDirPrimary, storageDirSecondary);
 
     // 1. Unauthenticated and non-admin requests are blocked (401 / 403)
@@ -264,7 +264,7 @@ describe("Local storage administrative routes integration", () => {
         await app.inject({
           method: "GET",
           url: `${CONTRACTS_API_PREFIX}/admin/storage-connections`,
-          cookies: { docuflow_session: collabCookie },
+          cookies: { papyrus_session: collabCookie },
         })
       ).statusCode,
     ).toBe(403);
@@ -274,7 +274,7 @@ describe("Local storage administrative routes integration", () => {
         await app.inject({
           method: "POST",
           url: `${CONTRACTS_API_PREFIX}/admin/storage-connections`,
-          cookies: { docuflow_session: collabCookie, [CSRF_COOKIE_NAME]: csrfToken },
+          cookies: { papyrus_session: collabCookie, [CSRF_COOKIE_NAME]: csrfToken },
           headers: { [CSRF_HEADER_NAME]: csrfToken },
           payload: {
             name: "Tentativa Não Autorizada",
@@ -288,7 +288,7 @@ describe("Local storage administrative routes integration", () => {
     const createPrimaryRes = await app.inject({
       method: "POST",
       url: `${CONTRACTS_API_PREFIX}/admin/storage-connections`,
-      cookies: { docuflow_session: adminCookie, [CSRF_COOKIE_NAME]: csrfToken },
+      cookies: { papyrus_session: adminCookie, [CSRF_COOKIE_NAME]: csrfToken },
       headers: { [CSRF_HEADER_NAME]: csrfToken },
       payload: {
         name: "Volume Local Primário",
@@ -310,7 +310,7 @@ describe("Local storage administrative routes integration", () => {
     const createSecondaryRes = await app.inject({
       method: "POST",
       url: `${CONTRACTS_API_PREFIX}/admin/storage-connections`,
-      cookies: { docuflow_session: adminCookie, [CSRF_COOKIE_NAME]: csrfToken },
+      cookies: { papyrus_session: adminCookie, [CSRF_COOKIE_NAME]: csrfToken },
       headers: { [CSRF_HEADER_NAME]: csrfToken },
       payload: {
         name: "Volume Local Secundário",
@@ -325,7 +325,7 @@ describe("Local storage administrative routes integration", () => {
     const healthRes = await app.inject({
       method: "POST",
       url: `${CONTRACTS_API_PREFIX}/admin/storage-connections/${primaryConn.id}/test`,
-      cookies: { docuflow_session: adminCookie, [CSRF_COOKIE_NAME]: csrfToken },
+      cookies: { papyrus_session: adminCookie, [CSRF_COOKIE_NAME]: csrfToken },
       headers: { [CSRF_HEADER_NAME]: csrfToken },
     });
     expect(healthRes.statusCode).toBe(200);
@@ -337,11 +337,11 @@ describe("Local storage administrative routes integration", () => {
     const badPathRes = await app.inject({
       method: "POST",
       url: `${CONTRACTS_API_PREFIX}/admin/storage-connections`,
-      cookies: { docuflow_session: adminCookie, [CSRF_COOKIE_NAME]: csrfToken },
+      cookies: { papyrus_session: adminCookie, [CSRF_COOKIE_NAME]: csrfToken },
       headers: { [CSRF_HEADER_NAME]: csrfToken },
       payload: {
         name: "Volume Inexistente",
-        rootDirectory: path.join(os.tmpdir(), "docuflow-missing-health-dir-987654"),
+        rootDirectory: path.join(os.tmpdir(), "papyrus-missing-health-dir-987654"),
       },
     });
     expect(badPathRes.statusCode).toBe(201);
@@ -350,7 +350,7 @@ describe("Local storage administrative routes integration", () => {
     const badHealthRes = await app.inject({
       method: "POST",
       url: `${CONTRACTS_API_PREFIX}/admin/storage-connections/${badConnId}/test`,
-      cookies: { docuflow_session: adminCookie, [CSRF_COOKIE_NAME]: csrfToken },
+      cookies: { papyrus_session: adminCookie, [CSRF_COOKIE_NAME]: csrfToken },
       headers: { [CSRF_HEADER_NAME]: csrfToken },
     });
     expect(badHealthRes.statusCode).toBe(200);
@@ -361,7 +361,7 @@ describe("Local storage administrative routes integration", () => {
     const setDefaultRes = await app.inject({
       method: "POST",
       url: `${CONTRACTS_API_PREFIX}/admin/storage-connections/${secondaryId}/default`,
-      cookies: { docuflow_session: adminCookie, [CSRF_COOKIE_NAME]: csrfToken },
+      cookies: { papyrus_session: adminCookie, [CSRF_COOKIE_NAME]: csrfToken },
       headers: { [CSRF_HEADER_NAME]: csrfToken },
     });
     expect(setDefaultRes.statusCode).toBe(200);
@@ -370,7 +370,7 @@ describe("Local storage administrative routes integration", () => {
     const listRes = await app.inject({
       method: "GET",
       url: `${CONTRACTS_API_PREFIX}/admin/storage-connections`,
-      cookies: { docuflow_session: adminCookie },
+      cookies: { papyrus_session: adminCookie },
     });
     expect(listRes.statusCode).toBe(200);
     const listed = listRes.json().data as Array<{ id: string; isDefault: boolean }>;
@@ -393,7 +393,7 @@ describe("Local storage administrative routes integration", () => {
     const blockedDeactivateRes = await app.inject({
       method: "POST",
       url: `${CONTRACTS_API_PREFIX}/admin/storage-connections/${primaryConn.id}/deactivate`,
-      cookies: { docuflow_session: adminCookie, [CSRF_COOKIE_NAME]: csrfToken },
+      cookies: { papyrus_session: adminCookie, [CSRF_COOKIE_NAME]: csrfToken },
       headers: { [CSRF_HEADER_NAME]: csrfToken },
     });
     expect(blockedDeactivateRes.statusCode).toBe(409);

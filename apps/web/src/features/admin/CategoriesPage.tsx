@@ -1,4 +1,10 @@
-import type { CategorySummaryRecord } from "@docuflow/contracts";
+import AddOutlinedIcon from "@mui/icons-material/AddOutlined";
+import BlockOutlinedIcon from "@mui/icons-material/BlockOutlined";
+import CategoryOutlinedIcon from "@mui/icons-material/CategoryOutlined";
+import CheckCircleOutlineOutlinedIcon from "@mui/icons-material/CheckCircleOutlineOutlined";
+import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
+import { Alert, Box, Button, Chip, Stack, Typography } from "@mui/material";
+import type { CategorySummaryRecord } from "@papyrus/contracts";
 import {
   ConfirmDialog,
   DataTable,
@@ -6,13 +12,7 @@ import {
   ErrorState,
   FilterBar,
   LoadingState,
-} from "@docuflow/ui";
-import AddOutlinedIcon from "@mui/icons-material/AddOutlined";
-import BlockOutlinedIcon from "@mui/icons-material/BlockOutlined";
-import CategoryOutlinedIcon from "@mui/icons-material/CategoryOutlined";
-import CheckCircleOutlineOutlinedIcon from "@mui/icons-material/CheckCircleOutlineOutlined";
-import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
-import { Alert, Box, Button, Chip, Stack, Typography } from "@mui/material";
+} from "@papyrus/ui";
 import { useCallback, useMemo, useState } from "react";
 import { useSessionQuery } from "../../app/session.js";
 import { useI18n } from "../../i18n/index.js";

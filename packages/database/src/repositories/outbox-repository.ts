@@ -2,7 +2,7 @@ import type {
   TransactionContext,
   UploadProcessingEnqueueInput,
   UploadProcessingQueuePort,
-} from "@docuflow/domain";
+} from "@papyrus/domain";
 import { and, asc, eq, lt, lte, sql } from "drizzle-orm";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 import { outboxEvents } from "../schema/governance.js";

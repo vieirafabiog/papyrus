@@ -4,7 +4,7 @@ set -eu
 NODE_ENV_NORMALIZED=$(printf '%s' "${NODE_ENV:-production}" | tr '[:upper:]' '[:lower:]')
 
 if [ "$NODE_ENV_NORMALIZED" = "production" ]; then
-  case "${DOCUFLOW_RUN_DESTRUCTIVE_SEED:-}" in
+  case "${PAPYRUS_RUN_DESTRUCTIVE_SEED:-}" in
     1|true|TRUE|yes|YES)
       printf '{"status":"error","message":"Seed destrutivo bloqueado em produção (NODE_ENV=production)."}\n' >&2
       exit 1
@@ -17,7 +17,7 @@ if [ -z "${DATABASE_URL:-}" ]; then
   exit 1
 fi
 
-MIGRATE_SCRIPT="${DOCUFLOW_MIGRATE_SCRIPT:-/app/packages/database/dist/migrate-cli.js}"
+MIGRATE_SCRIPT="${PAPYRUS_MIGRATE_SCRIPT:-/app/packages/database/dist/migrate-cli.js}"
 if [ ! -f "$MIGRATE_SCRIPT" ]; then
   MIGRATE_SCRIPT="$(cd "$(dirname "$0")/../.." && pwd)/packages/database/dist/migrate-cli.js"
 fi

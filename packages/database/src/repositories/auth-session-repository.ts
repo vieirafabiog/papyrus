@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import type { AccessAction, AccessResource } from "@docuflow/domain";
+import type { AccessAction, AccessResource } from "@papyrus/domain";
 import { and, count, eq, inArray, or, sql } from "drizzle-orm";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 import { auditEvents } from "../schema/governance.js";

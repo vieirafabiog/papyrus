@@ -1,10 +1,3 @@
-import type {
-  DocumentExpirationItem,
-  DocumentStatus,
-  ExpirationBucket,
-  ExpirationState,
-} from "@docuflow/contracts";
-import { DataTable, type DataTableColumn, PAPYRUS_COLOR_TOKENS } from "@docuflow/ui";
 import ClearOutlinedIcon from "@mui/icons-material/ClearOutlined";
 import EventAvailableOutlinedIcon from "@mui/icons-material/EventAvailableOutlined";
 import EventBusyOutlinedIcon from "@mui/icons-material/EventBusyOutlined";
@@ -30,6 +23,13 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
+import type {
+  DocumentExpirationItem,
+  DocumentStatus,
+  ExpirationBucket,
+  ExpirationState,
+} from "@papyrus/contracts";
+import { DataTable, type DataTableColumn, PAPYRUS_COLOR_TOKENS } from "@papyrus/ui";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { type MessageKey, useI18n } from "../../i18n/index.js";

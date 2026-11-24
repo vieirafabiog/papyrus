@@ -154,7 +154,7 @@ function normalizeHoldText(rawText: string, code: string, messagePrefix: string)
 /**
  * Selects the most specific active retention policy for a document's category,
  * falling back to the organization's active global policy when present.
- * Note: DocuFlow never supplies pre-populated universal legal timeframes.
+ * Note: papyrus never supplies pre-populated universal legal timeframes.
  */
 export function selectApplicableRetentionPolicy(
   policies: readonly RetentionPolicyEntity[],

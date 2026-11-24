@@ -1,7 +1,7 @@
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { createPasswordService } from "@docuflow/auth";
-import { auditEvents } from "@docuflow/database";
+import { createPasswordService } from "@papyrus/auth";
+import { auditEvents } from "@papyrus/database";
 import { PostgreSqlContainer, type StartedPostgreSqlContainer } from "@testcontainers/postgresql";
 import { drizzle } from "drizzle-orm/node-postgres";
 import { migrate } from "drizzle-orm/node-postgres/migrator";

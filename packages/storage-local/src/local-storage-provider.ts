@@ -14,12 +14,13 @@ import {
   type StorageUploadInput,
   type StoredObject,
   normalizeStorageError,
-} from "@docuflow/storage-core";
+} from "@papyrus/storage-core";
 import { checkLocalStorageHealth } from "./local-health.js";
 import { resolveSafeLocalPath } from "./safe-path.js";
 
 const SHA256_HEX_PATTERN = /^[a-f0-9]{64}$/i;
-const META_DIR_NAME = ".docuflow-meta";
+const META_DIR_NAME = ".papyrus-meta";
+const LEGACY_META_DIR_NAME = ".docuflow-meta";
 
 export interface LocalStorageProviderConfig {
   readonly rootDirectory: string;
@@ -80,13 +81,10 @@ function isValidSidecarPayload(raw: unknown): raw is StoredObjectMetaSidecar {
   );
 }
 
-async function readMetadataSidecar(
-  rootRealPath: string,
-  normalizedKey: string,
+async function readSidecarFile(
+  metaPath: string,
   actualSize: number,
-  targetPath: string,
-): Promise<StoredObjectMetaSidecar> {
-  const metaPath = path.join(rootRealPath, META_DIR_NAME, `${normalizedKey}.json`);
+): Promise<StoredObjectMetaSidecar | null> {
   try {
     const handle = await open(metaPath, "r");
     try {
@@ -115,16 +113,37 @@ async function readMetadataSidecar(
       throw error;
     }
     if (isErrnoCode(error, "ENOENT")) {
-      const checksumSha256 = await computeFileSha256Stream(targetPath);
-      return {
-        contentType: "application/octet-stream",
-        contentLength: actualSize,
-        checksumSha256,
-        etag: checksumSha256,
-      };
+      return null;
     }
     throw normalizeStorageError(error, "local");
   }
+}
+
+async function readMetadataSidecar(
+  rootRealPath: string,
+  normalizedKey: string,
+  actualSize: number,
+  targetPath: string,
+): Promise<StoredObjectMetaSidecar> {
+  const primaryPath = path.join(rootRealPath, META_DIR_NAME, `${normalizedKey}.json`);
+  const primary = await readSidecarFile(primaryPath, actualSize);
+  if (primary) {
+    return primary;
+  }
+
+  const legacyPath = path.join(rootRealPath, LEGACY_META_DIR_NAME, `${normalizedKey}.json`);
+  const legacy = await readSidecarFile(legacyPath, actualSize);
+  if (legacy) {
+    return legacy;
+  }
+
+  const checksumSha256 = await computeFileSha256Stream(targetPath);
+  return {
+    contentType: "application/octet-stream",
+    contentLength: actualSize,
+    checksumSha256,
+    etag: checksumSha256,
+  };
 }
 
 async function assertNoSymlinkParent(
@@ -465,16 +484,18 @@ export function createLocalStorageProvider(config: LocalStorageProviderConfig): 
         }
       }
 
-      const metaPath = path.join(
-        resolved.rootRealPath,
-        META_DIR_NAME,
-        `${resolved.normalizedKey}.json`,
-      );
-      try {
-        await unlink(metaPath);
-      } catch (error) {
-        if (!isErrnoCode(error, "ENOENT")) {
-          throw normalizeStorageError(error, "local");
+      for (const dirName of [META_DIR_NAME, LEGACY_META_DIR_NAME]) {
+        const metaPath = path.join(
+          resolved.rootRealPath,
+          dirName,
+          `${resolved.normalizedKey}.json`,
+        );
+        try {
+          await unlink(metaPath);
+        } catch (error) {
+          if (!isErrnoCode(error, "ENOENT")) {
+            throw normalizeStorageError(error, "local");
+          }
         }
       }
     },

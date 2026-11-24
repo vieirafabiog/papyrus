@@ -55,8 +55,8 @@ test.describe("Fluxo de revisão e aprovação E2E", () => {
     const step1ApprovalComment = "Revisão jurídica da v2 aprovada sem ressalvas.";
     const step2ApprovalComment = "Aprovação final concedida para publicação da v2.";
 
-    const v1Buffer = createSamplePdfBuffer("DocuFlow Workflow v1");
-    const v2Buffer = createSamplePdfBuffer("DocuFlow Workflow v2 Corrigida");
+    const v1Buffer = createSamplePdfBuffer("papyrus Workflow v1");
+    const v2Buffer = createSamplePdfBuffer("papyrus Workflow v2 Corrigida");
 
     // 1. Login do solicitante/aprovador final e envio da versão inicial v1
     await page.goto(env.baseUrl);

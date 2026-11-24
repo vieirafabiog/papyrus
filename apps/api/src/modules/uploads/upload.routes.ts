@@ -5,6 +5,7 @@ import os from "node:os";
 import path from "node:path";
 import { Readable, Transform } from "node:stream";
 import { pipeline } from "node:stream/promises";
+import { Busboy } from "@fastify/busboy";
 import {
   CONTRACTS_API_PREFIX,
   type SignedUploadTargetResponseContract,
@@ -14,7 +15,7 @@ import {
   createUploadSessionRequestSchema,
   sha256ChecksumSchema,
   uuidSchema,
-} from "@docuflow/contracts";
+} from "@papyrus/contracts";
 import {
   type AuditRepositoryPort,
   DomainError,
@@ -28,15 +29,14 @@ import {
   type UploadSessionRepositoryPort,
   type UploadSessionService,
   extractNormalizedFileExtension,
-} from "@docuflow/domain";
+} from "@papyrus/domain";
 import {
   StorageError,
   type StorageProviderRegistry,
   hasStorageCapability,
   requireSignedUploadTargetProvider,
   resolveUploadMode,
-} from "@docuflow/storage-core";
-import { Busboy } from "@fastify/busboy";
+} from "@papyrus/storage-core";
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { z } from "zod";
 import {
@@ -688,7 +688,7 @@ export async function registerUploadRoutes(
           resolveUploadMode(provider, false);
 
           tempDir = await mkdtemp(
-            path.join(uploadStorageDeps.tempBaseDirectory ?? os.tmpdir(), "docuflow-api-upload-"),
+            path.join(uploadStorageDeps.tempBaseDirectory ?? os.tmpdir(), "papyrus-api-upload-"),
           );
           const tempFilePath = path.join(tempDir, `${session.id}.bin`);
 

@@ -11,7 +11,7 @@ import {
   type StoredSessionRecord,
   createPasswordService,
   createSessionService,
-} from "@docuflow/auth";
+} from "@papyrus/auth";
 import {
   auditEvents,
   categories,
@@ -33,9 +33,9 @@ import {
   storageConnections,
   userRoleScopes,
   users,
-} from "@docuflow/database";
-import { createStorageProviderRegistry } from "@docuflow/storage-core";
-import { createLocalStorageProvider } from "@docuflow/storage-local";
+} from "@papyrus/database";
+import { createStorageProviderRegistry } from "@papyrus/storage-core";
+import { createLocalStorageProvider } from "@papyrus/storage-local";
 import { PostgreSqlContainer, type StartedPostgreSqlContainer } from "@testcontainers/postgresql";
 import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/node-postgres";
@@ -56,7 +56,7 @@ describe("Authorized PDF preview streaming, CSP, anti-cache and quarantine gate 
   let tempStorageDir: string;
 
   beforeAll(async () => {
-    tempStorageDir = await mkdtemp(path.join(os.tmpdir(), "docuflow-preview-test-"));
+    tempStorageDir = await mkdtemp(path.join(os.tmpdir(), "papyrus-preview-test-"));
     const externalUrl = process.env.DATABASE_URL;
     let connectionString: string;
     if (externalUrl && externalUrl.trim().length > 0) {
@@ -137,7 +137,7 @@ describe("Authorized PDF preview streaming, CSP, anti-cache and quarantine gate 
       {
         id: readerId,
         organizationId: orgId,
-        email: `reader-prev-${orgId.slice(0, 6)}@docuflow.local`,
+        email: `reader-prev-${orgId.slice(0, 6)}@papyrus.local`,
         fullName: "Leitor Autorizado",
         passwordHash,
         status: "ACTIVE",
@@ -145,7 +145,7 @@ describe("Authorized PDF preview streaming, CSP, anti-cache and quarantine gate 
       {
         id: deniedUserId,
         organizationId: orgId,
-        email: `denied-prev-${orgId.slice(0, 6)}@docuflow.local`,
+        email: `denied-prev-${orgId.slice(0, 6)}@papyrus.local`,
         fullName: "Usuário Negado",
         passwordHash,
         status: "ACTIVE",
@@ -456,7 +456,7 @@ describe("Authorized PDF preview streaming, CSP, anti-cache and quarantine gate 
       cookies: { [CSRF_COOKIE_NAME]: csrfToken },
       headers: { [CSRF_HEADER_NAME]: csrfToken },
       payload: {
-        email: `reader-prev-${orgId.slice(0, 6)}@docuflow.local`,
+        email: `reader-prev-${orgId.slice(0, 6)}@papyrus.local`,
         password: "PreviewPdf!2026",
       },
     });
@@ -470,7 +470,7 @@ describe("Authorized PDF preview streaming, CSP, anti-cache and quarantine gate 
       cookies: { [CSRF_COOKIE_NAME]: csrfToken },
       headers: { [CSRF_HEADER_NAME]: csrfToken },
       payload: {
-        email: `denied-prev-${orgId.slice(0, 6)}@docuflow.local`,
+        email: `denied-prev-${orgId.slice(0, 6)}@papyrus.local`,
         password: "PreviewPdf!2026",
       },
     });

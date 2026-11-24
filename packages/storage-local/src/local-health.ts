@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import { constants } from "node:fs";
 import { access, open, rm, statfs } from "node:fs/promises";
 import path from "node:path";
-import { StorageError, type StorageHealthCheckResult } from "@docuflow/storage-core";
+import { StorageError, type StorageHealthCheckResult } from "@papyrus/storage-core";
 import { resolveSafeLocalRoot } from "./safe-path.js";
 
 export interface LocalHealthCheckOptions {
@@ -25,8 +25,8 @@ async function readAvailableSpaceBytes(rootRealPath: string): Promise<number | u
 }
 
 async function runControlledReadWriteProbe(rootRealPath: string): Promise<boolean> {
-  const probeFilePath = path.join(rootRealPath, `.docuflow-health-${randomUUID()}.tmp`);
-  const probeToken = `docuflow-health-probe-${randomUUID()}`;
+  const probeFilePath = path.join(rootRealPath, `.papyrus-health-${randomUUID()}.tmp`);
+  const probeToken = `papyrus-health-probe-${randomUUID()}`;
 
   try {
     const writeHandle = await open(probeFilePath, "wx", 0o600);

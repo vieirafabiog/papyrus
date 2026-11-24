@@ -5,7 +5,7 @@ import {
   type DocumentExpirationsQuery,
   type ExpirationBucket,
   documentExpirationsResponseSchema,
-} from "@docuflow/contracts";
+} from "@papyrus/contracts";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { extractUserErrorMessage } from "../../i18n/api-errors.js";
 import { translate } from "../../i18n/index.js";

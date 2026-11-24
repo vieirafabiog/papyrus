@@ -1,4 +1,4 @@
-# DocuFlow
+# papyrus
 
 **Gerenciador Eletrônico de Documentos (GED) *self-hosted* orientado a governança, segurança documental e rastreabilidade ponta a ponta.**
 
@@ -9,7 +9,7 @@
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-4169E1?style=flat-square&logo=postgresql&logoColor=white)](./infra/compose/docker-compose.yml)
 [![Docker Compose](https://img.shields.io/badge/Docker-Compose_v2-2496ED?style=flat-square&logo=docker&logoColor=white)](./infra/compose/docker-compose.yml)
 
-O **DocuFlow** centraliza arquivos corporativos na própria infraestrutura da organização, combinando metadados tipados, versões imutáveis (*append-only*), controle de acesso aplicado no servidor, quarentena e verificação antimalware em streaming, fluxos sequenciais de revisão/aprovação, monitoramento de vencimentos, retenção com *legal hold*, auditoria imutável e armazenamento desacoplado (filesystem local ou S3 compatível).
+O **papyrus** centraliza arquivos corporativos na própria infraestrutura da organização, combinando metadados tipados, versões imutáveis (*append-only*), controle de acesso aplicado no servidor, quarentena e verificação antimalware em streaming, fluxos sequenciais de revisão/aprovação, monitoramento de vencimentos, retenção com *legal hold*, auditoria imutável e armazenamento desacoplado (filesystem local ou S3 compatível).
 
 [Funcionalidades](#-principais-funcionalidades) •
 [Interface](#-visão-geral-da-interface) •
@@ -40,9 +40,9 @@ O **DocuFlow** centraliza arquivos corporativos na própria infraestrutura da or
 - **Vencimentos e alertas internos:** classificação automática (*Vencidos*, *Próximos*, *Sem data*, *Em dia*) usando o fuso horário da organização, janelas configuráveis (`7` a `90` dias) e notificações internas.
 
 ### 🗄️ Armazenamento Desacoplado e Cofre de Segredos
-- **Adaptadores com paridade de contrato (`@docuflow/storage-core`):**
-  - **Filesystem Local (`@docuflow/storage-local`):** escrita atômica, proteção contra *path traversal* e bloqueio de symlinks.
-  - **S3 Compatível (`@docuflow/storage-s3`):** AWS SDK v3 isolado, validação anti-SSRF (bloqueio de metadados cloud e IPs privados), suporte a URLs temporárias assinadas de TTL curto e contrato comprovado contra **MinIO**.
+- **Adaptadores com paridade de contrato (`@papyrus/storage-core`):**
+  - **Filesystem Local (`@papyrus/storage-local`):** escrita atômica, proteção contra *path traversal* e bloqueio de symlinks.
+  - **S3 Compatível (`@papyrus/storage-s3`):** AWS SDK v3 isolado, validação anti-SSRF (bloqueio de metadados cloud e IPs privados), suporte a URLs temporárias assinadas de TTL curto e contrato comprovado contra **MinIO**.
 - **Roteamento por categoria e proteção de credenciais:** conexão padrão e regras por categoria; credenciais S3 e SMTP cifradas com **AES-256-GCM** usando chave mestra externa (`ENCRYPTION_KEY` / `ENCRYPTION_KEYRING`), jamais retornadas à interface ou gravadas em logs.
 
 > **Escopo transparente da `1.0.0-rc.1`:** esta versão foca em implantação self-hosted de organização única. Recursos pós-MVP como **SaaS multi-tenant**, **OCR**, **OIDC/LDAP/MFA**, **Azure Blob / Google Cloud Storage**, **migração automática entre storages** e **assinatura eletrônica** permanecem explicitamente fora do escopo. Consulte também as notas operacionais em [Limitações Conhecidas](./docs/known-limitations.md).
@@ -51,7 +51,7 @@ O **DocuFlow** centraliza arquivos corporativos na própria infraestrutura da or
 
 ## 🖥️ Visão Geral da Interface
 
-Interface empresarial em português do Brasil (`pt-BR`) construída com React e Material UI (`@mui/material`), utilizando tema próprio (`@docuflow/ui`) inspirado nos tokens e padrões do Material Design 3, com foco em legibilidade tabular, filtros visíveis e acessibilidade WCAG 2.2 AA.
+Interface empresarial em português do Brasil (`pt-BR`) construída com React e Material UI (`@mui/material`), utilizando tema próprio (`@papyrus/ui`) inspirado nos tokens e padrões do Material Design 3, com foco em legibilidade tabular, filtros visíveis e acessibilidade WCAG 2.2 AA.
 
 | Acervo Documental, Busca e Filtros | Revisão e Aprovação Vinculada à Versão |
 | :---: | :---: |
@@ -72,10 +72,10 @@ flowchart LR
     Caddy --> API["apps/api (Fastify + Zod)"]
     API --> PG["PostgreSQL 16 (Drizzle ORM)"]
     Worker["apps/worker (Jobs + Scanner + Purga)"] --> PG
-    API --> StorageCore["@docuflow/storage-core"]
+    API --> StorageCore["@papyrus/storage-core"]
     Worker --> StorageCore
-    StorageCore --> Local["@docuflow/storage-local (Volume Local)"]
-    StorageCore --> S3["@docuflow/storage-s3 (MinIO / S3)"]
+    StorageCore --> Local["@papyrus/storage-local (Volume Local)"]
+    StorageCore --> S3["@papyrus/storage-s3 (MinIO / S3)"]
     Worker -. "INSTREAM TCP 3310 (opcional)" .-> ClamAV["ClamAV"]
 ```
 
@@ -115,14 +115,14 @@ flowchart LR
 
 ### Pré-requisitos
 - Servidor Linux (`x86_64` ou `arm64`) com **Docker Engine `>= 24`**, **Docker Compose v2**, **OpenSSL** e **Git**
-- Portas `80/tcp` e `443/tcp` terminadas no proxy HTTPS ([`infra/caddy/Caddyfile`](./infra/caddy/Caddyfile)); banco `postgres` e serviços internos permanecem isolados em `docuflow_internal`
+- Portas `80/tcp` e `443/tcp` terminadas no proxy HTTPS ([`infra/caddy/Caddyfile`](./infra/caddy/Caddyfile)); banco `postgres` e serviços internos permanecem isolados em `papyrus_internal`
 
 ### Início rápido com imagens fixadas (`1.0.0-rc.1`)
 
 ```bash
 # 1. Clonar o repositório na versão candidata
-git clone https://github.com/vieirafabiog/DocuFlow.git /opt/docuflow
-cd /opt/docuflow
+git clone https://github.com/vieirafabiog/DocuFlow.git /opt/papyrus
+cd /opt/papyrus
 git checkout v1.0.0-rc.1
 
 # 2. Preparar variáveis de ambiente com permissão restrita e segredos exclusivos
@@ -221,5 +221,5 @@ pnpm install --frozen-lockfile
 
 ## 🛡️ Privacidade, Telemetria e Licenciamento
 
-- **Sem telemetria externa:** o DocuFlow não envia métricas, nomes de arquivo, metadados ou logs para servidores externos por padrão.
+- **Sem telemetria externa:** o papyrus não envia métricas, nomes de arquivo, metadados ou logs para servidores externos por padrão.
 - **Dependências auditadas:** todas as dependências de runtime utilizam licenças permissivas auditadas automaticamente no CI ([`scripts/ci/check-dependencies.mjs`](./scripts/ci/check-dependencies.mjs)).

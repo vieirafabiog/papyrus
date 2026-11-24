@@ -1,7 +1,7 @@
 import { mkdtemp, rm } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { buildStorageProviderContractScenarios } from "@docuflow/storage-core";
+import { buildStorageProviderContractScenarios } from "@papyrus/storage-core";
 import { afterAll, beforeAll, describe, it } from "vitest";
 import { createLocalStorageProvider } from "../src/index.js";
 
@@ -10,7 +10,7 @@ describe("LocalStorageProvider contract suite", () => {
   let rootDirectory = "";
 
   beforeAll(async () => {
-    rootDirectory = await mkdtemp(path.join(os.tmpdir(), "docuflow-local-contract-"));
+    rootDirectory = await mkdtemp(path.join(os.tmpdir(), "papyrus-local-contract-"));
   });
 
   afterAll(async () => {

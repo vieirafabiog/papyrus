@@ -1,6 +1,6 @@
 import "@testing-library/jest-dom/vitest";
-import { UiLocaleProvider, papyrusTheme } from "@docuflow/ui";
 import { CssBaseline, ThemeProvider } from "@mui/material";
+import { UiLocaleProvider, papyrusTheme } from "@papyrus/ui";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
@@ -41,8 +41,8 @@ describe("OrganizationSettingsPage (Step 14.01)", () => {
     let sentPatch: Record<string, unknown> | null = null;
     const initialOrg = {
       id: "550e8400-e29b-41d4-a716-446655440000",
-      name: "DocuFlow Brasil",
-      slug: "docuflow-brasil",
+      name: "papyrus Brasil",
+      slug: "papyrus-brasil",
       defaultLanguage: "pt-BR",
       timezone: "America/Sao_Paulo",
       logoObjectKey: null,
@@ -101,16 +101,16 @@ describe("OrganizationSettingsPage (Step 14.01)", () => {
     renderOrganizationPage();
 
     await waitFor(() => {
-      expect(screen.getByDisplayValue("DocuFlow Brasil")).toBeInTheDocument();
+      expect(screen.getByDisplayValue("papyrus Brasil")).toBeInTheDocument();
     });
 
     expect(screen.getByText("Organization settings")).toBeInTheDocument();
-    expect(screen.getByText(/Organization code: docuflow-brasil/i)).toBeInTheDocument();
+    expect(screen.getByText(/Organization code: papyrus-brasil/i)).toBeInTheDocument();
     expect(screen.getByLabelText("Time zone")).toBeInTheDocument();
     expect(screen.getByText("General preferences")).toBeInTheDocument();
 
     const nameField = screen.getByLabelText(/Organization name/i);
-    fireEvent.change(nameField, { target: { value: "DocuFlow Corporativo" } });
+    fireEvent.change(nameField, { target: { value: "papyrus Corporativo" } });
 
     const saveBtn = screen.getByRole("button", { name: "Save settings" });
     expect(saveBtn).not.toBeDisabled();
@@ -121,7 +121,7 @@ describe("OrganizationSettingsPage (Step 14.01)", () => {
     });
 
     expect(sentPatch).toMatchObject({
-      name: "DocuFlow Corporativo",
+      name: "papyrus Corporativo",
       defaultLanguage: "pt-BR",
       timezone: "America/Sao_Paulo",
     });

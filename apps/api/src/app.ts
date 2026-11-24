@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import cookie from "@fastify/cookie";
 import type {
   AuthorizationRepository,
   DashboardRepository,
@@ -8,7 +9,7 @@ import type {
   ReportRepository,
   TaskInboxRepository,
   WorkflowTimelineRepository,
-} from "@docuflow/database";
+} from "@papyrus/database";
 import type {
   ArchiveDocumentService,
   AuditRepositoryPort,
@@ -42,11 +43,10 @@ import type {
   UserAdministrationService,
   WorkflowDefinitionRepositoryPort,
   WorkflowDefinitionService,
-} from "@docuflow/domain";
-import type { InAppNotificationService } from "@docuflow/notifications";
-import type { StorageProviderRegistry } from "@docuflow/storage-core";
-import type { S3EndpointSecurityPolicy } from "@docuflow/storage-s3";
-import cookie from "@fastify/cookie";
+} from "@papyrus/domain";
+import type { InAppNotificationService } from "@papyrus/notifications";
+import type { StorageProviderRegistry } from "@papyrus/storage-core";
+import type { S3EndpointSecurityPolicy } from "@papyrus/storage-s3";
 import Fastify, { type FastifyInstance } from "fastify";
 import { registerPermissionRoutes } from "./modules/access/permissions.routes.js";
 import { registerAuditRoutes } from "./modules/audit/audit.routes.js";

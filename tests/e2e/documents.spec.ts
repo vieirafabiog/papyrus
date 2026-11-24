@@ -56,8 +56,8 @@ test.describe("Gestão documental E2E", () => {
     page,
   }) => {
     const documentTitle = "Contrato Prestação E2E 2026";
-    const v1Buffer = createSamplePdfBuffer("DocuFlow E2E Versao 1");
-    const v2Buffer = createSamplePdfBuffer("DocuFlow E2E Versao 2 Atualizada");
+    const v1Buffer = createSamplePdfBuffer("papyrus E2E Versao 1");
+    const v2Buffer = createSamplePdfBuffer("papyrus E2E Versao 2 Atualizada");
 
     // 1. Login no frontend real com CSRF e sessão em cookie HttpOnly
     await page.goto(env.baseUrl);

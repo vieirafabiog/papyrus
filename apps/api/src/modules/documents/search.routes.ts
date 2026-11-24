@@ -3,8 +3,8 @@ import {
   type DocumentSearchQuery,
   documentSearchQuerySchema,
   documentSearchRequestSchema,
-} from "@docuflow/contracts";
-import type { DocumentSearchFilter, DocumentSearchRepository } from "@docuflow/database";
+} from "@papyrus/contracts";
+import type { DocumentSearchFilter, DocumentSearchRepository } from "@papyrus/database";
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import {
   type DocumentAuthorizationGuard,

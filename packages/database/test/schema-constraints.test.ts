@@ -85,7 +85,7 @@ describe("PostgreSQL schema indexes and integrity constraints", () => {
         name: "Local Primary",
         kind: "local",
         isDefault: true,
-        nonSecretConfig: { rootPath: "/var/lib/docuflow" },
+        nonSecretConfig: { rootPath: "/var/lib/papyrus" },
       })
       .returning();
     if (!conn) {

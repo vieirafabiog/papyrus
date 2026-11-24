@@ -109,8 +109,8 @@ describe("Central AuditWriter", () => {
     expect(redactSensitiveAuditString(rawSignedUrl)).not.toContain("secret-jwt");
 
     expect(
-      redactSensitiveAuditString("postgresql://docuflow:MyDbPass99@db.local:5432/docuflow"),
-    ).toBe("postgresql://docuflow:[REDACTED]@db.local:5432/docuflow");
+      redactSensitiveAuditString("postgresql://papyrus:MyDbPass99@db.local:5432/papyrus"),
+    ).toBe("postgresql://papyrus:[REDACTED]@db.local:5432/papyrus");
 
     expect(redactSensitiveAuditString("Authorization: Bearer abc.def.ghi")).toBe(
       "Authorization: Bearer [REDACTED]",

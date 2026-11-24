@@ -1,16 +1,3 @@
-import type {
-  CategoryFieldRecord,
-  CategoryFieldType,
-  CategorySummaryRecord,
-  FieldMigrationStrategy,
-} from "@docuflow/contracts";
-import {
-  createCategoryFieldInputSchema,
-  createCategoryInputSchema,
-  updateCategoryFieldInputSchema,
-  updateCategoryInputSchema,
-} from "@docuflow/contracts";
-import { EmptyState, ErrorState, LoadingState, PAPYRUS_COLOR_TOKENS } from "@docuflow/ui";
 import AddOutlinedIcon from "@mui/icons-material/AddOutlined";
 import DeleteOutlineOutlinedIcon from "@mui/icons-material/DeleteOutlineOutlined";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
@@ -42,6 +29,19 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
+import type {
+  CategoryFieldRecord,
+  CategoryFieldType,
+  CategorySummaryRecord,
+  FieldMigrationStrategy,
+} from "@papyrus/contracts";
+import {
+  createCategoryFieldInputSchema,
+  createCategoryInputSchema,
+  updateCategoryFieldInputSchema,
+  updateCategoryInputSchema,
+} from "@papyrus/contracts";
+import { EmptyState, ErrorState, LoadingState, PAPYRUS_COLOR_TOKENS } from "@papyrus/ui";
 import { type FormEvent, useEffect, useId, useMemo, useState } from "react";
 import { type MessageKey, useI18n } from "../../i18n/index.js";
 import {

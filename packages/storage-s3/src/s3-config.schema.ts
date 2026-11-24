@@ -1,7 +1,7 @@
 import type { LookupAddress } from "node:dns";
 import { lookup as dnsLookup } from "node:dns/promises";
 import { isIP } from "node:net";
-import { StorageError } from "@docuflow/storage-core";
+import { StorageError } from "@papyrus/storage-core";
 import { z } from "zod";
 
 const REGION_PATTERN = /^[a-z0-9][a-z0-9-]{1,62}[a-z0-9]$/;

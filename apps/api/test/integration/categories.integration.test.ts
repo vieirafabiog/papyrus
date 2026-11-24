@@ -8,7 +8,7 @@ import {
   type StoredSessionRecord,
   createPasswordService,
   createSessionService,
-} from "@docuflow/auth";
+} from "@papyrus/auth";
 import {
   auditEvents,
   createAuditRepository,
@@ -23,8 +23,8 @@ import {
   sessions,
   userRoleScopes,
   users,
-} from "@docuflow/database";
-import { createCategoryFieldService, createCategoryService } from "@docuflow/domain";
+} from "@papyrus/database";
+import { createCategoryFieldService, createCategoryService } from "@papyrus/domain";
 import { PostgreSqlContainer, type StartedPostgreSqlContainer } from "@testcontainers/postgresql";
 import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/node-postgres";
@@ -110,7 +110,7 @@ describe("Category CRUD, document-link validation and scoped authorization integ
 
     await db.insert(organizations).values({
       id: orgId,
-      name: "DocuFlow Categories Corp",
+      name: "papyrus Categories Corp",
       slug: `cats-org-${orgId.slice(0, 8)}`,
     });
 
@@ -169,7 +169,7 @@ describe("Category CRUD, document-link validation and scoped authorization integ
       {
         id: adminUserId,
         organizationId: orgId,
-        email: `admin-cats-${orgId.slice(0, 6)}@docuflow.local`,
+        email: `admin-cats-${orgId.slice(0, 6)}@papyrus.local`,
         fullName: "Admin Categories",
         passwordHash,
         status: "ACTIVE",
@@ -177,7 +177,7 @@ describe("Category CRUD, document-link validation and scoped authorization integ
       {
         id: viewerUserId,
         organizationId: orgId,
-        email: `viewer-cats-${orgId.slice(0, 6)}@docuflow.local`,
+        email: `viewer-cats-${orgId.slice(0, 6)}@papyrus.local`,
         fullName: "Viewer Categories",
         passwordHash,
         status: "ACTIVE",
@@ -286,7 +286,7 @@ describe("Category CRUD, document-link validation and scoped authorization integ
       cookies: { [CSRF_COOKIE_NAME]: csrfToken },
       headers: { [CSRF_HEADER_NAME]: csrfToken },
       payload: {
-        email: `admin-cats-${orgId.slice(0, 6)}@docuflow.local`,
+        email: `admin-cats-${orgId.slice(0, 6)}@papyrus.local`,
         password: "CategoriesTest!2026",
       },
     });
@@ -453,7 +453,7 @@ describe("Category CRUD, document-link validation and scoped authorization integ
       cookies: { [CSRF_COOKIE_NAME]: csrfToken },
       headers: { [CSRF_HEADER_NAME]: csrfToken },
       payload: {
-        email: `viewer-cats-${orgId.slice(0, 6)}@docuflow.local`,
+        email: `viewer-cats-${orgId.slice(0, 6)}@papyrus.local`,
         password: "CategoriesTest!2026",
       },
     });

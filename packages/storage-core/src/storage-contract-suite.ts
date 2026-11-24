@@ -203,7 +203,7 @@ export function buildStorageProviderContractScenarios(): readonly StorageContrac
       name: "rejects checksum mismatch without persisting corrupt object",
       async run({ provider, keyPrefix }) {
         const key = buildKey(keyPrefix, "versions/1/bad-checksum");
-        const payload = Buffer.from("contrato-integridade-docuflow");
+        const payload = Buffer.from("contrato-integridade-papyrus");
 
         await assert.rejects(
           () =>
@@ -339,7 +339,7 @@ export function buildStorageProviderContractScenarios(): readonly StorageContrac
         const uploadCapable = requireSignedUploadTargetProvider(provider);
         const downloadCapable = requireSignedDownloadTargetProvider(provider);
         const key = buildKey(keyPrefix, "versions/1/contract-signed-object");
-        const payload = Buffer.from("contrato-signed-roundtrip-docuflow", "utf8");
+        const payload = Buffer.from("contrato-signed-roundtrip-papyrus", "utf8");
 
         const uploadTarget = await uploadCapable.createSignedUploadTarget({
           key,

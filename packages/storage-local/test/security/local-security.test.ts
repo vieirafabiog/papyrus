@@ -7,7 +7,7 @@ import {
   type StorageConnectionDescriptor,
   StorageError,
   createStorageProviderRegistry,
-} from "@docuflow/storage-core";
+} from "@papyrus/storage-core";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { createLocalStorageProvider, resolveSafeLocalPath } from "../../src/index.js";
 
@@ -22,7 +22,7 @@ describe("Local storage security suite (Step 16.06)", () => {
   let externalSecretFile = "";
 
   beforeEach(async () => {
-    baseTempDir = await mkdtemp(path.join(os.tmpdir(), "docuflow-local-sec-"));
+    baseTempDir = await mkdtemp(path.join(os.tmpdir(), "papyrus-local-sec-"));
     storageRoot = path.join(baseTempDir, "storage-root");
     externalDir = path.join(baseTempDir, "external-secret");
     await mkdir(storageRoot, { recursive: true });
@@ -55,7 +55,7 @@ describe("Local storage security suite (Step 16.06)", () => {
       "/etc/passwd",
       "org/docs/",
       "org/.env",
-      "org/.docuflow-meta/secret.json",
+      "org/.papyrus-meta/secret.json",
       "org/docs/file\0.pdf",
       "org/docs/CON",
       "org/docs/nul.pdf",

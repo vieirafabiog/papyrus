@@ -8,15 +8,15 @@ import {
   createPasswordService,
   createSessionService,
   evaluateDocumentAuthorization,
-} from "@docuflow/auth";
-import { CONTRACTS_API_PREFIX } from "@docuflow/contracts";
+} from "@papyrus/auth";
+import { CONTRACTS_API_PREFIX } from "@papyrus/contracts";
 import type {
   AuthorizationRepository,
   AuthorizedDocumentQueryScope,
   LoadedAuthorizationSubject,
   LoadedRoleAssignment,
   LoadedRolePermission,
-} from "@docuflow/database";
+} from "@papyrus/database";
 import {
   type AuditEventInput,
   type AuditEventRecord,
@@ -33,7 +33,7 @@ import {
   type UserAdministrationService,
   type UserEntity,
   isFileObjectDownloadable,
-} from "@docuflow/domain";
+} from "@papyrus/domain";
 import Fastify from "fastify";
 import { describe, expect, it } from "vitest";
 import { buildApp } from "../../src/app.js";
@@ -759,7 +759,7 @@ describe("Negative access control & authorization security tests", () => {
         payload: { email, password: "SecurityTest2026!" },
       });
       expect(loginRes.statusCode).toBe(200);
-      const cookie = loginRes.cookies.find((c) => c.name === "docuflow_session")?.value ?? "";
+      const cookie = loginRes.cookies.find((c) => c.name === "papyrus_session")?.value ?? "";
       return { cookie, csrf };
     };
 
@@ -784,7 +784,7 @@ describe("Negative access control & authorization security tests", () => {
     const searchSecret = await app.inject({
       method: "GET",
       url: `${CONTRACTS_API_PREFIX}/documents?search=Sigiloso`,
-      cookies: { docuflow_session: scopedSession.cookie },
+      cookies: { papyrus_session: scopedSession.cookie },
     });
     expect(searchSecret.statusCode).toBe(200);
     expect(searchSecret.json()).toEqual({
@@ -795,7 +795,7 @@ describe("Negative access control & authorization security tests", () => {
     const listAllScoped = await app.inject({
       method: "GET",
       url: `${CONTRACTS_API_PREFIX}/documents?page=1&pageSize=10`,
-      cookies: { docuflow_session: scopedSession.cookie },
+      cookies: { papyrus_session: scopedSession.cookie },
     });
     expect(listAllScoped.statusCode).toBe(200);
     expect(listAllScoped.json().items).toHaveLength(1);
@@ -810,7 +810,7 @@ describe("Negative access control & authorization security tests", () => {
     const filterDeniedFolder = await app.inject({
       method: "GET",
       url: `${CONTRACTS_API_PREFIX}/documents?folderId=${folderChildDenied}`,
-      cookies: { docuflow_session: scopedSession.cookie },
+      cookies: { papyrus_session: scopedSession.cookie },
     });
     expect(filterDeniedFolder.statusCode).toBe(200);
     expect(filterDeniedFolder.json().pagination.totalItems).toBe(0);
@@ -820,22 +820,22 @@ describe("Negative access control & authorization security tests", () => {
     const deniedBySubfolderRes = await app.inject({
       method: "GET",
       url: `${CONTRACTS_API_PREFIX}/documents/${docDeniedGrandchildId}`,
-      cookies: { docuflow_session: scopedSession.cookie },
+      cookies: { papyrus_session: scopedSession.cookie },
     });
     const deniedByDocExceptionRes = await app.inject({
       method: "GET",
       url: `${CONTRACTS_API_PREFIX}/documents/${docDeniedExplicitId}`,
-      cookies: { docuflow_session: scopedSession.cookie },
+      cookies: { papyrus_session: scopedSession.cookie },
     });
     const crossTenantRes = await app.inject({
       method: "GET",
       url: `${CONTRACTS_API_PREFIX}/documents/${docOrgBId}`,
-      cookies: { docuflow_session: scopedSession.cookie },
+      cookies: { papyrus_session: scopedSession.cookie },
     });
     const nonExistentScopedRes = await app.inject({
       method: "GET",
       url: `${CONTRACTS_API_PREFIX}/documents/${nonExistentDocId}`,
-      cookies: { docuflow_session: scopedSession.cookie },
+      cookies: { papyrus_session: scopedSession.cookie },
     });
 
     expect(deniedBySubfolderRes.statusCode).toBe(403);
@@ -850,7 +850,7 @@ describe("Negative access control & authorization security tests", () => {
     const adminCrossTenantRes = await app.inject({
       method: "GET",
       url: `${CONTRACTS_API_PREFIX}/documents/${docOrgBId}`,
-      cookies: { docuflow_session: adminSession.cookie },
+      cookies: { papyrus_session: adminSession.cookie },
     });
     expect(adminCrossTenantRes.statusCode).toBe(404);
 
@@ -859,7 +859,7 @@ describe("Negative access control & authorization security tests", () => {
       method: "PATCH",
       url: `${CONTRACTS_API_PREFIX}/documents/${docAllowedId}`,
       cookies: {
-        docuflow_session: viewerSession.cookie,
+        papyrus_session: viewerSession.cookie,
         [CSRF_COOKIE_NAME]: viewerSession.csrf,
       },
       headers: { [CSRF_HEADER_NAME]: viewerSession.csrf },
@@ -874,7 +874,7 @@ describe("Negative access control & authorization security tests", () => {
       method: "POST",
       url: `${CONTRACTS_API_PREFIX}/documents`,
       cookies: {
-        docuflow_session: scopedSession.cookie,
+        papyrus_session: scopedSession.cookie,
         [CSRF_COOKIE_NAME]: scopedSession.csrf,
       },
       headers: { [CSRF_HEADER_NAME]: scopedSession.csrf },
@@ -890,7 +890,7 @@ describe("Negative access control & authorization security tests", () => {
       method: "POST",
       url: `${CONTRACTS_API_PREFIX}/documents`,
       cookies: {
-        docuflow_session: scopedSession.cookie,
+        papyrus_session: scopedSession.cookie,
         [CSRF_COOKIE_NAME]: scopedSession.csrf,
       },
       headers: { [CSRF_HEADER_NAME]: scopedSession.csrf },
@@ -1090,7 +1090,7 @@ describe("Negative access control & authorization security tests", () => {
       payload: { email: "preview@org.invalid", password: "SecurityTest2026!" },
     });
     const previewCookie =
-      previewLogin.cookies.find((c) => c.name === "docuflow_session")?.value ?? "";
+      previewLogin.cookies.find((c) => c.name === "papyrus_session")?.value ?? "";
 
     const collabLogin = await app.inject({
       method: "POST",
@@ -1099,8 +1099,7 @@ describe("Negative access control & authorization security tests", () => {
       headers: { [CSRF_HEADER_NAME]: csrf },
       payload: { email: "colab@org.invalid", password: "SecurityTest2026!" },
     });
-    const collabCookie =
-      collabLogin.cookies.find((c) => c.name === "docuflow_session")?.value ?? "";
+    const collabCookie = collabLogin.cookies.find((c) => c.name === "papyrus_session")?.value ?? "";
 
     // 1. Preview vs Download permission separation & quarantine gate
     const previewDocGuardApp = Fastify({ logger: false });
@@ -1173,7 +1172,7 @@ describe("Negative access control & authorization security tests", () => {
         await previewDocGuardApp.inject({
           method: "GET",
           url: `${CONTRACTS_API_PREFIX}/documents/${docId}/preview`,
-          cookies: { docuflow_session: previewCookie },
+          cookies: { papyrus_session: previewCookie },
         })
       ).statusCode,
     ).toBe(200);
@@ -1182,7 +1181,7 @@ describe("Negative access control & authorization security tests", () => {
         await previewDocGuardApp.inject({
           method: "POST",
           url: `${CONTRACTS_API_PREFIX}/documents/${docId}/download-target`,
-          cookies: { docuflow_session: previewCookie },
+          cookies: { papyrus_session: previewCookie },
         })
       ).statusCode,
     ).toBe(403);
@@ -1191,7 +1190,7 @@ describe("Negative access control & authorization security tests", () => {
         await previewDocGuardApp.inject({
           method: "PATCH",
           url: `${CONTRACTS_API_PREFIX}/documents/${docId}/permissions`,
-          cookies: { docuflow_session: previewCookie },
+          cookies: { papyrus_session: previewCookie },
         })
       ).statusCode,
     ).toBe(403);
@@ -1211,7 +1210,7 @@ describe("Negative access control & authorization security tests", () => {
           await previewDocGuardApp.inject({
             method: "POST",
             url: `${CONTRACTS_API_PREFIX}/documents/${docId}/download-target`,
-            cookies: { docuflow_session: collabCookie },
+            cookies: { papyrus_session: collabCookie },
           })
         ).statusCode,
       ).toBe(409);
@@ -1224,7 +1223,7 @@ describe("Negative access control & authorization security tests", () => {
         await app.inject({
           method: "POST",
           url: `${CONTRACTS_API_PREFIX}/admin/users`,
-          cookies: { docuflow_session: collabCookie, [CSRF_COOKIE_NAME]: csrf },
+          cookies: { papyrus_session: collabCookie, [CSRF_COOKIE_NAME]: csrf },
           headers: { [CSRF_HEADER_NAME]: csrf },
           payload: {
             email: "escalated@org.invalid",
@@ -1239,7 +1238,7 @@ describe("Negative access control & authorization security tests", () => {
         await app.inject({
           method: "POST",
           url: `${CONTRACTS_API_PREFIX}/admin/groups/${targetGroupId}/members`,
-          cookies: { docuflow_session: collabCookie, [CSRF_COOKIE_NAME]: csrf },
+          cookies: { papyrus_session: collabCookie, [CSRF_COOKIE_NAME]: csrf },
           headers: { [CSRF_HEADER_NAME]: csrf },
           payload: { userId: collaboratorId },
         })
@@ -1250,7 +1249,7 @@ describe("Negative access control & authorization security tests", () => {
         await previewDocGuardApp.inject({
           method: "PATCH",
           url: `${CONTRACTS_API_PREFIX}/documents/${docId}/permissions`,
-          cookies: { docuflow_session: collabCookie },
+          cookies: { papyrus_session: collabCookie },
         })
       ).statusCode,
     ).toBe(403);
@@ -1281,7 +1280,7 @@ describe("Negative access control & authorization security tests", () => {
         await app.inject({
           method: "GET",
           url: `${CONTRACTS_API_PREFIX}/documents/${docId}`,
-          cookies: { docuflow_session: collabCookie },
+          cookies: { papyrus_session: collabCookie },
         })
       ).statusCode,
     ).toBe(403);
@@ -1290,7 +1289,7 @@ describe("Negative access control & authorization security tests", () => {
         await previewDocGuardApp.inject({
           method: "GET",
           url: `${CONTRACTS_API_PREFIX}/documents/${docId}/preview`,
-          cookies: { docuflow_session: collabCookie },
+          cookies: { papyrus_session: collabCookie },
         })
       ).statusCode,
     ).toBe(403);
@@ -1299,7 +1298,7 @@ describe("Negative access control & authorization security tests", () => {
         await previewDocGuardApp.inject({
           method: "POST",
           url: `${CONTRACTS_API_PREFIX}/documents/${docId}/download-target`,
-          cookies: { docuflow_session: collabCookie },
+          cookies: { papyrus_session: collabCookie },
         })
       ).statusCode,
     ).toBe(403);
@@ -1307,7 +1306,7 @@ describe("Negative access control & authorization security tests", () => {
     const listAfterRevocation = await app.inject({
       method: "GET",
       url: `${CONTRACTS_API_PREFIX}/documents`,
-      cookies: { docuflow_session: collabCookie },
+      cookies: { papyrus_session: collabCookie },
     });
     expect(listAfterRevocation.statusCode).toBe(200);
     expect(listAfterRevocation.json().pagination.totalItems).toBe(0);

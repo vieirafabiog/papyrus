@@ -8,7 +8,7 @@ import {
   type StoredSessionRecord,
   createPasswordService,
   createSessionService,
-} from "@docuflow/auth";
+} from "@papyrus/auth";
 import {
   auditEvents,
   categories,
@@ -30,7 +30,7 @@ import {
   tags,
   userRoleScopes,
   users,
-} from "@docuflow/database";
+} from "@papyrus/database";
 import { PostgreSqlContainer, type StartedPostgreSqlContainer } from "@testcontainers/postgresql";
 import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/node-postgres";
@@ -115,7 +115,7 @@ describe("Document details route and authorization integration", () => {
 
     await db.insert(organizations).values({
       id: orgId,
-      name: "DocuFlow Detail Corp",
+      name: "papyrus Detail Corp",
       slug: `doc-detail-${orgId.slice(0, 8)}`,
     });
 
@@ -157,7 +157,7 @@ describe("Document details route and authorization integration", () => {
       {
         id: viewerId,
         organizationId: orgId,
-        email: `viewer-detail-${orgId.slice(0, 6)}@docuflow.local`,
+        email: `viewer-detail-${orgId.slice(0, 6)}@papyrus.local`,
         fullName: "Viewer Detail",
         passwordHash,
         status: "ACTIVE",
@@ -165,7 +165,7 @@ describe("Document details route and authorization integration", () => {
       {
         id: ownerId,
         organizationId: orgId,
-        email: `owner-detail-${orgId.slice(0, 6)}@docuflow.local`,
+        email: `owner-detail-${orgId.slice(0, 6)}@papyrus.local`,
         fullName: "Ana Souza",
         passwordHash,
         status: "ACTIVE",
@@ -227,7 +227,7 @@ describe("Document details route and authorization integration", () => {
       kind: "local",
       status: "ACTIVE",
       isDefault: true,
-      nonSecretConfig: { rootDirectory: "/tmp/docuflow-detail" },
+      nonSecretConfig: { rootDirectory: "/tmp/papyrus-detail" },
     });
 
     await db.insert(fileObjects).values({
@@ -382,7 +382,7 @@ describe("Document details route and authorization integration", () => {
       cookies: { [CSRF_COOKIE_NAME]: csrfToken },
       headers: { [CSRF_HEADER_NAME]: csrfToken },
       payload: {
-        email: `viewer-detail-${orgId.slice(0, 6)}@docuflow.local`,
+        email: `viewer-detail-${orgId.slice(0, 6)}@papyrus.local`,
         password: "DetailTest!2026",
       },
     });

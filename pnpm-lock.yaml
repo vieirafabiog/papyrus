@@ -178,25 +178,25 @@ importers:
       '@biomejs/biome':
         specifier: ^1.9.4
         version: 1.9.4
-      '@docuflow/auth':
+      '@papyrus/auth':
         specifier: workspace:*
         version: link:packages/auth
-      '@docuflow/contracts':
+      '@papyrus/contracts':
         specifier: workspace:*
         version: link:packages/contracts
-      '@docuflow/database':
+      '@papyrus/database':
         specifier: workspace:*
         version: link:packages/database
-      '@docuflow/domain':
+      '@papyrus/domain':
         specifier: workspace:*
         version: link:packages/domain
-      '@docuflow/file-processing':
+      '@papyrus/file-processing':
         specifier: workspace:*
         version: link:packages/file-processing
-      '@docuflow/storage-core':
+      '@papyrus/storage-core':
         specifier: workspace:*
         version: link:packages/storage-core
-      '@docuflow/storage-local':
+      '@papyrus/storage-local':
         specifier: workspace:*
         version: link:packages/storage-local
       '@playwright/test':
@@ -229,36 +229,36 @@ importers:
 
   apps/api:
     dependencies:
-      '@docuflow/auth':
-        specifier: workspace:*
-        version: link:../../packages/auth
-      '@docuflow/contracts':
-        specifier: workspace:*
-        version: link:../../packages/contracts
-      '@docuflow/database':
-        specifier: workspace:*
-        version: link:../../packages/database
-      '@docuflow/domain':
-        specifier: workspace:*
-        version: link:../../packages/domain
-      '@docuflow/notifications':
-        specifier: workspace:*
-        version: link:../../packages/notifications
-      '@docuflow/storage-core':
-        specifier: workspace:*
-        version: link:../../packages/storage-core
-      '@docuflow/storage-local':
-        specifier: workspace:*
-        version: link:../../packages/storage-local
-      '@docuflow/storage-s3':
-        specifier: workspace:*
-        version: link:../../packages/storage-s3
       '@fastify/busboy':
         specifier: ^3.2.6
         version: 3.2.6
       '@fastify/cookie':
         specifier: ^11.0.2
         version: 11.1.5
+      '@papyrus/auth':
+        specifier: workspace:*
+        version: link:../../packages/auth
+      '@papyrus/contracts':
+        specifier: workspace:*
+        version: link:../../packages/contracts
+      '@papyrus/database':
+        specifier: workspace:*
+        version: link:../../packages/database
+      '@papyrus/domain':
+        specifier: workspace:*
+        version: link:../../packages/domain
+      '@papyrus/notifications':
+        specifier: workspace:*
+        version: link:../../packages/notifications
+      '@papyrus/storage-core':
+        specifier: workspace:*
+        version: link:../../packages/storage-core
+      '@papyrus/storage-local':
+        specifier: workspace:*
+        version: link:../../packages/storage-local
+      '@papyrus/storage-s3':
+        specifier: workspace:*
+        version: link:../../packages/storage-s3
       fastify:
         specifier: ^5.2.1
         version: 5.12.8
@@ -266,7 +266,7 @@ importers:
         specifier: ^3.24.2
         version: 3.25.76
     devDependencies:
-      '@docuflow/file-processing':
+      '@papyrus/file-processing':
         specifier: workspace:*
         version: link:../../packages/file-processing
       '@testcontainers/postgresql':
@@ -287,12 +287,6 @@ importers:
 
   apps/web:
     dependencies:
-      '@docuflow/contracts':
-        specifier: workspace:*
-        version: link:../../packages/contracts
-      '@docuflow/ui':
-        specifier: workspace:*
-        version: link:../../packages/ui
       '@emotion/react':
         specifier: ^11.14.0
         version: 11.14.0(@types/react@19.3.0)(react@19.3.1)
@@ -305,6 +299,12 @@ importers:
       '@mui/material':
         specifier: ^7.0.0
         version: 7.3.11(@emotion/react@11.14.0(@types/react@19.3.0)(react@19.3.1))(@emotion/styled@11.14.1(@emotion/react@11.14.0(@types/react@19.3.0)(react@19.3.1))(@types/react@19.3.0)(react@19.3.1))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
+      '@papyrus/contracts':
+        specifier: workspace:*
+        version: link:../../packages/contracts
+      '@papyrus/ui':
+        specifier: workspace:*
+        version: link:../../packages/ui
       '@tanstack/react-query':
         specifier: ^5.66.0
         version: 5.108.1(@types/react@19.3.0)(react@19.3.1)
@@ -342,28 +342,28 @@ importers:
 
   apps/worker:
     dependencies:
-      '@docuflow/contracts':
+      '@papyrus/contracts':
         specifier: workspace:*
         version: link:../../packages/contracts
-      '@docuflow/database':
+      '@papyrus/database':
         specifier: workspace:*
         version: link:../../packages/database
-      '@docuflow/domain':
+      '@papyrus/domain':
         specifier: workspace:*
         version: link:../../packages/domain
-      '@docuflow/file-processing':
+      '@papyrus/file-processing':
         specifier: workspace:*
         version: link:../../packages/file-processing
-      '@docuflow/notifications':
+      '@papyrus/notifications':
         specifier: workspace:*
         version: link:../../packages/notifications
-      '@docuflow/storage-core':
+      '@papyrus/storage-core':
         specifier: workspace:*
         version: link:../../packages/storage-core
-      '@docuflow/storage-local':
+      '@papyrus/storage-local':
         specifier: workspace:*
         version: link:../../packages/storage-local
-      '@docuflow/storage-s3':
+      '@papyrus/storage-s3':
         specifier: workspace:*
         version: link:../../packages/storage-s3
       zod:
@@ -385,7 +385,7 @@ importers:
 
   packages/auth:
     dependencies:
-      '@docuflow/domain':
+      '@papyrus/domain':
         specifier: workspace:*
         version: link:../domain
       argon2:
@@ -406,10 +406,10 @@ importers:
 
   packages/database:
     dependencies:
-      '@docuflow/domain':
+      '@papyrus/domain':
         specifier: workspace:*
         version: link:../domain
-      '@docuflow/notifications':
+      '@papyrus/notifications':
         specifier: workspace:*
         version: link:../notifications
       drizzle-orm:
@@ -439,7 +439,7 @@ importers:
 
   packages/storage-local:
     dependencies:
-      '@docuflow/storage-core':
+      '@papyrus/storage-core':
         specifier: workspace:*
         version: link:../storage-core
 
@@ -451,7 +451,7 @@ importers:
       '@aws-sdk/s3-request-presigner':
         specifier: ^3.758.0
         version: 3.1172.0
-      '@docuflow/storage-core':
+      '@papyrus/storage-core':
         specifier: workspace:*
         version: link:../storage-core
       zod:

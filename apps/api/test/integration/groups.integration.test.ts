@@ -7,7 +7,7 @@ import {
   type StoredSessionRecord,
   createPasswordService,
   createSessionService,
-} from "@docuflow/auth";
+} from "@papyrus/auth";
 import {
   createAuditRepository,
   createGroupRepository,
@@ -17,11 +17,8 @@ import {
   sessions,
   userRoleScopes,
   users,
-} from "@docuflow/database";
-import {
-  createGroupAdministrationService,
-  createUserAdministrationService,
-} from "@docuflow/domain";
+} from "@papyrus/database";
+import { createGroupAdministrationService, createUserAdministrationService } from "@papyrus/domain";
 import { PostgreSqlContainer, type StartedPostgreSqlContainer } from "@testcontainers/postgresql";
 import { and, eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/node-postgres";
@@ -215,12 +212,12 @@ describe("Groups and membership integration", () => {
       headers: { [CSRF_HEADER_NAME]: csrfToken },
       payload: { email: "admin@grupos.invalid", password: adminPass },
     });
-    const adminCookie = adminLogin.cookies.find((c) => c.name === "docuflow_session")?.value ?? "";
+    const adminCookie = adminLogin.cookies.find((c) => c.name === "papyrus_session")?.value ?? "";
 
     const createUserRes = await app.inject({
       method: "POST",
       url: "/api/v1/admin/users",
-      cookies: { docuflow_session: adminCookie, [CSRF_COOKIE_NAME]: csrfToken },
+      cookies: { papyrus_session: adminCookie, [CSRF_COOKIE_NAME]: csrfToken },
       headers: { [CSRF_HEADER_NAME]: csrfToken },
       payload: {
         email: "juridico@grupos.invalid",
@@ -234,7 +231,7 @@ describe("Groups and membership integration", () => {
     const createGroupRes = await app.inject({
       method: "POST",
       url: "/api/v1/admin/groups",
-      cookies: { docuflow_session: adminCookie, [CSRF_COOKIE_NAME]: csrfToken },
+      cookies: { papyrus_session: adminCookie, [CSRF_COOKIE_NAME]: csrfToken },
       headers: { [CSRF_HEADER_NAME]: csrfToken },
       payload: { name: "Jurídico", description: "Equipe de revisão contratual" },
     });
@@ -245,7 +242,7 @@ describe("Groups and membership integration", () => {
     const dupGroupRes = await app.inject({
       method: "POST",
       url: "/api/v1/admin/groups",
-      cookies: { docuflow_session: adminCookie, [CSRF_COOKIE_NAME]: csrfToken },
+      cookies: { papyrus_session: adminCookie, [CSRF_COOKIE_NAME]: csrfToken },
       headers: { [CSRF_HEADER_NAME]: csrfToken },
       payload: { name: "Jurídico" },
     });
@@ -255,7 +252,7 @@ describe("Groups and membership integration", () => {
     const addMemberRes = await app.inject({
       method: "POST",
       url: `/api/v1/admin/groups/${groupId}/members`,
-      cookies: { docuflow_session: adminCookie, [CSRF_COOKIE_NAME]: csrfToken },
+      cookies: { papyrus_session: adminCookie, [CSRF_COOKIE_NAME]: csrfToken },
       headers: { [CSRF_HEADER_NAME]: csrfToken },
       payload: { userId: targetUserId },
     });
@@ -265,7 +262,7 @@ describe("Groups and membership integration", () => {
     const dupMemberRes = await app.inject({
       method: "POST",
       url: `/api/v1/admin/groups/${groupId}/members`,
-      cookies: { docuflow_session: adminCookie, [CSRF_COOKIE_NAME]: csrfToken },
+      cookies: { papyrus_session: adminCookie, [CSRF_COOKIE_NAME]: csrfToken },
       headers: { [CSRF_HEADER_NAME]: csrfToken },
       payload: { userId: targetUserId },
     });
@@ -275,7 +272,7 @@ describe("Groups and membership integration", () => {
     const listMembersRes = await app.inject({
       method: "GET",
       url: `/api/v1/admin/groups/${groupId}/members`,
-      cookies: { docuflow_session: adminCookie },
+      cookies: { papyrus_session: adminCookie },
     });
     expect(listMembersRes.statusCode).toBe(200);
     expect(listMembersRes.json().data).toHaveLength(1);
@@ -285,7 +282,7 @@ describe("Groups and membership integration", () => {
     const removeMemberRes = await app.inject({
       method: "DELETE",
       url: `/api/v1/admin/groups/${groupId}/members/${targetUserId}`,
-      cookies: { docuflow_session: adminCookie, [CSRF_COOKIE_NAME]: csrfToken },
+      cookies: { papyrus_session: adminCookie, [CSRF_COOKIE_NAME]: csrfToken },
       headers: { [CSRF_HEADER_NAME]: csrfToken },
     });
     expect(removeMemberRes.statusCode).toBe(200);

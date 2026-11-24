@@ -8,7 +8,7 @@ import {
   type StoredSessionRecord,
   createPasswordService,
   createSessionService,
-} from "@docuflow/auth";
+} from "@papyrus/auth";
 import {
   auditEvents,
   categories,
@@ -35,8 +35,8 @@ import {
   uploadSessions,
   userRoleScopes,
   users,
-} from "@docuflow/database";
-import { createDocumentUseCase } from "@docuflow/domain";
+} from "@papyrus/database";
+import { createDocumentUseCase } from "@papyrus/domain";
 import { PostgreSqlContainer, type StartedPostgreSqlContainer } from "@testcontainers/postgresql";
 import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/node-postgres";
@@ -121,7 +121,7 @@ describe("Document creation with metadata, finalized upload link and initial sta
 
     await db.insert(organizations).values({
       id: orgId,
-      name: "DocuFlow Document Create Corp",
+      name: "papyrus Document Create Corp",
       slug: `doc-create-${orgId.slice(0, 8)}`,
     });
 
@@ -164,7 +164,7 @@ describe("Document creation with metadata, finalized upload link and initial sta
       {
         id: actorUserId,
         organizationId: orgId,
-        email: `actor-doc-${orgId.slice(0, 6)}@docuflow.local`,
+        email: `actor-doc-${orgId.slice(0, 6)}@papyrus.local`,
         fullName: "Actor Document",
         passwordHash,
         status: "ACTIVE",
@@ -172,7 +172,7 @@ describe("Document creation with metadata, finalized upload link and initial sta
       {
         id: ownerUserId,
         organizationId: orgId,
-        email: `owner-doc-${orgId.slice(0, 6)}@docuflow.local`,
+        email: `owner-doc-${orgId.slice(0, 6)}@papyrus.local`,
         fullName: "Owner Document",
         passwordHash,
         status: "ACTIVE",
@@ -228,7 +228,7 @@ describe("Document creation with metadata, finalized upload link and initial sta
       kind: "local",
       status: "ACTIVE",
       isDefault: true,
-      nonSecretConfig: { rootDirectory: "/tmp/docuflow-test" },
+      nonSecretConfig: { rootDirectory: "/tmp/papyrus-test" },
     });
 
     await db.insert(fileObjects).values({
@@ -345,7 +345,7 @@ describe("Document creation with metadata, finalized upload link and initial sta
       cookies: { [CSRF_COOKIE_NAME]: csrfToken },
       headers: { [CSRF_HEADER_NAME]: csrfToken },
       payload: {
-        email: `actor-doc-${orgId.slice(0, 6)}@docuflow.local`,
+        email: `actor-doc-${orgId.slice(0, 6)}@papyrus.local`,
         password: "CreateDoc!2026",
       },
     });

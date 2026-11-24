@@ -4,8 +4,8 @@ import {
   createUserRequestSchema,
   updateUserRequestSchema,
   uuidSchema,
-} from "@docuflow/contracts";
-import { DomainError, type UserAdministrationService } from "@docuflow/domain";
+} from "@papyrus/contracts";
+import { DomainError, type UserAdministrationService } from "@papyrus/domain";
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { SESSION_COOKIE_NAME } from "../auth/auth.routes.js";
 import type { AuthService } from "../auth/auth.service.js";

@@ -1,9 +1,9 @@
 {
 	admin off
-	email {$DOCUFLOW_TLS_EMAIL:admin@localhost}
+	email {$PAPYRUS_TLS_EMAIL:admin@localhost}
 }
 
-{$DOCUFLOW_SITE_ADDRESS:https://localhost} {
+{$PAPYRUS_SITE_ADDRESS:https://localhost} {
 	encode zstd gzip
 
 	header {
@@ -18,10 +18,10 @@
 	@api path /api/*
 	handle @api {
 		request_body {
-			max_size {$DOCUFLOW_PROXY_MAX_BODY_SIZE:52MiB}
+			max_size {$PAPYRUS_PROXY_MAX_BODY_SIZE:52MiB}
 		}
 
-		reverse_proxy {$DOCUFLOW_API_UPSTREAM:api:3000} {
+		reverse_proxy {$PAPYRUS_API_UPSTREAM:api:3000} {
 			flush_interval -1
 
 			header_up X-Real-IP {remote_host}
@@ -36,7 +36,7 @@
 	}
 
 	handle {
-		reverse_proxy {$DOCUFLOW_WEB_UPSTREAM:web:8080} {
+		reverse_proxy {$PAPYRUS_WEB_UPSTREAM:web:8080} {
 			header_up X-Real-IP {remote_host}
 
 			transport http {

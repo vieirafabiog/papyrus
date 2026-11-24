@@ -13,7 +13,7 @@ import {
   type StoredSessionRecord,
   createPasswordService,
   createSessionService,
-} from "@docuflow/auth";
+} from "@papyrus/auth";
 import {
   categories,
   createAuditRepository,
@@ -34,9 +34,9 @@ import {
   storageConnections,
   userRoleScopes,
   users,
-} from "@docuflow/database";
-import { createStorageProviderRegistry } from "@docuflow/storage-core";
-import { createLocalStorageProvider } from "@docuflow/storage-local";
+} from "@papyrus/database";
+import { createStorageProviderRegistry } from "@papyrus/storage-core";
+import { createLocalStorageProvider } from "@papyrus/storage-local";
 import { PostgreSqlContainer, type StartedPostgreSqlContainer } from "@testcontainers/postgresql";
 import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/node-postgres";
@@ -62,7 +62,7 @@ describe("Clean environment full restore and document download verification (Ste
   let targetContainer: StartedPostgreSqlContainer | null = null;
 
   beforeAll(async () => {
-    workDir = await mkdtemp(path.join(os.tmpdir(), "docuflow-restore-e2e-"));
+    workDir = await mkdtemp(path.join(os.tmpdir(), "papyrus-restore-e2e-"));
     sourceContainer = await new PostgreSqlContainer("postgres:16-alpine").start();
   }, 120_000);
 
@@ -113,10 +113,10 @@ describe("Clean environment full restore and document download verification (Ste
     const documentId = randomUUID();
     const versionId = randomUUID();
     const fileObjectId = randomUUID();
-    const userEmail = `restore-reader-${orgId.slice(0, 6)}@docuflow.local`;
+    const userEmail = `restore-reader-${orgId.slice(0, 6)}@papyrus.local`;
     const userPassword = "RestoreCheck!2026";
     const pdfContent = Buffer.from(
-      "%PDF-1.7\n1 0 obj\n<< /Type /Catalog >>\nendobj\n% DocuFlow Restore Integrity Payload\n%%EOF\n",
+      "%PDF-1.7\n1 0 obj\n<< /Type /Catalog >>\nendobj\n% papyrus Restore Integrity Payload\n%%EOF\n",
       "utf8",
     );
     const pdfSha256 = createHash("sha256").update(pdfContent).digest("hex");
@@ -261,11 +261,11 @@ describe("Clean environment full restore and document download verification (Ste
     const sourceContainerName = sourceContainer.getName().replace(/^\//, "");
     const { stdout: dumpFind } = await execFileAsync("sh", [
       "-c",
-      `find "${dbBackupDir}" -maxdepth 1 -name 'docuflow-db-*.dump' | head -n 1`,
+      `find "${dbBackupDir}" -maxdepth 1 -name 'papyrus-db-*.dump' | head -n 1`,
     ]);
     const { stdout: archiveFind } = await execFileAsync("sh", [
       "-c",
-      `find "${filesBackupDir}" -maxdepth 1 -name 'docuflow-files-*.tar.gz' | head -n 1`,
+      `find "${filesBackupDir}" -maxdepth 1 -name 'papyrus-files-*.tar.gz' | head -n 1`,
     ]);
     const dumpFilePath = dumpFind.trim();
     const archiveFilePath = archiveFind.trim();

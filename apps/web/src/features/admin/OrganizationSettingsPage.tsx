@@ -1,10 +1,3 @@
-import type {
-  OrganizationDateFormat,
-  OrganizationLanguage,
-  OrganizationListPageSize,
-  OrganizationSettingsViewContract,
-} from "@docuflow/contracts";
-import { ErrorState, LoadingState, PAPYRUS_COLOR_TOKENS } from "@docuflow/ui";
 import CorporateFareOutlinedIcon from "@mui/icons-material/CorporateFareOutlined";
 import RestartAltOutlinedIcon from "@mui/icons-material/RestartAltOutlined";
 import SaveOutlinedIcon from "@mui/icons-material/SaveOutlined";
@@ -22,6 +15,13 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
+import type {
+  OrganizationDateFormat,
+  OrganizationLanguage,
+  OrganizationListPageSize,
+  OrganizationSettingsViewContract,
+} from "@papyrus/contracts";
+import { ErrorState, LoadingState, PAPYRUS_COLOR_TOKENS } from "@papyrus/ui";
 import { type FormEvent, useEffect, useState } from "react";
 import { type MessageKey, getStoredUiLocale, resolveUiLocale, useI18n } from "../../i18n/index.js";
 import { UploadLimitsSettingsSection } from "./UploadLimitsSettingsSection.js";

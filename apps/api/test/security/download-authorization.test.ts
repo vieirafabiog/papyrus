@@ -10,13 +10,13 @@ import {
   type StoredSessionRecord,
   createPasswordService,
   createSessionService,
-} from "@docuflow/auth";
-import { CONTRACTS_API_PREFIX } from "@docuflow/contracts";
+} from "@papyrus/auth";
+import { CONTRACTS_API_PREFIX } from "@papyrus/contracts";
 import type {
   AuthorizationRepository,
   AuthorizedDocumentQueryScope,
   LoadedAuthorizationSubject,
-} from "@docuflow/database";
+} from "@papyrus/database";
 import type {
   AuditEventInput,
   AuditEventRecord,
@@ -39,9 +39,9 @@ import type {
   UpdateDocumentInput,
   UploadSessionEntity,
   UploadSessionRepositoryPort,
-} from "@docuflow/domain";
-import { type StorageProvider, createStorageProviderRegistry } from "@docuflow/storage-core";
-import { createLocalStorageProvider } from "@docuflow/storage-local";
+} from "@papyrus/domain";
+import { type StorageProvider, createStorageProviderRegistry } from "@papyrus/storage-core";
+import { createLocalStorageProvider } from "@papyrus/storage-local";
 import { afterAll, describe, expect, it } from "vitest";
 import { buildApp } from "../../src/app.js";
 import {
@@ -131,7 +131,7 @@ function createDownloadSecurityHarness(localRoot: string) {
     kind: "s3",
     isDefault: false,
     status: "ACTIVE",
-    nonSecretConfig: { bucket: "docuflow-downloads", region: "us-east-1" },
+    nonSecretConfig: { bucket: "papyrus-downloads", region: "us-east-1" },
     encryptedSecretRef: "enc:s3-secret-ref",
     lastHealthCheckAt: null,
     lastHealthMessage: null,
@@ -249,7 +249,7 @@ function createDownloadSecurityHarness(localRoot: string) {
           ? `&response-content-disposition=${encodeURIComponent(`attachment; filename="${input.downloadName}"`)}`
           : "";
         return {
-          url: `https://s3.example.internal/docuflow-downloads/${input.key.value}?X-Amz-Expires=${input.expiresInSeconds}&X-Amz-Signature=deadbeef${queryName}`,
+          url: `https://s3.example.internal/papyrus-downloads/${input.key.value}?X-Amz-Expires=${input.expiresInSeconds}&X-Amz-Signature=deadbeef${queryName}`,
           method: "GET",
           headers: {},
           expiresAt,
@@ -651,7 +651,7 @@ function createDownloadSecurityHarness(localRoot: string) {
       await registerUser({
         id: downloaderId,
         organizationId: orgId,
-        email: "downloader@docuflow.local",
+        email: "downloader@papyrus.local",
         roleId: viewerRoleId,
         roleKey: "viewer",
         scope: { type: "FOLDER", folderId: rootFolderId },
@@ -662,7 +662,7 @@ function createDownloadSecurityHarness(localRoot: string) {
       await registerUser({
         id: readOnlyUserId,
         organizationId: orgId,
-        email: "readonly-nodownload@docuflow.local",
+        email: "readonly-nodownload@papyrus.local",
         roleId: readOnlyRoleId,
         roleKey: "custom_readonly",
         scope: { type: "GLOBAL" },
@@ -680,7 +680,7 @@ function createDownloadSecurityHarness(localRoot: string) {
       await registerUser({
         id: deniedUserId,
         organizationId: orgId,
-        email: "denied-child@docuflow.local",
+        email: "denied-child@papyrus.local",
         roleId: viewerRoleId,
         roleKey: "viewer",
         scope: { type: "FOLDER", folderId: rootFolderId },
@@ -719,7 +719,7 @@ describe("Authorized document download security suite", () => {
   });
 
   it("enforces authentication, DOWNLOAD authorization, DENY precedence, version ownership, file states, connection validity and filename sanitization", async () => {
-    const tempRoot = await mkdtemp(path.join(os.tmpdir(), "docuflow-dl-sec-"));
+    const tempRoot = await mkdtemp(path.join(os.tmpdir(), "papyrus-dl-sec-"));
     tempDirs.push(tempRoot);
 
     const h = createDownloadSecurityHarness(tempRoot);
@@ -923,9 +923,9 @@ describe("Authorized document download security suite", () => {
       createdAt: h.fixedNow.toISOString(),
     });
 
-    const downloaderSession = await h.login("downloader@docuflow.local");
-    const readOnlySession = await h.login("readonly-nodownload@docuflow.local");
-    const deniedSession = await h.login("denied-child@docuflow.local");
+    const downloaderSession = await h.login("downloader@papyrus.local");
+    const readOnlySession = await h.login("readonly-nodownload@papyrus.local");
+    const deniedSession = await h.login("denied-child@papyrus.local");
     const foreignSession = await h.login("foreign@otherorg.local");
 
     // 1. Unauthenticated access rejected on both target and stream endpoints
@@ -1083,7 +1083,7 @@ describe("Authorized document download security suite", () => {
   });
 
   it("issues short-lived signed download URLs for signed-capable providers, supports API streaming fallback, redacts audit metadata and fails closed on checksum mismatch", async () => {
-    const tempRoot = await mkdtemp(path.join(os.tmpdir(), "docuflow-dl-signed-"));
+    const tempRoot = await mkdtemp(path.join(os.tmpdir(), "papyrus-dl-signed-"));
     tempDirs.push(tempRoot);
 
     const h = createDownloadSecurityHarness(tempRoot);
@@ -1136,7 +1136,7 @@ describe("Authorized document download security suite", () => {
       createdAt: h.fixedNow.toISOString(),
     });
 
-    const downloaderSession = await h.login("downloader@docuflow.local");
+    const downloaderSession = await h.login("downloader@papyrus.local");
 
     // 1. Signed target returned with short TTL (default 60s) and private no-cache headers
     const signedRes = await h.app.inject({

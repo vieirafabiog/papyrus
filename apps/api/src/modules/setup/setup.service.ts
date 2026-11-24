@@ -1,8 +1,8 @@
-import type { PasswordService } from "@docuflow/auth";
+import type { PasswordService } from "@papyrus/auth";
 import { z } from "zod";
 
 export const bootstrapAdminInputSchema = z.object({
-  organizationName: z.string().trim().min(2).max(160).default("DocuFlow"),
+  organizationName: z.string().trim().min(2).max(160).default("papyrus"),
   organizationSlug: z
     .string()
     .trim()

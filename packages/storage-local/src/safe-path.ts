@@ -1,6 +1,6 @@
 import { lstat, realpath, stat } from "node:fs/promises";
 import path from "node:path";
-import { StorageError, normalizeStorageError } from "@docuflow/storage-core";
+import { StorageError, normalizeStorageError } from "@papyrus/storage-core";
 
 const SAFE_SEGMENT_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/;
 const WINDOWS_RESERVED_NAME_PATTERN = /^(con|prn|aux|nul|com[1-9]|lpt[1-9])(\..*)?$/i;

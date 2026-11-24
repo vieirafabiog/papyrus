@@ -3,7 +3,7 @@ import type {
   TransactionContext,
   UploadLimitsConfig,
   UploadPolicyRepositoryPort,
-} from "@docuflow/domain";
+} from "@papyrus/domain";
 import { eq } from "drizzle-orm";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 import { type OrganizationPreferencesJson, organizations } from "../schema/identity.js";

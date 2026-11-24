@@ -1,8 +1,8 @@
-import type { CategorySummaryRecord, DocumentStatus, FolderRecord } from "@docuflow/contracts";
-import { FilterBar, type FilterBarSelect, PAPYRUS_COLOR_TOKENS } from "@docuflow/ui";
 import CloudUploadOutlinedIcon from "@mui/icons-material/CloudUploadOutlined";
 import DeleteSweepOutlinedIcon from "@mui/icons-material/DeleteSweepOutlined";
 import { Alert, Button, Paper, Stack, TextField, Typography } from "@mui/material";
+import type { CategorySummaryRecord, DocumentStatus, FolderRecord } from "@papyrus/contracts";
+import { FilterBar, type FilterBarSelect, PAPYRUS_COLOR_TOKENS } from "@papyrus/ui";
 import { useI18n } from "../../i18n/index.js";
 import { buildFolderTreeOptions } from "../folders/folderTree.js";
 import {

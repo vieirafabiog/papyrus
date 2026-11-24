@@ -10,7 +10,7 @@ import type {
   AuditSortField,
   PaginatedResult,
   TransactionContext,
-} from "@docuflow/domain";
+} from "@papyrus/domain";
 import { type SQL, and, asc, count, desc, eq, gte, lte } from "drizzle-orm";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 import { type AuditMetadataJson, auditEvents } from "../schema/governance.js";

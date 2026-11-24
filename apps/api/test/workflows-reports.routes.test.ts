@@ -4,7 +4,7 @@ import type {
   ReportRepository,
   RepositoryReportQueryInput,
   RepositoryReportRecord,
-} from "@docuflow/database";
+} from "@papyrus/database";
 import {
   type AuditEventEntity,
   type AuditRepositoryPort,
@@ -18,7 +18,7 @@ import {
   type WorkflowDefinitionRepositoryPort,
   type WorkflowDefinitionVersionEntity,
   createWorkflowDefinitionService,
-} from "@docuflow/domain";
+} from "@papyrus/domain";
 import Fastify from "fastify";
 import { describe, expect, it } from "vitest";
 import { registerReportRoutes } from "../src/modules/reports/index.js";
@@ -65,7 +65,7 @@ function buildAuthContext(
       user: {
         id: userId,
         organizationId: ORG_ID,
-        email: `${roleKey}@docuflow.invalid`,
+        email: `${roleKey}@papyrus.invalid`,
         fullName: `Usuário ${roleKey}`,
         status: "ACTIVE",
         createdAt: "2026-11-24T10:00:00.000Z",
@@ -296,8 +296,8 @@ describe("Workflow definition and repository report routes", () => {
             users: [
               {
                 id: ADMIN_USER_ID,
-                fullName: "Administrador DocuFlow",
-                email: "admin@docuflow.invalid",
+                fullName: "Administrador papyrus",
+                email: "admin@papyrus.invalid",
               },
             ],
             groups: [],
@@ -517,7 +517,7 @@ describe("Workflow definition and repository report routes", () => {
     });
     expect(csvRes.statusCode).toBe(200);
     expect(csvRes.headers["content-type"]).toContain("text/csv");
-    expect(csvRes.headers["content-disposition"]).toContain("docuflow-relatorio-acervo.csv");
+    expect(csvRes.headers["content-disposition"]).toContain("papyrus-relatorio-acervo.csv");
     expect(csvRes.body).toContain("CATEGORIA,'=SUM(A1:A2),4,7,1,1,,204800");
     expect(audit.events).toHaveLength(1);
     expect(audit.events[0]?.action).toBe("REPORT_EXPORTED");

@@ -1,5 +1,3 @@
-import { MIN_UPLOAD_MAX_BYTES, type UploadLimitsViewContract } from "@docuflow/contracts";
-import { ErrorState, LoadingState, PAPYRUS_COLOR_TOKENS } from "@docuflow/ui";
 import CloudUploadOutlinedIcon from "@mui/icons-material/CloudUploadOutlined";
 import RestartAltOutlinedIcon from "@mui/icons-material/RestartAltOutlined";
 import SaveOutlinedIcon from "@mui/icons-material/SaveOutlined";
@@ -17,6 +15,8 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
+import { MIN_UPLOAD_MAX_BYTES, type UploadLimitsViewContract } from "@papyrus/contracts";
+import { ErrorState, LoadingState, PAPYRUS_COLOR_TOKENS } from "@papyrus/ui";
 import { type FormEvent, useEffect, useMemo, useState } from "react";
 import { useI18n } from "../../i18n/index.js";
 import { useUpdateUploadLimitsMutation, useUploadLimitsQuery } from "./useUploadLimitsSettings.js";

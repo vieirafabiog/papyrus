@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { SYSTEM_ROLE_DEFINITIONS, createPasswordService } from "@docuflow/auth";
+import { SYSTEM_ROLE_DEFINITIONS, createPasswordService } from "@papyrus/auth";
 import {
   auditEvents,
   categories,
@@ -28,13 +28,13 @@ import {
   userRoleScopes,
   users,
   workflowTasks,
-} from "@docuflow/database";
+} from "@papyrus/database";
 import {
   DomainError,
   createStartWorkflowUseCase,
   createWorkflowDefinitionService,
   createWorkflowTasksUseCase,
-} from "@docuflow/domain";
+} from "@papyrus/domain";
 import { PostgreSqlContainer, type StartedPostgreSqlContainer } from "@testcontainers/postgresql";
 import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/node-postgres";
@@ -106,7 +106,7 @@ describe("Workflow task generation idempotency and authorization integration", (
       {
         id: requesterId,
         organizationId: orgId,
-        email: "requester-wf@docuflow.local",
+        email: "requester-wf@papyrus.local",
         fullName: "Solicitante WF",
         passwordHash,
         status: "ACTIVE",
@@ -114,7 +114,7 @@ describe("Workflow task generation idempotency and authorization integration", (
       {
         id: reviewerUserId,
         organizationId: orgId,
-        email: "reviewer-wf@docuflow.local",
+        email: "reviewer-wf@papyrus.local",
         fullName: "Revisor WF",
         passwordHash,
         status: "ACTIVE",
@@ -122,7 +122,7 @@ describe("Workflow task generation idempotency and authorization integration", (
       {
         id: deniedUserId,
         organizationId: orgId,
-        email: "denied-wf@docuflow.local",
+        email: "denied-wf@papyrus.local",
         fullName: "Usuário Negado WF",
         passwordHash,
         status: "ACTIVE",
@@ -130,7 +130,7 @@ describe("Workflow task generation idempotency and authorization integration", (
       {
         id: inactiveUserId,
         organizationId: orgId,
-        email: "inactive-wf@docuflow.local",
+        email: "inactive-wf@papyrus.local",
         fullName: "Usuário Inativo WF",
         passwordHash,
         status: "INACTIVE",

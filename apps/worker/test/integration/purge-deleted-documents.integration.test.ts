@@ -23,9 +23,9 @@ import {
   workflowDefinitionVersions,
   workflowDefinitions,
   workflowInstances,
-} from "@docuflow/database";
-import { type StorageProvider, createStorageProviderRegistry } from "@docuflow/storage-core";
-import { createLocalStorageProvider } from "@docuflow/storage-local";
+} from "@papyrus/database";
+import { type StorageProvider, createStorageProviderRegistry } from "@papyrus/storage-core";
+import { createLocalStorageProvider } from "@papyrus/storage-local";
 import { PostgreSqlContainer, type StartedPostgreSqlContainer } from "@testcontainers/postgresql";
 import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/node-postgres";
@@ -52,7 +52,7 @@ describe("Worker physical purge of deleted documents integration (Step 13.08)", 
       connectionString = container.getConnectionUri();
     }
 
-    storageRootDir = await mkdtemp(path.join(os.tmpdir(), "docuflow-purge-integ-"));
+    storageRootDir = await mkdtemp(path.join(os.tmpdir(), "papyrus-purge-integ-"));
     pool = new Pool({ connectionString });
     pool.on("error", () => {});
     const db = drizzle(pool);
@@ -91,7 +91,7 @@ describe("Worker physical purge of deleted documents integration (Step 13.08)", 
     await db.insert(users).values({
       id: userId,
       organizationId: orgId,
-      email: `purge-${orgId.slice(0, 6)}@docuflow.local`,
+      email: `purge-${orgId.slice(0, 6)}@papyrus.local`,
       fullName: "Admin Expurgo",
       passwordHash: "hash-placeholder",
       status: "ACTIVE",

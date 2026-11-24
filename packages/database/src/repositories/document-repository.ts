@@ -13,7 +13,7 @@ import {
   type PaginatedResult,
   type TransactionContext,
   type UpdateDocumentInput,
-} from "@docuflow/domain";
+} from "@papyrus/domain";
 import { type SQL, and, asc, count, desc, eq, ilike, ne } from "drizzle-orm";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 import {

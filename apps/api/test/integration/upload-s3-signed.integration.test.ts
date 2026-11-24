@@ -9,12 +9,12 @@ import {
   type StoredSessionRecord,
   createPasswordService,
   createSessionService,
-} from "@docuflow/auth";
+} from "@papyrus/auth";
 import {
   CONTRACTS_API_PREFIX,
   signedUploadTargetResponseSchema,
   uploadSessionRecordSchema,
-} from "@docuflow/contracts";
+} from "@papyrus/contracts";
 import {
   auditEvents,
   categories,
@@ -35,13 +35,13 @@ import {
   uploadSessions,
   userRoleScopes,
   users,
-} from "@docuflow/database";
+} from "@papyrus/database";
 import {
   createStorageConnectionAdminService,
   createStorageRouterService,
   createUploadSessionService,
-} from "@docuflow/domain";
-import { createStorageSecretVault } from "@docuflow/storage-core";
+} from "@papyrus/domain";
+import { createStorageSecretVault } from "@papyrus/storage-core";
 import { PostgreSqlContainer, type StartedPostgreSqlContainer } from "@testcontainers/postgresql";
 import { and, count, eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/node-postgres";
@@ -61,7 +61,7 @@ const MIGRATIONS_FOLDER = path.resolve(CURRENT_DIR, "../../../../packages/databa
 const MINIO_IMAGE = "cgr.dev/chainguard/minio:latest";
 const MINIO_ACCESS_KEY = "AKIAMINIOUPLOAD2026";
 const MINIO_SECRET_KEY = "MinioSignedUploadSecret2026!";
-const MINIO_BUCKET = "docuflow-signed-uploads";
+const MINIO_BUCKET = "papyrus-signed-uploads";
 
 function hmacSha256(key: string | Buffer, data: string): Buffer {
   return createHmac("sha256", key).update(data).digest();
@@ -168,7 +168,7 @@ describe("API S3 signed direct upload integration", () => {
 
   it("issues signed S3 PUT targets only for authorized upload sessions and requires API finalization", async () => {
     const db = drizzle(pool);
-    const localTempRoot = await mkdtemp(path.join(os.tmpdir(), "docuflow-api-s3-local-conn-"));
+    const localTempRoot = await mkdtemp(path.join(os.tmpdir(), "papyrus-api-s3-local-conn-"));
     tempDirs.push(localTempRoot);
 
     const passwordService = createPasswordService({
@@ -466,12 +466,12 @@ describe("API S3 signed direct upload integration", () => {
         payload: { email, password },
       });
       expect(loginRes.statusCode).toBe(200);
-      const sessionCookie = loginRes.cookies.find((c) => c.name === "docuflow_session");
+      const sessionCookie = loginRes.cookies.find((c) => c.name === "papyrus_session");
       if (!sessionCookie) {
         throw new Error("Missing session cookie");
       }
       return {
-        cookieHeader: `docuflow_session=${sessionCookie.value}; ${CSRF_COOKIE_NAME}=${sharedCsrfToken}`,
+        cookieHeader: `papyrus_session=${sessionCookie.value}; ${CSRF_COOKIE_NAME}=${sharedCsrfToken}`,
         csrfToken: sharedCsrfToken,
       };
     };

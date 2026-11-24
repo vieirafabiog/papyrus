@@ -8,7 +8,7 @@ import {
   type StoredSessionRecord,
   createPasswordService,
   createSessionService,
-} from "@docuflow/auth";
+} from "@papyrus/auth";
 import {
   categories,
   categoryFields,
@@ -30,7 +30,7 @@ import {
   storageConnections,
   userRoleScopes,
   users,
-} from "@docuflow/database";
+} from "@papyrus/database";
 import { PostgreSqlContainer, type StartedPostgreSqlContainer } from "@testcontainers/postgresql";
 import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/node-postgres";
@@ -127,7 +127,7 @@ describe("Document search HTTP endpoint validation, sorting, pagination and pre-
     await db.insert(users).values({
       id: viewerId,
       organizationId: orgId,
-      email: `viewer-search-${orgId.slice(0, 6)}@docuflow.local`,
+      email: `viewer-search-${orgId.slice(0, 6)}@papyrus.local`,
       fullName: "Consulta Pesquisa",
       passwordHash,
       status: "ACTIVE",
@@ -234,7 +234,7 @@ describe("Document search HTTP endpoint validation, sorting, pagination and pre-
       kind: "local",
       status: "ACTIVE",
       isDefault: true,
-      nonSecretConfig: { rootDirectory: "/tmp/docuflow-search-route-test" },
+      nonSecretConfig: { rootDirectory: "/tmp/papyrus-search-route-test" },
     });
 
     const tagRepo = createTagRepository(db);
@@ -420,7 +420,7 @@ describe("Document search HTTP endpoint validation, sorting, pagination and pre-
       cookies: { [CSRF_COOKIE_NAME]: csrfToken },
       headers: { [CSRF_HEADER_NAME]: csrfToken },
       payload: {
-        email: `viewer-search-${orgId.slice(0, 6)}@docuflow.local`,
+        email: `viewer-search-${orgId.slice(0, 6)}@papyrus.local`,
         password: "SearchRoute!2026",
       },
     });

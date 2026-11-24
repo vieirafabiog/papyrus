@@ -1,6 +1,6 @@
-# Manual do Usuário — DocuFlow
+# Manual do Usuário — papyrus
 
-Este manual orienta os usuários e gestores do **DocuFlow** nos fluxos principais da versão **1.0 self-hosted**: acesso autenticado, organização em pastas e categorias, envio seguro de arquivos, edição de metadados, controle de versões imutáveis, busca e filtros, revisão e aprovação, acompanhamento de vencimentos e recuperação na lixeira documental.
+Este manual orienta os usuários e gestores do **papyrus** nos fluxos principais da versão **1.0 self-hosted**: acesso autenticado, organização em pastas e categorias, envio seguro de arquivos, edição de metadados, controle de versões imutáveis, busca e filtros, revisão e aprovação, acompanhamento de vencimentos e recuperação na lixeira documental.
 
 > Os rótulos de menus, botões e estados descritos abaixo correspondem integralmente à interface em português do Brasil (`pt-BR`) da versão candidata.
 
@@ -15,7 +15,7 @@ Acesse o endereço configurado da organização no navegador (por exemplo, `http
 3. Caso tenha esquecido sua senha, utilize o link **Esqueci minha senha** (`/recuperar-senha`) para instruções de redefinição junto ao administrador ou fluxo de e-mail configurado.
 4. Após autenticação bem-sucedida, o sistema cria uma sessão protegida no servidor (cookie `HttpOnly` e token CSRF automático) e abre a página **Visão geral** (`/`).
 
-![Tela de login do DocuFlow](./images/user-guide/01-login.png)
+![Tela de login do papyrus](./images/user-guide/01-login.png)
 
 ### Navegação lateral
 

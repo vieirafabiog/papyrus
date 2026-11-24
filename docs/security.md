@@ -1,6 +1,6 @@
-# Guia de Segurança, Permissões e Controles Técnicos (DocuFlow)
+# Guia de Segurança, Permissões e Controles Técnicos (papyrus)
 
-Este documento descreve o modelo de autorização, proteção de sessões, credenciais, pipeline de arquivos, retenção, auditoria, isolamento de rede, responsabilidades operacionais do administrador e a matriz de verificação automatizada do **DocuFlow** (MVP self-hosted).
+Este documento descreve o modelo de autorização, proteção de sessões, credenciais, pipeline de arquivos, retenção, auditoria, isolamento de rede, responsabilidades operacionais do administrador e a matriz de verificação automatizada do **papyrus** (MVP self-hosted).
 
 > **Nota:** Controles técnicos e registros de auditoria apoiam a governança corporativa da empresa operadora, mas não substituem assessoria jurídica nem constituem certificação automática de conformidade legal.
 
@@ -8,7 +8,7 @@ Este documento descreve o modelo de autorização, proteção de sessões, crede
 
 ## 1. Modelo de Acesso: Papéis, Escopos e Herança
 
-O controle de acesso é aplicado **exclusivamente no servidor** antes de contar, paginar, visualizar, baixar ou mutar recursos (`action + resource + scope` em `@docuflow/auth` e `apps/api/src/plugins/authorization.ts`).
+O controle de acesso é aplicado **exclusivamente no servidor** antes de contar, paginar, visualizar, baixar ou mutar recursos (`action + resource + scope` em `@papyrus/auth` e `apps/api/src/plugins/authorization.ts`).
 
 ### 1.1 Papéis padrão de sistema (`SYSTEM_ROLE_DEFINITIONS`)
 
@@ -39,13 +39,13 @@ As atribuições de papéis (`user_role_scopes`, associadas diretamente ao usuá
 
 ## 2. Autenticação, Sessões e Proteção HTTP
 
-- **Armazenamento de senhas (`@docuflow/auth`):** Argon2id com parâmetros padrão `memoryCost = 65536 KiB` (64 MiB), `timeCost = 3`, `parallelism = 1`, `hashLength = 32` e comprimento mínimo padrão de `10` caracteres (`createPasswordService`), com suporte a `needsRehash`.
+- **Armazenamento de senhas (`@papyrus/auth`):** Argon2id com parâmetros padrão `memoryCost = 65536 KiB` (64 MiB), `timeCost = 3`, `parallelism = 1`, `hashLength = 32` e comprimento mínimo padrão de `10` caracteres (`createPasswordService`), com suporte a `needsRehash`.
 - **Sessões opacas no servidor (`createSessionService`):**
   - Token aleatório de `32 bytes` (`base64url`); apenas o digest SHA-256 (ou HMAC-SHA256 com pepper quando configurado) é persistido em `sessions.token_hash`.
   - Validade padrão (`ttlMs`) de `12 horas`, com rotação automática quando faltam `<= 2 horas` (`rotationThresholdMs`), revogação individual no logout e suporte a revogação em massa por usuário.
-  - Cookie `docuflow_session` emitido com `HttpOnly`, `SameSite=Lax` e `Secure=true` quando `NODE_ENV=production`.
+  - Cookie `papyrus_session` emitido com `HttpOnly`, `SameSite=Lax` e `Secure=true` quando `NODE_ENV=production`.
 - **Proteção CSRF e CORS (`apps/api/src/plugins/security.ts`):**
-  - Todas as requisições mutáveis (`POST`, `PUT`, `PATCH`, `DELETE`) exigem validação em tempo constante (`timingSafeEqual`) entre o cookie `docuflow_csrf` e o cabeçalho `x-csrf-token` emitidos por `GET /api/v1/auth/csrf-token`.
+  - Todas as requisições mutáveis (`POST`, `PUT`, `PATCH`, `DELETE`) exigem validação em tempo constante (`timingSafeEqual`) entre o cookie `papyrus_csrf` e o cabeçalho `x-csrf-token` emitidos por `GET /api/v1/auth/csrf-token`.
   - CORS restrito explicitamente às origens configuradas (`allowedOrigins` / `APP_URL`).
 - **Rate limiting no login:** padrão de `5` tentativas a cada `60 segundos` por IP em `POST /api/v1/auth/login`, retornando `429 RATE_LIMITED` com cabeçalho `Retry-After`.
 - **Cabeçalhos de segurança:** `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy: strict-origin-when-cross-origin`, `Permissions-Policy: camera=(), microphone=(), geolocation=()`, `Content-Security-Policy: default-src 'none'; frame-ancestors 'none'` na API e `Strict-Transport-Security` em modo seguro.
@@ -54,7 +54,7 @@ As atribuições de papéis (`user_role_scopes`, associadas diretamente ao usuá
 
 ## 3. Proteção de Credenciais e Segredos
 
-- **Chave mestra externa (`ENCRYPTION_KEY` / `ENCRYPTION_KEYRING`):** segredos de conectores S3 e SMTP são criptografados com AES-256-GCM (`createStorageSecretVault` em `@docuflow/storage-core`) antes da gravação no banco. A chave mestra de 32 bytes jamais é persistida no PostgreSQL nem versionada em `.env.example`.
+- **Chave mestra externa (`ENCRYPTION_KEY` / `ENCRYPTION_KEYRING`):** segredos de conectores S3 e SMTP são criptografados com AES-256-GCM (`createStorageSecretVault` em `@papyrus/storage-core`) antes da gravação no banco. A chave mestra de 32 bytes jamais é persistida no PostgreSQL nem versionada em `.env.example`.
 - **Proibição de exposição ao cliente e logs:**
   - Respostas HTTP de conectores retornam apenas `hasCredentials: boolean` e máscara visual.
   - Logger Fastify (`apps/api/src/app.ts`) aplica `redact` em cookies, `authorization`, `password`, `passwordHash`, `accessKeyId`, `secretAccessKey`, `sessionToken`, `encryptedSecretRef` e `encryptedSecretPayload`.
@@ -69,7 +69,7 @@ As atribuições de papéis (`user_role_scopes`, associadas diretamente ao usuá
 3. **Quarentena obrigatória:** ao finalizar uma sessão de upload (de forma idempotente por `idempotencyKey`), o objeto entra no estado **`QUARANTINED`** e o job assíncrono `process-upload` é enfileirado em `outbox_events`.
 4. **Inspeção binária e antimalware em falha fechada (`apps/worker/src/jobs/process-upload.ts`):**
    - Conferência de tamanho e SHA-256 em tempo constante (`isChecksumEqualConstantTime`).
-   - Detecção de tipo MIME pelo conteúdo binário (*magic bytes* em `@docuflow/file-processing`) combinada à allowlist da política.
+   - Detecção de tipo MIME pelo conteúdo binário (*magic bytes* em `@papyrus/file-processing`) combinada à allowlist da política.
    - Varredura por stream via protocolo `INSTREAM` no **ClamAV** (`createClamAvScanner`).
    - **Falha fechada:** quando o scanner detecta ameaça (`FOUND`), o objeto passa para **`REJECTED`** com motivo seguro (sem expor nomes técnicos de assinatura/caminhos); quando o scanner está indisponível ou sofre timeout, o objeto **permanece em `QUARANTINED`** (tentativa reagendada com backoff) e **nunca** é promovido a `AVAILABLE`.
 5. **Gate de leitura:** endpoints de download e pré-visualização bloqueiam qualquer arquivo cujo estado não seja `AVAILABLE` (recusando `UPLOADING`, `QUARANTINED`, `REJECTED`, `MISSING` e `DELETE_PENDING`).
@@ -92,7 +92,7 @@ As atribuições de papéis (`user_role_scopes`, associadas diretamente ao usuá
 
 A topologia padrão em [docker-compose.yml](../infra/compose/docker-compose.yml) e [Caddyfile](../infra/caddy/Caddyfile) aplica segmentação mínima:
 
-- **Rede isolada (`docuflow_internal`, `internal: true`):** `postgres` (5432) e `clamav` (3310) não possuem rotas externas nem portas publicadas no host.
+- **Rede isolada (`papyrus_internal`, `internal: true`):** `postgres` (5432) e `clamav` (3310) não possuem rotas externas nem portas publicadas no host.
 - **Containers não privilegiados:** `api`, `worker` e `web` rodam sem `root`, com `cap_drop: [ALL]` e `no-new-privileges:true`.
 - **Portas não expostas diretamente:** `api:3000` e `worker:3001` usam apenas `expose` interno; `web:8080` publica por padrão somente em `127.0.0.1:8080`.
 - **Terminação HTTPS no Caddy:** aplica TLS automático, HSTS (`max-age=31536000; includeSubDomains`), cabeçalhos de hardening, limite de corpo de requisição (`52MiB` padrão alinhado a `PROXY_MAX_BODY_BYTES`) e remove o cabeçalho `Server`.

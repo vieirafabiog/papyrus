@@ -1,4 +1,4 @@
-import { evaluateAuthorization } from "@docuflow/auth";
+import { evaluateAuthorization } from "@papyrus/auth";
 import {
   CONTRACTS_API_PREFIX,
   type ErrorCode,
@@ -8,8 +8,8 @@ import {
   startDocumentWorkflowRequestSchema,
   updateWorkflowDefinitionStatusRequestSchema,
   uuidSchema,
-} from "@docuflow/contracts";
-import type { WorkflowTimelineRepository } from "@docuflow/database";
+} from "@papyrus/contracts";
+import type { WorkflowTimelineRepository } from "@papyrus/database";
 import {
   type AccessAction,
   type CreateWorkflowTasksService,
@@ -17,7 +17,7 @@ import {
   type StartWorkflowService,
   type WorkflowDefinitionRepositoryPort,
   type WorkflowDefinitionService,
-} from "@docuflow/domain";
+} from "@papyrus/domain";
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import type {
   AuthenticatedAuthorizationContext,

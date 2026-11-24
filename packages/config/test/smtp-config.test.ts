@@ -13,18 +13,18 @@ describe("Optional SMTP environment configuration", () => {
       SMTP_HOST: "mail.empresa.local",
       SMTP_PORT: "587",
       SMTP_SECURE: "false",
-      SMTP_USER: "docuflow@empresa.local",
+      SMTP_USER: "papyrus@empresa.local",
       SMTP_PASS: "SuperSecretSmtpPass!123",
-      SMTP_FROM: "DocuFlow <noreply@empresa.local>",
+      SMTP_FROM: "papyrus <noreply@empresa.local>",
     });
 
     expect(parsed).toEqual({
       host: "mail.empresa.local",
       port: 587,
       securityMode: "STARTTLS",
-      username: "docuflow@empresa.local",
+      username: "papyrus@empresa.local",
       password: "SuperSecretSmtpPass!123",
-      from: "DocuFlow <noreply@empresa.local>",
+      from: "papyrus <noreply@empresa.local>",
       timeoutMs: 10_000,
     });
 
@@ -34,7 +34,7 @@ describe("Optional SMTP environment configuration", () => {
       host: "mail.empresa.local",
       port: 587,
       securityMode: "STARTTLS",
-      from: "DocuFlow <noreply@empresa.local>",
+      from: "papyrus <noreply@empresa.local>",
       authConfigured: true,
       timeoutMs: 10_000,
     });

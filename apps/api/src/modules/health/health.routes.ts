@@ -1,5 +1,5 @@
-import type { AuthMeResponse } from "@docuflow/contracts";
-import { CONTRACTS_API_PREFIX } from "@docuflow/contracts";
+import type { AuthMeResponse } from "@papyrus/contracts";
+import { CONTRACTS_API_PREFIX } from "@papyrus/contracts";
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { SESSION_COOKIE_NAME } from "../auth/auth.routes.js";
 import type { AuthService } from "../auth/auth.service.js";

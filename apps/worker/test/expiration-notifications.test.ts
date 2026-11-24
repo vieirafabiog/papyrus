@@ -5,7 +5,7 @@ import type {
   DocumentStatus,
   TransactionContext,
   TransactionManagerPort,
-} from "@docuflow/domain";
+} from "@papyrus/domain";
 import {
   type CreateInAppNotificationRecordInput,
   type EmailMessageInput,
@@ -13,7 +13,7 @@ import {
   type InAppNotificationRepositoryPort,
   type OptionalSmtpEmailService,
   createInAppNotificationService,
-} from "@docuflow/notifications";
+} from "@papyrus/notifications";
 import { describe, expect, it, vi } from "vitest";
 import {
   type ExpirationAlertRecipient,
@@ -202,7 +202,7 @@ describe("Expiration notifications job (Step 13.05)", () => {
     const orgId = "org-1";
     const owner: ExpirationAlertRecipient = {
       userId: "user-1",
-      email: "gestor@docuflow.local",
+      email: "gestor@papyrus.local",
       fullName: "Gestor",
     };
 
@@ -286,7 +286,7 @@ describe("Expiration notifications job (Step 13.05)", () => {
     const harness = createExpirationJobHarness("2026-11-22T01:30:00.000Z");
     const recipient: ExpirationAlertRecipient = {
       userId: "user-tz",
-      email: "tz@docuflow.local",
+      email: "tz@papyrus.local",
       fullName: "TZ User",
     };
 
@@ -372,7 +372,7 @@ describe("Expiration notifications job (Step 13.05)", () => {
     });
     harness.recipientsByDoc.set("doc-no-recip", []);
     harness.recipientsByDoc.set("doc-ok", [
-      { userId: "active-user", email: "active@docuflow.local", fullName: "Ativo" },
+      { userId: "active-user", email: "active@papyrus.local", fullName: "Ativo" },
     ]);
 
     const result = await harness.handler.runExpirationNotificationsCycle();
@@ -398,7 +398,7 @@ describe("Expiration notifications job (Step 13.05)", () => {
       expirationDate: "2026-11-24",
     });
     harness.recipientsByDoc.set("doc-err", [
-      { userId: "active-user", email: "active@docuflow.local", fullName: "Ativo" },
+      { userId: "active-user", email: "active@papyrus.local", fullName: "Ativo" },
     ]);
 
     const partialResult = await harness.handler.runExpirationNotificationsCycle();

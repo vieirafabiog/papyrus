@@ -8,7 +8,7 @@ import type {
   RoleScopeAssignmentRecord,
   RoleWithPermissionsRecord,
   TransactionContext,
-} from "@docuflow/domain";
+} from "@papyrus/domain";
 import { and, asc, eq, inArray, isNull } from "drizzle-orm";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 import { permissions, rolePermissions, roles, userRoleScopes } from "../schema/identity.js";

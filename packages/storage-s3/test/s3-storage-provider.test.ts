@@ -6,7 +6,7 @@ import {
   HeadObjectCommand,
   PutObjectCommand,
 } from "@aws-sdk/client-s3";
-import { StorageError } from "@docuflow/storage-core";
+import { StorageError } from "@papyrus/storage-core";
 import { describe, expect, it } from "vitest";
 import {
   type S3ChecksumSupportMode,
@@ -182,7 +182,7 @@ function buildProvider(
     {
       endpoint: "https://s3.valid.example.com",
       region: "sa-east-1",
-      bucket: "docuflow-bucket",
+      bucket: "papyrus-bucket",
       forcePathStyle: true,
       keyPrefix: "tenant-1",
       credentials: {

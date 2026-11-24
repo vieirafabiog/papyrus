@@ -1,6 +1,6 @@
 import "@testing-library/jest-dom/vitest";
-import { UiLocaleProvider, createPapyrusTheme } from "@docuflow/ui";
 import { CssBaseline, ThemeProvider } from "@mui/material";
+import { UiLocaleProvider, createPapyrusTheme } from "@papyrus/ui";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
@@ -61,7 +61,7 @@ describe("ExpirationsPage (Step 13.04)", () => {
               user: {
                 id: OWNER_1_ID,
                 organizationId: ORG_ID,
-                email: "gestor@docuflow.local",
+                email: "gestor@papyrus.local",
                 fullName: "Gestor Operacional",
                 status: "ACTIVE",
                 createdAt: "2026-01-01T10:00:00Z",

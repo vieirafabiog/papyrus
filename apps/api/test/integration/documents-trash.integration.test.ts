@@ -8,7 +8,7 @@ import {
   type StoredSessionRecord,
   createPasswordService,
   createSessionService,
-} from "@docuflow/auth";
+} from "@papyrus/auth";
 import {
   auditEvents,
   categories,
@@ -27,8 +27,8 @@ import {
   storageConnections,
   userRoleScopes,
   users,
-} from "@docuflow/database";
-import { trashDocumentUseCase } from "@docuflow/domain";
+} from "@papyrus/database";
+import { trashDocumentUseCase } from "@papyrus/domain";
 import { PostgreSqlContainer, type StartedPostgreSqlContainer } from "@testcontainers/postgresql";
 import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/node-postgres";
@@ -130,7 +130,7 @@ describe("Logical document trash authorization, listing concealment and history 
       {
         id: managerId,
         organizationId: orgId,
-        email: `manager-trash-${orgId.slice(0, 6)}@docuflow.local`,
+        email: `manager-trash-${orgId.slice(0, 6)}@papyrus.local`,
         fullName: "Gestor Lixeira",
         passwordHash,
         status: "ACTIVE",
@@ -138,7 +138,7 @@ describe("Logical document trash authorization, listing concealment and history 
       {
         id: collabId,
         organizationId: orgId,
-        email: `collab-trash-${orgId.slice(0, 6)}@docuflow.local`,
+        email: `collab-trash-${orgId.slice(0, 6)}@papyrus.local`,
         fullName: "Colaborador Sem Delete",
         passwordHash,
         status: "ACTIVE",
@@ -221,7 +221,7 @@ describe("Logical document trash authorization, listing concealment and history 
       kind: "local",
       status: "ACTIVE",
       isDefault: true,
-      nonSecretConfig: { rootDirectory: "/tmp/docuflow-trash-test" },
+      nonSecretConfig: { rootDirectory: "/tmp/papyrus-trash-test" },
     });
 
     await db.insert(fileObjects).values({
@@ -336,7 +336,7 @@ describe("Logical document trash authorization, listing concealment and history 
       cookies: { [CSRF_COOKIE_NAME]: csrfToken },
       headers: { [CSRF_HEADER_NAME]: csrfToken },
       payload: {
-        email: `manager-trash-${orgId.slice(0, 6)}@docuflow.local`,
+        email: `manager-trash-${orgId.slice(0, 6)}@papyrus.local`,
         password: "TrashDocs!2026",
       },
     });
@@ -350,7 +350,7 @@ describe("Logical document trash authorization, listing concealment and history 
       cookies: { [CSRF_COOKIE_NAME]: csrfToken },
       headers: { [CSRF_HEADER_NAME]: csrfToken },
       payload: {
-        email: `collab-trash-${orgId.slice(0, 6)}@docuflow.local`,
+        email: `collab-trash-${orgId.slice(0, 6)}@papyrus.local`,
         password: "TrashDocs!2026",
       },
     });

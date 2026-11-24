@@ -4,7 +4,7 @@ import {
   addCalendarDays,
   isValidIanaTimeZone,
   resolveLocalCalendarDate,
-} from "@docuflow/domain";
+} from "@papyrus/domain";
 import { type SQL, and, desc, eq, inArray, ne, or, sql } from "drizzle-orm";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 import { documentVersions, documents } from "../schema/documents.js";

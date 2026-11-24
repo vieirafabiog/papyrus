@@ -61,7 +61,7 @@ function createDefaultLogger(): WorkerLogger {
     const entry = {
       timestamp: new Date().toISOString(),
       level,
-      service: "docuflow-worker",
+      service: "papyrus-worker",
       message,
       ...(context ?? {}),
     };

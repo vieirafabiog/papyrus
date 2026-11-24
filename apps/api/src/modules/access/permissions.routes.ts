@@ -3,13 +3,13 @@ import {
   CONTRACTS_API_PREFIX,
   type ErrorCode,
   uuidSchema,
-} from "@docuflow/contracts";
+} from "@papyrus/contracts";
 import {
   ACCESS_EFFECTS,
   ACCESS_SCOPE_TYPES,
   DomainError,
   type PermissionAdministrationService,
-} from "@docuflow/domain";
+} from "@papyrus/domain";
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { z } from "zod";
 import { SESSION_COOKIE_NAME } from "../auth/auth.routes.js";

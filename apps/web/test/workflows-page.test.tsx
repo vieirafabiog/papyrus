@@ -1,6 +1,6 @@
 import "@testing-library/jest-dom/vitest";
-import { UiLocaleProvider, createPapyrusTheme } from "@docuflow/ui";
 import { CssBaseline, ThemeProvider } from "@mui/material";
+import { UiLocaleProvider, createPapyrusTheme } from "@papyrus/ui";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
@@ -53,7 +53,7 @@ describe("WorkflowsPage", () => {
               user: {
                 id: USER_ID,
                 organizationId: ORG_ID,
-                email: "admin@docuflow.local",
+                email: "admin@papyrus.local",
                 fullName: "Administrador",
                 status: "ACTIVE",
                 createdAt: "2026-11-24T10:00:00.000Z",
@@ -83,7 +83,7 @@ describe("WorkflowsPage", () => {
         return new Response(
           JSON.stringify({
             data: {
-              users: [{ id: USER_ID, fullName: "Administrador", email: "admin@docuflow.local" }],
+              users: [{ id: USER_ID, fullName: "Administrador", email: "admin@papyrus.local" }],
               groups: [],
               roles: [{ id: ROLE_ID, key: "admin", name: "Administrador" }],
             },
@@ -170,7 +170,7 @@ describe("WorkflowsPage", () => {
               user: {
                 id: USER_ID,
                 organizationId: ORG_ID,
-                email: "admin@docuflow.local",
+                email: "admin@papyrus.local",
                 fullName: "Administrador",
                 status: "ACTIVE",
                 createdAt: "2026-11-24T10:00:00.000Z",

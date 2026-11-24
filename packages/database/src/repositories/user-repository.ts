@@ -4,7 +4,7 @@ import type {
   UpdateUserInput,
   UserEntity,
   UserRepositoryPort,
-} from "@docuflow/domain";
+} from "@papyrus/domain";
 import { and, asc, countDistinct, eq } from "drizzle-orm";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 import { roles, userRoleScopes, users } from "../schema/identity.js";
