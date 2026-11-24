@@ -14,7 +14,8 @@ import {
   TextField,
 } from "@mui/material";
 import type { ReactNode } from "react";
-import { DOCUFLOW_COLOR_TOKENS } from "../theme/tokens.js";
+import { useUiLocale } from "../locale.js";
+import { PAPYRUS_COLOR_TOKENS } from "../theme/tokens.js";
 
 export interface FilterBarOption {
   readonly value: string;
@@ -44,18 +45,22 @@ export interface FilterBarProps {
 export function FilterBar({
   searchValue,
   onSearchChange,
-  searchLabel = "Buscar",
-  searchPlaceholder = "Digite para pesquisar...",
+  searchLabel,
+  searchPlaceholder,
   filters = [],
   onClearFilters,
   hasActiveFilters = false,
   actions,
 }: FilterBarProps) {
+  const { messages } = useUiLocale();
+  const resolvedSearchLabel = searchLabel ?? messages.filterBar.searchLabel;
+  const resolvedSearchPlaceholder = searchPlaceholder ?? messages.filterBar.searchPlaceholder;
+
   return (
     <Paper
       sx={{
         p: 2,
-        bgcolor: DOCUFLOW_COLOR_TOKENS.surface.containerLowest,
+        bgcolor: PAPYRUS_COLOR_TOKENS.surface.containerLowest,
       }}
     >
       <Stack
@@ -72,8 +77,8 @@ export function FilterBar({
           sx={{ flex: 1 }}
         >
           <TextField
-            label={searchLabel}
-            placeholder={searchPlaceholder}
+            label={resolvedSearchLabel}
+            placeholder={resolvedSearchPlaceholder}
             value={searchValue}
             onChange={(event) => onSearchChange(event.target.value)}
             sx={{ minWidth: { xs: "100%", sm: 260 } }}
@@ -89,7 +94,7 @@ export function FilterBar({
                     <InputAdornment position="end">
                       <IconButton
                         size="small"
-                        aria-label="Limpar busca"
+                        aria-label={messages.filterBar.clearSearch}
                         onClick={() => onSearchChange("")}
                       >
                         <ClearOutlinedIcon fontSize="small" />
@@ -112,7 +117,9 @@ export function FilterBar({
                   label={filter.label}
                   onChange={(event) => filter.onChange(String(event.target.value))}
                 >
-                  <MenuItem value="">{filter.allOptionLabel ?? "Todos"}</MenuItem>
+                  <MenuItem value="">
+                    {filter.allOptionLabel ?? messages.filterBar.allOption}
+                  </MenuItem>
                   {filter.options.map((option) => (
                     <MenuItem key={option.value} value={option.value}>
                       {option.label}
@@ -125,7 +132,7 @@ export function FilterBar({
 
           {onClearFilters && hasActiveFilters ? (
             <Button variant="text" onClick={onClearFilters}>
-              Limpar filtros
+              {messages.filterBar.clearFilters}
             </Button>
           ) : null}
         </Stack>

@@ -7,15 +7,16 @@ import {
   DialogTitle,
 } from "@mui/material";
 import { useId } from "react";
+import { useUiLocale } from "../locale.js";
 
 export interface ConfirmDialogProps {
   readonly open: boolean;
   readonly title: string;
   readonly description: string;
-  readonly confirmLabel?: string;
-  readonly cancelLabel?: string;
-  readonly confirmColor?: "primary" | "error" | "warning";
-  readonly loading?: boolean;
+  readonly confirmLabel?: string | undefined;
+  readonly cancelLabel?: string | undefined;
+  readonly confirmColor?: "primary" | "error" | "warning" | undefined;
+  readonly loading?: boolean | undefined;
   readonly onConfirm: () => void;
   readonly onCancel: () => void;
 }
@@ -24,13 +25,16 @@ export function ConfirmDialog({
   open,
   title,
   description,
-  confirmLabel = "Confirmar",
-  cancelLabel = "Cancelar",
+  confirmLabel,
+  cancelLabel,
   confirmColor = "primary",
   loading = false,
   onConfirm,
   onCancel,
 }: ConfirmDialogProps) {
+  const { messages } = useUiLocale();
+  const resolvedConfirmLabel = confirmLabel ?? messages.confirmDialog.confirm;
+  const resolvedCancelLabel = cancelLabel ?? messages.confirmDialog.cancel;
   const titleId = useId();
   const descriptionId = useId();
 
@@ -49,10 +53,10 @@ export function ConfirmDialog({
       </DialogContent>
       <DialogActions sx={{ px: 3, pb: 2 }}>
         <Button onClick={onCancel} disabled={loading} variant="text">
-          {cancelLabel}
+          {resolvedCancelLabel}
         </Button>
         <Button onClick={onConfirm} disabled={loading} color={confirmColor} variant="contained">
-          {loading ? "Processando..." : confirmLabel}
+          {loading ? messages.confirmDialog.processing : resolvedConfirmLabel}
         </Button>
       </DialogActions>
     </Dialog>

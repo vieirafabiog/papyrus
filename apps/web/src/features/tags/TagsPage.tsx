@@ -15,20 +15,15 @@ import {
   Typography,
 } from "@mui/material";
 import { type FormEvent, useMemo, useState } from "react";
+import { containsTechnicalJargon } from "../../i18n/api-errors.js";
+import { useI18n } from "../../i18n/index.js";
 import { useCreateTagMutation, useTagsQuery } from "./useTagsApi.js";
 
-function formatDatePtBr(isoString: string): string {
-  const date = new Date(isoString);
-  if (Number.isNaN(date.getTime())) {
-    return isoString;
-  }
-  return date.toLocaleDateString("pt-BR");
-}
-
 /**
- * Organization tags administration and search page wired to the real tags API.
+ * Organization tags administration and search page wired to the tags backend.
  */
 export function TagsPage() {
+  const { t, formatDate } = useI18n();
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
@@ -44,7 +39,7 @@ export function TagsPage() {
     () => [
       {
         id: "name",
-        label: "Etiqueta",
+        label: t("tags.page.columns.tag"),
         render: (row) => (
           <Chip
             label={row.name}
@@ -56,7 +51,7 @@ export function TagsPage() {
       },
       {
         id: "normalizedName",
-        label: "Identificador normalizado",
+        label: t("tags.page.columns.normalizedName"),
         render: (row) => (
           <Typography variant="body2" color="text.secondary">
             {row.normalizedName}
@@ -65,7 +60,7 @@ export function TagsPage() {
       },
       {
         id: "color",
-        label: "Cor",
+        label: t("tags.page.columns.color"),
         render: (row) =>
           row.color ? (
             <Stack direction="row" spacing={1} alignItems="center">
@@ -83,17 +78,17 @@ export function TagsPage() {
             </Stack>
           ) : (
             <Typography variant="body2" color="text.secondary">
-              Padrão
+              {t("tags.page.defaultColor")}
             </Typography>
           ),
       },
       {
         id: "createdAt",
-        label: "Criada em",
-        render: (row) => <Typography variant="body2">{formatDatePtBr(row.createdAt)}</Typography>,
+        label: t("tags.page.columns.createdAt"),
+        render: (row) => <Typography variant="body2">{formatDate(row.createdAt)}</Typography>,
       },
     ],
-    [],
+    [t, formatDate],
   );
 
   const handleOpenCreate = () => {
@@ -107,7 +102,7 @@ export function TagsPage() {
     event.preventDefault();
     const trimmedName = tagName.trim();
     if (trimmedName.length === 0) {
-      setFormError("O nome da etiqueta é obrigatório.");
+      setFormError(t("tags.page.nameRequired"));
       return;
     }
 
@@ -119,7 +114,12 @@ export function TagsPage() {
       });
       setCreateOpen(false);
     } catch (error) {
-      setFormError(error instanceof Error ? error.message : "Não foi possível criar a etiqueta.");
+      const rawMessage = error instanceof Error ? error.message.trim() : "";
+      setFormError(
+        rawMessage.length > 0 && !containsTechnicalJargon(rawMessage)
+          ? rawMessage
+          : t("tags.page.createFailed"),
+      );
     }
   };
 
@@ -139,14 +139,14 @@ export function TagsPage() {
       >
         <Box>
           <Typography variant="h1" gutterBottom>
-            Etiquetas
+            {t("tags.page.title")}
           </Typography>
           <Typography variant="body1" color="text.secondary">
-            Padronize rótulos transversais para classificar e filtrar documentos da organização.
+            {t("tags.page.subtitle")}
           </Typography>
         </Box>
         <Button variant="contained" startIcon={<AddOutlinedIcon />} onClick={handleOpenCreate}>
-          Nova etiqueta
+          {t("tags.page.newTagButton")}
         </Button>
       </Box>
 
@@ -156,8 +156,8 @@ export function TagsPage() {
           setSearch(next);
           setPage(1);
         }}
-        searchLabel="Buscar etiqueta"
-        searchPlaceholder="Filtrar por nome..."
+        searchLabel={t("tags.page.searchLabel")}
+        searchPlaceholder={t("tags.page.searchPlaceholder")}
         hasActiveFilters={search.trim().length > 0}
         onClearFilters={() => {
           setSearch("");
@@ -166,7 +166,7 @@ export function TagsPage() {
       />
 
       <DataTable
-        ariaLabel="Tabela de etiquetas da organização"
+        ariaLabel={t("tags.page.tableAriaLabel")}
         columns={columns}
         rows={rows}
         getRowId={(row) => row.id}
@@ -181,41 +181,41 @@ export function TagsPage() {
         loading={tagsQuery.isLoading}
         errorMessage={tagsQuery.isError ? tagsQuery.error.message : null}
         onRetry={() => void tagsQuery.refetch()}
-        emptyTitle="Nenhuma etiqueta encontrada"
-        emptyDescription="Crie uma etiqueta para organizar documentos entre pastas e categorias."
-        emptyActionLabel="Nova etiqueta"
+        emptyTitle={t("tags.page.emptyTitle")}
+        emptyDescription={t("tags.page.emptyDescription")}
+        emptyActionLabel={t("tags.page.newTagButton")}
         onEmptyAction={handleOpenCreate}
       />
 
       <Dialog open={createOpen} onClose={() => setCreateOpen(false)} fullWidth maxWidth="xs">
         <form onSubmit={(event) => void handleSubmitCreate(event)}>
-          <DialogTitle>Nova etiqueta</DialogTitle>
+          <DialogTitle>{t("tags.page.dialogTitle")}</DialogTitle>
           <DialogContent>
             <Stack spacing={2} sx={{ pt: 1 }}>
               {formError ? <Alert severity="error">{formError}</Alert> : null}
               <TextField
                 autoFocus
                 required
-                label="Nome da etiqueta"
+                label={t("tags.page.tagNameLabel")}
                 value={tagName}
                 onChange={(event) => setTagName(event.target.value)}
                 inputProps={{ maxLength: 64 }}
               />
               <TextField
-                label="Cor hexadecimal (opcional)"
+                label={t("tags.page.tagColorLabel")}
                 value={tagColor}
                 onChange={(event) => setTagColor(event.target.value)}
-                helperText="Formato #RRGGBB"
+                helperText={t("tags.page.tagColorHelper")}
                 inputProps={{ maxLength: 7 }}
               />
             </Stack>
           </DialogContent>
           <DialogActions>
             <Button onClick={() => setCreateOpen(false)} disabled={createTagMutation.isPending}>
-              Cancelar
+              {t("documents.common.cancel")}
             </Button>
             <Button type="submit" variant="contained" disabled={createTagMutation.isPending}>
-              Salvar etiqueta
+              {t("tags.page.saveTag")}
             </Button>
           </DialogActions>
         </form>

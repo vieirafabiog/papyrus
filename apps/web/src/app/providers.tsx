@@ -1,8 +1,9 @@
-import { docuflowTheme } from "@docuflow/ui";
+import { UiLocaleProvider, createPapyrusTheme } from "@docuflow/ui";
 import { Box, Button, CssBaseline, Paper, Stack, ThemeProvider, Typography } from "@mui/material";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { Component, type ErrorInfo, type ReactNode, useState } from "react";
+import { Component, type ErrorInfo, type ReactNode, useMemo, useState } from "react";
 import { BrowserRouter } from "react-router-dom";
+import { I18nProvider, translate, useI18n } from "../i18n/index.js";
 
 interface ErrorBoundaryProps {
   readonly children: ReactNode;
@@ -20,7 +21,7 @@ export class GlobalErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoun
   }
 
   public override componentDidCatch(_error: Error, _errorInfo: ErrorInfo): void {
-    // Erros detalhados não devem ser exibidos ao usuário final na interface.
+    // Detailed errors must not be exposed to the end user in the interface.
   }
 
   private readonly handleReset = (): void => {
@@ -48,18 +49,17 @@ export class GlobalErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoun
           <Paper sx={{ maxWidth: 480, p: 4 }}>
             <Stack spacing={2}>
               <Typography variant="h2" component="h1">
-                Ocorreu um erro inesperado
+                {translate("common.errorBoundary.title")}
               </Typography>
               <Typography variant="body1" color="text.secondary">
-                Não foi possível concluir a exibição desta página. Você pode tentar novamente ou
-                recarregar a aplicação.
+                {translate("common.errorBoundary.description")}
               </Typography>
               <Stack direction="row" spacing={1.5}>
                 <Button variant="contained" onClick={this.handleReset}>
-                  Tentar novamente
+                  {translate("common.errorBoundary.retry")}
                 </Button>
                 <Button variant="outlined" onClick={this.handleReload}>
-                  Recarregar página
+                  {translate("common.errorBoundary.reload")}
                 </Button>
               </Stack>
             </Stack>
@@ -92,17 +92,31 @@ export interface AppProvidersProps {
   readonly queryClient?: QueryClient;
 }
 
-export function AppProviders({ children, queryClient }: AppProvidersProps) {
+function ThemedAppProviders({ children, queryClient }: AppProvidersProps) {
+  const { locale } = useI18n();
   const [defaultQueryClient] = useState<QueryClient>(() => queryClient ?? createAppQueryClient());
+  const theme = useMemo(() => createPapyrusTheme(locale), [locale]);
 
   return (
-    <ThemeProvider theme={docuflowTheme}>
-      <CssBaseline />
-      <GlobalErrorBoundary>
-        <QueryClientProvider client={defaultQueryClient}>
-          <BrowserRouter>{children}</BrowserRouter>
-        </QueryClientProvider>
-      </GlobalErrorBoundary>
-    </ThemeProvider>
+    <UiLocaleProvider locale={locale}>
+      <ThemeProvider theme={theme}>
+        <CssBaseline />
+        <GlobalErrorBoundary>
+          <QueryClientProvider client={defaultQueryClient}>
+            <BrowserRouter>{children}</BrowserRouter>
+          </QueryClientProvider>
+        </GlobalErrorBoundary>
+      </ThemeProvider>
+    </UiLocaleProvider>
+  );
+}
+
+export function AppProviders({ children, queryClient }: AppProvidersProps) {
+  return (
+    <I18nProvider>
+      <ThemedAppProviders {...(queryClient !== undefined ? { queryClient } : {})}>
+        {children}
+      </ThemedAppProviders>
+    </I18nProvider>
   );
 }

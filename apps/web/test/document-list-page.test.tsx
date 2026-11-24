@@ -1,5 +1,5 @@
 import "@testing-library/jest-dom/vitest";
-import { docuflowTheme } from "@docuflow/ui";
+import { papyrusTheme } from "@docuflow/ui";
 import { CssBaseline, ThemeProvider } from "@mui/material";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
@@ -22,13 +22,13 @@ function renderDocumentListPage(initialPath = "/documents") {
   });
 
   return render(
-    <ThemeProvider theme={docuflowTheme}>
+    <ThemeProvider theme={papyrusTheme}>
       <CssBaseline />
       <QueryClientProvider client={queryClient}>
         <MemoryRouter initialEntries={[initialPath]}>
           <Routes>
             <Route path="/documents" element={<DocumentListPage />} />
-            <Route path="/documents/:id" element={<h1>Detalhe do Documento</h1>} />
+            <Route path="/documents/:id" element={<h1>Document Details</h1>} />
           </Routes>
         </MemoryRouter>
       </QueryClientProvider>
@@ -58,7 +58,7 @@ function mockDocumentListFetch() {
               {
                 id: "550e8400-e29b-41d4-a716-446655440041",
                 key: "admin",
-                name: "Administrador",
+                name: "Administrator",
                 description: null,
                 isSystem: true,
               },
@@ -199,37 +199,37 @@ describe("DocumentListPage", () => {
     vi.restoreAllMocks();
   });
 
-  it("renders server-paginated documents, passes category/folder/status/owner/expiration filters and sorting to API, and navigates to details", async () => {
+  it("renders server-paginated documents, passes category/folder/status/owner/expiration filters and sorting to backend, and navigates to details", async () => {
     const fetchSpy = mockDocumentListFetch();
     renderDocumentListPage();
 
     expect(await screen.findByText("Contrato ACME Principal")).toBeInTheDocument();
     expect(screen.getByText("Contratos")).toBeInTheDocument();
     expect(screen.getByText("Jurídico")).toBeInTheDocument();
-    expect(screen.getByText("Aprovado")).toBeInTheDocument();
-    expect(screen.getByText("31/12/2026")).toBeInTheDocument();
+    expect(screen.getByText("Approved")).toBeInTheDocument();
+    expect(screen.getByText("12/31/26")).toBeInTheDocument();
 
     // Filter by category
-    fireEvent.mouseDown(screen.getByLabelText("Categoria"));
+    fireEvent.mouseDown(screen.getByLabelText("Category"));
     fireEvent.click(await screen.findByRole("option", { name: "Contratos" }));
 
     // Filter by status
     fireEvent.mouseDown(screen.getByLabelText("Status"));
-    fireEvent.click(await screen.findByRole("option", { name: "Aprovado" }));
+    fireEvent.click(await screen.findByRole("option", { name: "Approved" }));
 
     // Filter by folder
-    fireEvent.mouseDown(screen.getByLabelText("Pasta"));
+    fireEvent.mouseDown(screen.getByLabelText("Folder"));
     fireEvent.click(await screen.findByRole("option", { name: "Jurídico" }));
 
     // Filter by owner
-    fireEvent.mouseDown(screen.getByLabelText("Responsável"));
+    fireEvent.mouseDown(screen.getByLabelText("Owner"));
     fireEvent.click(await screen.findByRole("option", { name: "Ana Gestora" }));
 
     // Filter by expiration dates
-    fireEvent.change(screen.getByLabelText("Vencimento a partir de"), {
+    fireEvent.change(screen.getByLabelText("Expiration from"), {
       target: { value: "2026-01-01" },
     });
-    fireEvent.change(screen.getByLabelText("Vencimento até"), {
+    fireEvent.change(screen.getByLabelText("Expiration to"), {
       target: { value: "2026-12-31" },
     });
 
@@ -246,8 +246,8 @@ describe("DocumentListPage", () => {
       expect(last).toContain("expirationTo=2026-12-31");
     });
 
-    // Server-side sort change on Título
-    fireEvent.click(screen.getByRole("button", { name: "Título" }));
+    // Server-side sort change on Title
+    fireEvent.click(screen.getByRole("button", { name: "Title" }));
     await waitFor(() => {
       const searchCalls = fetchSpy.mock.calls
         .map((c) => String(c[0]))
@@ -258,17 +258,15 @@ describe("DocumentListPage", () => {
     });
 
     // Server-side pagination next page
-    fireEvent.click(screen.getByRole("button", { name: /Próxima página/i }));
+    fireEvent.click(screen.getByRole("button", { name: /Next page/i }));
     expect(await screen.findByText("Aditivo Página 2")).toBeInTheDocument();
 
     // Navigate to document detail
-    fireEvent.click(screen.getByRole("button", { name: "Abrir Aditivo Página 2" }));
-    expect(
-      await screen.findByRole("heading", { name: "Detalhe do Documento" }),
-    ).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Open Aditivo Página 2" }));
+    expect(await screen.findByRole("heading", { name: "Document Details" })).toBeInTheDocument();
   });
 
-  it("validates inverted expiration range locally without sending invalid queries to the API", async () => {
+  it("validates inverted expiration range locally without sending invalid queries to the backend", async () => {
     const fetchSpy = mockDocumentListFetch();
     renderDocumentListPage();
 
@@ -277,20 +275,20 @@ describe("DocumentListPage", () => {
       String(c[0]).startsWith("/api/v1/documents/search"),
     ).length;
 
-    fireEvent.change(screen.getByLabelText("Vencimento a partir de"), {
+    fireEvent.change(screen.getByLabelText("Expiration from"), {
       target: { value: "2026-12-31" },
     });
-    fireEvent.change(screen.getByLabelText("Vencimento até"), {
+    fireEvent.change(screen.getByLabelText("Expiration to"), {
       target: { value: "2026-01-01" },
     });
 
     expect(
-      await screen.findByText("A data final de vencimento deve ser maior ou igual à data inicial."),
+      await screen.findByText("The end expiration date must be on or after the start date."),
     ).toBeInTheDocument();
 
     const afterInvalidCount = fetchSpy.mock.calls.filter((c) =>
       String(c[0]).startsWith("/api/v1/documents/search"),
     ).length;
-    expect(afterInvalidCount).toBe(initialSearchCount + 1); // Only the valid expirationFrom call ran, not the inverted expirationTo
+    expect(afterInvalidCount).toBe(initialSearchCount + 1);
   });
 });

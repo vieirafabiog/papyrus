@@ -22,6 +22,8 @@ import {
   updateCategoryInputSchema,
 } from "@docuflow/contracts";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { extractUserErrorMessage, getLocalizedApiErrorMessage } from "../../i18n/api-errors.js";
+import { type MessageKey, translate } from "../../i18n/index.js";
 
 const CSRF_COOKIE_NAME = "docuflow_csrf";
 const CSRF_HEADER_NAME = "x-csrf-token";
@@ -115,23 +117,26 @@ async function resolveCsrfToken(): Promise<string> {
 
 async function parseErrorResponse(
   response: Response,
-  fallbackMessage: string,
+  fallbackKey: MessageKey,
 ): Promise<CategoryAdminFetchError> {
   try {
-    const rawJson: unknown = await response.json();
+    const rawJson: unknown = await response.clone().json();
     const parsed = apiErrorResponseSchema.safeParse(rawJson);
     if (parsed.success) {
       const details = parsed.data.error.details as { readonly domainCode?: unknown } | undefined;
       const domainCode = typeof details?.domainCode === "string" ? details.domainCode : undefined;
-      return new CategoryAdminFetchError(response.status, parsed.data.error.message, domainCode);
+      const localized = getLocalizedApiErrorMessage(
+        parsed.data.error.code,
+        response.status,
+        parsed.data.error.message,
+      );
+      return new CategoryAdminFetchError(response.status, localized, domainCode);
     }
   } catch {
-    // Non-JSON response
+    // Non-JSON response falls through to extractUserErrorMessage.
   }
-  return new CategoryAdminFetchError(
-    response.status,
-    `${fallbackMessage} (HTTP ${response.status}).`,
-  );
+  const message = await extractUserErrorMessage(response, fallbackKey);
+  return new CategoryAdminFetchError(response.status, message);
 }
 
 export async function fetchAdminCategories(
@@ -157,12 +162,12 @@ export async function fetchAdminCategories(
     headers: { Accept: "application/json" },
   });
   if (!response.ok) {
-    throw await parseErrorResponse(response, "Falha ao carregar categorias");
+    throw await parseErrorResponse(response, "admin.categories.errors.loadFailed");
   }
   const rawJson: unknown = await response.json();
   const parsed = categoryListResponseSchema.safeParse(rawJson);
   if (!parsed.success) {
-    throw new CategoryAdminFetchError(500, "Resposta inválida recebida ao listar categorias.");
+    throw new CategoryAdminFetchError(500, translate("common.errors.unexpectedResponse"));
   }
   return parsed.data.data;
 }
@@ -176,15 +181,12 @@ export async function fetchCategoryFields(
     headers: { Accept: "application/json" },
   });
   if (!response.ok) {
-    throw await parseErrorResponse(response, "Falha ao carregar campos da categoria");
+    throw await parseErrorResponse(response, "admin.categories.errors.loadFieldsFailed");
   }
   const rawJson: unknown = await response.json();
   const parsed = categoryFieldListResponseSchema.safeParse(rawJson);
   if (!parsed.success) {
-    throw new CategoryAdminFetchError(
-      500,
-      "Resposta inválida recebida ao carregar campos da categoria.",
-    );
+    throw new CategoryAdminFetchError(500, translate("common.errors.unexpectedResponse"));
   }
   return parsed.data.data;
 }
@@ -204,12 +206,12 @@ export async function createCategory(payload: CreateCategoryInput): Promise<Cate
     body: JSON.stringify(validated),
   });
   if (!response.ok) {
-    throw await parseErrorResponse(response, "Falha ao cadastrar categoria");
+    throw await parseErrorResponse(response, "admin.categories.errors.createFailed");
   }
   const rawJson: unknown = await response.json();
   const parsed = categorySummaryResponseSchema.safeParse(rawJson);
   if (!parsed.success) {
-    throw new CategoryAdminFetchError(500, "Resposta inválida recebida ao cadastrar categoria.");
+    throw new CategoryAdminFetchError(500, translate("common.errors.unexpectedResponse"));
   }
   return parsed.data.data;
 }
@@ -232,12 +234,12 @@ export async function updateCategory(
     body: JSON.stringify(validated),
   });
   if (!response.ok) {
-    throw await parseErrorResponse(response, "Falha ao atualizar categoria");
+    throw await parseErrorResponse(response, "admin.categories.errors.updateFailed");
   }
   const rawJson: unknown = await response.json();
   const parsed = categorySummaryResponseSchema.safeParse(rawJson);
   if (!parsed.success) {
-    throw new CategoryAdminFetchError(500, "Resposta inválida recebida ao atualizar categoria.");
+    throw new CategoryAdminFetchError(500, translate("common.errors.unexpectedResponse"));
   }
   return parsed.data.data;
 }
@@ -254,12 +256,12 @@ export async function deactivateCategory(categoryId: string): Promise<CategorySu
     },
   });
   if (!response.ok) {
-    throw await parseErrorResponse(response, "Falha ao desativar categoria");
+    throw await parseErrorResponse(response, "admin.categories.errors.deactivateFailed");
   }
   const rawJson: unknown = await response.json();
   const parsed = categorySummaryResponseSchema.safeParse(rawJson);
   if (!parsed.success) {
-    throw new CategoryAdminFetchError(500, "Resposta inválida recebida ao desativar categoria.");
+    throw new CategoryAdminFetchError(500, translate("common.errors.unexpectedResponse"));
   }
   return parsed.data.data;
 }
@@ -282,15 +284,12 @@ export async function addCategoryField(
     body: JSON.stringify(validated),
   });
   if (!response.ok) {
-    throw await parseErrorResponse(response, "Falha ao adicionar campo personalizado");
+    throw await parseErrorResponse(response, "admin.categories.editor.errors.addFieldFailed");
   }
   const rawJson: unknown = await response.json();
   const parsed = categoryFieldResponseSchema.safeParse(rawJson);
   if (!parsed.success) {
-    throw new CategoryAdminFetchError(
-      500,
-      "Resposta inválida recebida ao adicionar campo personalizado.",
-    );
+    throw new CategoryAdminFetchError(500, translate("common.errors.unexpectedResponse"));
   }
   return parsed.data.data;
 }
@@ -317,15 +316,12 @@ export async function updateCategoryField(
     },
   );
   if (!response.ok) {
-    throw await parseErrorResponse(response, "Falha ao atualizar campo personalizado");
+    throw await parseErrorResponse(response, "admin.categories.editor.errors.updateFieldFailed");
   }
   const rawJson: unknown = await response.json();
   const parsed = categoryFieldResponseSchema.safeParse(rawJson);
   if (!parsed.success) {
-    throw new CategoryAdminFetchError(
-      500,
-      "Resposta inválida recebida ao atualizar campo personalizado.",
-    );
+    throw new CategoryAdminFetchError(500, translate("common.errors.unexpectedResponse"));
   }
   return parsed.data.data;
 }
@@ -352,7 +348,7 @@ export async function deleteCategoryField(
     },
   );
   if (!response.ok) {
-    throw await parseErrorResponse(response, "Falha ao remover campo personalizado");
+    throw await parseErrorResponse(response, "admin.categories.editor.errors.removeFieldFailed");
   }
 }
 

@@ -1,11 +1,12 @@
 import "@testing-library/jest-dom/vitest";
-import { docuflowTheme } from "@docuflow/ui";
+import { UiLocaleProvider, papyrusTheme } from "@docuflow/ui";
 import { CssBaseline, ThemeProvider } from "@mui/material";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter, useLocation } from "react-router-dom";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { AppRoutes } from "../src/app/router.js";
+import { I18nProvider, resetUiLocaleForTests } from "../src/i18n/index.js";
 
 function LocationProbe() {
   const location = useLocation();
@@ -20,21 +21,26 @@ function renderAt(initialPath: string) {
   });
 
   return render(
-    <ThemeProvider theme={docuflowTheme}>
-      <CssBaseline />
-      <QueryClientProvider client={queryClient}>
-        <MemoryRouter initialEntries={[initialPath]}>
-          <LocationProbe />
-          <AppRoutes />
-        </MemoryRouter>
-      </QueryClientProvider>
-    </ThemeProvider>,
+    <I18nProvider initialLocale="en-US">
+      <UiLocaleProvider locale="en-US">
+        <ThemeProvider theme={papyrusTheme}>
+          <CssBaseline />
+          <QueryClientProvider client={queryClient}>
+            <MemoryRouter initialEntries={[initialPath]}>
+              <LocationProbe />
+              <AppRoutes />
+            </MemoryRouter>
+          </QueryClientProvider>
+        </ThemeProvider>
+      </UiLocaleProvider>
+    </I18nProvider>,
   );
 }
 
 describe("Web main routing and session guards", () => {
   afterEach(() => {
     cleanup();
+    resetUiLocaleForTests();
     vi.restoreAllMocks();
   });
 
@@ -43,7 +49,15 @@ describe("Web main routing and session guards", () => {
 
     renderAt("/documents");
 
-    expect(await screen.findByRole("heading", { name: "Entrar no papyrus" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Sign in to papyrus" })).toBeInTheDocument();
+  });
+
+  it("localizes public /forgot-password route view", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response(null, { status: 401 }));
+
+    renderAt("/forgot-password");
+
+    expect(await screen.findByRole("heading", { name: "Password recovery" })).toBeInTheDocument();
   });
 
   it("redirects legacy Portuguese URLs to canonical English routes preserving params and query", async () => {
@@ -113,7 +127,7 @@ describe("Web main routing and session guards", () => {
 
     renderAt("/login");
 
-    expect(await screen.findByRole("heading", { name: "Visão geral" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Overview" })).toBeInTheDocument();
   });
 
   it("displays an error alert with retry action when session check fails", async () => {
@@ -125,14 +139,15 @@ describe("Web main routing and session guards", () => {
     renderAt("/");
 
     expect(
-      await screen.findByRole("heading", { name: "Não foi possível validar sua sessão" }),
+      await screen.findByRole("heading", { name: "Unable to validate your session" }),
     ).toBeInTheDocument();
+    expect(screen.getByText("Check your connection and try again.")).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("button", { name: "Tentar novamente" }));
+    fireEvent.click(screen.getByRole("button", { name: "Try again" }));
 
     await waitFor(() => {
       expect(fetchSpy).toHaveBeenCalledTimes(2);
     });
-    expect(await screen.findByRole("heading", { name: "Entrar no papyrus" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Sign in to papyrus" })).toBeInTheDocument();
   });
 });

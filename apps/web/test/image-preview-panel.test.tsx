@@ -1,6 +1,6 @@
 import "@testing-library/jest-dom/vitest";
 import type { DocumentDetail } from "@docuflow/contracts";
-import { docuflowTheme } from "@docuflow/ui";
+import { papyrusTheme } from "@docuflow/ui";
 import { CssBaseline, ThemeProvider } from "@mui/material";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -106,7 +106,7 @@ describe("DocumentPreviewPanel — images and fallback formats", () => {
       });
 
       const { unmount } = render(
-        <ThemeProvider theme={docuflowTheme}>
+        <ThemeProvider theme={papyrusTheme}>
           <CssBaseline />
           <DocumentPreviewPanel
             document={createDocument({ contentType: "image/png", fileName: "foto-vistoria.png" })}
@@ -116,7 +116,7 @@ describe("DocumentPreviewPanel — images and fallback formats", () => {
       );
 
       const image = await screen.findByRole("img", {
-        name: "Pré-visualização da imagem: foto-vistoria.png",
+        name: "Image preview: foto-vistoria.png",
       });
       expect(image).toHaveAttribute("src", "blob:http://localhost/image-preview-1");
       expect(fetchMock).toHaveBeenCalledWith(
@@ -145,7 +145,7 @@ describe("DocumentPreviewPanel — images and fallback formats", () => {
     const onDownload = vi.fn();
 
     render(
-      <ThemeProvider theme={docuflowTheme}>
+      <ThemeProvider theme={papyrusTheme}>
         <CssBaseline />
         <DocumentPreviewPanel
           document={createDocument({
@@ -161,11 +161,9 @@ describe("DocumentPreviewPanel — images and fallback formats", () => {
     );
 
     expect(fetchMock).not.toHaveBeenCalled();
-    expect(
-      screen.getByText(/ultrapassa o limite máximo de 10\.00 MB para pré-visualização inline/i),
-    ).toBeInTheDocument();
+    expect(screen.getByText(/exceeds the 10\.0 MB limit for in-page preview/i)).toBeInTheDocument();
 
-    const downloadBtn = screen.getByRole("button", { name: "Baixar arquivo" });
+    const downloadBtn = screen.getByRole("button", { name: "Download file" });
     fireEvent.click(downloadBtn);
     await waitFor(() => {
       expect(onDownload).toHaveBeenCalledTimes(1);
@@ -177,7 +175,7 @@ describe("DocumentPreviewPanel — images and fallback formats", () => {
     const onDownload = vi.fn();
 
     render(
-      <ThemeProvider theme={docuflowTheme}>
+      <ThemeProvider theme={papyrusTheme}>
         <CssBaseline />
         <DocumentPreviewPanel
           document={createDocument({
@@ -192,11 +190,9 @@ describe("DocumentPreviewPanel — images and fallback formats", () => {
     );
 
     expect(fetchMock).not.toHaveBeenCalled();
-    expect(
-      screen.getByText(/Pré-visualização inline não disponível para o formato "image\/svg\+xml"/i),
-    ).toBeInTheDocument();
+    expect(screen.getByText(/Preview is not available for "image\/svg\+xml"/i)).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("button", { name: "Baixar arquivo" }));
+    fireEvent.click(screen.getByRole("button", { name: "Download file" }));
     await waitFor(() => {
       expect(onDownload).toHaveBeenCalledTimes(1);
     });
@@ -206,7 +202,7 @@ describe("DocumentPreviewPanel — images and fallback formats", () => {
     const fetchMock = vi.fn<typeof fetch>();
 
     render(
-      <ThemeProvider theme={docuflowTheme}>
+      <ThemeProvider theme={papyrusTheme}>
         <CssBaseline />
         <DocumentPreviewPanel
           document={createDocument({
@@ -220,9 +216,9 @@ describe("DocumentPreviewPanel — images and fallback formats", () => {
     );
 
     expect(fetchMock).not.toHaveBeenCalled();
-    expect(screen.queryByRole("button", { name: "Baixar arquivo" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Download file" })).not.toBeInTheDocument();
     expect(
-      screen.getByText("Você possui permissão apenas de leitura para este documento."),
+      screen.getByText("You have view-only permission for this document."),
     ).toBeInTheDocument();
   });
 });

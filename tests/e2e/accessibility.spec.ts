@@ -389,6 +389,12 @@ test.describe("Acessibilidade WCAG 2.2 AA dos fluxos críticos", () => {
     await env?.stop();
   });
 
+  test.beforeEach(async ({ page }) => {
+    await page.context().addInitScript(() => {
+      window.localStorage.setItem("papyrus_ui_locale", "pt-BR");
+    });
+  });
+
   test("valida login, lista, upload, detalhe, tarefa e administração por teclado, labels e contraste", async ({
     page,
     browser,
@@ -490,6 +496,9 @@ test.describe("Acessibilidade WCAG 2.2 AA dos fluxos críticos", () => {
 
     // 5. Fluxo de Tarefas: login do revisor, fila de tarefas (/tasks) e tela de revisão (/tasks/:id)
     const reviewerContext = await browser.newContext({ locale: "pt-BR" });
+    await reviewerContext.addInitScript(() => {
+      window.localStorage.setItem("papyrus_ui_locale", "pt-BR");
+    });
     const reviewerPage = await reviewerContext.newPage();
 
     await reviewerPage.goto(env.baseUrl);
@@ -523,13 +532,13 @@ test.describe("Acessibilidade WCAG 2.2 AA dos fluxos críticos", () => {
 
     // 6. Fluxo de Administração: usuários (/admin/users), armazenamento (/admin/storage) e categorias (/categories)
     await page.getByRole("link", { name: "Usuários e grupos" }).first().click();
-    await expect(page).toHaveURL(/\/admin\/usuarios$/);
+    await expect(page).toHaveURL(/\/admin\/users$/);
     await expect(page.getByRole("heading", { name: /Usuários/i })).toBeVisible();
     await expect(page.getByText(env.credentials.email)).toBeVisible();
     await auditViewAccessibility(page, "Administração - Usuários");
 
     await page.getByRole("link", { name: "Armazenamento" }).first().click();
-    await expect(page).toHaveURL(/\/admin\/armazenamento$/);
+    await expect(page).toHaveURL(/\/admin\/storage$/);
     await expect(page.getByRole("heading", { name: /Armazenamento/i })).toBeVisible();
     await expect(page.getByText("Local E2E")).toBeVisible();
     await auditViewAccessibility(page, "Administração - Armazenamento");

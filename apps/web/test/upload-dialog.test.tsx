@@ -1,6 +1,6 @@
 import "@testing-library/jest-dom/vitest";
 import { CONTRACTS_API_PREFIX } from "@docuflow/contracts";
-import { docuflowTheme } from "@docuflow/ui";
+import { papyrusTheme } from "@docuflow/ui";
 import { CssBaseline, ThemeProvider } from "@mui/material";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -16,7 +16,7 @@ const SAMPLE_UUID_3 = "550e8400-e29b-41d4-a716-446655440003";
 
 function renderDialog(props: Partial<UploadDialogProps> = {}) {
   return render(
-    <ThemeProvider theme={docuflowTheme}>
+    <ThemeProvider theme={papyrusTheme}>
       <CssBaseline />
       <UploadDialog
         open
@@ -39,25 +39,34 @@ describe("UploadDialog and useUploadDocuments", () => {
     const fetchSpy = vi.fn<typeof fetch>();
     renderDialog({ maxFileBytes: 1024, fetchFn: fetchSpy });
 
-    const input = screen.getByLabelText("Selecionar arquivos para envio") as HTMLInputElement;
+    expect(screen.getByText("Document details")).toBeInTheDocument();
+
+    const input = screen.getByLabelText("Select files to upload") as HTMLInputElement;
     const emptyFile = new File([], "vazio.pdf", { type: "application/pdf" });
     const hugeFile = new File([new Uint8Array(2048)], "grande.pdf", { type: "application/pdf" });
     const validFile = new File(["%PDF-1.7\n"], "valido.pdf", { type: "application/pdf" });
 
     fireEvent.change(input, { target: { files: [emptyFile, hugeFile, validFile] } });
 
-    expect(
-      await screen.findByText("Arquivo vazio não é permitido para envio."),
-    ).toBeInTheDocument();
-    expect(screen.getByText(/Arquivo excede o limite máximo permitido/)).toBeInTheDocument();
+    expect(await screen.findByText("Empty files cannot be uploaded.")).toBeInTheDocument();
+    expect(screen.getByText(/File exceeds the maximum allowed size/)).toBeInTheDocument();
     expect(screen.getByText("valido.pdf")).toBeInTheDocument();
 
     // Attempt submit without selecting required category
-    fireEvent.click(screen.getByRole("button", { name: "Iniciar envio (1)" }));
+    fireEvent.click(screen.getByRole("button", { name: "Start upload (1)" }));
     expect(
-      await screen.findByText("Selecione uma categoria documental antes de enviar."),
+      await screen.findByText("Select a document category before uploading."),
     ).toBeInTheDocument();
     expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
+  it("renders default category fallback without technical jargon when no categories are passed", () => {
+    renderDialog({ categories: [] });
+
+    expect(
+      screen.getByText("No categories available; the default category will be used."),
+    ).toBeInTheDocument();
+    expect(screen.getByText("Default category")).toBeInTheDocument();
   });
 
   it("uploads multiple files with real-time progress, handles partial batch failures, and retries individual items", async () => {
@@ -149,29 +158,29 @@ describe("UploadDialog and useUploadDocuments", () => {
       onUploadBatchFinished: onFinished,
     });
 
-    const fileInput = screen.getByLabelText("Selecionar arquivos para envio") as HTMLInputElement;
+    const fileInput = screen.getByLabelText("Select files to upload") as HTMLInputElement;
     const file1 = new File(["%PDF-1.7-one"], "primeiro.pdf", { type: "application/pdf" });
     const file2 = new File(["%PDF-1.7-two"], "segundo.pdf", { type: "application/pdf" });
 
     fireEvent.change(fileInput, { target: { files: [file1, file2] } });
-    fireEvent.click(screen.getByRole("button", { name: "Iniciar envio (2)" }));
+    fireEvent.click(screen.getByRole("button", { name: "Start upload (2)" }));
 
-    // Partial failure summary: 1 sent to quarantine ("Em análise"), 1 failed ("Falha no envio")
+    // Partial failure summary: 1 sent to review ("Under review"), 1 failed ("Upload failed")
     expect(
-      await screen.findByText(/1 arquivo\(s\) enviado\(s\) e 1 item\(ns\) não concluído\(s\)/),
+      await screen.findByText(/1 file\(s\) uploaded and 1 item\(s\) did not complete/),
     ).toBeInTheDocument();
-    expect(screen.getByText("Em análise")).toBeInTheDocument();
-    expect(screen.getByText("Falha no envio")).toBeInTheDocument();
+    expect(screen.getByText("Under review")).toBeInTheDocument();
+    expect(screen.getByText("Upload failed")).toBeInTheDocument();
     expect(onFinished).toHaveBeenCalledTimes(1);
 
     // Retry ONLY the failed file cleanly
     shouldFailSecondFile = false;
-    fireEvent.click(screen.getByRole("button", { name: /Tentar novamente segundo\.pdf/i }));
+    fireEvent.click(screen.getByRole("button", { name: /Retry segundo\.pdf/i }));
 
     await waitFor(() => {
-      expect(screen.getAllByText("Em análise")).toHaveLength(2);
+      expect(screen.getAllByText("Under review")).toHaveLength(2);
     });
-    expect(screen.queryByText("Falha no envio")).not.toBeInTheDocument();
+    expect(screen.queryByText("Upload failed")).not.toBeInTheDocument();
   });
 
   it("supports mid-flight progress reporting and individual upload cancellation", async () => {
@@ -209,12 +218,11 @@ describe("UploadDialog and useUploadDocuments", () => {
         );
       }
       if (url.endsWith("/signed-target")) {
-        // Return 409 to also test local API streaming fallback!
         return new Response(
           JSON.stringify({
             error: {
               code: "CONFLICT",
-              message: "Streaming local exigido",
+              message: "Direct upload fallback",
               requestId: SAMPLE_UUID_1,
             },
           }),
@@ -241,25 +249,23 @@ describe("UploadDialog and useUploadDocuments", () => {
       binaryUploader,
     });
 
-    const fileInput = screen.getByLabelText("Selecionar arquivos para envio") as HTMLInputElement;
+    const fileInput = screen.getByLabelText("Select files to upload") as HTMLInputElement;
     const docFile = new File([new Uint8Array(100)], "cancelavel.pdf", {
       type: "application/pdf",
     });
 
     fireEvent.change(fileInput, { target: { files: [docFile] } });
-    fireEvent.click(screen.getByRole("button", { name: "Iniciar envio (1)" }));
+    fireEvent.click(screen.getByRole("button", { name: "Start upload (1)" }));
 
-    // Verify 45% progress bar & API local content fallback route
-    const progressBar = await screen.findByLabelText("Progresso de envio de cancelavel.pdf");
+    const progressBar = await screen.findByLabelText("Upload progress for cancelavel.pdf");
     expect(progressBar).toHaveAttribute("aria-valuenow", "45");
     expect(capturedUrl).toBe(`${CONTRACTS_API_PREFIX}/uploads/sessions/${SAMPLE_UUID_1}/content`);
 
-    // Cancel active upload
-    fireEvent.click(screen.getByRole("button", { name: /Cancelar cancelavel\.pdf/i }));
+    fireEvent.click(screen.getByRole("button", { name: /Cancel cancelavel\.pdf/i }));
     releaseUpload();
 
-    expect(await screen.findByText("Cancelado")).toBeInTheDocument();
-    expect(screen.getByText("Envio cancelado pelo usuário.")).toBeInTheDocument();
+    expect(await screen.findByText("Cancelled")).toBeInTheDocument();
+    expect(screen.getByText("Upload cancelled by user.")).toBeInTheDocument();
   });
 
   it("loads custom category fields, validates required fields, and sends metadata on document creation", async () => {
@@ -377,20 +383,18 @@ describe("UploadDialog and useUploadDocuments", () => {
     const numField = await screen.findByLabelText(/Nº do CTRB/);
     const valField = await screen.findByLabelText(/Valor do CTRB/);
 
-    const fileInput = screen.getByLabelText("Selecionar arquivos para envio") as HTMLInputElement;
+    const fileInput = screen.getByLabelText("Select files to upload") as HTMLInputElement;
     fireEvent.change(fileInput, {
       target: { files: [new File(["%PDF-1.7-ctrb"], "ctrb.pdf", { type: "application/pdf" })] },
     });
 
-    // Submitting with empty required fields blocks upload and displays errors
-    fireEvent.click(screen.getByRole("button", { name: "Iniciar envio (1)" }));
-    expect(await screen.findAllByText("Campo obrigatório não informado.")).toHaveLength(2);
+    fireEvent.click(screen.getByRole("button", { name: "Start upload (1)" }));
+    expect(await screen.findAllByText("This field is required.")).toHaveLength(2);
     expect(capturedCreateDocBody).toBeNull();
 
-    // Fill fields (including comma decimal for pt-BR NUMBER) and submit
     fireEvent.change(numField, { target: { value: "CTRB-2026-01" } });
     fireEvent.change(valField, { target: { value: "1250,50" } });
-    fireEvent.click(screen.getByRole("button", { name: "Iniciar envio (1)" }));
+    fireEvent.click(screen.getByRole("button", { name: "Start upload (1)" }));
 
     await waitFor(() => {
       expect(capturedCreateDocBody).not.toBeNull();
@@ -409,12 +413,12 @@ describe("UploadDialog and useUploadDocuments", () => {
       ],
     });
 
-    const folderSelect = screen.getByLabelText("Pasta de destino");
+    const folderSelect = screen.getByLabelText("Destination folder");
     fireEvent.mouseDown(folderSelect);
 
     const options = await screen.findAllByRole("option");
     expect(options.map((opt) => opt.textContent)).toEqual([
-      "Raiz do acervo",
+      "Document library root",
       "Arquivos pessoais",
       "Teste de Subpasta",
     ]);

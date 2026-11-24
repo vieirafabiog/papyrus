@@ -12,6 +12,8 @@ import {
   taskDetailResponseSchema,
 } from "@docuflow/contracts";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { getLocalizedApiErrorMessage } from "../../i18n/api-errors.js";
+import { type MessageKey, translate } from "../../i18n/index.js";
 import { documentWorkflowTimelineQueryKey } from "../documents/DocumentWorkflowTimeline.js";
 import {
   documentDetailsQueryKey,
@@ -75,20 +77,32 @@ async function resolveCsrfToken(): Promise<string> {
 
 async function parseTaskReviewError(
   response: Response,
-  fallbackMessage: string,
+  fallbackKey: MessageKey,
 ): Promise<TaskReviewRequestError> {
-  let message = `${fallbackMessage} (${response.status}).`;
+  let serverMessage: string | undefined;
   let code: string | undefined;
   try {
     const rawError: unknown = await response.json();
     const parsed = apiErrorResponseSchema.safeParse(rawError);
     if (parsed.success) {
-      message = parsed.data.error.message;
+      serverMessage = parsed.data.error.message;
       code = parsed.data.error.code;
     }
   } catch {
-    // Fallback to HTTP status code message.
+    // Non-JSON response falls through to localized status/fallback message.
   }
+
+  const hasKnownStatus =
+    response.status === 401 ||
+    response.status === 403 ||
+    response.status === 404 ||
+    response.status === 409 ||
+    response.status === 429;
+  const message =
+    code || hasKnownStatus
+      ? getLocalizedApiErrorMessage(code, response.status, serverMessage)
+      : translate(fallbackKey);
+
   return new TaskReviewRequestError(response.status, message, code);
 }
 
@@ -107,13 +121,13 @@ export async function fetchTaskDetail(
   });
 
   if (!response.ok) {
-    throw await parseTaskReviewError(response, "Não foi possível carregar os detalhes da tarefa");
+    throw await parseTaskReviewError(response, "tasks.errors.loadDetail");
   }
 
   const rawJson: unknown = await response.json();
   const parsed = taskDetailResponseSchema.safeParse(rawJson);
   if (!parsed.success) {
-    throw new TaskReviewRequestError(500, "Resposta inválida recebida ao consultar a tarefa.");
+    throw new TaskReviewRequestError(500, translate("tasks.errors.invalidDetailResponse"));
   }
 
   return parsed.data.data;
@@ -137,13 +151,13 @@ export async function fetchTaskDocumentVersions(
   );
 
   if (!response.ok) {
-    throw await parseTaskReviewError(response, "Falha ao consultar o histórico de versões");
+    throw await parseTaskReviewError(response, "tasks.errors.loadVersions");
   }
 
   const rawJson: unknown = await response.json();
   const parsed = documentVersionHistoryListResponseSchema.safeParse(rawJson);
   if (!parsed.success) {
-    throw new TaskReviewRequestError(500, "Resposta inválida ao consultar versões do documento.");
+    throw new TaskReviewRequestError(500, translate("tasks.errors.invalidVersionsResponse"));
   }
 
   return parsed.data.data;
@@ -185,16 +199,13 @@ export async function submitTaskDecision(
   );
 
   if (!response.ok) {
-    throw await parseTaskReviewError(response, "Não foi possível registrar a decisão da tarefa");
+    throw await parseTaskReviewError(response, "tasks.errors.submitDecision");
   }
 
   const rawJson: unknown = await response.json();
   const parsed = submitTaskDecisionResponseSchema.safeParse(rawJson);
   if (!parsed.success) {
-    throw new TaskReviewRequestError(
-      500,
-      "Resposta inválida recebida ao confirmar a decisão da tarefa.",
-    );
+    throw new TaskReviewRequestError(500, translate("tasks.errors.invalidDecisionResponse"));
   }
 
   return parsed.data.data;

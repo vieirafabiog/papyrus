@@ -3,9 +3,10 @@ import {
   type AuthMeResponse,
   CONTRACTS_API_PREFIX,
   adminSystemStatusResponseSchema,
-  apiErrorResponseSchema,
 } from "@docuflow/contracts";
 import { useQuery } from "@tanstack/react-query";
+import { extractUserErrorMessage } from "../../i18n/api-errors.js";
+import { translate } from "../../i18n/index.js";
 
 export class SystemStatusFetchError extends Error {
   public readonly statusCode: number;
@@ -41,27 +42,14 @@ export async function fetchSystemStatus(): Promise<AdminSystemStatusReportContra
   });
 
   if (!response.ok) {
-    try {
-      const rawError: unknown = await response.json();
-      const parsedError = apiErrorResponseSchema.safeParse(rawError);
-      if (parsedError.success) {
-        throw new SystemStatusFetchError(response.status, parsedError.data.error.message);
-      }
-    } catch (error) {
-      if (error instanceof SystemStatusFetchError) {
-        throw error;
-      }
-    }
-    throw new SystemStatusFetchError(
-      response.status,
-      `Falha ao consultar o status operacional (HTTP ${response.status}).`,
-    );
+    const message = await extractUserErrorMessage(response, "admin.systemStatus.errors.loadFailed");
+    throw new SystemStatusFetchError(response.status, message);
   }
 
   const rawJson: unknown = await response.json();
   const parsed = adminSystemStatusResponseSchema.safeParse(rawJson);
   if (!parsed.success) {
-    throw new SystemStatusFetchError(500, "Resposta inválida recebida do status operacional.");
+    throw new SystemStatusFetchError(500, translate("common.errors.unexpectedResponse"));
   }
   return parsed.data.data;
 }

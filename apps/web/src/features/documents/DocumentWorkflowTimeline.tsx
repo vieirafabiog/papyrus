@@ -8,7 +8,7 @@ import {
   apiErrorResponseSchema,
   documentWorkflowTimelineResponseSchema,
 } from "@docuflow/contracts";
-import { DOCUFLOW_COLOR_TOKENS, EmptyState, ErrorState } from "@docuflow/ui";
+import { EmptyState, ErrorState, PAPYRUS_COLOR_TOKENS } from "@docuflow/ui";
 import AccountTreeOutlinedIcon from "@mui/icons-material/AccountTreeOutlined";
 import CheckCircleOutlineOutlinedIcon from "@mui/icons-material/CheckCircleOutlineOutlined";
 import EditNoteOutlinedIcon from "@mui/icons-material/EditNoteOutlined";
@@ -17,6 +17,8 @@ import RadioButtonUncheckedOutlinedIcon from "@mui/icons-material/RadioButtonUnc
 import ScheduleOutlinedIcon from "@mui/icons-material/ScheduleOutlined";
 import { Alert, Box, Chip, Divider, Paper, Stack, Typography } from "@mui/material";
 import { useQuery } from "@tanstack/react-query";
+import { getLocalizedApiErrorMessage } from "../../i18n/api-errors.js";
+import { type MessageKey, translate, useI18n } from "../../i18n/index.js";
 
 export class WorkflowTimelineFetchError extends Error {
   public readonly statusCode: number;
@@ -34,18 +36,31 @@ export function documentWorkflowTimelineQueryKey(documentId: string) {
 
 async function parseTimelineError(
   response: Response,
-  fallbackMessage: string,
+  fallbackKey: MessageKey,
 ): Promise<WorkflowTimelineFetchError> {
-  let message = `${fallbackMessage} (${response.status}).`;
+  let serverMessage: string | undefined;
+  let code: string | undefined;
   try {
     const rawError: unknown = await response.json();
     const parsed = apiErrorResponseSchema.safeParse(rawError);
     if (parsed.success) {
-      message = parsed.data.error.message;
+      serverMessage = parsed.data.error.message;
+      code = parsed.data.error.code;
     }
   } catch {
-    // Fallback to HTTP status message.
+    // Non-JSON response falls through to localized status/fallback message.
   }
+
+  const hasKnownStatus =
+    response.status === 401 ||
+    response.status === 403 ||
+    response.status === 404 ||
+    response.status === 429;
+  const message =
+    code || hasKnownStatus
+      ? getLocalizedApiErrorMessage(code, response.status, serverMessage)
+      : translate(fallbackKey);
+
   return new WorkflowTimelineFetchError(response.status, message);
 }
 
@@ -72,10 +87,7 @@ export async function fetchDocumentWorkflowTimeline(
   }
 
   if (!response.ok) {
-    throw await parseTimelineError(
-      response,
-      "Não foi possível carregar a linha do tempo do processo",
-    );
+    throw await parseTimelineError(response, "workflows.errors.loadTimeline");
   }
 
   const rawJson: unknown = await response.json();
@@ -83,7 +95,7 @@ export async function fetchDocumentWorkflowTimeline(
   if (!parsed.success) {
     throw new WorkflowTimelineFetchError(
       500,
-      "Resposta inválida recebida ao consultar o histórico do fluxo.",
+      translate("workflows.errors.invalidTimelineResponse"),
     );
   }
 
@@ -102,53 +114,48 @@ export function useDocumentWorkflowTimelineQuery(documentId: string) {
 const INSTANCE_STATUS_BADGE: Readonly<
   Record<
     WorkflowInstanceStatus,
-    { readonly label: string; readonly color: "default" | "info" | "success" | "warning" | "error" }
+    {
+      readonly key: MessageKey;
+      readonly color: "default" | "info" | "success" | "warning" | "error";
+    }
   >
 > = {
-  ACTIVE: { label: "Em andamento", color: "info" },
-  COMPLETED: { label: "Concluído", color: "success" },
-  REJECTED: { label: "Rejeitado", color: "error" },
-  CHANGES_REQUESTED: { label: "Ajustes solicitados", color: "warning" },
-  CANCELLED: { label: "Cancelado", color: "default" },
-  EXPIRED: { label: "Expirado", color: "error" },
+  ACTIVE: { key: "workflows.instanceStatus.ACTIVE", color: "info" },
+  COMPLETED: { key: "workflows.instanceStatus.COMPLETED", color: "success" },
+  REJECTED: { key: "workflows.instanceStatus.REJECTED", color: "error" },
+  CHANGES_REQUESTED: { key: "workflows.instanceStatus.CHANGES_REQUESTED", color: "warning" },
+  CANCELLED: { key: "workflows.instanceStatus.CANCELLED", color: "default" },
+  EXPIRED: { key: "workflows.instanceStatus.EXPIRED", color: "error" },
 };
 
 const TASK_STATUS_BADGE: Readonly<
   Record<
     WorkflowTaskStatus,
-    { readonly label: string; readonly color: "default" | "info" | "success" | "warning" | "error" }
+    {
+      readonly key: MessageKey;
+      readonly color: "default" | "info" | "success" | "warning" | "error";
+    }
   >
 > = {
-  PENDING: { label: "Pendente", color: "info" },
-  APPROVED: { label: "Aprovada", color: "success" },
-  REJECTED: { label: "Rejeitada", color: "error" },
-  CHANGES_REQUESTED: { label: "Ajustes solicitados", color: "warning" },
-  CANCELLED: { label: "Cancelada", color: "default" },
-  EXPIRED: { label: "Expirada", color: "error" },
+  PENDING: { key: "workflows.taskStatus.PENDING", color: "info" },
+  APPROVED: { key: "workflows.taskStatus.APPROVED", color: "success" },
+  REJECTED: { key: "workflows.taskStatus.REJECTED", color: "error" },
+  CHANGES_REQUESTED: { key: "workflows.taskStatus.CHANGES_REQUESTED", color: "warning" },
+  CANCELLED: { key: "workflows.taskStatus.CANCELLED", color: "default" },
+  EXPIRED: { key: "workflows.taskStatus.EXPIRED", color: "error" },
 };
 
-const DECISION_LABEL: Readonly<Record<WorkflowDecisionType, string>> = {
-  APPROVE: "Aprovado",
-  REJECT: "Rejeitado",
-  REQUEST_CHANGES: "Ajustes solicitados",
+const DECISION_LABEL_KEY: Readonly<Record<WorkflowDecisionType, MessageKey>> = {
+  APPROVE: "workflows.decision.APPROVE",
+  REJECT: "workflows.decision.REJECT",
+  REQUEST_CHANGES: "workflows.decision.REQUEST_CHANGES",
 };
 
-const ASSIGNEE_TYPE_LABEL: Readonly<Record<WorkflowTimelineStep["assigneeType"], string>> = {
-  USER: "Usuário",
-  GROUP: "Grupo",
-  ROLE: "Papel",
+const ASSIGNEE_TYPE_KEY: Readonly<Record<WorkflowTimelineStep["assigneeType"], MessageKey>> = {
+  USER: "workflows.assigneeType.USER",
+  GROUP: "workflows.assigneeType.GROUP",
+  ROLE: "workflows.assigneeType.ROLE",
 };
-
-function formatDateTimePtBr(isoDateTime: string | null): string | null {
-  if (!isoDateTime) {
-    return null;
-  }
-  const parsed = new Date(isoDateTime);
-  if (Number.isNaN(parsed.getTime())) {
-    return isoDateTime;
-  }
-  return parsed.toLocaleString("pt-BR");
-}
 
 function renderStepStatusIcon(step: WorkflowTimelineStep) {
   switch (step.taskStatus) {
@@ -176,6 +183,7 @@ export interface DocumentWorkflowTimelineProps {
  * authorized users.
  */
 export function DocumentWorkflowTimeline({ documentId }: DocumentWorkflowTimelineProps) {
+  const { t, formatDateTime } = useI18n();
   const timelineQuery = useDocumentWorkflowTimelineQuery(documentId);
 
   return (
@@ -183,41 +191,43 @@ export function DocumentWorkflowTimeline({ documentId }: DocumentWorkflowTimelin
       variant="outlined"
       sx={{
         p: 2.5,
-        bgcolor: DOCUFLOW_COLOR_TOKENS.surface.containerLowest,
-        borderColor: DOCUFLOW_COLOR_TOKENS.surface.outlineVariant,
+        bgcolor: PAPYRUS_COLOR_TOKENS.surface.containerLowest,
+        borderColor: PAPYRUS_COLOR_TOKENS.surface.outlineVariant,
       }}
     >
       <Stack direction="row" spacing={1} alignItems="center" justifyContent="space-between" mb={1}>
         <Stack direction="row" spacing={1} alignItems="center">
           <AccountTreeOutlinedIcon color="primary" fontSize="small" />
           <Typography variant="h6" component="h2">
-            Linha do tempo do processo
+            {t("workflows.timeline.title")}
           </Typography>
         </Stack>
-        <Chip label="Somente leitura" size="small" variant="outlined" />
+        <Chip label={t("workflows.timeline.readOnly")} size="small" variant="outlined" />
       </Stack>
       <Divider sx={{ mb: 2 }} />
 
       {timelineQuery.isLoading ? (
         <Typography variant="body2" color="text.secondary">
-          Carregando linha do tempo do processo...
+          {t("workflows.timeline.loading")}
         </Typography>
       ) : timelineQuery.isError ? (
         timelineQuery.error.statusCode === 403 ? (
           <Alert severity="warning" role="alert">
-            Acesso restrito ao histórico do fluxo: {timelineQuery.error.message}
+            {t("workflows.timeline.accessRestricted", {
+              message: timelineQuery.error.message,
+            })}
           </Alert>
         ) : (
           <ErrorState
-            title="Falha ao carregar linha do tempo"
+            title={t("workflows.timeline.errorTitle")}
             description={timelineQuery.error.message}
             onRetry={() => void timelineQuery.refetch()}
           />
         )
       ) : !timelineQuery.data || timelineQuery.data.length === 0 ? (
         <EmptyState
-          title="Nenhum fluxo de aprovação registrado"
-          description="Este documento ainda não possui processos de revisão ou aprovação iniciados no seu escopo."
+          title={t("workflows.timeline.emptyTitle")}
+          description={t("workflows.timeline.emptyDescription")}
         />
       ) : (
         <Stack spacing={2.5}>
@@ -231,8 +241,8 @@ export function DocumentWorkflowTimeline({ documentId }: DocumentWorkflowTimelin
                 sx={{
                   p: 2,
                   borderRadius: 1,
-                  border: `1px solid ${DOCUFLOW_COLOR_TOKENS.surface.outlineVariant}`,
-                  bgcolor: DOCUFLOW_COLOR_TOKENS.surface.containerLow,
+                  border: `1px solid ${PAPYRUS_COLOR_TOKENS.surface.outlineVariant}`,
+                  bgcolor: PAPYRUS_COLOR_TOKENS.surface.containerLow,
                 }}
               >
                 <Stack
@@ -254,18 +264,24 @@ export function DocumentWorkflowTimeline({ documentId }: DocumentWorkflowTimelin
                         {instance.workflowDefinitionName} (v
                         {instance.workflowDefinitionVersionNumber})
                       </Typography>
-                      <Chip label={instanceBadge.label} color={instanceBadge.color} size="small" />
+                      <Chip label={t(instanceBadge.key)} color={instanceBadge.color} size="small" />
                       <Chip
-                        label={`Versão avaliada v${instance.documentVersionNumber}`}
+                        label={t("workflows.timeline.evaluatedVersion", {
+                          version: instance.documentVersionNumber,
+                        })}
                         size="small"
                         variant="outlined"
                       />
                     </Stack>
                     <Typography variant="caption" color="text.secondary">
-                      Iniciado por {instance.startedByDisplayName} em{" "}
-                      {formatDateTimePtBr(instance.startedAt)}
+                      {t("workflows.timeline.startedBy", {
+                        user: instance.startedByDisplayName,
+                        date: formatDateTime(instance.startedAt),
+                      })}
                       {instance.completedAt
-                        ? ` · Encerrado em ${formatDateTimePtBr(instance.completedAt)}`
+                        ? t("workflows.timeline.completedOn", {
+                            date: formatDateTime(instance.completedAt),
+                          })
                         : ""}
                     </Typography>
                   </Stack>
@@ -273,7 +289,9 @@ export function DocumentWorkflowTimeline({ documentId }: DocumentWorkflowTimelin
 
                 <Box
                   component="ol"
-                  aria-label={`Etapas do fluxo ${instance.workflowDefinitionName}`}
+                  aria-label={t("workflows.timeline.stepsListAria", {
+                    name: instance.workflowDefinitionName,
+                  })}
                   sx={{
                     m: 0,
                     p: 0,
@@ -285,9 +303,9 @@ export function DocumentWorkflowTimeline({ documentId }: DocumentWorkflowTimelin
                 >
                   {orderedSteps.map((step) => {
                     const taskBadge = step.taskStatus ? TASK_STATUS_BADGE[step.taskStatus] : null;
-                    const createdLabel = formatDateTimePtBr(step.createdAt);
-                    const dueLabel = formatDateTimePtBr(step.dueAt);
-                    const decidedLabel = formatDateTimePtBr(step.decidedAt);
+                    const createdLabel = step.createdAt ? formatDateTime(step.createdAt) : null;
+                    const dueLabel = step.dueAt ? formatDateTime(step.dueAt) : null;
+                    const decidedLabel = step.decidedAt ? formatDateTime(step.decidedAt) : null;
 
                     return (
                       <Box
@@ -296,8 +314,8 @@ export function DocumentWorkflowTimeline({ documentId }: DocumentWorkflowTimelin
                         sx={{
                           p: 1.5,
                           borderRadius: 1,
-                          border: `1px solid ${DOCUFLOW_COLOR_TOKENS.surface.outlineVariant}`,
-                          bgcolor: DOCUFLOW_COLOR_TOKENS.surface.containerLowest,
+                          border: `1px solid ${PAPYRUS_COLOR_TOKENS.surface.outlineVariant}`,
+                          bgcolor: PAPYRUS_COLOR_TOKENS.surface.containerLowest,
                         }}
                       >
                         <Stack spacing={0.75}>
@@ -310,15 +328,18 @@ export function DocumentWorkflowTimeline({ documentId }: DocumentWorkflowTimelin
                             <Stack direction="row" spacing={1} alignItems="center">
                               {renderStepStatusIcon(step)}
                               <Typography variant="body2" fontWeight={600}>
-                                Etapa {step.stepOrder}: {step.stepName}
+                                {t("workflows.timeline.stepTitle", {
+                                  order: step.stepOrder,
+                                  name: step.stepName,
+                                })}
                               </Typography>
                             </Stack>
 
                             {taskBadge ? (
-                              <Chip label={taskBadge.label} color={taskBadge.color} size="small" />
+                              <Chip label={t(taskBadge.key)} color={taskBadge.color} size="small" />
                             ) : (
                               <Chip
-                                label="Aguardando etapa anterior"
+                                label={t("workflows.timeline.waitingPreviousStep")}
                                 size="small"
                                 variant="outlined"
                               />
@@ -326,17 +347,22 @@ export function DocumentWorkflowTimeline({ documentId }: DocumentWorkflowTimelin
                           </Stack>
 
                           <Typography variant="body2" color="text.secondary">
-                            Responsável: <strong>{step.assigneeDisplayName}</strong> (
-                            {ASSIGNEE_TYPE_LABEL[step.assigneeType]})
+                            {t("workflows.timeline.assigneeLabel")}{" "}
+                            <strong>{step.assigneeDisplayName}</strong> (
+                            {t(ASSIGNEE_TYPE_KEY[step.assigneeType])})
                           </Typography>
 
                           {createdLabel || dueLabel || decidedLabel ? (
                             <Typography variant="caption" color="text.secondary">
-                              {createdLabel ? `Atribuída em ${createdLabel}` : ""}
+                              {createdLabel
+                                ? t("workflows.timeline.assignedOn", { date: createdLabel })
+                                : ""}
                               {createdLabel && dueLabel ? " · " : ""}
-                              {dueLabel ? `Prazo: ${dueLabel}` : ""}
+                              {dueLabel ? t("workflows.timeline.dueOn", { date: dueLabel }) : ""}
                               {(createdLabel || dueLabel) && decidedLabel ? " · " : ""}
-                              {decidedLabel ? `Decisão em ${decidedLabel}` : ""}
+                              {decidedLabel
+                                ? t("workflows.timeline.decidedOn", { date: decidedLabel })
+                                : ""}
                             </Typography>
                           ) : null}
 
@@ -347,13 +373,15 @@ export function DocumentWorkflowTimeline({ documentId }: DocumentWorkflowTimelin
                                 px: 1.5,
                                 py: 1,
                                 borderRadius: 1,
-                                bgcolor: DOCUFLOW_COLOR_TOKENS.surface.containerLow,
+                                bgcolor: PAPYRUS_COLOR_TOKENS.surface.containerLow,
                               }}
                             >
                               <Typography variant="caption" color="text.primary" fontWeight={600}>
-                                {DECISION_LABEL[step.decision.decision]} por{" "}
-                                {step.decision.actorDisplayName} em{" "}
-                                {formatDateTimePtBr(step.decision.createdAt)}
+                                {t("workflows.timeline.decisionSummary", {
+                                  decision: t(DECISION_LABEL_KEY[step.decision.decision]),
+                                  actor: step.decision.actorDisplayName,
+                                  date: formatDateTime(step.decision.createdAt),
+                                })}
                               </Typography>
                               {step.decision.comment ? (
                                 <Typography
@@ -361,7 +389,9 @@ export function DocumentWorkflowTimeline({ documentId }: DocumentWorkflowTimelin
                                   color="text.secondary"
                                   sx={{ mt: 0.25 }}
                                 >
-                                  Comentário: “{step.decision.comment}”
+                                  {t("workflows.timeline.decisionComment", {
+                                    comment: step.decision.comment,
+                                  })}
                                 </Typography>
                               ) : null}
                             </Box>

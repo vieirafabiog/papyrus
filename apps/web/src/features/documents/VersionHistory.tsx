@@ -3,7 +3,7 @@ import type {
   DocumentVersionHistoryItem,
   FileObjectStatus,
 } from "@docuflow/contracts";
-import { DOCUFLOW_COLOR_TOKENS, EmptyState, ErrorState, LoadingState } from "@docuflow/ui";
+import { EmptyState, ErrorState, LoadingState, PAPYRUS_COLOR_TOKENS } from "@docuflow/ui";
 import DownloadOutlinedIcon from "@mui/icons-material/DownloadOutlined";
 import HistoryOutlinedIcon from "@mui/icons-material/HistoryOutlined";
 import RestoreOutlinedIcon from "@mui/icons-material/RestoreOutlined";
@@ -31,6 +31,8 @@ import {
 } from "@mui/material";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useId, useState } from "react";
+import { containsTechnicalJargon } from "../../i18n/api-errors.js";
+import { useI18n } from "../../i18n/index.js";
 import {
   documentDetailsQueryKey,
   requestVersionDownloadTarget,
@@ -38,40 +40,16 @@ import {
   useRestoreDocumentVersionMutation,
 } from "./useDocumentDetails.js";
 
-const FILE_STATUS_BADGE: Readonly<
-  Record<
-    FileObjectStatus,
-    {
-      readonly label: string;
-      readonly color: "default" | "info" | "success" | "warning" | "error";
-    }
-  >
+const FILE_STATUS_COLOR: Readonly<
+  Record<FileObjectStatus, "default" | "info" | "success" | "warning" | "error">
 > = {
-  UPLOADING: { label: "Enviando", color: "info" },
-  QUARANTINED: { label: "Em verificação", color: "warning" },
-  AVAILABLE: { label: "Disponível", color: "success" },
-  REJECTED: { label: "Bloqueado", color: "error" },
-  MISSING: { label: "Indisponível", color: "error" },
-  DELETE_PENDING: { label: "Exclusão pendente", color: "default" },
+  UPLOADING: "info",
+  QUARANTINED: "warning",
+  AVAILABLE: "success",
+  REJECTED: "error",
+  MISSING: "error",
+  DELETE_PENDING: "default",
 };
-
-function formatDateTimePtBr(isoDateTime: string): string {
-  const parsed = new Date(isoDateTime);
-  if (Number.isNaN(parsed.getTime())) {
-    return isoDateTime;
-  }
-  return parsed.toLocaleString("pt-BR");
-}
-
-function formatFileSizePtBr(sizeBytes: number): string {
-  if (sizeBytes < 1024) {
-    return `${sizeBytes} B`;
-  }
-  if (sizeBytes < 1024 * 1024) {
-    return `${(sizeBytes / 1024).toFixed(1)} KB`;
-  }
-  return `${(sizeBytes / (1024 * 1024)).toFixed(2)} MB`;
-}
 
 export interface VersionHistoryProps {
   readonly document: DocumentDetail;
@@ -82,7 +60,7 @@ export interface VersionHistoryProps {
 }
 
 /**
- * Append-only version history table displaying version number, timestamp, author,
+ * Version history table displaying version number, timestamp, author,
  * change note, file status, and server-authorized actions (download / non-destructive restore).
  */
 export function VersionHistory({
@@ -90,6 +68,7 @@ export function VersionHistory({
   onUploadNewVersion,
   onDownloadVersion,
 }: VersionHistoryProps) {
+  const { t, formatDateTime, formatBytes } = useI18n();
   const restoreDialogTitleId = useId();
   const restoreDialogDescId = useId();
 
@@ -143,14 +122,20 @@ export function VersionHistory({
         changeNote: restoreNote,
       });
       setActionSuccess(
-        `Versão v${response.data.versionNumber} criada a partir da versão v${restoreTarget.versionNumber} preservando todo o histórico.`,
+        t("documents.versions.restoreSuccess", {
+          newVersion: response.data.versionNumber,
+          sourceVersion: restoreTarget.versionNumber,
+        }),
       );
       setRestoreTarget(null);
       setRestoreNote("");
     } catch (error) {
-      const message =
-        error instanceof Error ? error.message : "Não foi possível restaurar a versão selecionada.";
-      setActionError(message);
+      const rawMessage = error instanceof Error ? error.message.trim() : "";
+      setActionError(
+        rawMessage.length > 0 && !containsTechnicalJargon(rawMessage)
+          ? rawMessage
+          : t("documents.versions.restoreFailed"),
+      );
     }
   };
 
@@ -169,11 +154,12 @@ export function VersionHistory({
         }
       }
     } catch (error) {
-      const message =
-        error instanceof Error
-          ? error.message
-          : "Não foi possível iniciar o download desta versão.";
-      setActionError(message);
+      const rawMessage = error instanceof Error ? error.message.trim() : "";
+      setActionError(
+        rawMessage.length > 0 && !containsTechnicalJargon(rawMessage)
+          ? rawMessage
+          : t("documents.versions.downloadFailed"),
+      );
     } finally {
       setDownloadingVersionId(null);
     }
@@ -184,8 +170,8 @@ export function VersionHistory({
       variant="outlined"
       sx={{
         p: 2.5,
-        bgcolor: DOCUFLOW_COLOR_TOKENS.surface.containerLowest,
-        borderColor: DOCUFLOW_COLOR_TOKENS.surface.outlineVariant,
+        bgcolor: PAPYRUS_COLOR_TOKENS.surface.containerLowest,
+        borderColor: PAPYRUS_COLOR_TOKENS.surface.outlineVariant,
       }}
     >
       <Stack spacing={2}>
@@ -202,10 +188,10 @@ export function VersionHistory({
             <HistoryOutlinedIcon color="primary" fontSize="small" />
             <Box>
               <Typography variant="h6" component="h2">
-                Histórico de versões
+                {t("documents.versions.title")}
               </Typography>
               <Typography variant="caption" color="text.secondary">
-                Versões anteriores são imutáveis; restaurar cria uma nova versão.
+                {t("documents.versions.subtitle")}
               </Typography>
             </Box>
           </Stack>
@@ -226,50 +212,50 @@ export function VersionHistory({
         ) : null}
 
         {versionsQuery.isLoading ? (
-          <LoadingState message="Carregando histórico de versões..." />
+          <LoadingState message={t("documents.versions.loading")} />
         ) : versionsQuery.isError ? (
           <ErrorState
-            title="Não foi possível carregar o histórico de versões"
+            title={t("documents.versions.loadErrorTitle")}
             description={versionsQuery.error.message}
             onRetry={() => void versionsQuery.refetch()}
           />
         ) : versions.length === 0 ? (
           <EmptyState
-            title="Nenhuma versão registrada"
-            description="Este documento ainda não possui versões de arquivo associadas."
+            title={t("documents.versions.emptyTitle")}
+            description={t("documents.versions.emptyDescription")}
             {...(document.permissions.canUpload && onUploadNewVersion
               ? {
-                  actionLabel: "Enviar primeira versão",
+                  actionLabel: t("documents.versions.uploadFirstVersion"),
                   onAction: onUploadNewVersion,
                 }
               : {})}
           />
         ) : (
           <TableContainer>
-            <Table size="small" aria-label="Histórico de versões do documento">
+            <Table size="small" aria-label={t("documents.versions.tableAriaLabel")}>
               <TableHead>
                 <TableRow>
                   <TableCell component="th" scope="col">
-                    Versão
+                    {t("documents.versions.columns.version")}
                   </TableCell>
                   <TableCell component="th" scope="col">
-                    Data
+                    {t("documents.versions.columns.date")}
                   </TableCell>
                   <TableCell component="th" scope="col">
-                    Autor
+                    {t("documents.versions.columns.author")}
                   </TableCell>
                   <TableCell component="th" scope="col">
-                    Observação e arquivo
+                    {t("documents.versions.columns.noteAndFile")}
                   </TableCell>
                   <TableCell component="th" scope="col" align="right">
-                    Ações
+                    {t("documents.versions.columns.actions")}
                   </TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
                 {versions.map((version) => {
-                  const fileStatus = version.fileObject
-                    ? FILE_STATUS_BADGE[version.fileObject.status]
+                  const fileStatusColor = version.fileObject
+                    ? FILE_STATUS_COLOR[version.fileObject.status]
                     : null;
                   const isDownloading = downloadingVersionId === version.id;
 
@@ -281,14 +267,18 @@ export function VersionHistory({
                             v{version.versionNumber}
                           </Typography>
                           {version.isCurrent ? (
-                            <Chip label="Vigente" color="primary" size="small" />
+                            <Chip
+                              label={t("documents.versions.currentBadge")}
+                              color="primary"
+                              size="small"
+                            />
                           ) : null}
                         </Stack>
                       </TableCell>
 
                       <TableCell>
                         <Typography variant="body2" noWrap>
-                          {formatDateTimePtBr(version.createdAt)}
+                          {formatDateTime(version.createdAt)}
                         </Typography>
                       </TableCell>
 
@@ -304,18 +294,20 @@ export function VersionHistory({
                       <TableCell>
                         <Stack spacing={0.5}>
                           <Typography variant="body2">
-                            {version.changeNote ?? "Sem observação registrada"}
+                            {version.changeNote ?? t("documents.versions.noChangeNote")}
                           </Typography>
                           {version.fileObject ? (
                             <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
                               <Typography variant="caption" color="text.secondary">
                                 {version.fileObject.originalFileName} (
-                                {formatFileSizePtBr(version.fileObject.sizeBytes)})
+                                {formatBytes(version.fileObject.sizeBytes)})
                               </Typography>
-                              {fileStatus ? (
+                              {fileStatusColor ? (
                                 <Chip
-                                  label={fileStatus.label}
-                                  color={fileStatus.color}
+                                  label={t(
+                                    `documents.versions.fileStatus.${version.fileObject.status}`,
+                                  )}
+                                  color={fileStatusColor}
                                   size="small"
                                   variant="outlined"
                                 />
@@ -323,7 +315,7 @@ export function VersionHistory({
                             </Stack>
                           ) : (
                             <Typography variant="caption" color="text.secondary">
-                              Objeto binário não vinculado
+                              {t("documents.versions.noFileAttached")}
                             </Typography>
                           )}
                         </Stack>
@@ -343,9 +335,13 @@ export function VersionHistory({
                               startIcon={<DownloadOutlinedIcon />}
                               disabled={isDownloading || restoreMutation.isPending}
                               onClick={() => void handleDownloadClick(version)}
-                              aria-label={`Baixar versão v${version.versionNumber}`}
+                              aria-label={t("documents.versions.downloadAria", {
+                                version: version.versionNumber,
+                              })}
                             >
-                              {isDownloading ? "Baixando..." : "Baixar"}
+                              {isDownloading
+                                ? t("documents.common.downloading")
+                                : t("documents.common.download")}
                             </Button>
                           ) : null}
 
@@ -356,15 +352,17 @@ export function VersionHistory({
                               startIcon={<RestoreOutlinedIcon />}
                               disabled={restoreMutation.isPending}
                               onClick={() => handleOpenRestoreDialog(version)}
-                              aria-label={`Restaurar versão v${version.versionNumber}`}
+                              aria-label={t("documents.versions.restoreAria", {
+                                version: version.versionNumber,
+                              })}
                             >
-                              Restaurar versão
+                              {t("documents.versions.restoreButton")}
                             </Button>
                           ) : null}
 
                           {!version.permissions.canDownload && !version.permissions.canRestore ? (
                             <Typography variant="caption" color="text.secondary">
-                              Sem ações disponíveis
+                              {t("documents.versions.noActions")}
                             </Typography>
                           ) : null}
                         </Stack>
@@ -387,23 +385,32 @@ export function VersionHistory({
         fullWidth
       >
         <DialogTitle id={restoreDialogTitleId}>
-          {restoreTarget ? `Restaurar versão v${restoreTarget.versionNumber}` : "Restaurar versão"}
+          {restoreTarget
+            ? t("documents.versions.restoreDialogTitle", {
+                version: restoreTarget.versionNumber,
+              })
+            : t("documents.versions.restoreDialogTitleFallback")}
         </DialogTitle>
         <DialogContent>
           <Stack spacing={2} sx={{ pt: 0.5 }}>
             <DialogContentText id={restoreDialogDescId}>
               {restoreTarget
-                ? `Será criada uma nova versão vigente (v${nextRestoredNumber}) com base no arquivo da versão v${restoreTarget.versionNumber}. O histórico anterior continuará preservado integralmente.`
+                ? t("documents.versions.restoreDialogDescription", {
+                    nextVersion: nextRestoredNumber,
+                    targetVersion: restoreTarget.versionNumber,
+                  })
                 : ""}
             </DialogContentText>
 
             <TextField
-              label="Observação da restauração (opcional)"
+              label={t("documents.versions.restoreNoteLabel")}
               value={restoreNote}
               onChange={(event) => setRestoreNote(event.target.value)}
               placeholder={
                 restoreTarget
-                  ? `Restauração lógica da versão ${restoreTarget.versionNumber}`
+                  ? t("documents.versions.restoreNotePlaceholder", {
+                      version: restoreTarget.versionNumber,
+                    })
                   : undefined
               }
               fullWidth
@@ -420,14 +427,16 @@ export function VersionHistory({
             disabled={restoreMutation.isPending}
             variant="text"
           >
-            Cancelar
+            {t("documents.common.cancel")}
           </Button>
           <Button
             onClick={() => void handleConfirmRestore()}
             disabled={restoreMutation.isPending}
             variant="contained"
           >
-            {restoreMutation.isPending ? "Restaurando..." : "Confirmar restauração"}
+            {restoreMutation.isPending
+              ? t("documents.lifecycle.restoring")
+              : t("documents.lifecycle.confirmRestore")}
           </Button>
         </DialogActions>
       </Dialog>

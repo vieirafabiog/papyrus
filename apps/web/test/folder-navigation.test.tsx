@@ -1,5 +1,5 @@
 import "@testing-library/jest-dom/vitest";
-import { docuflowTheme } from "@docuflow/ui";
+import { papyrusTheme } from "@docuflow/ui";
 import { CssBaseline, ThemeProvider } from "@mui/material";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
@@ -30,14 +30,14 @@ function renderFoldersPage(initialPath = "/folders") {
   });
 
   return render(
-    <ThemeProvider theme={docuflowTheme}>
+    <ThemeProvider theme={papyrusTheme}>
       <CssBaseline />
       <QueryClientProvider client={queryClient}>
         <MemoryRouter initialEntries={[initialPath]}>
           <Routes>
             <Route path="/folders" element={<FoldersPage />} />
             <Route path="/folders/:folderId" element={<FoldersPage />} />
-            <Route path="/documents/:id" element={<h1>Detalhe do documento</h1>} />
+            <Route path="/documents/:id" element={<h1>Document Details</h1>} />
           </Routes>
         </MemoryRouter>
       </QueryClientProvider>
@@ -162,9 +162,9 @@ describe("FoldersPage — hierarchical breadcrumbs, navigation authorization and
     expect(await screen.findByText("Aditivo Fornecedor Alpha")).toBeInTheDocument();
 
     const breadcrumbs = screen.getByRole("navigation", {
-      name: "Caminho hierárquico de pastas",
+      name: "Folder hierarchy",
     });
-    expect(breadcrumbs).toHaveTextContent("Raiz");
+    expect(breadcrumbs).toHaveTextContent("Root");
     expect(breadcrumbs).toHaveTextContent("Jurídico");
     expect(breadcrumbs).toHaveTextContent("Contratos 2026");
 
@@ -236,17 +236,17 @@ describe("FoldersPage — hierarchical breadcrumbs, navigation authorization and
 
     // Subfolder authorized while parent is 403 -> shows restricted ancestor marker without leaking parent name
     const firstRender = renderFoldersPage(`/folders/${CHILD_FOLDER_ID}`);
-    expect(await screen.findByText("Pasta superior restrita")).toBeInTheDocument();
+    expect(await screen.findByText("Restricted parent folder")).toBeInTheDocument();
     firstRender.unmount();
 
     // Direct access to forbidden folder -> 403 warning with escape back to root
     renderFoldersPage(`/folders/${FORBIDDEN_FOLDER_ID}`);
     expect(await screen.findByRole("alert")).toHaveTextContent(
-      "Acesso negado: Você não possui permissão para acessar esta pasta.",
+      "Access denied: You do not have permission to perform this action.",
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "Voltar para a raiz" }));
-    expect(await screen.findByRole("heading", { level: 1, name: "Pastas" })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Back to root" }));
+    expect(await screen.findByRole("heading", { level: 1, name: "Folders" })).toBeInTheDocument();
   });
 
   it("handles removed (404) and archived folders explicitly with recovery and disabled mutation actions", async () => {
@@ -300,19 +300,19 @@ describe("FoldersPage — hierarchical breadcrumbs, navigation authorization and
 
     const removedView = renderFoldersPage(`/folders/${REMOVED_FOLDER_ID}`);
     expect(
-      await screen.findByRole("heading", { name: "Pasta removida ou não encontrada" }),
+      await screen.findByRole("heading", { name: "Folder removed or not found" }),
     ).toBeInTheDocument();
     removedView.unmount();
 
     renderFoldersPage(`/folders/${ARCHIVED_FOLDER_ID}`);
     expect(
       await screen.findByText(
-        "Esta pasta está arquivada. Não é possível criar novas subpastas ou enviar novos documentos nela.",
+        "This folder is archived. You cannot create subfolders or upload new documents here.",
       ),
     ).toBeInTheDocument();
-    expect(screen.getByText("Arquivada")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Nova pasta" })).toBeDisabled();
-    expect(screen.getByRole("button", { name: "Renomear" })).toBeDisabled();
-    expect(screen.getByRole("button", { name: "Arquivar pasta" })).toBeDisabled();
+    expect(screen.getByText("Archived")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "New folder" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Rename" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Archive folder" })).toBeDisabled();
   });
 });

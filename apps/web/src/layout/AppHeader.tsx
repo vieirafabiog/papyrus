@@ -1,5 +1,5 @@
 import { CONTRACTS_API_PREFIX } from "@docuflow/contracts";
-import { DOCUFLOW_COLOR_TOKENS, DOCUFLOW_DENSITY_TOKENS } from "@docuflow/ui";
+import { PAPYRUS_COLOR_TOKENS, PAPYRUS_DENSITY_TOKENS } from "@docuflow/ui";
 import AccountCircleOutlinedIcon from "@mui/icons-material/AccountCircleOutlined";
 import LogoutOutlinedIcon from "@mui/icons-material/LogoutOutlined";
 import MenuIcon from "@mui/icons-material/Menu";
@@ -20,7 +20,10 @@ import { type MouseEvent, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { SESSION_QUERY_KEY, useSessionQuery } from "../app/session.js";
 import { GlobalSearch } from "../components/GlobalSearch.js";
+import { LanguageSwitcher } from "../components/LanguageSwitcher.js";
 import { NotificationBell } from "../components/NotificationBell.js";
+import { extractUserErrorMessage } from "../i18n/api-errors.js";
+import { useI18n } from "../i18n/index.js";
 
 export interface AppHeaderProps {
   readonly desktopCollapsed: boolean;
@@ -33,6 +36,7 @@ export function AppHeader({
   onToggleMobileMenu,
   onToggleDesktopSidebar,
 }: AppHeaderProps) {
+  const { t, locale } = useI18n();
   const { data: session } = useSessionQuery();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
@@ -60,19 +64,25 @@ export function AppHeader({
         credentials: "include",
       });
       if (!response.ok) {
-        throw new Error("Não foi possível encerrar a sessão.");
+        const errorMessage = await extractUserErrorMessage(
+          response,
+          "shell.header.signOutError",
+          locale,
+        );
+        setLogoutError(errorMessage);
+        return;
       }
       queryClient.setQueryData(SESSION_QUERY_KEY, null);
       handleCloseMenu();
       navigate("/login", { replace: true });
     } catch {
-      setLogoutError("Erro ao encerrar sessão. Tente novamente.");
+      setLogoutError(t("shell.header.signOutError"));
     } finally {
       setIsLoggingOut(false);
     }
   };
 
-  const drawerOffset = desktopCollapsed ? 0 : DOCUFLOW_DENSITY_TOKENS.sidebarWidth;
+  const drawerOffset = desktopCollapsed ? 0 : PAPYRUS_DENSITY_TOKENS.sidebarWidth;
 
   return (
     <>
@@ -83,8 +93,8 @@ export function AppHeader({
         sx={{
           width: { md: `calc(100% - ${drawerOffset}px)` },
           ml: { md: `${drawerOffset}px` },
-          bgcolor: DOCUFLOW_COLOR_TOKENS.surface.paper,
-          borderBottom: `1px solid ${DOCUFLOW_COLOR_TOKENS.surface.outlineVariant}`,
+          bgcolor: PAPYRUS_COLOR_TOKENS.surface.paper,
+          borderBottom: `1px solid ${PAPYRUS_COLOR_TOKENS.surface.outlineVariant}`,
           borderRadius: 0,
           borderTop: "none",
           borderLeft: "none",
@@ -97,7 +107,7 @@ export function AppHeader({
             color="inherit"
             edge="start"
             onClick={onToggleMobileMenu}
-            aria-label="Abrir menu de navegação"
+            aria-label={t("shell.header.openMenu")}
             sx={{ display: { md: "none" } }}
           >
             <MenuIcon />
@@ -106,7 +116,9 @@ export function AppHeader({
             color="inherit"
             edge="start"
             onClick={onToggleDesktopSidebar}
-            aria-label={desktopCollapsed ? "Expandir barra lateral" : "Recolher barra lateral"}
+            aria-label={
+              desktopCollapsed ? t("shell.header.expandSidebar") : t("shell.header.collapseSidebar")
+            }
             sx={{ display: { xs: "none", md: "inline-flex" } }}
           >
             <MenuIcon />
@@ -117,7 +129,7 @@ export function AppHeader({
             component="span"
             sx={{ display: { xs: "none", sm: "inline" }, mr: 2 }}
           >
-            Gestão Eletrônica de Documentos
+            {t("common.tagline")}
           </Typography>
 
           <Box sx={{ flexGrow: 1, display: "flex", justifyContent: "flex-end", mr: 1 }}>
@@ -126,12 +138,14 @@ export function AppHeader({
 
           {session ? <NotificationBell /> : null}
 
+          <LanguageSwitcher />
+
           {session ? (
             <Box>
               <IconButton
                 color="inherit"
                 onClick={handleOpenMenu}
-                aria-label="Perfil do usuário"
+                aria-label={t("shell.header.userMenuAriaLabel")}
                 aria-controls={anchorEl ? "user-profile-menu" : undefined}
                 aria-haspopup="true"
                 aria-expanded={anchorEl ? "true" : undefined}
@@ -158,7 +172,7 @@ export function AppHeader({
                   <ListItemIcon>
                     <LogoutOutlinedIcon fontSize="small" />
                   </ListItemIcon>
-                  {isLoggingOut ? "Saindo..." : "Sair"}
+                  {isLoggingOut ? t("shell.header.signingOut") : t("shell.header.signOut")}
                 </MenuItem>
               </Menu>
             </Box>

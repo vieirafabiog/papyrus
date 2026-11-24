@@ -25,6 +25,14 @@ export {
 } from "./components/PapyrusLogo.js";
 
 export {
+  DEFAULT_PAPYRUS_LOCALE,
+  type PapyrusLocale,
+  UiLocaleProvider,
+  type UiLocaleProviderProps,
+  useUiLocale,
+} from "./locale.js";
+
+export {
   createDocuflowTheme,
   createPapyrusTheme,
   docuflowTheme,

@@ -1,11 +1,12 @@
 import "@testing-library/jest-dom/vitest";
-import { docuflowTheme } from "@docuflow/ui";
+import { UiLocaleProvider, papyrusTheme } from "@docuflow/ui";
 import { CssBaseline, ThemeProvider } from "@mui/material";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { PermissionsPage } from "../src/features/admin/PermissionsPage.js";
+import { I18nProvider } from "../src/i18n/index.js";
 
 const ORG_ID = "550e8400-e29b-41d4-a716-446655440000";
 const USER_1_ID = "550e8400-e29b-41d4-a716-446655440011";
@@ -52,14 +53,18 @@ function renderPermissionsPage() {
   });
 
   return render(
-    <ThemeProvider theme={docuflowTheme}>
-      <CssBaseline />
-      <QueryClientProvider client={queryClient}>
-        <MemoryRouter>
-          <PermissionsPage />
-        </MemoryRouter>
-      </QueryClientProvider>
-    </ThemeProvider>,
+    <I18nProvider initialLocale="en-US">
+      <UiLocaleProvider locale="en-US">
+        <ThemeProvider theme={papyrusTheme}>
+          <CssBaseline />
+          <QueryClientProvider client={queryClient}>
+            <MemoryRouter>
+              <PermissionsPage />
+            </MemoryRouter>
+          </QueryClientProvider>
+        </ThemeProvider>
+      </UiLocaleProvider>
+    </I18nProvider>,
   );
 }
 
@@ -85,7 +90,7 @@ describe("PermissionsPage (Step 14.03)", () => {
     renderPermissionsPage();
 
     await waitFor(() => {
-      expect(screen.getByText("Acesso restrito")).toBeInTheDocument();
+      expect(screen.getByText("Access restricted")).toBeInTheDocument();
     });
   });
 
@@ -268,40 +273,40 @@ describe("PermissionsPage (Step 14.03)", () => {
     renderPermissionsPage();
 
     await waitFor(() => {
-      expect(screen.getByText("Grupo: Auditores")).toBeInTheDocument();
+      expect(screen.getByText("Group: Auditores")).toBeInTheDocument();
     });
 
     // Role matrix & inheritance summary displayed without exposing raw SQL
-    expect(screen.getByText("Financeiro (herda subpastas)")).toBeInTheDocument();
-    expect(screen.getByText("Consultar")).toBeInTheDocument();
+    expect(screen.getByText("Financeiro (includes subfolders)")).toBeInTheDocument();
+    expect(screen.getByText("View")).toBeInTheDocument();
     expect(document.body.textContent).not.toMatch(/user_role_scopes|SELECT|IN \(/i);
 
     // Add explicit DENY exception
-    fireEvent.click(screen.getByRole("button", { name: "Nova regra ou exceção" }));
+    fireEvent.click(screen.getByRole("button", { name: "New access rule" }));
     const assignDialog = await screen.findByRole("dialog");
 
-    fireEvent.mouseDown(within(assignDialog).getByLabelText("Selecionar usuário"));
+    fireEvent.mouseDown(within(assignDialog).getByLabelText("Select user"));
     fireEvent.click(await screen.findByRole("option", { name: /Admin Governança/i }));
 
-    fireEvent.mouseDown(within(assignDialog).getByLabelText("Efeito da regra"));
-    fireEvent.click(await screen.findByRole("option", { name: /Negar acesso/i }));
+    fireEvent.mouseDown(within(assignDialog).getByLabelText("Rule effect"));
+    fireEvent.click(await screen.findByRole("option", { name: /Deny access/i }));
 
-    fireEvent.click(within(assignDialog).getByRole("button", { name: "Salvar regra" }));
+    fireEvent.click(within(assignDialog).getByRole("button", { name: "Save rule" }));
 
     await waitFor(() => {
-      expect(screen.getByText("Exceção de bloqueio registrada com sucesso.")).toBeInTheDocument();
+      expect(screen.getByText("Deny exception saved.")).toBeInTheDocument();
       expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     });
 
     // Revoke existing assignment
     fireEvent.click(
-      await screen.findByRole("button", { name: "Revogar regra de Grupo: Auditores" }),
+      await screen.findByRole("button", { name: "Revoke rule for Group: Auditores" }),
     );
-    const confirmRevoke = await screen.findByRole("button", { name: "Confirmar revogação" });
+    const confirmRevoke = await screen.findByRole("button", { name: "Confirm revoke" });
     fireEvent.click(confirmRevoke);
 
     await waitFor(() => {
-      expect(screen.getByText("Atribuição de permissão revogada com sucesso.")).toBeInTheDocument();
+      expect(screen.getByText("Access rule revoked.")).toBeInTheDocument();
     });
   });
 });

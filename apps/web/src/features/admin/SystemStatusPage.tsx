@@ -1,5 +1,5 @@
 import type { OperationalDependencyStateContract } from "@docuflow/contracts";
-import { DOCUFLOW_COLOR_TOKENS, EmptyState, ErrorState, LoadingState } from "@docuflow/ui";
+import { EmptyState, ErrorState, LoadingState, PAPYRUS_COLOR_TOKENS } from "@docuflow/ui";
 import CheckCircleOutlineOutlinedIcon from "@mui/icons-material/CheckCircleOutlineOutlined";
 import DnsOutlinedIcon from "@mui/icons-material/DnsOutlined";
 import ErrorOutlineOutlinedIcon from "@mui/icons-material/ErrorOutlineOutlined";
@@ -27,56 +27,43 @@ import {
 } from "@mui/material";
 import { Link as RouterLink } from "react-router-dom";
 import { useSessionQuery } from "../../app/session.js";
+import { type MessageKey, useI18n } from "../../i18n/index.js";
 import { canViewSystemStatus, useSystemStatusQuery } from "./useSystemStatus.js";
 
-const DEPENDENCY_BADGE: Readonly<
+const DEPENDENCY_BADGE_CONFIG: Readonly<
   Record<
     OperationalDependencyStateContract,
     {
-      readonly label: string;
+      readonly labelKey: MessageKey;
       readonly color: "success" | "error" | "warning";
     }
   >
 > = {
-  ok: { label: "Operacional", color: "success" },
-  degraded: { label: "Degradado", color: "error" },
-  unavailable: { label: "Indisponível", color: "warning" },
+  ok: { labelKey: "admin.systemStatus.dependency.ok", color: "success" },
+  degraded: { labelKey: "admin.systemStatus.dependency.degraded", color: "error" },
+  unavailable: { labelKey: "admin.systemStatus.dependency.unavailable", color: "warning" },
 };
 
-const STORAGE_STATUS_LABELS: Readonly<
+const STORAGE_STATUS_BADGE_CONFIG: Readonly<
   Record<
     string,
     {
-      readonly label: string;
+      readonly labelKey: MessageKey;
       readonly color: "success" | "default" | "error";
     }
   >
 > = {
-  ACTIVE: { label: "Ativa", color: "success" },
-  INACTIVE: { label: "Inativa", color: "default" },
-  ERROR: { label: "Com falha", color: "error" },
+  ACTIVE: { labelKey: "admin.storage.status.ACTIVE", color: "success" },
+  INACTIVE: { labelKey: "admin.storage.status.INACTIVE", color: "default" },
+  ERROR: { labelKey: "admin.storage.status.ERROR", color: "error" },
 };
 
-const STORAGE_KIND_LABELS: Readonly<Record<string, string>> = {
-  local: "Armazenamento local",
-  s3: "S3 compatível",
-  azure_blob: "Azure Blob",
-  google_cloud: "Google Cloud Storage",
+const STORAGE_KIND_LABEL_KEYS: Readonly<Record<string, MessageKey>> = {
+  local: "admin.storage.kind.local",
+  s3: "admin.storage.kind.s3",
+  azure_blob: "admin.storage.kind.azure_blob",
+  google_cloud: "admin.storage.kind.google_cloud",
 };
-
-function formatDateTimePtBr(isoValue: string | null): string {
-  if (!isoValue) {
-    return "Nunca verificada";
-  }
-  const date = new Date(isoValue);
-  if (Number.isNaN(date.getTime())) {
-    return isoValue;
-  }
-  return new Intl.DateTimeFormat("pt-BR", {
-    dateStyle: "short",
-    timeStyle: "medium",
-  }).format(date);
-}
 
 function renderStatusIcon(state: OperationalDependencyStateContract) {
   if (state === "ok") {
@@ -89,22 +76,23 @@ function renderStatusIcon(state: OperationalDependencyStateContract) {
 }
 
 /**
- * Administrative operational status page showing live verified health of PostgreSQL,
- * background worker, and configured storage connections along with last verification time.
+ * Administrative operational status page showing live verified health of database,
+ * background services, and configured storage connections along with last verification time.
  */
 export function SystemStatusPage() {
+  const { t, formatDateTime } = useI18n();
   const sessionQuery = useSessionQuery();
   const hasStatusAccess = canViewSystemStatus(sessionQuery.data);
   const statusQuery = useSystemStatusQuery(hasStatusAccess);
 
   if (sessionQuery.isLoading) {
-    return <LoadingState message="Verificando permissões operacionais..." />;
+    return <LoadingState message={t("admin.systemStatus.loadingPermissions")} />;
   }
 
   if (sessionQuery.isError) {
     return (
       <ErrorState
-        title="Erro ao validar sessão"
+        title={t("admin.common.sessionErrorTitle")}
         description={sessionQuery.error.message}
         onRetry={() => void sessionQuery.refetch()}
       />
@@ -114,20 +102,20 @@ export function SystemStatusPage() {
   if (!hasStatusAccess) {
     return (
       <ErrorState
-        title="Acesso restrito"
-        description="Você não possui permissão para consultar o status operacional da instalação."
+        title={t("admin.common.restrictedAccessTitle")}
+        description={t("admin.systemStatus.noAccessDescription")}
       />
     );
   }
 
   if (statusQuery.isLoading) {
-    return <LoadingState message="Consultando saúde do banco, worker e conexões de storage..." />;
+    return <LoadingState message={t("admin.systemStatus.loadingReport")} />;
   }
 
   if (statusQuery.isError) {
     return (
       <ErrorState
-        title="Não foi possível consultar o status operacional"
+        title={t("admin.systemStatus.loadErrorTitle")}
         description={statusQuery.error.message}
         onRetry={() => void statusQuery.refetch()}
       />
@@ -138,8 +126,8 @@ export function SystemStatusPage() {
   if (!report) {
     return (
       <ErrorState
-        title="Status operacional indisponível"
-        description="Tente executar a verificação novamente."
+        title={t("admin.systemStatus.unavailableTitle")}
+        description={t("admin.systemStatus.unavailableDescription")}
         onRetry={() => void statusQuery.refetch()}
       />
     );
@@ -147,16 +135,21 @@ export function SystemStatusPage() {
 
   const componentsList = [
     {
-      key: "database",
+      key: "database" as const,
+      title: t("admin.systemStatus.components.database"),
       icon: <DnsOutlinedIcon color="primary" />,
       data: report.components.database,
     },
     {
-      key: "worker",
+      key: "worker" as const,
+      title: t("admin.systemStatus.components.backgroundServices"),
       icon: <SettingsEthernetOutlinedIcon color="primary" />,
       data: report.components.worker,
     },
   ] as const;
+
+  const formatCheckedTime = (isoValue: string | null): string =>
+    formatDateTime(isoValue, t("admin.common.neverChecked"));
 
   return (
     <Stack spacing={3}>
@@ -170,10 +163,10 @@ export function SystemStatusPage() {
           <MonitorHeartOutlinedIcon color="primary" fontSize="large" />
           <Box>
             <Typography variant="h4" fontWeight={700}>
-              Status operacional
+              {t("admin.systemStatus.title")}
             </Typography>
             <Typography variant="body2" color="text.secondary">
-              Diagnóstico de saúde do banco de dados, worker de processamento e conexões de storage.
+              {t("admin.systemStatus.subtitle")}
             </Typography>
           </Box>
         </Stack>
@@ -184,20 +177,23 @@ export function SystemStatusPage() {
           disabled={statusQuery.isFetching}
           onClick={() => void statusQuery.refetch()}
         >
-          {statusQuery.isFetching ? "Verificando..." : "Atualizar verificação"}
+          {statusQuery.isFetching
+            ? t("admin.systemStatus.refreshing")
+            : t("admin.systemStatus.refresh")}
         </Button>
       </Stack>
 
       <Alert severity={report.overallStatus === "healthy" ? "success" : "warning"}>
         {report.overallStatus === "healthy"
-          ? "Instalação operacional — banco de dados, worker e conexões verificadas sem falhas."
-          : "Atenção operacional — ao menos um componente ou conexão de storage requer verificação."}{" "}
-        Última verificação: <strong>{formatDateTimePtBr(report.checkedAt)}</strong>
+          ? t("admin.systemStatus.overallHealthy")
+          : t("admin.systemStatus.overallAttention")}{" "}
+        {t("admin.systemStatus.lastCheckedLabel")}{" "}
+        <strong>{formatCheckedTime(report.checkedAt)}</strong>
       </Alert>
 
       <Grid container spacing={2}>
-        {componentsList.map(({ key, icon, data }) => {
-          const badge = DEPENDENCY_BADGE[data.status];
+        {componentsList.map(({ key, title, icon, data }) => {
+          const badge = DEPENDENCY_BADGE_CONFIG[data.status];
           return (
             <Grid key={key} size={{ xs: 12, md: 6 }}>
               <Paper
@@ -206,8 +202,8 @@ export function SystemStatusPage() {
                   p: 2.5,
                   height: "100%",
                   borderRadius: 3,
-                  borderColor: DOCUFLOW_COLOR_TOKENS.surface.outlineVariant,
-                  backgroundColor: DOCUFLOW_COLOR_TOKENS.surface.containerLowest,
+                  borderColor: PAPYRUS_COLOR_TOKENS.surface.outlineVariant,
+                  backgroundColor: PAPYRUS_COLOR_TOKENS.surface.containerLowest,
                 }}
               >
                 <Stack spacing={1.5}>
@@ -215,12 +211,12 @@ export function SystemStatusPage() {
                     <Stack direction="row" spacing={1} alignItems="center">
                       {icon}
                       <Typography variant="subtitle1" fontWeight={600}>
-                        {data.name}
+                        {title}
                       </Typography>
                     </Stack>
                     <Chip
                       icon={renderStatusIcon(data.status)}
-                      label={badge.label}
+                      label={t(badge.labelKey)}
                       color={badge.color}
                       size="small"
                       variant="outlined"
@@ -232,7 +228,9 @@ export function SystemStatusPage() {
                   </Typography>
 
                   <Typography variant="caption" color="text.secondary">
-                    Verificado em: {formatDateTimePtBr(data.checkedAt)}
+                    {t("admin.systemStatus.checkedAt", {
+                      time: formatCheckedTime(data.checkedAt),
+                    })}
                   </Typography>
                 </Stack>
               </Paper>
@@ -246,8 +244,8 @@ export function SystemStatusPage() {
         sx={{
           p: 3,
           borderRadius: 3,
-          borderColor: DOCUFLOW_COLOR_TOKENS.surface.outlineVariant,
-          backgroundColor: DOCUFLOW_COLOR_TOKENS.surface.containerLowest,
+          borderColor: PAPYRUS_COLOR_TOKENS.surface.outlineVariant,
+          backgroundColor: PAPYRUS_COLOR_TOKENS.surface.containerLowest,
         }}
       >
         <Stack spacing={2}>
@@ -261,43 +259,43 @@ export function SystemStatusPage() {
               <StorageOutlinedIcon color="primary" />
               <Box>
                 <Typography variant="h6" fontWeight={600}>
-                  Conexões de storage
+                  {t("admin.systemStatus.storageTitle")}
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
-                  Estado registrado da última verificação de integridade de cada destino
-                  configurado.
+                  {t("admin.systemStatus.storageSubtitle")}
                 </Typography>
               </Box>
             </Stack>
 
             <Button component={RouterLink} to="/admin/storage" size="small" variant="outlined">
-              Gerenciar conexões
+              {t("admin.systemStatus.manageConnections")}
             </Button>
           </Stack>
 
           {report.storageConnections.length === 0 ? (
             <EmptyState
-              title="Nenhuma conexão de storage cadastrada"
-              description="Cadastre uma conexão local ou S3 compatível para acompanhar a saúde do repositório de arquivos."
+              title={t("admin.storage.emptyConnectionsTitle")}
+              description={t("admin.storage.emptyConnectionsDescription")}
             />
           ) : (
             <TableContainer>
-              <Table aria-label="Status das conexões de storage">
+              <Table aria-label={t("admin.systemStatus.tableAria")}>
                 <TableHead>
                   <TableRow>
-                    <TableCell>Conexão</TableCell>
-                    <TableCell>Tipo</TableCell>
-                    <TableCell>Status</TableCell>
-                    <TableCell>Última verificação</TableCell>
-                    <TableCell>Resultado</TableCell>
+                    <TableCell>{t("admin.systemStatus.colConnection")}</TableCell>
+                    <TableCell>{t("admin.systemStatus.colType")}</TableCell>
+                    <TableCell>{t("admin.systemStatus.colStatus")}</TableCell>
+                    <TableCell>{t("admin.systemStatus.colLastChecked")}</TableCell>
+                    <TableCell>{t("admin.systemStatus.colResult")}</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
                   {report.storageConnections.map((conn) => {
-                    const statusBadge = STORAGE_STATUS_LABELS[conn.status] ?? {
-                      label: conn.status,
-                      color: "default" as const,
-                    };
+                    const statusConfig = STORAGE_STATUS_BADGE_CONFIG[conn.status];
+                    const statusLabel = statusConfig ? t(statusConfig.labelKey) : conn.status;
+                    const statusColor = statusConfig ? statusConfig.color : ("default" as const);
+                    const kindKey = STORAGE_KIND_LABEL_KEYS[conn.kind];
+                    const kindLabel = kindKey ? t(kindKey) : conn.kind;
                     return (
                       <TableRow key={conn.id} hover>
                         <TableCell>
@@ -307,7 +305,7 @@ export function SystemStatusPage() {
                             </Typography>
                             {conn.isDefault ? (
                               <Chip
-                                label="Padrão"
+                                label={t("admin.common.defaultBadge")}
                                 size="small"
                                 color="primary"
                                 icon={<StarOutlineOutlinedIcon />}
@@ -316,18 +314,14 @@ export function SystemStatusPage() {
                           </Stack>
                         </TableCell>
                         <TableCell>
-                          <Chip
-                            label={STORAGE_KIND_LABELS[conn.kind] ?? conn.kind}
-                            size="small"
-                            variant="outlined"
-                          />
+                          <Chip label={kindLabel} size="small" variant="outlined" />
                         </TableCell>
                         <TableCell>
-                          <Chip label={statusBadge.label} color={statusBadge.color} size="small" />
+                          <Chip label={statusLabel} color={statusColor} size="small" />
                         </TableCell>
                         <TableCell>
                           <Typography variant="body2" color="text.secondary">
-                            {formatDateTimePtBr(conn.lastHealthCheckAt)}
+                            {formatCheckedTime(conn.lastHealthCheckAt)}
                           </Typography>
                         </TableCell>
                         <TableCell>

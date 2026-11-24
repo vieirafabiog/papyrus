@@ -5,6 +5,7 @@ import { Box, Button, Chip, Stack, Typography } from "@mui/material";
 import { useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import { useI18n } from "../../i18n/index.js";
 import { buildFolderTreeOptions } from "../folders/folderTree.js";
 import { DocumentFiltersBar } from "./DocumentFiltersBar.js";
 import { UploadDialog } from "./UploadDialog.js";
@@ -18,19 +19,16 @@ import {
   useDocumentOwnersQuery,
 } from "./useDocumentList.js";
 
-const DOCUMENT_STATUS_BADGE: Readonly<
-  Record<
-    DocumentStatus,
-    { readonly label: string; readonly color: "default" | "info" | "success" | "warning" | "error" }
-  >
+const DOCUMENT_STATUS_COLOR: Readonly<
+  Record<DocumentStatus, "default" | "info" | "success" | "warning" | "error">
 > = {
-  DRAFT: { label: "Rascunho", color: "default" },
-  IN_REVIEW: { label: "Em revisão", color: "info" },
-  APPROVED: { label: "Aprovado", color: "success" },
-  REJECTED: { label: "Rejeitado", color: "error" },
-  ARCHIVED: { label: "Arquivado", color: "default" },
-  EXPIRED: { label: "Expirado", color: "warning" },
-  DELETED: { label: "Excluído", color: "error" },
+  DRAFT: "default",
+  IN_REVIEW: "info",
+  APPROVED: "success",
+  REJECTED: "error",
+  ARCHIVED: "default",
+  EXPIRED: "warning",
+  DELETED: "error",
 };
 
 const SERVER_SORTABLE_FIELDS = new Set<string>([
@@ -43,30 +41,31 @@ const SERVER_SORTABLE_FIELDS = new Set<string>([
   "id",
 ]);
 
-function formatIsoDatePtBr(isoDate: string | null): string {
+function formatIsoCalendarDate(
+  isoDate: string | null,
+  formatDateFn: (value: string | Date | null | undefined, emptyFallback?: string) => string,
+  emptyFallback: string,
+): string {
   if (!isoDate) {
-    return "Não informado";
+    return emptyFallback;
   }
   const [year, month, day] = isoDate.split("-");
   if (!year || !month || !day) {
     return isoDate;
   }
-  return `${day}/${month}/${year}`;
-}
-
-function formatDateTimePtBr(isoDateTime: string): string {
-  const parsed = new Date(isoDateTime);
-  if (Number.isNaN(parsed.getTime())) {
-    return isoDateTime;
+  const localDate = new Date(Number(year), Number(month) - 1, Number(day));
+  if (Number.isNaN(localDate.getTime())) {
+    return isoDate;
   }
-  return parsed.toLocaleString("pt-BR");
+  return formatDateFn(localDate, emptyFallback);
 }
 
 /**
- * Authorized document repository listing page with server-controlled filtering,
+ * Authorized document library listing page with server-controlled filtering,
  * sorting, pagination, and navigation to document detail pages.
  */
 export function DocumentListPage() {
+  const { locale, t, formatDate, formatDateTime } = useI18n();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [searchParams] = useSearchParams();
@@ -91,8 +90,11 @@ export function DocumentListPage() {
     [categories],
   );
   const folderPathById = useMemo(
-    () => new Map(buildFolderTreeOptions(folders).map((folder) => [folder.id, folder.fullPath])),
-    [folders],
+    () =>
+      new Map(
+        buildFolderTreeOptions(folders, locale).map((folder) => [folder.id, folder.fullPath]),
+      ),
+    [folders, locale],
   );
 
   const updateFilters = (patch: Partial<DocumentListFiltersState>): void => {
@@ -122,10 +124,12 @@ export function DocumentListPage() {
     });
   };
 
+  const notProvided = t("documents.common.notProvided");
+
   const columns: DataTableColumn<DocumentListItem>[] = [
     {
       id: "title",
-      label: "Título",
+      label: t("documents.list.columns.title"),
       sortable: true,
       render: (row) => (
         <Typography variant="body2" fontWeight={500}>
@@ -135,43 +139,47 @@ export function DocumentListPage() {
     },
     {
       id: "categoryId",
-      label: "Categoria",
+      label: t("documents.list.columns.category"),
       sortable: false,
-      render: (row) => categoryNameById.get(row.categoryId) ?? "Categoria restrita/arquivada",
+      render: (row) =>
+        categoryNameById.get(row.categoryId) ?? t("documents.list.restrictedCategory"),
     },
     {
       id: "folderId",
-      label: "Pasta",
+      label: t("documents.list.columns.folder"),
       sortable: false,
       render: (row) =>
         row.folderId === null
-          ? "Sem pasta (raiz)"
-          : (folderPathById.get(row.folderId) ?? "Pasta restrita"),
+          ? t("documents.common.noFolderRoot")
+          : (folderPathById.get(row.folderId) ?? t("documents.list.restrictedFolder")),
     },
     {
       id: "status",
-      label: "Status",
+      label: t("documents.list.columns.status"),
       sortable: true,
-      render: (row) => {
-        const badge = DOCUMENT_STATUS_BADGE[row.status];
-        return <Chip label={badge.label} color={badge.color} size="small" />;
-      },
+      render: (row) => (
+        <Chip
+          label={t(`documents.status.${row.status}`)}
+          color={DOCUMENT_STATUS_COLOR[row.status]}
+          size="small"
+        />
+      ),
     },
     {
       id: "expirationDate",
-      label: "Vencimento",
+      label: t("documents.list.columns.expirationDate"),
       sortable: true,
-      render: (row) => formatIsoDatePtBr(row.expirationDate),
+      render: (row) => formatIsoCalendarDate(row.expirationDate, formatDate, notProvided),
     },
     {
       id: "updatedAt",
-      label: "Atualizado em",
+      label: t("documents.list.columns.updatedAt"),
       sortable: true,
-      render: (row) => formatDateTimePtBr(row.updatedAt),
+      render: (row) => formatDateTime(row.updatedAt, notProvided),
     },
     {
       id: "actions",
-      label: "Ações",
+      label: t("documents.list.columns.actions"),
       align: "right",
       render: (row) => (
         <Button
@@ -182,9 +190,9 @@ export function DocumentListPage() {
             event.stopPropagation();
             void navigate(`/documents/${row.id}`);
           }}
-          aria-label={`Abrir ${row.title}`}
+          aria-label={t("documents.list.openDocumentAria", { title: row.title })}
         >
-          Abrir
+          {t("documents.common.open")}
         </Button>
       ),
     },
@@ -198,10 +206,10 @@ export function DocumentListPage() {
     <Stack spacing={2.5}>
       <Box>
         <Typography variant="h1" gutterBottom>
-          Documentos
+          {t("documents.list.title")}
         </Typography>
         <Typography variant="body1" color="text.secondary">
-          Pesquisa, filtros, paginação e gestão de documentos autorizados no servidor.
+          {t("documents.list.subtitle")}
         </Typography>
       </Box>
 
@@ -217,7 +225,7 @@ export function DocumentListPage() {
       />
 
       <DataTable
-        ariaLabel="Tabela de documentos"
+        ariaLabel={t("documents.list.tableAriaLabel")}
         columns={columns}
         rows={rows}
         getRowId={(row) => row.id}
@@ -234,9 +242,9 @@ export function DocumentListPage() {
         loading={documentsQuery.isLoading}
         errorMessage={documentsQuery.isError ? documentsQuery.error.message : null}
         onRetry={() => void documentsQuery.refetch()}
-        emptyTitle="Nenhum documento encontrado"
-        emptyDescription="Nenhum documento autorizado corresponde aos filtros selecionados."
-        emptyActionLabel="Enviar documentos"
+        emptyTitle={t("documents.list.emptyTitle")}
+        emptyDescription={t("documents.list.emptyDescription")}
+        emptyActionLabel={t("documents.list.uploadAction")}
         onEmptyAction={() => setUploadOpen(true)}
       />
 

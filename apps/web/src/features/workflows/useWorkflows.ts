@@ -7,7 +7,6 @@ import {
   type WorkflowDefinitionMutationResult,
   type WorkflowDefinitionSummary,
   type WorkflowDefinitionWithVersionsRecord,
-  apiErrorResponseSchema,
   workflowAssigneeCatalogResponseSchema,
   workflowDefinitionDetailResponseSchema,
   workflowDefinitionListResponseSchema,
@@ -15,6 +14,8 @@ import {
   workflowDefinitionStatusResponseSchema,
 } from "@docuflow/contracts";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { extractUserErrorMessage } from "../../i18n/api-errors.js";
+import { translate } from "../../i18n/index.js";
 
 const CSRF_COOKIE_NAME = "docuflow_csrf";
 const CSRF_HEADER_NAME = "x-csrf-token";
@@ -49,19 +50,6 @@ async function resolveCsrfToken(): Promise<string> {
   return json.data?.csrfToken ?? "";
 }
 
-async function parseErrorMessage(response: Response, fallback: string): Promise<string> {
-  try {
-    const raw: unknown = await response.json();
-    const parsed = apiErrorResponseSchema.safeParse(raw);
-    if (parsed.success) {
-      return parsed.data.error.message;
-    }
-  } catch {
-    // Fallback para mensagem padrão.
-  }
-  return `${fallback} (${response.status}).`;
-}
-
 export async function fetchWorkflowDefinitionsList(
   includeInactive: boolean,
 ): Promise<readonly WorkflowDefinitionSummary[]> {
@@ -72,11 +60,11 @@ export async function fetchWorkflowDefinitionsList(
     headers: { Accept: "application/json" },
   });
   if (!response.ok) {
-    throw new Error(await parseErrorMessage(response, "Falha ao listar definições de fluxo"));
+    throw new Error(await extractUserErrorMessage(response, "workflows.errors.listDefinitions"));
   }
   const parsed = workflowDefinitionListResponseSchema.safeParse(await response.json());
   if (!parsed.success) {
-    throw new Error("Resposta inválida recebida ao listar definições de fluxo.");
+    throw new Error(translate("workflows.errors.invalidDefinitionsResponse"));
   }
   return parsed.data.data;
 }
@@ -93,11 +81,11 @@ export async function fetchWorkflowDefinitionDetail(
     },
   );
   if (!response.ok) {
-    throw new Error(await parseErrorMessage(response, "Falha ao carregar detalhes do fluxo"));
+    throw new Error(await extractUserErrorMessage(response, "workflows.errors.loadDetail"));
   }
   const parsed = workflowDefinitionDetailResponseSchema.safeParse(await response.json());
   if (!parsed.success) {
-    throw new Error("Resposta inválida recebida ao consultar detalhes do fluxo.");
+    throw new Error(translate("workflows.errors.invalidDetailResponse"));
   }
   return parsed.data.data;
 }
@@ -109,11 +97,11 @@ export async function fetchWorkflowAssigneeCatalog(): Promise<WorkflowAssigneeCa
     headers: { Accept: "application/json" },
   });
   if (!response.ok) {
-    throw new Error(await parseErrorMessage(response, "Falha ao carregar aprovadores disponíveis"));
+    throw new Error(await extractUserErrorMessage(response, "workflows.errors.loadAssignees"));
   }
   const parsed = workflowAssigneeCatalogResponseSchema.safeParse(await response.json());
   if (!parsed.success) {
-    throw new Error("Resposta inválida recebida ao consultar aprovadores.");
+    throw new Error(translate("workflows.errors.invalidAssigneesResponse"));
   }
   return parsed.data.data;
 }
@@ -131,7 +119,7 @@ export function useWorkflowDefinitionDetailQuery(definitionId: string | null) {
     queryKey: ["workflows", "definitions", "detail", definitionId],
     queryFn: () => {
       if (!definitionId) {
-        throw new Error("Identificador do fluxo não informado.");
+        throw new Error(translate("workflows.errors.missingDefinitionId"));
       }
       return fetchWorkflowDefinitionDetail(definitionId);
     },
@@ -165,11 +153,13 @@ export function useCreateWorkflowDefinitionMutation() {
         body: JSON.stringify(input),
       });
       if (!response.ok) {
-        throw new Error(await parseErrorMessage(response, "Não foi possível criar o fluxo"));
+        throw new Error(
+          await extractUserErrorMessage(response, "workflows.errors.createDefinition"),
+        );
       }
       const parsed = workflowDefinitionMutationResponseSchema.safeParse(await response.json());
       if (!parsed.success) {
-        throw new Error("Resposta inválida recebida ao criar definição de fluxo.");
+        throw new Error(translate("workflows.errors.invalidCreateResponse"));
       }
       return parsed.data.data;
     },
@@ -202,13 +192,11 @@ export function usePublishWorkflowVersionMutation() {
         },
       );
       if (!response.ok) {
-        throw new Error(
-          await parseErrorMessage(response, "Não foi possível publicar nova versão do fluxo"),
-        );
+        throw new Error(await extractUserErrorMessage(response, "workflows.errors.publishVersion"));
       }
       const parsed = workflowDefinitionMutationResponseSchema.safeParse(await response.json());
       if (!parsed.success) {
-        throw new Error("Resposta inválida recebida ao publicar nova versão do fluxo.");
+        throw new Error(translate("workflows.errors.invalidPublishResponse"));
       }
       return parsed.data.data;
     },
@@ -241,13 +229,11 @@ export function useToggleWorkflowStatusMutation() {
         },
       );
       if (!response.ok) {
-        throw new Error(
-          await parseErrorMessage(response, "Não foi possível alterar o status do fluxo"),
-        );
+        throw new Error(await extractUserErrorMessage(response, "workflows.errors.toggleStatus"));
       }
       const parsed = workflowDefinitionStatusResponseSchema.safeParse(await response.json());
       if (!parsed.success) {
-        throw new Error("Resposta inválida recebida ao alterar status do fluxo.");
+        throw new Error(translate("workflows.errors.invalidToggleResponse"));
       }
       return parsed.data.data;
     },

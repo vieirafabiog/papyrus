@@ -1,11 +1,12 @@
 import "@testing-library/jest-dom/vitest";
-import { docuflowTheme } from "@docuflow/ui";
+import { UiLocaleProvider, papyrusTheme } from "@docuflow/ui";
 import { CssBaseline, ThemeProvider } from "@mui/material";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { DashboardPage } from "../src/features/dashboard/DashboardPage.js";
+import { I18nProvider, resetUiLocaleForTests } from "../src/i18n/index.js";
 
 function renderDashboard() {
   const queryClient = new QueryClient({
@@ -15,24 +16,29 @@ function renderDashboard() {
   });
 
   return render(
-    <ThemeProvider theme={docuflowTheme}>
-      <CssBaseline />
-      <QueryClientProvider client={queryClient}>
-        <MemoryRouter initialEntries={["/"]}>
-          <Routes>
-            <Route path="/" element={<DashboardPage />} />
-            <Route path="/documents" element={<h1>Lista de documentos</h1>} />
-            <Route path="/documents/:id" element={<h1>Detalhe do documento</h1>} />
-          </Routes>
-        </MemoryRouter>
-      </QueryClientProvider>
-    </ThemeProvider>,
+    <I18nProvider initialLocale="en-US">
+      <UiLocaleProvider locale="en-US">
+        <ThemeProvider theme={papyrusTheme}>
+          <CssBaseline />
+          <QueryClientProvider client={queryClient}>
+            <MemoryRouter initialEntries={["/"]}>
+              <Routes>
+                <Route path="/" element={<DashboardPage />} />
+                <Route path="/documents" element={<h1>Documents list</h1>} />
+                <Route path="/documents/:id" element={<h1>Document details</h1>} />
+              </Routes>
+            </MemoryRouter>
+          </QueryClientProvider>
+        </ThemeProvider>
+      </UiLocaleProvider>
+    </I18nProvider>,
   );
 }
 
 describe("DashboardPage", () => {
   afterEach(() => {
     cleanup();
+    resetUiLocaleForTests();
     vi.restoreAllMocks();
   });
 
@@ -42,14 +48,14 @@ describe("DashboardPage", () => {
     renderDashboard();
 
     expect(
-      await screen.findByRole("heading", { name: "Nenhum resumo disponível no momento" }),
+      await screen.findByRole("heading", { name: "No summary available right now" }),
     ).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("button", { name: "Ir para documentos" }));
-    expect(await screen.findByRole("heading", { name: "Lista de documentos" })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Go to documents" }));
+    expect(await screen.findByRole("heading", { name: "Documents list" })).toBeInTheDocument();
   });
 
-  it("renders real summary KPIs, storage usage and recent activity when API responds 200", async () => {
+  it("renders real summary KPIs, storage usage and localized recent activity when API responds 200", async () => {
     const validUuid = "550e8400-e29b-41d4-a716-446655440000";
     vi.spyOn(globalThis, "fetch").mockResolvedValue(
       new Response(
@@ -82,13 +88,11 @@ describe("DashboardPage", () => {
     expect(screen.getByText("3")).toBeInTheDocument();
     expect(screen.getByText("5")).toBeInTheDocument();
     expect(screen.getByText("1")).toBeInTheDocument();
-    expect(screen.getByText("1,5 MB")).toBeInTheDocument();
-    expect(screen.getByText("12 arquivos ativos")).toBeInTheDocument();
+    expect(screen.getByText("1.50 MB")).toBeInTheDocument();
+    expect(screen.getByText("12 active files")).toBeInTheDocument();
 
-    fireEvent.click(screen.getByText("DOCUMENT_CREATED — DOCUMENT"));
-    expect(
-      await screen.findByRole("heading", { name: "Detalhe do documento" }),
-    ).toBeInTheDocument();
+    fireEvent.click(screen.getByText("Document created — Document"));
+    expect(await screen.findByRole("heading", { name: "Document details" })).toBeInTheDocument();
   });
 
   it("renders ErrorState with working retry when summary request fails", async () => {
@@ -100,16 +104,16 @@ describe("DashboardPage", () => {
     renderDashboard();
 
     expect(await screen.findByRole("alert")).toHaveTextContent(
-      "Não foi possível carregar o resumo operacional do acervo.",
+      "Unable to load the library summary. Please try again.",
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "Tentar novamente" }));
+    fireEvent.click(screen.getByRole("button", { name: "Try again" }));
 
     await waitFor(() => {
       expect(fetchSpy).toHaveBeenCalledTimes(2);
     });
     expect(
-      await screen.findByRole("heading", { name: "Nenhum resumo disponível no momento" }),
+      await screen.findByRole("heading", { name: "No summary available right now" }),
     ).toBeInTheDocument();
   });
 });

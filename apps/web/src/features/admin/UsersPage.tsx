@@ -1,12 +1,12 @@
 import type { UserStatus, UserSummary } from "@docuflow/contracts";
 import {
   ConfirmDialog,
-  DOCUFLOW_COLOR_TOKENS,
   DataTable,
   type DataTableColumn,
   ErrorState,
   FilterBar,
   LoadingState,
+  PAPYRUS_COLOR_TOKENS,
 } from "@docuflow/ui";
 import BlockOutlinedIcon from "@mui/icons-material/BlockOutlined";
 import CheckCircleOutlineOutlinedIcon from "@mui/icons-material/CheckCircleOutlineOutlined";
@@ -32,6 +32,7 @@ import {
 import { useId, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useSessionQuery } from "../../app/session.js";
+import { useI18n } from "../../i18n/index.js";
 import {
   canManageGroups,
   canManageUsers,
@@ -41,21 +42,11 @@ import {
   useUpdateAdminUserMutation,
 } from "./useUsersAndGroups.js";
 
-const USER_STATUS_BADGE: Readonly<
-  Record<UserStatus, { readonly label: string; readonly color: "success" | "default" | "error" }>
-> = {
-  ACTIVE: { label: "Ativo", color: "success" },
-  INACTIVE: { label: "Inativo", color: "default" },
-  LOCKED: { label: "Bloqueado", color: "error" },
+const USER_STATUS_COLORS: Readonly<Record<UserStatus, "success" | "default" | "error">> = {
+  ACTIVE: "success",
+  INACTIVE: "default",
+  LOCKED: "error",
 };
-
-function formatDateTimePtBr(isoDateTime: string): string {
-  const parsed = new Date(isoDateTime);
-  if (Number.isNaN(parsed.getTime())) {
-    return isoDateTime;
-  }
-  return parsed.toLocaleString("pt-BR");
-}
 
 /**
  * Administrative user directory view supporting filtering, creation,
@@ -63,6 +54,7 @@ function formatDateTimePtBr(isoDateTime: string): string {
  */
 export function UsersPage() {
   const navigate = useNavigate();
+  const { locale, t, formatDateTime } = useI18n();
   const createTitleId = useId();
   const editTitleId = useId();
 
@@ -123,11 +115,11 @@ export function UsersPage() {
     const sorted = [...filtered].sort((a, b) => {
       const valA = a[sortBy];
       const valB = b[sortBy];
-      const cmp = valA.localeCompare(valB, "pt-BR");
+      const cmp = valA.localeCompare(valB, locale);
       return sortDirection === "asc" ? cmp : -cmp;
     });
     return sorted;
-  }, [usersQuery.data, search, statusFilter, sortBy, sortDirection]);
+  }, [usersQuery.data, search, statusFilter, sortBy, sortDirection, locale]);
 
   const pagedUsers = useMemo(() => {
     const start = (page - 1) * pageSize;
@@ -135,14 +127,14 @@ export function UsersPage() {
   }, [filteredUsers, page, pageSize]);
 
   if (sessionQuery.isLoading) {
-    return <LoadingState message="Verificando permissões de administração..." />;
+    return <LoadingState message={t("admin.common.checkingPermissions")} />;
   }
 
   if (sessionQuery.data && !hasUserAdminAccess) {
     return (
       <ErrorState
-        title="Acesso restrito"
-        description="Você não possui permissão para administrar contas de usuário nesta organização."
+        title={t("admin.common.restrictedAccessTitle")}
+        description={t("admin.users.noAccessDescription")}
       />
     );
   }
@@ -161,15 +153,15 @@ export function UsersPage() {
     const trimmedEmail = newEmail.trim().toLowerCase();
 
     if (trimmedName.length < 2) {
-      setCreateError("O nome completo deve ter pelo menos 2 caracteres.");
+      setCreateError(t("admin.users.validation.nameTooShort"));
       return;
     }
     if (!trimmedEmail.includes("@")) {
-      setCreateError("Informe um endereço de e-mail válido.");
+      setCreateError(t("admin.users.validation.invalidEmail"));
       return;
     }
     if (newPassword.length < 10) {
-      setCreateError("A senha inicial deve possuir no mínimo 10 caracteres.");
+      setCreateError(t("admin.users.validation.passwordTooShort"));
       return;
     }
 
@@ -185,10 +177,10 @@ export function UsersPage() {
       setNewPassword("");
       setFeedback({
         severity: "success",
-        message: `Usuário "${created.fullName}" criado com sucesso.`,
+        message: t("admin.users.feedback.created", { name: created.fullName }),
       });
     } catch (error) {
-      setCreateError(error instanceof Error ? error.message : "Não foi possível criar o usuário.");
+      setCreateError(error instanceof Error ? error.message : t("admin.users.errors.createFailed"));
     }
   };
 
@@ -199,7 +191,7 @@ export function UsersPage() {
     setEditError(null);
     const trimmedName = editFullName.trim();
     if (trimmedName.length < 2) {
-      setEditError("O nome completo deve ter pelo menos 2 caracteres.");
+      setEditError(t("admin.users.validation.nameTooShort"));
       return;
     }
 
@@ -211,12 +203,10 @@ export function UsersPage() {
       setEditingUser(null);
       setFeedback({
         severity: "success",
-        message: `Dados de "${updated.fullName}" atualizados com sucesso.`,
+        message: t("admin.users.feedback.updated", { name: updated.fullName }),
       });
     } catch (error) {
-      setEditError(
-        error instanceof Error ? error.message : "Não foi possível atualizar o usuário.",
-      );
+      setEditError(error instanceof Error ? error.message : t("admin.users.errors.updateFailed"));
     }
   };
 
@@ -234,23 +224,33 @@ export function UsersPage() {
         severity: "success",
         message:
           updated.status === "INACTIVE"
-            ? `Usuário "${updated.fullName}" desativado com sucesso.`
-            : `Usuário "${updated.fullName}" reativado com sucesso.`,
+            ? t("admin.users.feedback.deactivated", { name: updated.fullName })
+            : t("admin.users.feedback.reactivated", { name: updated.fullName }),
       });
     } catch (error) {
       setStatusTarget(null);
       setFeedback({
         severity: "error",
-        message:
-          error instanceof Error ? error.message : "Não foi possível alterar o status do usuário.",
+        message: error instanceof Error ? error.message : t("admin.users.errors.toggleFailed"),
       });
+    }
+  };
+
+  const getStatusLabel = (status: UserStatus): string => {
+    switch (status) {
+      case "ACTIVE":
+        return t("admin.users.status.ACTIVE");
+      case "INACTIVE":
+        return t("admin.users.status.INACTIVE");
+      case "LOCKED":
+        return t("admin.users.status.LOCKED");
     }
   };
 
   const columns: DataTableColumn<UserSummary>[] = [
     {
       id: "fullName",
-      label: "Nome",
+      label: t("admin.users.table.name"),
       sortable: true,
       render: (row) => (
         <Typography variant="body2" fontWeight={500}>
@@ -260,28 +260,31 @@ export function UsersPage() {
     },
     {
       id: "email",
-      label: "E-mail",
+      label: t("admin.users.table.email"),
       sortable: true,
       render: (row) => row.email,
     },
     {
       id: "status",
-      label: "Status",
+      label: t("admin.common.status"),
       sortable: true,
-      render: (row) => {
-        const badge = USER_STATUS_BADGE[row.status];
-        return <Chip label={badge.label} color={badge.color} size="small" />;
-      },
+      render: (row) => (
+        <Chip
+          label={getStatusLabel(row.status)}
+          color={USER_STATUS_COLORS[row.status]}
+          size="small"
+        />
+      ),
     },
     {
       id: "updatedAt",
-      label: "Atualizado em",
+      label: t("admin.common.updatedAt"),
       sortable: true,
-      render: (row) => formatDateTimePtBr(row.updatedAt),
+      render: (row) => formatDateTime(row.updatedAt),
     },
     {
       id: "actions",
-      label: "Ações",
+      label: t("admin.common.actions"),
       align: "right",
       render: (row) => (
         <Stack direction="row" spacing={1} justifyContent="flex-end">
@@ -295,9 +298,9 @@ export function UsersPage() {
               setEditFullName(row.fullName);
               setEditingUser(row);
             }}
-            aria-label={`Editar ${row.fullName}`}
+            aria-label={t("admin.users.actions.editAria", { name: row.fullName })}
           >
-            Editar
+            {t("admin.common.edit")}
           </Button>
           {row.status === "ACTIVE" ? (
             <Button
@@ -309,9 +312,9 @@ export function UsersPage() {
                 event.stopPropagation();
                 setStatusTarget({ user: row, action: "deactivate" });
               }}
-              aria-label={`Desativar ${row.fullName}`}
+              aria-label={t("admin.users.actions.deactivateAria", { name: row.fullName })}
             >
-              Desativar
+              {t("admin.common.deactivate")}
             </Button>
           ) : (
             <Button
@@ -323,9 +326,9 @@ export function UsersPage() {
                 event.stopPropagation();
                 setStatusTarget({ user: row, action: "reactivate" });
               }}
-              aria-label={`Reativar ${row.fullName}`}
+              aria-label={t("admin.users.actions.reactivateAria", { name: row.fullName })}
             >
-              Reativar
+              {t("admin.common.reactivate")}
             </Button>
           )}
         </Stack>
@@ -339,8 +342,8 @@ export function UsersPage() {
         variant="outlined"
         sx={{
           p: 2.5,
-          bgcolor: DOCUFLOW_COLOR_TOKENS.surface.containerLowest,
-          borderColor: DOCUFLOW_COLOR_TOKENS.surface.outlineVariant,
+          bgcolor: PAPYRUS_COLOR_TOKENS.surface.containerLowest,
+          borderColor: PAPYRUS_COLOR_TOKENS.surface.outlineVariant,
         }}
       >
         <Stack spacing={1.5}>
@@ -353,10 +356,10 @@ export function UsersPage() {
             <Box>
               <Stack direction="row" spacing={1} alignItems="center">
                 <GroupOutlinedIcon color="primary" />
-                <Typography variant="h1">Usuários e grupos</Typography>
+                <Typography variant="h1">{t("admin.usersAndGroups.title")}</Typography>
               </Stack>
               <Typography variant="body1" color="text.secondary" sx={{ mt: 0.5 }}>
-                Cadastre, edite e gerencie o ciclo de acesso das contas da organização.
+                {t("admin.users.subtitle")}
               </Typography>
             </Box>
           </Stack>
@@ -368,11 +371,11 @@ export function UsersPage() {
                 void navigate("/admin/groups");
               }
             }}
-            aria-label="Seções de usuários e grupos"
+            aria-label={t("admin.usersAndGroups.tabsAriaLabel")}
           >
-            <Tab value="users" label="Usuários" />
+            <Tab value="users" label={t("admin.usersAndGroups.usersTab")} />
             {hasGroupAdminAccess || sessionQuery.data === null ? (
-              <Tab value="groups" label="Grupos" />
+              <Tab value="groups" label={t("admin.usersAndGroups.groupsTab")} />
             ) : null}
           </Tabs>
         </Stack>
@@ -390,18 +393,18 @@ export function UsersPage() {
           setSearch(value);
           setPage(1);
         }}
-        searchLabel="Pesquisar usuário"
-        searchPlaceholder="Nome ou e-mail..."
+        searchLabel={t("admin.users.filters.searchLabel")}
+        searchPlaceholder={t("admin.users.filters.searchPlaceholder")}
         filters={[
           {
             id: "user-status",
-            label: "Status",
+            label: t("admin.users.filters.statusLabel"),
             value: statusFilter,
-            allOptionLabel: "Todos os status",
+            allOptionLabel: t("admin.users.filters.allStatuses"),
             options: [
-              { value: "ACTIVE", label: "Ativo" },
-              { value: "INACTIVE", label: "Inativo" },
-              { value: "LOCKED", label: "Bloqueado" },
+              { value: "ACTIVE", label: t("admin.users.status.ACTIVE") },
+              { value: "INACTIVE", label: t("admin.users.status.INACTIVE") },
+              { value: "LOCKED", label: t("admin.users.status.LOCKED") },
             ],
             onChange: (value) => {
               setStatusFilter(value as UserStatus | "");
@@ -424,13 +427,13 @@ export function UsersPage() {
               setCreateOpen(true);
             }}
           >
-            Novo usuário
+            {t("admin.users.actions.newUser")}
           </Button>
         }
       />
 
       <DataTable
-        ariaLabel="Tabela de usuários da organização"
+        ariaLabel={t("admin.users.table.ariaLabel")}
         columns={columns}
         rows={pagedUsers}
         getRowId={(row) => row.id}
@@ -449,9 +452,9 @@ export function UsersPage() {
         loading={usersQuery.isLoading}
         errorMessage={usersQuery.isError ? usersQuery.error.message : null}
         onRetry={() => void usersQuery.refetch()}
-        emptyTitle="Nenhum usuário encontrado"
-        emptyDescription="Nenhuma conta corresponde aos filtros atuais."
-        emptyActionLabel="Novo usuário"
+        emptyTitle={t("admin.users.table.emptyTitle")}
+        emptyDescription={t("admin.users.table.emptyDescription")}
+        emptyActionLabel={t("admin.users.actions.newUser")}
         onEmptyAction={() => setCreateOpen(true)}
       />
 
@@ -462,7 +465,7 @@ export function UsersPage() {
         maxWidth="xs"
         fullWidth
       >
-        <DialogTitle id={createTitleId}>Criar usuário</DialogTitle>
+        <DialogTitle id={createTitleId}>{t("admin.users.createDialog.title")}</DialogTitle>
         <DialogContent>
           <Stack spacing={2} sx={{ pt: 0.5 }}>
             {createError ? (
@@ -471,7 +474,7 @@ export function UsersPage() {
               </Alert>
             ) : null}
             <TextField
-              label="Nome completo"
+              label={t("admin.users.createDialog.fullName")}
               value={newFullName}
               onChange={(event) => setNewFullName(event.target.value)}
               fullWidth
@@ -480,7 +483,7 @@ export function UsersPage() {
             />
             <TextField
               type="email"
-              label="E-mail corporativo"
+              label={t("admin.users.createDialog.email")}
               value={newEmail}
               onChange={(event) => setNewEmail(event.target.value)}
               fullWidth
@@ -489,8 +492,8 @@ export function UsersPage() {
             />
             <TextField
               type="password"
-              label="Senha inicial"
-              helperText="Mínimo de 10 caracteres."
+              label={t("admin.users.createDialog.initialPassword")}
+              helperText={t("admin.users.createDialog.passwordHelper")}
               value={newPassword}
               onChange={(event) => setNewPassword(event.target.value)}
               fullWidth
@@ -505,14 +508,16 @@ export function UsersPage() {
             disabled={createMutation.isPending}
             variant="text"
           >
-            Cancelar
+            {t("admin.common.cancel")}
           </Button>
           <Button
             onClick={() => void handleCreateUser()}
             disabled={createMutation.isPending}
             variant="contained"
           >
-            {createMutation.isPending ? "Criando..." : "Criar usuário"}
+            {createMutation.isPending
+              ? t("admin.common.creating")
+              : t("admin.users.createDialog.submit")}
           </Button>
         </DialogActions>
       </Dialog>
@@ -524,7 +529,7 @@ export function UsersPage() {
         maxWidth="xs"
         fullWidth
       >
-        <DialogTitle id={editTitleId}>Editar usuário</DialogTitle>
+        <DialogTitle id={editTitleId}>{t("admin.users.editDialog.title")}</DialogTitle>
         <DialogContent>
           <Stack spacing={2} sx={{ pt: 0.5 }}>
             {editError ? (
@@ -532,9 +537,14 @@ export function UsersPage() {
                 {editError}
               </Alert>
             ) : null}
-            <TextField label="E-mail" value={editingUser?.email ?? ""} fullWidth disabled />
             <TextField
-              label="Nome completo"
+              label={t("admin.users.editDialog.email")}
+              value={editingUser?.email ?? ""}
+              fullWidth
+              disabled
+            />
+            <TextField
+              label={t("admin.users.editDialog.fullName")}
               value={editFullName}
               onChange={(event) => setEditFullName(event.target.value)}
               fullWidth
@@ -549,27 +559,39 @@ export function UsersPage() {
             disabled={updateMutation.isPending}
             variant="text"
           >
-            Cancelar
+            {t("admin.common.cancel")}
           </Button>
           <Button
             onClick={() => void handleUpdateUser()}
             disabled={updateMutation.isPending}
             variant="contained"
           >
-            {updateMutation.isPending ? "Salvando..." : "Salvar alterações"}
+            {updateMutation.isPending ? t("admin.common.saving") : t("admin.common.saveChanges")}
           </Button>
         </DialogActions>
       </Dialog>
 
       <ConfirmDialog
         open={statusTarget !== null}
-        title={statusTarget?.action === "deactivate" ? "Desativar usuário" : "Reativar usuário"}
+        title={
+          statusTarget?.action === "deactivate"
+            ? t("admin.users.confirmToggle.deactivateTitle")
+            : t("admin.users.confirmToggle.reactivateTitle")
+        }
         description={
           statusTarget?.action === "deactivate"
-            ? `Ao desativar "${statusTarget?.user.fullName ?? ""}", as sessões ativas serão revogadas e o acesso ficará suspenso.`
-            : `O usuário "${statusTarget?.user.fullName ?? ""}" voltará a ter status ativo para autenticação.`
+            ? t("admin.users.confirmToggle.deactivateDescription", {
+                name: statusTarget?.user.fullName ?? "",
+              })
+            : t("admin.users.confirmToggle.reactivateDescription", {
+                name: statusTarget?.user.fullName ?? "",
+              })
         }
-        confirmLabel={statusTarget?.action === "deactivate" ? "Desativar conta" : "Reativar conta"}
+        confirmLabel={
+          statusTarget?.action === "deactivate"
+            ? t("admin.users.confirmToggle.deactivateConfirm")
+            : t("admin.users.confirmToggle.reactivateConfirm")
+        }
         confirmColor={statusTarget?.action === "deactivate" ? "warning" : "primary"}
         loading={toggleStatusMutation.isPending}
         onConfirm={() => void handleConfirmToggleStatus()}

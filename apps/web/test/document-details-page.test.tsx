@@ -1,5 +1,5 @@
 import "@testing-library/jest-dom/vitest";
-import { docuflowTheme } from "@docuflow/ui";
+import { papyrusTheme } from "@docuflow/ui";
 import { CssBaseline, ThemeProvider } from "@mui/material";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
@@ -27,13 +27,13 @@ function renderDetailsPage() {
   });
 
   return render(
-    <ThemeProvider theme={docuflowTheme}>
+    <ThemeProvider theme={papyrusTheme}>
       <CssBaseline />
       <QueryClientProvider client={queryClient}>
         <MemoryRouter initialEntries={[`/documents/${DOC_ID}`]}>
           <Routes>
             <Route path="/documents/:id" element={<DocumentDetailsPage />} />
-            <Route path="/documents" element={<h1>Lista de documentos</h1>} />
+            <Route path="/documents" element={<h1>Documents List</h1>} />
           </Routes>
         </MemoryRouter>
       </QueryClientProvider>
@@ -215,18 +215,18 @@ describe("DocumentDetailsPage", () => {
     renderDetailsPage();
 
     expect(await screen.findByRole("heading", { name: "Contrato ACME 2026" })).toBeInTheDocument();
-    expect(screen.getByText("Aprovado")).toBeInTheDocument();
+    expect(screen.getByText("Approved")).toBeInTheDocument();
     expect(screen.getByText("Contratos")).toBeInTheDocument();
     expect(screen.getByText("Jurídico")).toBeInTheDocument();
     expect(screen.getAllByText("Ana Souza").length).toBeGreaterThanOrEqual(1);
-    expect(screen.getByText("10/01/2026")).toBeInTheDocument();
-    expect(screen.getByText("31/12/2026")).toBeInTheDocument();
+    expect(screen.getByText("1/10/26")).toBeInTheDocument();
+    expect(screen.getByText("12/31/26")).toBeInTheDocument();
     expect(screen.getByText("ACME Serviços")).toBeInTheDocument();
     expect(screen.getByText("Cláusula de Sigilo")).toBeInTheDocument();
-    expect(screen.getByText("Sim")).toBeInTheDocument();
+    expect(screen.getByText("Yes")).toBeInTheDocument();
     expect(screen.getAllByText(/contrato-acme\.pdf/i).length).toBeGreaterThanOrEqual(1);
     expect(await screen.findByText("Versão assinada")).toBeInTheDocument();
-    expect((await screen.findAllByText("Vigente")).length).toBeGreaterThanOrEqual(2);
+    expect((await screen.findAllByText("Vigente")).length).toBeGreaterThanOrEqual(1);
   });
 
   it("renders authorization error when server denies document detail access (403)", async () => {
@@ -246,10 +246,12 @@ describe("DocumentDetailsPage", () => {
     renderDetailsPage();
 
     expect(
-      await screen.findByText(/Você não possui permissão para acessar este documento\./i),
+      await screen.findByText(
+        /Access denied: You do not have permission to perform this action\./i,
+      ),
     ).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("button", { name: "Voltar para documentos" }));
-    expect(await screen.findByRole("heading", { name: "Lista de documentos" })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Back to documents" }));
+    expect(await screen.findByRole("heading", { name: "Documents List" })).toBeInTheDocument();
   });
 });

@@ -3,11 +3,10 @@ import {
   type NotificationItem,
   type NotificationKindContract,
   type NotificationListResponse,
-  apiErrorResponseSchema,
   notificationDetailResponseSchema,
   notificationListResponseSchema,
 } from "@docuflow/contracts";
-import { DOCUFLOW_COLOR_TOKENS } from "@docuflow/ui";
+import { PAPYRUS_COLOR_TOKENS } from "@docuflow/ui";
 import DoneOutlinedIcon from "@mui/icons-material/DoneOutlined";
 import EventBusyOutlinedIcon from "@mui/icons-material/EventBusyOutlined";
 import NotificationsNoneOutlinedIcon from "@mui/icons-material/NotificationsNoneOutlined";
@@ -34,6 +33,8 @@ import {
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { type MouseEvent, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { extractUserErrorMessage } from "../i18n/api-errors.js";
+import { type MessageKey, translate, useI18n } from "../i18n/index.js";
 
 const CSRF_COOKIE_NAME = "docuflow_csrf";
 const CSRF_HEADER_NAME = "x-csrf-token";
@@ -42,15 +43,17 @@ const NOTIFICATION_KIND_META: Readonly<
   Record<
     NotificationKindContract,
     {
-      readonly label: string;
+      readonly labelKey: MessageKey;
       readonly color: "info" | "success" | "warning";
     }
   >
 > = {
-  TASK_ASSIGNED: { label: "Tarefa atribuída", color: "info" },
-  WORKFLOW_DECISION: { label: "Decisão de fluxo", color: "success" },
-  DOCUMENT_EXPIRATION: { label: "Vencimento", color: "warning" },
+  TASK_ASSIGNED: { labelKey: "notifications.kind.TASK_ASSIGNED", color: "info" },
+  WORKFLOW_DECISION: { labelKey: "notifications.kind.WORKFLOW_DECISION", color: "success" },
+  DOCUMENT_EXPIRATION: { labelKey: "notifications.kind.DOCUMENT_EXPIRATION", color: "warning" },
 };
+
+class LocalizedNotificationError extends Error {}
 
 function readCookieValue(name: string): string | null {
   if (typeof document === "undefined" || typeof document.cookie !== "string") {
@@ -82,19 +85,6 @@ async function resolveCsrfToken(): Promise<string> {
   return json.data?.csrfToken ?? "";
 }
 
-async function parseErrorMessage(response: Response, fallback: string): Promise<string> {
-  try {
-    const raw: unknown = await response.json();
-    const parsed = apiErrorResponseSchema.safeParse(raw);
-    if (parsed.success) {
-      return parsed.data.error.message;
-    }
-  } catch {
-    // Fallback to HTTP status message.
-  }
-  return `${fallback} (${response.status}).`;
-}
-
 export const NOTIFICATIONS_QUERY_KEY = ["notifications", "internal"] as const;
 
 export async function fetchInternalNotifications(
@@ -121,13 +111,15 @@ export async function fetchInternalNotifications(
   }
 
   if (!response.ok) {
-    throw new Error(await parseErrorMessage(response, "Falha ao carregar notificações"));
+    throw new LocalizedNotificationError(
+      await extractUserErrorMessage(response, "notifications.loadError"),
+    );
   }
 
   const rawJson: unknown = await response.json();
   const parsed = notificationListResponseSchema.safeParse(rawJson);
   if (!parsed.success) {
-    throw new Error("Resposta inválida ao consultar notificações.");
+    throw new LocalizedNotificationError(translate("common.errors.unexpectedResponse"));
   }
 
   return parsed.data.data;
@@ -149,13 +141,15 @@ export async function markNotificationRead(notificationId: string): Promise<Noti
   );
 
   if (!response.ok) {
-    throw new Error(await parseErrorMessage(response, "Falha ao marcar notificação como lida"));
+    throw new LocalizedNotificationError(
+      await extractUserErrorMessage(response, "notifications.markReadError"),
+    );
   }
 
   const rawJson: unknown = await response.json();
   const parsed = notificationDetailResponseSchema.safeParse(rawJson);
   if (!parsed.success) {
-    throw new Error("Resposta inválida ao confirmar leitura da notificação.");
+    throw new LocalizedNotificationError(translate("common.errors.unexpectedResponse"));
   }
 
   return parsed.data.data;
@@ -174,14 +168,6 @@ function resolveNotificationTarget(item: NotificationItem): string | null {
   return null;
 }
 
-function formatDateTimePtBr(isoDateTime: string): string {
-  const parsed = new Date(isoDateTime);
-  if (Number.isNaN(parsed.getTime())) {
-    return isoDateTime;
-  }
-  return parsed.toLocaleString("pt-BR");
-}
-
 function renderKindIcon(kind: NotificationKindContract) {
   switch (kind) {
     case "TASK_ASSIGNED":
@@ -198,6 +184,7 @@ function renderKindIcon(kind: NotificationKindContract) {
  * with unread badge count, unread/all toggle, individual mark-as-read action, and scoped navigation.
  */
 export function NotificationBell() {
+  const { t, formatDateTime, formatNumber } = useI18n();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
@@ -220,7 +207,9 @@ export function NotificationBell() {
     },
     onError: (error) => {
       setReadError(
-        error instanceof Error ? error.message : "Não foi possível marcar a notificação como lida.",
+        error instanceof LocalizedNotificationError
+          ? error.message
+          : t("notifications.markReadError"),
       );
     },
     onSettled: () => {
@@ -264,7 +253,11 @@ export function NotificationBell() {
       <IconButton
         color="inherit"
         onClick={handleOpen}
-        aria-label={unreadCount > 0 ? `Notificações (${unreadCount} não lidas)` : "Notificações"}
+        aria-label={
+          unreadCount > 0
+            ? t("notifications.ariaLabelUnread", { count: formatNumber(unreadCount) })
+            : t("notifications.ariaLabel")
+        }
         aria-controls={open ? "notifications-popover" : undefined}
         aria-haspopup="true"
         aria-expanded={open ? "true" : undefined}
@@ -288,7 +281,7 @@ export function NotificationBell() {
               maxHeight: 520,
               display: "flex",
               flexDirection: "column",
-              bgcolor: DOCUFLOW_COLOR_TOKENS.surface.containerLowest,
+              bgcolor: PAPYRUS_COLOR_TOKENS.surface.containerLowest,
             },
           },
         }}
@@ -296,11 +289,11 @@ export function NotificationBell() {
         <Box sx={{ px: 2, py: 1.5 }}>
           <Stack direction="row" justifyContent="space-between" alignItems="center" mb={1}>
             <Typography variant="subtitle1" component="h2">
-              Notificações
+              {t("notifications.title")}
             </Typography>
             <IconButton
               size="small"
-              aria-label="Atualizar notificações"
+              aria-label={t("notifications.refreshAriaLabel")}
               disabled={notificationsQuery.isFetching}
               onClick={() => void notificationsQuery.refetch()}
             >
@@ -317,11 +310,13 @@ export function NotificationBell() {
                 setUnreadOnly(nextValue === "unread");
               }
             }}
-            aria-label="Filtrar notificações"
+            aria-label={t("notifications.filterAriaLabel")}
             fullWidth
           >
-            <ToggleButton value="all">Todas</ToggleButton>
-            <ToggleButton value="unread">Não lidas ({unreadCount})</ToggleButton>
+            <ToggleButton value="all">{t("notifications.filterAll")}</ToggleButton>
+            <ToggleButton value="unread">
+              {t("notifications.filterUnread", { count: formatNumber(unreadCount) })}
+            </ToggleButton>
           </ToggleButtonGroup>
         </Box>
 
@@ -337,7 +332,7 @@ export function NotificationBell() {
           {notificationsQuery.isLoading ? (
             <Box sx={{ p: 2.5 }}>
               <Typography variant="body2" color="text.secondary">
-                Carregando notificações...
+                {t("notifications.loading")}
               </Typography>
             </Box>
           ) : notificationsQuery.isError ? (
@@ -346,19 +341,19 @@ export function NotificationBell() {
                 severity="error"
                 action={
                   <Button size="small" onClick={() => void notificationsQuery.refetch()}>
-                    Tentar novamente
+                    {t("notifications.retry")}
                   </Button>
                 }
               >
-                {notificationsQuery.error.message}
+                {notificationsQuery.error instanceof LocalizedNotificationError
+                  ? notificationsQuery.error.message
+                  : t("notifications.loadError")}
               </Alert>
             </Box>
           ) : items.length === 0 ? (
             <Box sx={{ p: 3, textAlign: "center" }}>
               <Typography variant="body2" color="text.secondary">
-                {unreadOnly
-                  ? "Você não possui notificações não lidas."
-                  : "Nenhuma notificação registrada até o momento."}
+                {unreadOnly ? t("notifications.emptyUnread") : t("notifications.emptyAll")}
               </Typography>
             </Box>
           ) : (
@@ -379,9 +374,7 @@ export function NotificationBell() {
                       gap: 1,
                       px: 2,
                       py: 1.5,
-                      bgcolor: isUnread
-                        ? DOCUFLOW_COLOR_TOKENS.surface.containerLow
-                        : "transparent",
+                      bgcolor: isUnread ? PAPYRUS_COLOR_TOKENS.surface.containerLow : "transparent",
                     }}
                   >
                     <Stack
@@ -393,10 +386,10 @@ export function NotificationBell() {
                     >
                       <Stack direction="row" spacing={0.75} alignItems="center">
                         {renderKindIcon(item.kind)}
-                        <Chip label={kindMeta.label} color={kindMeta.color} size="small" />
+                        <Chip label={t(kindMeta.labelKey)} color={kindMeta.color} size="small" />
                       </Stack>
                       <Typography variant="caption" color="text.secondary">
-                        {formatDateTimePtBr(item.createdAt)}
+                        {formatDateTime(item.createdAt)}
                       </Typography>
                     </Stack>
 
@@ -417,13 +410,17 @@ export function NotificationBell() {
                           startIcon={<DoneOutlinedIcon fontSize="small" />}
                           disabled={isMarkingThis || pendingReadId !== null}
                           onClick={() => handleMarkAsRead(item.id)}
-                          aria-label={`Marcar como lida: ${item.title}`}
+                          aria-label={t("notifications.markAsReadAriaLabel", {
+                            title: item.title,
+                          })}
                         >
-                          {isMarkingThis ? "Confirmando..." : "Marcar como lida"}
+                          {isMarkingThis
+                            ? t("notifications.markingAsRead")
+                            : t("notifications.markAsRead")}
                         </Button>
                       ) : (
                         <Typography variant="caption" color="text.secondary">
-                          Lida
+                          {t("notifications.readStatus")}
                         </Typography>
                       )}
 
@@ -434,7 +431,7 @@ export function NotificationBell() {
                           endIcon={<OpenInNewOutlinedIcon fontSize="small" />}
                           onClick={() => handleNavigateTarget(item)}
                         >
-                          Abrir
+                          {t("notifications.open")}
                         </Button>
                       ) : null}
                     </Stack>

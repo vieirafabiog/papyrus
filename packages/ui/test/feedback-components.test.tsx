@@ -8,11 +8,21 @@ import {
   EmptyState,
   ErrorState,
   LoadingState,
-  docuflowTheme,
+  type PapyrusLocale,
+  UiLocaleProvider,
+  createPapyrusTheme,
+  papyrusTheme,
 } from "../src/index.js";
 
-function renderWithTheme(ui: ReactNode) {
-  return render(<ThemeProvider theme={docuflowTheme}>{ui}</ThemeProvider>);
+function renderWithTheme(ui: ReactNode, locale?: PapyrusLocale) {
+  if (!locale) {
+    return render(<ThemeProvider theme={papyrusTheme}>{ui}</ThemeProvider>);
+  }
+  return render(
+    <UiLocaleProvider locale={locale}>
+      <ThemeProvider theme={createPapyrusTheme(locale)}>{ui}</ThemeProvider>
+    </UiLocaleProvider>,
+  );
 }
 
 describe("Shared feedback components", () => {
@@ -20,42 +30,55 @@ describe("Shared feedback components", () => {
     cleanup();
   });
 
-  it("renders accessible LoadingState in pt-BR", () => {
-    renderWithTheme(<LoadingState message="Carregando documentos..." />);
-    const status = screen.getByRole("status");
-    expect(status).toHaveTextContent("Carregando documentos...");
+  it("renders accessible LoadingState in en-US by default and pt-BR when configured", () => {
+    const { rerender } = renderWithTheme(<LoadingState />);
+    expect(screen.getByRole("status")).toHaveTextContent("Loading...");
+
+    rerender(
+      <UiLocaleProvider locale="pt-BR">
+        <ThemeProvider theme={createPapyrusTheme("pt-BR")}>
+          <LoadingState />
+        </ThemeProvider>
+      </UiLocaleProvider>,
+    );
+    expect(screen.getByRole("status")).toHaveTextContent("Carregando...");
   });
 
   it("renders EmptyState with actionable callback", () => {
     const onAction = vi.fn();
     renderWithTheme(
       <EmptyState
-        title="Nenhum documento encontrado"
-        description="Envie o primeiro documento para iniciar o repositório."
-        actionLabel="Enviar documento"
+        title="No documents found"
+        description="Upload your first document to get started."
+        actionLabel="Upload document"
         onAction={onAction}
       />,
     );
 
-    expect(
-      screen.getByRole("heading", { name: "Nenhum documento encontrado" }),
-    ).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "Enviar documento" }));
+    expect(screen.getByRole("heading", { name: "No documents found" })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Upload document" }));
     expect(onAction).toHaveBeenCalledTimes(1);
   });
 
-  it("renders ErrorState with accessible alert role and retry action", () => {
+  it("renders ErrorState with default en-US labels and pt-BR override", () => {
     const onRetry = vi.fn();
-    renderWithTheme(
-      <ErrorState
-        description="Falha temporária de comunicação com o servidor."
-        onRetry={onRetry}
-      />,
+    const { rerender } = renderWithTheme(
+      <ErrorState description="Temporary connection issue." onRetry={onRetry} />,
     );
 
-    expect(screen.getByRole("alert")).toHaveTextContent("Não foi possível carregar os dados");
-    fireEvent.click(screen.getByRole("button", { name: "Tentar novamente" }));
+    expect(screen.getByRole("alert")).toHaveTextContent("Unable to load data");
+    fireEvent.click(screen.getByRole("button", { name: "Try again" }));
     expect(onRetry).toHaveBeenCalledTimes(1);
+
+    rerender(
+      <UiLocaleProvider locale="pt-BR">
+        <ThemeProvider theme={createPapyrusTheme("pt-BR")}>
+          <ErrorState description="Falha temporária de conexão." onRetry={onRetry} />
+        </ThemeProvider>
+      </UiLocaleProvider>,
+    );
+    expect(screen.getByRole("alert")).toHaveTextContent("Não foi possível carregar os dados");
+    expect(screen.getByRole("button", { name: "Tentar novamente" })).toBeInTheDocument();
   });
 
   it("renders ConfirmDialog with confirm/cancel callbacks and loading state", () => {
@@ -65,24 +88,24 @@ describe("Shared feedback components", () => {
     const { rerender } = renderWithTheme(
       <ConfirmDialog
         open={true}
-        title="Arquivar documento"
-        description="O documento será movido para o estado arquivado."
-        confirmLabel="Arquivar"
+        title="Archive document"
+        description="This document will be archived."
+        confirmLabel="Archive"
         onConfirm={onConfirm}
         onCancel={onCancel}
       />,
     );
 
-    expect(screen.getByRole("dialog", { name: "Arquivar documento" })).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "Arquivar" }));
+    expect(screen.getByRole("dialog", { name: "Archive document" })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Archive" }));
     expect(onConfirm).toHaveBeenCalledTimes(1);
 
     rerender(
-      <ThemeProvider theme={docuflowTheme}>
+      <ThemeProvider theme={papyrusTheme}>
         <ConfirmDialog
           open={true}
-          title="Arquivar documento"
-          description="O documento será movido para o estado arquivado."
+          title="Archive document"
+          description="This document will be archived."
           loading={true}
           onConfirm={onConfirm}
           onCancel={onCancel}
@@ -90,7 +113,7 @@ describe("Shared feedback components", () => {
       </ThemeProvider>,
     );
 
-    expect(screen.getByRole("button", { name: "Processando..." })).toBeDisabled();
-    expect(screen.getByRole("button", { name: "Cancelar" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Processing..." })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Cancel" })).toBeDisabled();
   });
 });

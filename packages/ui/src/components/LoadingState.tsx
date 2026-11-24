@@ -1,11 +1,15 @@
 import { Box, CircularProgress, Stack, Typography } from "@mui/material";
+import { useUiLocale } from "../locale.js";
 
 export interface LoadingStateProps {
-  readonly message?: string;
-  readonly minHeight?: number;
+  readonly message?: string | undefined;
+  readonly minHeight?: number | undefined;
 }
 
-export function LoadingState({ message = "Carregando...", minHeight = 160 }: LoadingStateProps) {
+export function LoadingState({ message, minHeight = 160 }: LoadingStateProps) {
+  const { messages } = useUiLocale();
+  const resolvedMessage = message ?? messages.loadingState.defaultMessage;
+
   return (
     <Box
       component="output"
@@ -21,7 +25,7 @@ export function LoadingState({ message = "Carregando...", minHeight = 160 }: Loa
       <Stack direction="row" spacing={1.5} alignItems="center">
         <CircularProgress size={20} aria-hidden="true" />
         <Typography variant="body2" color="text.secondary">
-          {message}
+          {resolvedMessage}
         </Typography>
       </Stack>
     </Box>

@@ -1,5 +1,5 @@
 import "@testing-library/jest-dom/vitest";
-import { docuflowTheme } from "@docuflow/ui";
+import { papyrusTheme } from "@docuflow/ui";
 import { CssBaseline, ThemeProvider } from "@mui/material";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
@@ -22,7 +22,7 @@ function renderWithProviders(element: ReactElement) {
   });
 
   return render(
-    <ThemeProvider theme={docuflowTheme}>
+    <ThemeProvider theme={papyrusTheme}>
       <CssBaseline />
       <QueryClientProvider client={queryClient}>{element}</QueryClientProvider>
     </ThemeProvider>,
@@ -35,7 +35,7 @@ describe("Tags management and document association UI", () => {
     vi.restoreAllMocks();
   });
 
-  it("lists tags, creates a new tag and surfaces uniqueness conflict errors in pt-BR", async () => {
+  it("lists tags, creates a new tag and surfaces uniqueness conflict errors", async () => {
     let tags = [
       {
         id: TAG_1_ID,
@@ -95,20 +95,20 @@ describe("Tags management and document association UI", () => {
 
     expect(await screen.findByText("Urgente")).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("button", { name: "Nova etiqueta" }));
-    fireEvent.change(screen.getByLabelText(/Nome da etiqueta/i), {
+    fireEvent.click(screen.getByRole("button", { name: "New tag" }));
+    fireEvent.change(screen.getByLabelText(/Tag name/i), {
       target: { value: "Urgente" },
     });
-    fireEvent.click(screen.getByRole("button", { name: "Salvar etiqueta" }));
+    fireEvent.click(screen.getByRole("button", { name: "Save tag" }));
 
     expect(
-      await screen.findByText("Já existe uma etiqueta cadastrada com este nome."),
+      await screen.findByText("This action conflicts with the current record state."),
     ).toBeInTheDocument();
 
-    fireEvent.change(screen.getByLabelText(/Nome da etiqueta/i), {
+    fireEvent.change(screen.getByLabelText(/Tag name/i), {
       target: { value: "Revisão Fiscal" },
     });
-    fireEvent.click(screen.getByRole("button", { name: "Salvar etiqueta" }));
+    fireEvent.click(screen.getByRole("button", { name: "Save tag" }));
 
     expect(await screen.findByText("Revisão Fiscal")).toBeInTheDocument();
   });
@@ -180,10 +180,10 @@ describe("Tags management and document association UI", () => {
 
     expect(await screen.findByText("Urgente")).toBeInTheDocument();
 
-    fireEvent.change(screen.getByLabelText("Criar e associar etiqueta"), {
+    fireEvent.change(screen.getByLabelText("Create and attach tag"), {
       target: { value: "Contratual" },
     });
-    fireEvent.click(screen.getByRole("button", { name: "Criar etiqueta" }));
+    fireEvent.click(screen.getByRole("button", { name: "Create tag" }));
 
     expect(await screen.findByText("Contratual")).toBeInTheDocument();
 

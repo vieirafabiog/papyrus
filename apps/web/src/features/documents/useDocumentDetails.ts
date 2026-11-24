@@ -27,6 +27,8 @@ import {
   updateDocumentRequestSchema,
 } from "@docuflow/contracts";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { getLocalizedApiErrorMessage } from "../../i18n/api-errors.js";
+import { type MessageKey, getCurrentUiLocale, translate } from "../../i18n/index.js";
 
 const CSRF_COOKIE_NAME = "docuflow_csrf";
 const CSRF_HEADER_NAME = "x-csrf-token";
@@ -106,20 +108,40 @@ function extractFieldErrors(details: Record<string, unknown> | undefined): Recor
 
 async function parseErrorResponse(
   response: Response,
-  fallbackMessage: string,
+  fallbackKey: MessageKey,
 ): Promise<DocumentDetailFetchError> {
-  let message = `${fallbackMessage} (${response.status}).`;
+  const locale = getCurrentUiLocale();
+  let message = translate(fallbackKey, undefined, locale);
   let fieldErrors: Record<string, string> = {};
+  let parsedHandled = false;
+
   try {
     const rawError: unknown = await response.json();
     const parsedError = apiErrorResponseSchema.safeParse(rawError);
     if (parsedError.success) {
-      message = parsedError.data.error.message;
+      parsedHandled = true;
       fieldErrors = extractFieldErrors(parsedError.data.error.details);
+      message = getLocalizedApiErrorMessage(
+        parsedError.data.error.code,
+        response.status,
+        parsedError.data.error.message,
+        locale,
+      );
     }
   } catch {
-    // Fallback to generic HTTP message.
+    // Non-JSON response falls through to status-based localized error.
   }
+
+  if (
+    !parsedHandled &&
+    (response.status === 401 ||
+      response.status === 403 ||
+      response.status === 404 ||
+      response.status === 429)
+  ) {
+    message = getLocalizedApiErrorMessage(undefined, response.status, undefined, locale);
+  }
+
   return new DocumentDetailFetchError(response.status, message, fieldErrors);
 }
 
@@ -131,13 +153,13 @@ export async function fetchDocumentDetails(documentId: string): Promise<Document
   });
 
   if (!response.ok) {
-    throw await parseErrorResponse(response, "Falha ao carregar os detalhes do documento");
+    throw await parseErrorResponse(response, "documents.errors.loadDetailsFailed");
   }
 
   const rawJson: unknown = await response.json();
   const parsed = documentDetailResponseSchema.safeParse(rawJson);
   if (!parsed.success) {
-    throw new DocumentDetailFetchError(500, "Resposta inválida recebida ao consultar o documento.");
+    throw new DocumentDetailFetchError(500, translate("common.errors.unexpectedResponse"));
   }
 
   return parsed.data.data;
@@ -159,13 +181,13 @@ export async function updateDocumentMetadata(documentId: string, payload: Update
   });
 
   if (!response.ok) {
-    throw await parseErrorResponse(response, "Falha ao salvar metadados do documento");
+    throw await parseErrorResponse(response, "documents.errors.saveDetailsFailed");
   }
 
   const rawJson: unknown = await response.json();
   const parsed = updatedDocumentEnvelopeSchema.safeParse(rawJson);
   if (!parsed.success) {
-    throw new DocumentDetailFetchError(500, "Resposta inválida recebida ao atualizar metadados.");
+    throw new DocumentDetailFetchError(500, translate("common.errors.unexpectedResponse"));
   }
 
   return parsed.data.data;
@@ -204,16 +226,13 @@ export async function fetchDocumentVersions(
   });
 
   if (!response.ok) {
-    throw await parseErrorResponse(response, "Falha ao carregar o histórico de versões");
+    throw await parseErrorResponse(response, "documents.errors.loadVersionsFailed");
   }
 
   const rawJson: unknown = await response.json();
   const parsed = documentVersionHistoryListResponseSchema.safeParse(rawJson);
   if (!parsed.success) {
-    throw new DocumentDetailFetchError(
-      500,
-      "Resposta inválida recebida ao consultar o histórico de versões.",
-    );
+    throw new DocumentDetailFetchError(500, translate("common.errors.unexpectedResponse"));
   }
 
   return parsed.data.data;
@@ -242,16 +261,13 @@ export async function restoreDocumentVersion(
   );
 
   if (!response.ok) {
-    throw await parseErrorResponse(response, "Falha ao restaurar a versão selecionada");
+    throw await parseErrorResponse(response, "documents.errors.restoreVersionFailed");
   }
 
   const rawJson: unknown = await response.json();
   const parsed = createDocumentVersionResponseSchema.safeParse(rawJson);
   if (!parsed.success) {
-    throw new DocumentDetailFetchError(
-      500,
-      "Resposta inválida recebida ao restaurar a versão documental.",
-    );
+    throw new DocumentDetailFetchError(500, translate("common.errors.unexpectedResponse"));
   }
 
   return parsed.data;
@@ -312,7 +328,7 @@ export async function requestVersionDownloadTarget(
   });
 
   if (!response.ok) {
-    throw await parseErrorResponse(response, "Falha ao solicitar o download da versão");
+    throw await parseErrorResponse(response, "documents.errors.downloadTargetFailed");
   }
 
   const rawJson: unknown = await response.json();
@@ -347,13 +363,13 @@ export async function fetchAvailableFolders(): Promise<readonly FolderRecord[]> 
   );
 
   if (!response.ok) {
-    throw await parseErrorResponse(response, "Falha ao carregar pastas disponíveis");
+    throw await parseErrorResponse(response, "documents.errors.loadFoldersFailed");
   }
 
   const rawJson: unknown = await response.json();
   const parsed = folderListResponseSchema.safeParse(rawJson);
   if (!parsed.success) {
-    throw new DocumentDetailFetchError(500, "Resposta inválida recebida ao listar pastas.");
+    throw new DocumentDetailFetchError(500, translate("common.errors.unexpectedResponse"));
   }
 
   return parsed.data.data.items;
@@ -384,13 +400,13 @@ export async function moveDocument(documentId: string, payload: MoveDocumentRequ
   });
 
   if (!response.ok) {
-    throw await parseErrorResponse(response, "Falha ao mover o documento");
+    throw await parseErrorResponse(response, "documents.errors.moveFailed");
   }
 
   const rawJson: unknown = await response.json();
   const parsed = updatedDocumentEnvelopeSchema.safeParse(rawJson);
   if (!parsed.success) {
-    throw new DocumentDetailFetchError(500, "Resposta inválida recebida ao mover documento.");
+    throw new DocumentDetailFetchError(500, translate("common.errors.unexpectedResponse"));
   }
 
   return parsed.data.data;
@@ -412,13 +428,13 @@ export async function archiveDocument(documentId: string, payload: ArchiveDocume
   });
 
   if (!response.ok) {
-    throw await parseErrorResponse(response, "Falha ao arquivar o documento");
+    throw await parseErrorResponse(response, "documents.errors.archiveFailed");
   }
 
   const rawJson: unknown = await response.json();
   const parsed = updatedDocumentEnvelopeSchema.safeParse(rawJson);
   if (!parsed.success) {
-    throw new DocumentDetailFetchError(500, "Resposta inválida recebida ao arquivar documento.");
+    throw new DocumentDetailFetchError(500, translate("common.errors.unexpectedResponse"));
   }
 
   return parsed.data.data;
@@ -486,13 +502,13 @@ export async function fetchTrashDocuments(
   });
 
   if (!response.ok) {
-    throw await parseErrorResponse(response, "Falha ao carregar documentos na lixeira");
+    throw await parseErrorResponse(response, "documents.errors.loadTrashFailed");
   }
 
   const rawJson: unknown = await response.json();
   const parsed = trashDocumentsListResponseSchema.safeParse(rawJson);
   if (!parsed.success) {
-    throw new DocumentDetailFetchError(500, "Resposta inválida recebida da lixeira documental.");
+    throw new DocumentDetailFetchError(500, translate("common.errors.unexpectedResponse"));
   }
 
   return parsed.data;
@@ -524,13 +540,13 @@ export async function restoreTrashedDocument(
   });
 
   if (!response.ok) {
-    throw await parseErrorResponse(response, "Falha ao restaurar documento da lixeira");
+    throw await parseErrorResponse(response, "documents.errors.restoreTrashFailed");
   }
 
   const rawJson: unknown = await response.json();
   const parsed = updatedDocumentEnvelopeSchema.safeParse(rawJson);
   if (!parsed.success) {
-    throw new DocumentDetailFetchError(500, "Resposta inválida recebida ao restaurar documento.");
+    throw new DocumentDetailFetchError(500, translate("common.errors.unexpectedResponse"));
   }
 
   return parsed.data.data;

@@ -1,5 +1,5 @@
 import "@testing-library/jest-dom/vitest";
-import { docuflowTheme } from "@docuflow/ui";
+import { papyrusTheme } from "@docuflow/ui";
 import { CssBaseline, ThemeProvider } from "@mui/material";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -10,13 +10,19 @@ import {
   canPreviewFileObject,
   sanitizeUserFacingRejectionMessage,
 } from "../src/features/documents/FileProcessingStatus.js";
+import { I18nProvider } from "../src/i18n/index.js";
 
-function renderAvailabilityPanel(props: DocumentFileAvailabilityPanelProps) {
+function renderAvailabilityPanel(
+  props: DocumentFileAvailabilityPanelProps,
+  initialLocale: "en-US" | "pt-BR" = "en-US",
+) {
   return render(
-    <ThemeProvider theme={docuflowTheme}>
-      <CssBaseline />
-      <DocumentFileAvailabilityPanel {...props} />
-    </ThemeProvider>,
+    <I18nProvider initialLocale={initialLocale}>
+      <ThemeProvider theme={papyrusTheme}>
+        <CssBaseline />
+        <DocumentFileAvailabilityPanel {...props} />
+      </ThemeProvider>
+    </I18nProvider>,
   );
 }
 
@@ -26,7 +32,7 @@ describe("Quarantine and rejection UI feedback", () => {
     vi.restoreAllMocks();
   });
 
-  it("displays 'Em análise' and strictly blocks preview and download actions during UPLOADING and QUARANTINED", () => {
+  it("displays 'Under review' and strictly blocks preview and download actions during UPLOADING and QUARANTINED", () => {
     const onPreview = vi.fn();
     const onDownload = vi.fn();
 
@@ -38,11 +44,11 @@ describe("Quarantine and rejection UI feedback", () => {
       children: <iframe title="Preview PDF" src="/api/v1/documents/1/preview" />,
     });
 
-    expect(screen.getByText("Em análise")).toBeInTheDocument();
-    expect(screen.getByText("Pré-visualização bloqueada")).toBeInTheDocument();
+    expect(screen.getByText("Under review")).toBeInTheDocument();
+    expect(screen.getByText("Preview unavailable")).toBeInTheDocument();
     expect(screen.queryByTitle("Preview PDF")).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Visualizar arquivo" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Baixar arquivo" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Preview file" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Download file" })).not.toBeInTheDocument();
     expect(onPreview).not.toHaveBeenCalled();
     expect(onDownload).not.toHaveBeenCalled();
 
@@ -51,7 +57,7 @@ describe("Quarantine and rejection UI feedback", () => {
     expect(canDownloadFileObject("QUARANTINED")).toBe(false);
   });
 
-  it("displays 'Rejeitado' without exposing technical scanner signatures, paths, URLs, hashes, or preview content", () => {
+  it("displays 'Rejected' without exposing technical scanner signatures, paths, URLs, hashes, or preview content", () => {
     const onPreview = vi.fn();
     const onUploadNewVersion = vi.fn();
 
@@ -62,36 +68,34 @@ describe("Quarantine and rejection UI feedback", () => {
         "ClamAV Win.Test.Eicar_HDB-1 FOUND at org/550e8400/documents/1/obj via https://s3.internal/secret",
       onPreview,
       onUploadNewVersion,
-      children: <div data-testid="forbidden-preview">Conteúdo restrito</div>,
+      children: <div data-testid="forbidden-preview">Restricted content</div>,
     });
 
-    expect(screen.getByText("Rejeitado")).toBeInTheDocument();
+    expect(screen.getByText("Rejected")).toBeInTheDocument();
     expect(screen.queryByTestId("forbidden-preview")).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Visualizar arquivo" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Preview file" })).not.toBeInTheDocument();
 
     const alertText = screen.getByRole("alert").textContent ?? "";
     expect(alertText).not.toContain("Eicar");
     expect(alertText).not.toContain("ClamAV");
     expect(alertText).not.toContain("https://");
     expect(alertText).not.toContain("org/550e8400");
-    expect(alertText).toContain("O arquivo foi rejeitado na verificação de segurança");
+    expect(alertText).toContain("The file was rejected during security or integrity verification");
 
-    // Clicking "Enviar nova versão" triggers provided handler
-    fireEvent.click(screen.getByRole("button", { name: "Enviar nova versão" }));
+    fireEvent.click(screen.getByRole("button", { name: "Upload new version" }));
     expect(onUploadNewVersion).toHaveBeenCalledTimes(1);
 
-    // Safe non-technical messages are preserved while hashes/magic bytes are scrubbed
     expect(
       sanitizeUserFacingRejectionMessage(
-        "O formato de arquivo identificado não é permitido pela política configurada.",
+        "The detected file format is not permitted by organization policy.",
       ),
-    ).toBe("O formato de arquivo identificado não é permitido pela política configurada.");
+    ).toBe("The detected file format is not permitted by organization policy.");
     expect(sanitizeUserFacingRejectionMessage(`Mismatch SHA-256 ${"a".repeat(64)}`)).not.toContain(
       "a".repeat(64),
     );
   });
 
-  it("displays 'Disponível' and releases preview content plus functional preview/download controls ONLY when AVAILABLE", () => {
+  it("displays 'Available' and releases preview content plus functional preview/download controls ONLY when AVAILABLE", () => {
     const onPreview = vi.fn();
     const onDownload = vi.fn();
 
@@ -100,19 +104,32 @@ describe("Quarantine and rejection UI feedback", () => {
       fileName: "contrato-aprovado.pdf",
       onPreview,
       onDownload,
-      children: <div data-testid="approved-preview">Visualizador PDF carregado</div>,
+      children: <div data-testid="approved-preview">PDF viewer loaded</div>,
     });
 
-    expect(screen.getByText("Disponível")).toBeInTheDocument();
+    expect(screen.getByText("Available")).toBeInTheDocument();
     expect(screen.getByTestId("approved-preview")).toBeInTheDocument();
-    expect(screen.queryByText("Pré-visualização bloqueada")).not.toBeInTheDocument();
+    expect(screen.queryByText("Preview unavailable")).not.toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("button", { name: "Visualizar arquivo" }));
-    fireEvent.click(screen.getByRole("button", { name: "Baixar arquivo" }));
+    fireEvent.click(screen.getByRole("button", { name: "Preview file" }));
+    fireEvent.click(screen.getByRole("button", { name: "Download file" }));
 
     expect(onPreview).toHaveBeenCalledTimes(1);
     expect(onDownload).toHaveBeenCalledTimes(1);
     expect(canPreviewFileObject("AVAILABLE")).toBe(true);
     expect(canDownloadFileObject("AVAILABLE")).toBe(true);
+  });
+
+  it("supports pt-BR locale dynamically via I18nProvider", () => {
+    renderAvailabilityPanel(
+      {
+        fileStatus: "QUARANTINED",
+        fileName: "contrato-pendente.pdf",
+      },
+      "pt-BR",
+    );
+
+    expect(screen.getByText("Em análise")).toBeInTheDocument();
+    expect(screen.getByText("Pré-visualização indisponível")).toBeInTheDocument();
   });
 });

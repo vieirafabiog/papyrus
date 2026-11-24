@@ -8,7 +8,6 @@ import {
   type StorageRoutingRuleViewContract,
   type UpdateStorageConnectionContract,
   type UpsertStorageRoutingRuleRequest,
-  apiErrorResponseSchema,
   categoryListResponseSchema,
   createStorageConnectionContractSchema,
   storageConnectionListResponseSchema,
@@ -20,6 +19,8 @@ import {
   upsertStorageRoutingRuleRequestSchema,
 } from "@docuflow/contracts";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { extractUserErrorMessage } from "../../i18n/api-errors.js";
+import { type MessageKey, translate } from "../../i18n/index.js";
 
 const CSRF_COOKIE_NAME = "docuflow_csrf";
 const CSRF_HEADER_NAME = "x-csrf-token";
@@ -81,21 +82,10 @@ async function resolveCsrfToken(): Promise<string> {
 
 async function parseErrorResponse(
   response: Response,
-  fallbackMessage: string,
+  fallbackKey: MessageKey,
 ): Promise<StorageSettingsFetchError> {
-  try {
-    const rawJson: unknown = await response.json();
-    const parsed = apiErrorResponseSchema.safeParse(rawJson);
-    if (parsed.success) {
-      return new StorageSettingsFetchError(response.status, parsed.data.error.message);
-    }
-  } catch {
-    // Non-JSON error
-  }
-  return new StorageSettingsFetchError(
-    response.status,
-    `${fallbackMessage} (HTTP ${response.status}).`,
-  );
+  const message = await extractUserErrorMessage(response, fallbackKey);
+  return new StorageSettingsFetchError(response.status, message);
 }
 
 export async function fetchStorageConnections(): Promise<readonly StorageConnectionViewContract[]> {
@@ -105,12 +95,12 @@ export async function fetchStorageConnections(): Promise<readonly StorageConnect
     headers: { Accept: "application/json" },
   });
   if (!response.ok) {
-    throw await parseErrorResponse(response, "Falha ao carregar conexões de armazenamento");
+    throw await parseErrorResponse(response, "admin.storage.errors.loadConnectionsFailed");
   }
   const rawJson: unknown = await response.json();
   const parsed = storageConnectionListResponseSchema.safeParse(rawJson);
   if (!parsed.success) {
-    throw new StorageSettingsFetchError(500, "Resposta inválida recebida das conexões de storage.");
+    throw new StorageSettingsFetchError(500, translate("common.errors.unexpectedResponse"));
   }
   return parsed.data.data;
 }
@@ -127,15 +117,12 @@ export async function fetchStorageRoutingRules(): Promise<
     return [];
   }
   if (!response.ok) {
-    throw await parseErrorResponse(response, "Falha ao carregar regras de roteamento");
+    throw await parseErrorResponse(response, "admin.storage.errors.loadRulesFailed");
   }
   const rawJson: unknown = await response.json();
   const parsed = storageRoutingRuleListResponseSchema.safeParse(rawJson);
   if (!parsed.success) {
-    throw new StorageSettingsFetchError(
-      500,
-      "Resposta inválida recebida das regras de roteamento.",
-    );
+    throw new StorageSettingsFetchError(500, translate("common.errors.unexpectedResponse"));
   }
   return parsed.data.data;
 }
@@ -171,12 +158,12 @@ export async function createStorageConnection(
     body: JSON.stringify(validated),
   });
   if (!response.ok) {
-    throw await parseErrorResponse(response, "Falha ao cadastrar conexão de armazenamento");
+    throw await parseErrorResponse(response, "admin.storage.errors.createFailed");
   }
   const rawJson: unknown = await response.json();
   const parsed = storageConnectionResponseSchema.safeParse(rawJson);
   if (!parsed.success) {
-    throw new StorageSettingsFetchError(500, "Resposta inválida recebida ao criar conexão.");
+    throw new StorageSettingsFetchError(500, translate("common.errors.unexpectedResponse"));
   }
   return parsed.data.data;
 }
@@ -202,12 +189,12 @@ export async function updateStorageConnection(
     },
   );
   if (!response.ok) {
-    throw await parseErrorResponse(response, "Falha ao atualizar conexão de armazenamento");
+    throw await parseErrorResponse(response, "admin.storage.errors.updateFailed");
   }
   const rawJson: unknown = await response.json();
   const parsed = storageConnectionResponseSchema.safeParse(rawJson);
   if (!parsed.success) {
-    throw new StorageSettingsFetchError(500, "Resposta inválida recebida ao atualizar conexão.");
+    throw new StorageSettingsFetchError(500, translate("common.errors.unexpectedResponse"));
   }
   return parsed.data.data;
 }
@@ -229,12 +216,12 @@ export async function testStorageConnectionHealth(
     },
   );
   if (!response.ok) {
-    throw await parseErrorResponse(response, "Falha ao testar conexão de armazenamento");
+    throw await parseErrorResponse(response, "admin.storage.errors.testFailed");
   }
   const rawJson: unknown = await response.json();
   const parsed = storageConnectionTestResponseSchema.safeParse(rawJson);
   if (!parsed.success) {
-    throw new StorageSettingsFetchError(500, "Resposta inválida recebida no teste de saúde.");
+    throw new StorageSettingsFetchError(500, translate("common.errors.unexpectedResponse"));
   }
   return parsed.data.data;
 }
@@ -256,12 +243,12 @@ export async function setDefaultStorageConnection(
     },
   );
   if (!response.ok) {
-    throw await parseErrorResponse(response, "Falha ao definir conexão padrão");
+    throw await parseErrorResponse(response, "admin.storage.errors.setDefaultFailed");
   }
   const rawJson: unknown = await response.json();
   const parsed = storageConnectionResponseSchema.safeParse(rawJson);
   if (!parsed.success) {
-    throw new StorageSettingsFetchError(500, "Resposta inválida ao definir conexão padrão.");
+    throw new StorageSettingsFetchError(500, translate("common.errors.unexpectedResponse"));
   }
   return parsed.data.data;
 }
@@ -284,15 +271,12 @@ export async function toggleStorageConnectionStatus(
     },
   );
   if (!response.ok) {
-    throw await parseErrorResponse(
-      response,
-      action === "activate" ? "Falha ao ativar conexão" : "Falha ao desativar conexão",
-    );
+    throw await parseErrorResponse(response, "admin.storage.errors.toggleStatusFailed");
   }
   const rawJson: unknown = await response.json();
   const parsed = storageConnectionResponseSchema.safeParse(rawJson);
   if (!parsed.success) {
-    throw new StorageSettingsFetchError(500, "Resposta inválida ao alterar status da conexão.");
+    throw new StorageSettingsFetchError(500, translate("common.errors.unexpectedResponse"));
   }
   return parsed.data.data;
 }
@@ -314,12 +298,12 @@ export async function upsertStorageRoutingRule(
     body: JSON.stringify(validated),
   });
   if (!response.ok) {
-    throw await parseErrorResponse(response, "Falha ao salvar regra de roteamento");
+    throw await parseErrorResponse(response, "admin.storage.errors.saveRuleFailed");
   }
   const rawJson: unknown = await response.json();
   const parsed = storageRoutingRuleResponseSchema.safeParse(rawJson);
   if (!parsed.success) {
-    throw new StorageSettingsFetchError(500, "Resposta inválida ao salvar regra de roteamento.");
+    throw new StorageSettingsFetchError(500, translate("common.errors.unexpectedResponse"));
   }
   return parsed.data.data;
 }
@@ -339,7 +323,7 @@ export async function clearCategoryRoutingRule(categoryId: string): Promise<void
     },
   );
   if (!response.ok) {
-    throw await parseErrorResponse(response, "Falha ao remover regra por categoria");
+    throw await parseErrorResponse(response, "admin.storage.errors.removeRuleFailed");
   }
 }
 

@@ -1,11 +1,12 @@
 import "@testing-library/jest-dom/vitest";
-import { docuflowTheme } from "@docuflow/ui";
+import { UiLocaleProvider, papyrusTheme } from "@docuflow/ui";
 import { CssBaseline, ThemeProvider } from "@mui/material";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { StorageSettingsPage } from "../src/features/admin/StorageSettingsPage.js";
+import { I18nProvider } from "../src/i18n/index.js";
 
 const ORG_ID = "550e8400-e29b-41d4-a716-446655440000";
 const CONN_LOCAL_ID = "550e8400-e29b-41d4-a716-446655440101";
@@ -58,7 +59,7 @@ function createInitialConnections() {
       },
       hasCredentials: false,
       lastHealthCheckAt: "2026-04-01T10:00:00.000Z",
-      lastHealthMessage: "Diretório disponível para leitura e escrita.",
+      lastHealthMessage: "Directory available for read and write.",
       createdAt: "2026-03-01T10:00:00.000Z",
       updatedAt: "2026-04-01T10:00:00.000Z",
     },
@@ -123,14 +124,18 @@ function renderStorageSettingsPage() {
   });
 
   return render(
-    <ThemeProvider theme={docuflowTheme}>
-      <CssBaseline />
-      <QueryClientProvider client={queryClient}>
-        <MemoryRouter>
-          <StorageSettingsPage />
-        </MemoryRouter>
-      </QueryClientProvider>
-    </ThemeProvider>,
+    <I18nProvider initialLocale="en-US">
+      <UiLocaleProvider locale="en-US">
+        <ThemeProvider theme={papyrusTheme}>
+          <CssBaseline />
+          <QueryClientProvider client={queryClient}>
+            <MemoryRouter>
+              <StorageSettingsPage />
+            </MemoryRouter>
+          </QueryClientProvider>
+        </ThemeProvider>
+      </UiLocaleProvider>
+    </I18nProvider>,
   );
 }
 
@@ -155,7 +160,7 @@ describe("StorageSettingsPage (Step 14.04)", () => {
 
     renderStorageSettingsPage();
 
-    expect(await screen.findByText("Acesso restrito")).toBeInTheDocument();
+    expect(await screen.findByText("Access restricted")).toBeInTheDocument();
   });
 
   it("lists masked connections and creates a local storage connection", async () => {
@@ -242,20 +247,20 @@ describe("StorageSettingsPage (Step 14.04)", () => {
 
     renderStorageSettingsPage();
 
-    expect(await screen.findByText("Armazenamento e conexões")).toBeInTheDocument();
+    expect(await screen.findByText("File storage")).toBeInTheDocument();
     expect(await screen.findByText("Cofre Local")).toBeInTheDocument();
     expect(screen.getByText("MinIO Primário")).toBeInTheDocument();
-    expect(screen.getByText("•••••••• (criptografadas)")).toBeInTheDocument();
+    expect(screen.getByText("•••••••• (encrypted)")).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("button", { name: "Nova conexão" }));
+    fireEvent.click(screen.getByRole("button", { name: "New connection" }));
     const createDialog = await screen.findByRole("dialog");
-    fireEvent.change(within(createDialog).getByLabelText(/Nome da conexão/i), {
+    fireEvent.change(within(createDialog).getByLabelText(/Connection name/i), {
       target: { value: "Arquivo Secundário" },
     });
-    fireEvent.change(within(createDialog).getByLabelText(/Diretório raiz absoluto/i), {
+    fireEvent.change(within(createDialog).getByLabelText(/Folder path/i), {
       target: { value: "/mnt/docuflow-secundario" },
     });
-    fireEvent.click(within(createDialog).getByRole("button", { name: "Cadastrar conexão" }));
+    fireEvent.click(within(createDialog).getByRole("button", { name: "Create connection" }));
 
     await waitFor(() => {
       expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
@@ -348,7 +353,7 @@ describe("StorageSettingsPage (Step 14.04)", () => {
             ? {
                 ...conn,
                 lastHealthCheckAt: "2026-04-02T12:00:00.000Z",
-                lastHealthMessage: "Bucket acessível e saudável.",
+                lastHealthMessage: "Bucket accessible and healthy.",
               }
             : conn,
         );
@@ -359,7 +364,7 @@ describe("StorageSettingsPage (Step 14.04)", () => {
               connection: target,
               health: {
                 healthy: true,
-                message: "Bucket acessível e saudável.",
+                message: "Bucket accessible and healthy.",
                 checkedAt: "2026-04-02T12:00:00.000Z",
               },
             },
@@ -396,15 +401,15 @@ describe("StorageSettingsPage (Step 14.04)", () => {
       throw new Error("Expected MinIO Primário row");
     }
 
-    fireEvent.click(within(s3Row).getByRole("button", { name: "Editar" }));
+    fireEvent.click(within(s3Row).getByRole("button", { name: "Edit" }));
     const editDialog = await screen.findByRole("dialog");
     expect(
-      within(editDialog).getByText(/Credenciais atuais criptografadas e ocultas/i),
+      within(editDialog).getByText(/Current credentials are encrypted and hidden/i),
     ).toBeInTheDocument();
-    fireEvent.change(within(editDialog).getByLabelText(/Nome da conexão/i), {
+    fireEvent.change(within(editDialog).getByLabelText(/Connection name/i), {
       target: { value: "MinIO Primário Atualizado" },
     });
-    fireEvent.click(within(editDialog).getByRole("button", { name: "Salvar alterações" }));
+    fireEvent.click(within(editDialog).getByRole("button", { name: "Save changes" }));
 
     await waitFor(() => {
       expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
@@ -418,17 +423,17 @@ describe("StorageSettingsPage (Step 14.04)", () => {
       throw new Error("Expected updated S3 row");
     }
 
-    fireEvent.click(within(updatedS3Row).getByRole("button", { name: "Testar saúde" }));
+    fireEvent.click(within(updatedS3Row).getByRole("button", { name: "Test connection" }));
     expect(
       await screen.findByText(
-        'Saúde verificada em "MinIO Primário Atualizado": Bucket acessível e saudável.',
+        'Health check passed for "MinIO Primário Atualizado": Bucket accessible and healthy.',
       ),
     ).toBeInTheDocument();
 
-    fireEvent.click(within(updatedS3Row).getByRole("button", { name: "Definir como padrão" }));
+    fireEvent.click(within(updatedS3Row).getByRole("button", { name: "Set as default" }));
     expect(
       await screen.findByText(
-        '"MinIO Primário Atualizado" definida como destino padrão da organização.',
+        '"MinIO Primário Atualizado" set as the organization default destination.',
       ),
     ).toBeInTheDocument();
   });
@@ -534,13 +539,13 @@ describe("StorageSettingsPage (Step 14.04)", () => {
 
     expect(await screen.findByText("Financeiro")).toBeInTheDocument();
 
-    fireEvent.mouseDown(screen.getByLabelText("Categoria de documento"));
+    fireEvent.mouseDown(screen.getByLabelText("Document category"));
     fireEvent.click(await screen.findByRole("option", { name: "Recursos Humanos" }));
 
-    fireEvent.mouseDown(screen.getByLabelText("Conexão de destino"));
+    fireEvent.mouseDown(screen.getByLabelText("Destination connection"));
     fireEvent.click(await screen.findByRole("option", { name: /Cofre Local/i }));
 
-    fireEvent.click(screen.getByRole("button", { name: "Salvar regra" }));
+    fireEvent.click(screen.getByRole("button", { name: "Save rule" }));
     await waitFor(() => {
       expect(capturedRuleUpsertBody).toEqual({
         categoryId: CATEGORY_HR_ID,
@@ -548,14 +553,14 @@ describe("StorageSettingsPage (Step 14.04)", () => {
       });
     });
 
-    const rulesTable = screen.getByRole("table", { name: "Regras de roteamento por categoria" });
+    const rulesTable = screen.getByRole("table", { name: "Category routing rules" });
     const finRuleRow = within(rulesTable).getByText("Financeiro").closest("tr");
     if (!finRuleRow) {
       throw new Error("Expected Financeiro rule row");
     }
-    fireEvent.click(within(finRuleRow).getByRole("button", { name: "Remover regra" }));
+    fireEvent.click(within(finRuleRow).getByRole("button", { name: "Remove rule" }));
     const confirmDialog = await screen.findByRole("dialog");
-    fireEvent.click(within(confirmDialog).getByRole("button", { name: "Remover regra" }));
+    fireEvent.click(within(confirmDialog).getByRole("button", { name: "Remove rule" }));
 
     await waitFor(() => {
       expect(screen.queryByRole("dialog")).not.toBeInTheDocument();

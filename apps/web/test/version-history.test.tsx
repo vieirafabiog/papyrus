@@ -1,6 +1,6 @@
 import "@testing-library/jest-dom/vitest";
 import type { DocumentDetail, DocumentVersionHistoryItem } from "@docuflow/contracts";
-import { docuflowTheme } from "@docuflow/ui";
+import { papyrusTheme } from "@docuflow/ui";
 import { CssBaseline, ThemeProvider } from "@mui/material";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
@@ -74,7 +74,7 @@ function renderVersionHistory(
   });
 
   return render(
-    <ThemeProvider theme={docuflowTheme}>
+    <ThemeProvider theme={papyrusTheme}>
       <CssBaseline />
       <QueryClientProvider client={queryClient}>
         <VersionHistory
@@ -162,20 +162,20 @@ describe("VersionHistory", () => {
     renderVersionHistory(createDocument(), { onDownloadVersion });
 
     expect(await screen.findByText("v2")).toBeInTheDocument();
-    expect(screen.getByText("Vigente")).toBeInTheDocument();
+    expect(screen.getByText("Current")).toBeInTheDocument();
     expect(screen.getByText("Carlos Lima")).toBeInTheDocument();
     expect(screen.getByText("Aditivo de reajuste")).toBeInTheDocument();
 
     expect(screen.getByText("v1")).toBeInTheDocument();
     expect(screen.getByText("Ana Souza")).toBeInTheDocument();
-    expect(screen.getByText("Sem observação registrada")).toBeInTheDocument();
+    expect(screen.getByText("No note recorded")).toBeInTheDocument();
 
-    const downloadV2 = screen.getByRole("button", { name: "Baixar versão v2" });
+    const downloadV2 = screen.getByRole("button", { name: "Download version v2" });
     expect(downloadV2).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Restaurar versão v2" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Restore version v2" })).not.toBeInTheDocument();
 
-    expect(screen.queryByRole("button", { name: "Baixar versão v1" })).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Restaurar versão v1" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Download version v1" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Restore version v1" })).toBeInTheDocument();
 
     fireEvent.click(downloadV2);
     await waitFor(() => {
@@ -327,25 +327,23 @@ describe("VersionHistory", () => {
 
     renderVersionHistory(createDocument({ version: 3 }));
 
-    const restoreBtn = await screen.findByRole("button", { name: "Restaurar versão v1" });
+    const restoreBtn = await screen.findByRole("button", { name: "Restore version v1" });
     fireEvent.click(restoreBtn);
 
-    const dialog = await screen.findByRole("dialog", { name: "Restaurar versão v1" });
+    const dialog = await screen.findByRole("dialog", { name: "Restore version v1" });
     expect(
       within(dialog).getByText(
-        /nova versão vigente \(v3\).*histórico anterior continuará preservado/i,
+        /new current version \(v3\).*All previous history will remain intact/i,
       ),
     ).toBeInTheDocument();
 
-    fireEvent.change(within(dialog).getByLabelText("Observação da restauração (opcional)"), {
+    fireEvent.change(within(dialog).getByLabelText("Restore note (optional)"), {
       target: { value: "Retorno à redação validada" },
     });
-    fireEvent.click(within(dialog).getByRole("button", { name: "Confirmar restauração" }));
+    fireEvent.click(within(dialog).getByRole("button", { name: "Confirm restore" }));
 
     expect(
-      await screen.findByText(
-        "Versão v3 criada a partir da versão v1 preservando todo o histórico.",
-      ),
+      await screen.findByText("Version v3 created from version v1, preserving full history."),
     ).toBeInTheDocument();
 
     expect(await screen.findByText("v3")).toBeInTheDocument();
@@ -363,7 +361,7 @@ describe("VersionHistory", () => {
     });
   });
 
-  it("displays empty state and handles restore concurrency conflict cleanly in pt-BR", async () => {
+  it("displays empty state and handles restore concurrency conflict cleanly", async () => {
     vi.spyOn(globalThis, "fetch").mockImplementation(async () => {
       return new Response(JSON.stringify({ data: [] }), {
         status: 200,
@@ -374,12 +372,12 @@ describe("VersionHistory", () => {
     const onUploadNewVersion = vi.fn();
     renderVersionHistory(createDocument(), { onUploadNewVersion });
 
-    expect(await screen.findByText("Nenhuma versão registrada")).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "Enviar primeira versão" }));
+    expect(await screen.findByText("No versions recorded")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Upload first version" }));
     expect(onUploadNewVersion).toHaveBeenCalledTimes(1);
   });
 
-  it("surfaces 409 version conflict message when restoring stale document version", async () => {
+  it("surfaces 409 version conflict message and friendly empty file text when restoring stale document version", async () => {
     vi.spyOn(globalThis, "fetch").mockImplementation(async (input, init) => {
       const url = typeof input === "string" ? input : input.toString();
       if (url.includes("/auth/csrf-token")) {
@@ -434,12 +432,13 @@ describe("VersionHistory", () => {
 
     renderVersionHistory(createDocument());
 
-    fireEvent.click(await screen.findByRole("button", { name: "Restaurar versão v1" }));
-    const dialog = await screen.findByRole("dialog", { name: "Restaurar versão v1" });
-    fireEvent.click(within(dialog).getByRole("button", { name: "Confirmar restauração" }));
+    expect(await screen.findByText("No file attached")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Restore version v1" }));
+    const dialog = await screen.findByRole("dialog", { name: "Restore version v1" });
+    fireEvent.click(within(dialog).getByRole("button", { name: "Confirm restore" }));
 
     expect(
-      await screen.findByText("O documento foi atualizado simultaneamente por outro usuário."),
+      await screen.findByText("This document was updated by someone else. Refresh and try again."),
     ).toBeInTheDocument();
   });
 });

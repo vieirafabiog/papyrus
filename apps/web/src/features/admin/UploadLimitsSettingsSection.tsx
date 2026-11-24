@@ -1,5 +1,5 @@
 import { MIN_UPLOAD_MAX_BYTES, type UploadLimitsViewContract } from "@docuflow/contracts";
-import { DOCUFLOW_COLOR_TOKENS, ErrorState, LoadingState } from "@docuflow/ui";
+import { ErrorState, LoadingState, PAPYRUS_COLOR_TOKENS } from "@docuflow/ui";
 import CloudUploadOutlinedIcon from "@mui/icons-material/CloudUploadOutlined";
 import RestartAltOutlinedIcon from "@mui/icons-material/RestartAltOutlined";
 import SaveOutlinedIcon from "@mui/icons-material/SaveOutlined";
@@ -18,6 +18,7 @@ import {
   Typography,
 } from "@mui/material";
 import { type FormEvent, useEffect, useMemo, useState } from "react";
+import { useI18n } from "../../i18n/index.js";
 import { useUpdateUploadLimitsMutation, useUploadLimitsQuery } from "./useUploadLimitsSettings.js";
 
 const BYTES_PER_MIB = 1024 * 1024;
@@ -31,15 +32,6 @@ interface UploadLimitsFormState {
 function bytesToMegabytesText(bytes: number): string {
   const mb = bytes / BYTES_PER_MIB;
   return Number.isInteger(mb) ? String(mb) : mb.toFixed(2);
-}
-
-function formatBytesSummary(bytes: number): string {
-  if (bytes >= BYTES_PER_MIB) {
-    const mb = bytes / BYTES_PER_MIB;
-    return `${Number.isInteger(mb) ? mb : mb.toFixed(2)} MB (${bytes.toLocaleString("pt-BR")} bytes)`;
-  }
-  const kb = bytes / 1024;
-  return `${kb.toFixed(1)} KB (${bytes.toLocaleString("pt-BR")} bytes)`;
 }
 
 function toFormState(view: UploadLimitsViewContract): UploadLimitsFormState {
@@ -60,9 +52,10 @@ function sameStringArrays(a: readonly string[], b: readonly string[]): boolean {
 
 /**
  * Administrative configuration panel for upload file size ceilings and safe
- * allowed extensions enforced consistently across proxy, API, and worker.
+ * allowed extensions.
  */
 export function UploadLimitsSettingsSection() {
+  const { t, formatBytes } = useI18n();
   const limitsQuery = useUploadLimitsQuery();
   const updateMutation = useUpdateUploadLimitsMutation();
 
@@ -90,13 +83,13 @@ export function UploadLimitsSettingsSection() {
   }, [form]);
 
   if (limitsQuery.isLoading) {
-    return <LoadingState message="Carregando limites e extensões de upload..." minHeight={120} />;
+    return <LoadingState message={t("admin.uploadLimits.loading")} minHeight={120} />;
   }
 
   if (limitsQuery.isError) {
     return (
       <ErrorState
-        title="Não foi possível carregar os limites de upload"
+        title={t("admin.uploadLimits.loadErrorTitle")}
         description={limitsQuery.error.message}
         onRetry={() => void limitsQuery.refetch()}
       />
@@ -153,7 +146,7 @@ export function UploadLimitsSettingsSection() {
     if (!Number.isInteger(parsedSizeBytes) || parsedSizeBytes < MIN_UPLOAD_MAX_BYTES) {
       setFeedback({
         severity: "error",
-        message: "Informe um tamanho máximo válido de pelo menos 1 KB (0,001 MB).",
+        message: t("admin.uploadLimits.validation.minSize"),
       });
       return;
     }
@@ -161,7 +154,10 @@ export function UploadLimitsSettingsSection() {
     if (parsedSizeBytes > ceilingBytes) {
       setFeedback({
         severity: "error",
-        message: `O limite solicitado (${formatBytesSummary(parsedSizeBytes)}) ultrapassa o teto permitido pelo servidor e proxy (${formatBytesSummary(ceilingBytes)}).`,
+        message: t("admin.uploadLimits.validation.exceedsServerLimit", {
+          requested: formatBytes(parsedSizeBytes),
+          limit: formatBytes(ceilingBytes),
+        }),
       });
       return;
     }
@@ -169,7 +165,7 @@ export function UploadLimitsSettingsSection() {
     if (form.allowedExtensions.length === 0) {
       setFeedback({
         severity: "error",
-        message: "Selecione ao menos uma extensão de arquivo permitida.",
+        message: t("admin.uploadLimits.validation.selectExtension"),
       });
       return;
     }
@@ -183,13 +179,12 @@ export function UploadLimitsSettingsSection() {
       setForm(toFormState(updated));
       setFeedback({
         severity: "success",
-        message: "Limites de tamanho e extensões permitidas atualizados para API, proxy e worker.",
+        message: t("admin.uploadLimits.feedback.saved"),
       });
     } catch (error) {
       setFeedback({
         severity: "error",
-        message:
-          error instanceof Error ? error.message : "Falha ao atualizar configurações de upload.",
+        message: error instanceof Error ? error.message : t("admin.uploadLimits.errors.saveFailed"),
       });
     }
   }
@@ -203,8 +198,8 @@ export function UploadLimitsSettingsSection() {
       sx={{
         p: 3,
         borderRadius: 3,
-        borderColor: DOCUFLOW_COLOR_TOKENS.surface.outlineVariant,
-        backgroundColor: DOCUFLOW_COLOR_TOKENS.surface.containerLowest,
+        borderColor: PAPYRUS_COLOR_TOKENS.surface.outlineVariant,
+        backgroundColor: PAPYRUS_COLOR_TOKENS.surface.containerLowest,
       }}
     >
       <Stack spacing={2.5}>
@@ -212,11 +207,10 @@ export function UploadLimitsSettingsSection() {
           <CloudUploadOutlinedIcon color="primary" />
           <Box>
             <Typography variant="h6" fontWeight={600}>
-              Limites e formatos de upload
+              {t("admin.uploadLimits.title")}
             </Typography>
             <Typography variant="body2" color="text.secondary">
-              Configure o tamanho máximo por arquivo e as extensões aceitas com validação
-              consistente entre proxy, API e worker de processamento.
+              {t("admin.uploadLimits.subtitle")}
             </Typography>
           </Box>
         </Stack>
@@ -228,17 +222,15 @@ export function UploadLimitsSettingsSection() {
         ) : null}
 
         <Alert severity="info">
-          Teto efetivo atual considerando API e proxy:{" "}
-          <strong>{formatBytesSummary(data.effective.effectiveMaxWithProxyBytes)}</strong> (teto de
-          ambiente API: {formatBytesSummary(data.effective.systemMaxUploadBytes)}; teto do proxy:{" "}
-          {formatBytesSummary(data.effective.proxyMaxBodyBytes)}). Extensões executáveis (.exe, .sh,
-          .svg, .html, .js) permanecem bloqueadas em todas as camadas.
+          {t("admin.uploadLimits.serverLimitAlert", {
+            limit: formatBytes(data.effective.effectiveMaxWithProxyBytes),
+          })}
         </Alert>
 
         <Grid container spacing={2}>
           <Grid size={{ xs: 12, sm: 6 }}>
             <TextField
-              label="Tamanho máximo por arquivo (MB)"
+              label={t("admin.uploadLimits.maxFileSizeLabel")}
               type="number"
               fullWidth
               inputProps={{ min: 0.001, step: "any" }}
@@ -249,8 +241,10 @@ export function UploadLimitsSettingsSection() {
               }}
               helperText={
                 Number.isInteger(parsedSizeBytes) && parsedSizeBytes >= MIN_UPLOAD_MAX_BYTES
-                  ? `Equivalente a ${formatBytesSummary(parsedSizeBytes)}`
-                  : "Informe um valor numérico positivo."
+                  ? t("admin.uploadLimits.maxFileSizeHelper", {
+                      size: formatBytes(parsedSizeBytes),
+                    })
+                  : t("admin.uploadLimits.maxFileSizeInvalidHelper")
               }
               disabled={!data.canEdit || updateMutation.isPending}
             />
@@ -269,7 +263,7 @@ export function UploadLimitsSettingsSection() {
                   disabled={!data.canEdit || updateMutation.isPending}
                 />
               }
-              label="Exigir correspondência entre extensão, tipo MIME declarado e assinatura real"
+              label={t("admin.uploadLimits.verifyContentSwitch")}
             />
           </Grid>
         </Grid>
@@ -278,7 +272,9 @@ export function UploadLimitsSettingsSection() {
 
         <Stack spacing={1.25}>
           <Typography variant="subtitle2" fontWeight={600}>
-            Extensões permitidas ({form.allowedExtensions.length} selecionadas)
+            {t("admin.uploadLimits.allowedExtensionsCount", {
+              count: form.allowedExtensions.length,
+            })}
           </Typography>
           <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
             {data.supportedCatalog.map((entry) => {
@@ -306,7 +302,7 @@ export function UploadLimitsSettingsSection() {
             onClick={handleReset}
             disabled={!data.canEdit || !hasChanges || updateMutation.isPending}
           >
-            Descartar alterações
+            {t("admin.common.discardChanges")}
           </Button>
           <Button
             type="submit"
@@ -314,7 +310,7 @@ export function UploadLimitsSettingsSection() {
             startIcon={<SaveOutlinedIcon />}
             disabled={!data.canEdit || !hasChanges || updateMutation.isPending}
           >
-            {updateMutation.isPending ? "Salvando..." : "Salvar limites de upload"}
+            {updateMutation.isPending ? t("admin.common.saving") : t("admin.uploadLimits.submit")}
           </Button>
         </Stack>
       </Stack>

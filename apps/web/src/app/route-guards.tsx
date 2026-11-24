@@ -1,8 +1,11 @@
 import { Box, Button, CircularProgress, Paper, Stack, Typography } from "@mui/material";
 import { Navigate, Outlet, useLocation } from "react-router-dom";
+import { useI18n } from "../i18n/index.js";
 import { useSessionQuery } from "./session.js";
 
 function SessionLoadingFallback() {
+  const { t } = useI18n();
+
   return (
     <Box
       component="output"
@@ -17,13 +20,14 @@ function SessionLoadingFallback() {
     >
       <Stack direction="row" spacing={1.5} alignItems="center">
         <CircularProgress size={20} aria-hidden="true" />
-        <Typography variant="body1">Verificando sessão...</Typography>
+        <Typography variant="body1">{t("auth.session.checking")}</Typography>
       </Stack>
     </Box>
   );
 }
 
 export function RequireAuth() {
+  const { t } = useI18n();
   const location = useLocation();
   const { data: session, isPending, isError, refetch } = useSessionQuery();
 
@@ -46,14 +50,14 @@ export function RequireAuth() {
         <Paper sx={{ maxWidth: 440, p: 3 }}>
           <Stack spacing={2}>
             <Typography variant="h3" component="h1">
-              Não foi possível validar sua sessão
+              {t("auth.session.validationErrorTitle")}
             </Typography>
             <Typography variant="body2" color="text.secondary">
-              Verifique a conexão com a API do papyrus e tente novamente.
+              {t("auth.session.validationErrorDescription")}
             </Typography>
             <Box>
               <Button variant="contained" onClick={() => void refetch()}>
-                Tentar novamente
+                {t("auth.session.retry")}
               </Button>
             </Box>
           </Stack>

@@ -17,6 +17,8 @@ import {
   TextField,
 } from "@mui/material";
 import { useId, useMemo, useState } from "react";
+import { containsTechnicalJargon } from "../../i18n/api-errors.js";
+import { useI18n } from "../../i18n/index.js";
 import { buildFolderTreeOptions } from "../folders/folderTree.js";
 import {
   useArchiveDocumentMutation,
@@ -33,13 +35,14 @@ export interface DocumentLifecycleActionsProps {
 }
 
 /**
- * Toolbar actions and accessible confirmation dialogs for moving a document across folders
- * and archiving eligible documents in pt-BR.
+ * Toolbar actions and accessible confirmation dialogs for moving a document across folders,
+ * archiving eligible documents, and restoring trashed documents.
  */
 export function DocumentLifecycleActions({
   document,
   onActionFeedback,
 }: DocumentLifecycleActionsProps) {
+  const { locale, t } = useI18n();
   const moveTitleId = useId();
   const moveDescId = useId();
   const archiveTitleId = useId();
@@ -67,8 +70,8 @@ export function DocumentLifecycleActions({
   const restoreMutation = useRestoreTrashedDocumentMutation(document.id);
 
   const folderTreeOptions = useMemo(
-    () => buildFolderTreeOptions(foldersQuery.data ?? []),
-    [foldersQuery.data],
+    () => buildFolderTreeOptions(foldersQuery.data ?? [], locale),
+    [foldersQuery.data, locale],
   );
   const folderById = useMemo(
     () => new Map(folderTreeOptions.map((item) => [item.id, item])),
@@ -107,16 +110,21 @@ export function DocumentLifecycleActions({
             ...(trimmedReason.length > 0 ? { reason: trimmedReason } : {}),
           },
         });
+        const statusLabel =
+          restored.status === "ARCHIVED"
+            ? t("documents.status.ARCHIVED")
+            : t("documents.status.DRAFT");
         onActionFeedback?.({
           severity: "success",
-          message: `Documento restaurado da lixeira como ${
-            restored.status === "ARCHIVED" ? "Arquivado" : "Rascunho"
-          }.`,
+          message: t("documents.lifecycle.restoreSuccess", { status: statusLabel }),
         });
         setRestoreOpen(false);
       } catch (error) {
+        const rawMessage = error instanceof Error ? error.message : "";
         setRestoreError(
-          error instanceof Error ? error.message : "Não foi possível restaurar o documento.",
+          rawMessage.length > 0 && !containsTechnicalJargon(rawMessage)
+            ? rawMessage
+            : t("documents.lifecycle.restoreFailed"),
         );
       }
     };
@@ -128,7 +136,7 @@ export function DocumentLifecycleActions({
           startIcon={<RestoreFromTrashOutlinedIcon />}
           onClick={handleOpenRestore}
         >
-          Restaurar da lixeira
+          {t("documents.lifecycle.restoreFromTrashButton")}
         </Button>
 
         <Dialog
@@ -139,12 +147,13 @@ export function DocumentLifecycleActions({
           maxWidth="xs"
           fullWidth
         >
-          <DialogTitle id={restoreTitleId}>Restaurar documento da lixeira</DialogTitle>
+          <DialogTitle id={restoreTitleId}>
+            {t("documents.lifecycle.restoreDialogTitle")}
+          </DialogTitle>
           <DialogContent>
             <Stack spacing={2} sx={{ pt: 0.5 }}>
               <DialogContentText id={restoreDescId}>
-                O documento "{document.title}" retornará ao repositório preservando versões e
-                permissões, caso ainda esteja dentro da janela configurada.
+                {t("documents.lifecycle.restoreDialogDescription", { title: document.title })}
               </DialogContentText>
 
               {restoreError ? (
@@ -155,7 +164,7 @@ export function DocumentLifecycleActions({
 
               <TextField
                 select
-                label="Status após restauração"
+                label={t("documents.lifecycle.restoreStatusLabel")}
                 value={restoreTargetStatus}
                 onChange={(event) =>
                   setRestoreTargetStatus(event.target.value as RestoreTrashedDocumentTargetStatus)
@@ -163,12 +172,12 @@ export function DocumentLifecycleActions({
                 fullWidth
                 disabled={restoreMutation.isPending}
               >
-                <MenuItem value="DRAFT">Rascunho</MenuItem>
-                <MenuItem value="ARCHIVED">Arquivado</MenuItem>
+                <MenuItem value="DRAFT">{t("documents.status.DRAFT")}</MenuItem>
+                <MenuItem value="ARCHIVED">{t("documents.status.ARCHIVED")}</MenuItem>
               </TextField>
 
               <TextField
-                label="Motivo da restauração (opcional)"
+                label={t("documents.lifecycle.restoreReasonLabel")}
                 value={restoreReason}
                 onChange={(event) => setRestoreReason(event.target.value)}
                 fullWidth
@@ -185,14 +194,16 @@ export function DocumentLifecycleActions({
               disabled={restoreMutation.isPending}
               variant="text"
             >
-              Cancelar
+              {t("documents.common.cancel")}
             </Button>
             <Button
               onClick={() => void handleConfirmRestore()}
               disabled={restoreMutation.isPending}
               variant="contained"
             >
-              {restoreMutation.isPending ? "Restaurando..." : "Confirmar restauração"}
+              {restoreMutation.isPending
+                ? t("documents.lifecycle.restoring")
+                : t("documents.lifecycle.confirmRestore")}
             </Button>
           </DialogActions>
         </Dialog>
@@ -231,15 +242,21 @@ export function DocumentLifecycleActions({
       });
       const folderName =
         targetFolderId === null
-          ? "Sem pasta (raiz)"
-          : (folderById.get(targetFolderId)?.fullPath ?? "pasta selecionada");
+          ? t("documents.common.noFolderRoot")
+          : (folderById.get(targetFolderId)?.fullPath ??
+            t("documents.lifecycle.moveFallbackFolder"));
       onActionFeedback?.({
         severity: "success",
-        message: `Documento movido para "${folderName}".`,
+        message: t("documents.lifecycle.moveSuccess", { folderName }),
       });
       setMoveOpen(false);
     } catch (error) {
-      setMoveError(error instanceof Error ? error.message : "Não foi possível mover o documento.");
+      const rawMessage = error instanceof Error ? error.message : "";
+      setMoveError(
+        rawMessage.length > 0 && !containsTechnicalJargon(rawMessage)
+          ? rawMessage
+          : t("documents.lifecycle.moveFailed"),
+      );
     }
   };
 
@@ -266,12 +283,15 @@ export function DocumentLifecycleActions({
       });
       onActionFeedback?.({
         severity: "success",
-        message: "Documento arquivado com sucesso.",
+        message: t("documents.lifecycle.archiveSuccess"),
       });
       setArchiveOpen(false);
     } catch (error) {
+      const rawMessage = error instanceof Error ? error.message : "";
       setArchiveError(
-        error instanceof Error ? error.message : "Não foi possível arquivar o documento.",
+        rawMessage.length > 0 && !containsTechnicalJargon(rawMessage)
+          ? rawMessage
+          : t("documents.lifecycle.archiveFailed"),
       );
     }
   };
@@ -284,7 +304,7 @@ export function DocumentLifecycleActions({
           startIcon={<DriveFileMoveOutlinedIcon />}
           onClick={handleOpenMove}
         >
-          Mover pasta
+          {t("documents.lifecycle.moveButton")}
         </Button>
 
         {canArchive ? (
@@ -294,7 +314,7 @@ export function DocumentLifecycleActions({
             startIcon={<ArchiveOutlinedIcon />}
             onClick={handleOpenArchive}
           >
-            Arquivar
+            {t("documents.lifecycle.archiveButton")}
           </Button>
         ) : null}
       </Stack>
@@ -307,12 +327,11 @@ export function DocumentLifecycleActions({
         maxWidth="xs"
         fullWidth
       >
-        <DialogTitle id={moveTitleId}>Mover documento de pasta</DialogTitle>
+        <DialogTitle id={moveTitleId}>{t("documents.lifecycle.moveDialogTitle")}</DialogTitle>
         <DialogContent>
           <Stack spacing={2} sx={{ pt: 0.5 }}>
             <DialogContentText id={moveDescId}>
-              Selecione a pasta de destino para organizar "{document.title}". Apenas pastas ativas e
-              autorizadas são exibidas.
+              {t("documents.lifecycle.moveDialogDescription", { title: document.title })}
             </DialogContentText>
 
             {moveError ? (
@@ -329,7 +348,7 @@ export function DocumentLifecycleActions({
 
             <TextField
               select
-              label="Pasta de destino"
+              label={t("documents.lifecycle.destinationFolderLabel")}
               value={foldersQuery.isLoading ? "" : selectedFolderId}
               onChange={(event) => setSelectedFolderId(event.target.value)}
               slotProps={{
@@ -339,7 +358,7 @@ export function DocumentLifecycleActions({
                   renderValue: (selected) => {
                     const value = typeof selected === "string" ? selected : "";
                     if (value.length === 0) {
-                      return "Sem pasta (raiz)";
+                      return t("documents.common.noFolderRoot");
                     }
                     return folderById.get(value)?.fullPath ?? "";
                   },
@@ -348,7 +367,7 @@ export function DocumentLifecycleActions({
               fullWidth
               disabled={moveMutation.isPending || foldersQuery.isLoading}
             >
-              <MenuItem value="">Sem pasta (raiz)</MenuItem>
+              <MenuItem value="">{t("documents.common.noFolderRoot")}</MenuItem>
               {folderTreeOptions.map((folder) => (
                 <MenuItem
                   key={folder.id}
@@ -374,14 +393,16 @@ export function DocumentLifecycleActions({
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>
           <Button onClick={handleCloseMove} disabled={moveMutation.isPending} variant="text">
-            Cancelar
+            {t("documents.common.cancel")}
           </Button>
           <Button
             onClick={() => void handleConfirmMove()}
             disabled={moveMutation.isPending || foldersQuery.isLoading}
             variant="contained"
           >
-            {moveMutation.isPending ? "Movendo..." : "Confirmar movimentação"}
+            {moveMutation.isPending
+              ? t("documents.lifecycle.moving")
+              : t("documents.lifecycle.confirmMove")}
           </Button>
         </DialogActions>
       </Dialog>
@@ -394,12 +415,11 @@ export function DocumentLifecycleActions({
         maxWidth="xs"
         fullWidth
       >
-        <DialogTitle id={archiveTitleId}>Arquivar documento</DialogTitle>
+        <DialogTitle id={archiveTitleId}>{t("documents.lifecycle.archiveDialogTitle")}</DialogTitle>
         <DialogContent>
           <Stack spacing={2} sx={{ pt: 0.5 }}>
             <DialogContentText id={archiveDescId}>
-              Ao arquivar "{document.title}", o registro e suas versões permanecem preservados para
-              consulta, mas novas versões não poderão ser enviadas enquanto estiver arquivado.
+              {t("documents.lifecycle.archiveDialogDescription", { title: document.title })}
             </DialogContentText>
 
             {archiveError ? (
@@ -409,7 +429,7 @@ export function DocumentLifecycleActions({
             ) : null}
 
             <TextField
-              label="Motivo do arquivamento (opcional)"
+              label={t("documents.lifecycle.archiveReasonLabel")}
               value={archiveReason}
               onChange={(event) => setArchiveReason(event.target.value)}
               fullWidth
@@ -422,7 +442,7 @@ export function DocumentLifecycleActions({
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>
           <Button onClick={handleCloseArchive} disabled={archiveMutation.isPending} variant="text">
-            Cancelar
+            {t("documents.common.cancel")}
           </Button>
           <Button
             onClick={() => void handleConfirmArchive()}
@@ -430,7 +450,9 @@ export function DocumentLifecycleActions({
             color="warning"
             variant="contained"
           >
-            {archiveMutation.isPending ? "Arquivando..." : "Confirmar arquivamento"}
+            {archiveMutation.isPending
+              ? t("documents.lifecycle.archiving")
+              : t("documents.lifecycle.confirmArchive")}
           </Button>
         </DialogActions>
       </Dialog>

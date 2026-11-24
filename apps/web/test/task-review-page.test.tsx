@@ -1,11 +1,12 @@
 import "@testing-library/jest-dom/vitest";
-import { docuflowTheme } from "@docuflow/ui";
+import { UiLocaleProvider, createPapyrusTheme } from "@docuflow/ui";
 import { CssBaseline, ThemeProvider } from "@mui/material";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { TaskReviewPage } from "../src/features/tasks/TaskReviewPage.js";
+import { I18nProvider, type UiLocale } from "../src/i18n/index.js";
 
 const ORG_ID = "550e8400-e29b-41d4-a716-446655440000";
 const DOC_ID = "550e8400-e29b-41d4-a716-446655440001";
@@ -24,7 +25,7 @@ const FIELD_ID = "550e8400-e29b-41d4-a716-446655440072";
 const FOLDER_ID = "550e8400-e29b-41d4-a716-446655440081";
 const TAG_ID = "550e8400-e29b-41d4-a716-446655440091";
 
-function renderTaskReviewPage(taskId = TASK_ID) {
+function renderTaskReviewPage(taskId = TASK_ID, locale: UiLocale = "en-US") {
   const queryClient = new QueryClient({
     defaultOptions: {
       queries: { retry: false },
@@ -32,18 +33,22 @@ function renderTaskReviewPage(taskId = TASK_ID) {
   });
 
   return render(
-    <ThemeProvider theme={docuflowTheme}>
-      <CssBaseline />
-      <QueryClientProvider client={queryClient}>
-        <MemoryRouter initialEntries={[`/tasks/${taskId}`]}>
-          <Routes>
-            <Route path="/tasks" element={<h1>Lista de Tarefas</h1>} />
-            <Route path="/tasks/:id" element={<TaskReviewPage />} />
-            <Route path="/documents/:id" element={<h1>Detalhe do Documento</h1>} />
-          </Routes>
-        </MemoryRouter>
-      </QueryClientProvider>
-    </ThemeProvider>,
+    <I18nProvider initialLocale={locale}>
+      <UiLocaleProvider locale={locale}>
+        <ThemeProvider theme={createPapyrusTheme(locale)}>
+          <CssBaseline />
+          <QueryClientProvider client={queryClient}>
+            <MemoryRouter initialEntries={[`/tasks/${taskId}`]}>
+              <Routes>
+                <Route path="/tasks" element={<h1>My tasks list</h1>} />
+                <Route path="/tasks/:id" element={<TaskReviewPage />} />
+                <Route path="/documents/:id" element={<h1>Document Details</h1>} />
+              </Routes>
+            </MemoryRouter>
+          </QueryClientProvider>
+        </ThemeProvider>
+      </UiLocaleProvider>
+    </I18nProvider>,
   );
 }
 
@@ -234,20 +239,22 @@ describe("TaskReviewPage", () => {
     renderTaskReviewPage();
 
     expect(
-      await screen.findByRole("heading", { name: "Aprovação de Contratos — Etapa 1" }),
+      await screen.findByRole("heading", { name: "Aprovação de Contratos — Step 1" }),
     ).toBeInTheDocument();
 
     expect(await screen.findByText("contrato_v2_revisao.pdf")).toBeInTheDocument();
+    expect(screen.getByText("File type")).toBeInTheDocument();
+    expect(screen.getByText("Verification code")).toBeInTheDocument();
     expect(screen.getByText("a".repeat(64))).toBeInTheDocument();
     expect(screen.getByText("Ajustes de cláusula 4")).toBeInTheDocument();
-    expect(screen.getByText(/versão vigente mais recente \(v3\)/i)).toBeInTheDocument();
+    expect(screen.getByText(/newer current version \(v3\)/i)).toBeInTheDocument();
 
     expect(screen.getByText("ACME Ltda")).toBeInTheDocument();
     expect(screen.getByText("Contratos")).toBeInTheDocument();
     expect(screen.getByText("Jurídico")).toBeInTheDocument();
     expect(screen.getByText("Prioritário")).toBeInTheDocument();
 
-    expect(screen.getByText("Avaliada nesta tarefa")).toBeInTheDocument();
+    expect(screen.getByText("Evaluated in this task")).toBeInTheDocument();
   });
 
   it("validates required comment before requesting changes or rejecting", async () => {
@@ -269,13 +276,11 @@ describe("TaskReviewPage", () => {
 
     renderTaskReviewPage();
 
-    const rejectButton = await screen.findByRole("button", { name: "Rejeitar" });
+    const rejectButton = await screen.findByRole("button", { name: "Reject" });
     fireEvent.click(rejectButton);
 
     expect(
-      await screen.findByText(
-        "Informe um comentário justificando a rejeição ou solicitação de ajustes.",
-      ),
+      await screen.findByText("Enter a comment explaining the rejection or requested changes."),
     ).toBeInTheDocument();
 
     const decisionCalls = fetchSpy.mock.calls.filter(([arg]) => {
@@ -285,7 +290,7 @@ describe("TaskReviewPage", () => {
     expect(decisionCalls).toHaveLength(0);
   });
 
-  it("disables actions during submission and updates task state only after API confirmation", async () => {
+  it("disables actions during submission and updates task state only after server confirmation", async () => {
     let taskStatusOnServer = "PENDING";
     let taskDecidedAtOnServer: string | null = null;
     let resolveDecisionResponse: ((res: Response) => void) | undefined;
@@ -325,22 +330,22 @@ describe("TaskReviewPage", () => {
 
     renderTaskReviewPage();
 
-    const approveBtn = await screen.findByRole("button", { name: "Aprovar" });
-    const commentBox = screen.getByLabelText("Comentário da revisão");
+    const approveBtn = await screen.findByRole("button", { name: "Approve" });
+    const commentBox = screen.getByLabelText("Review comment");
 
     fireEvent.change(commentBox, { target: { value: "Cláusulas conferidas e aprovadas." } });
     fireEvent.click(approveBtn);
 
     await waitFor(() => {
-      expect(screen.getByRole("button", { name: "Enviando aprovação..." })).toBeDisabled();
+      expect(screen.getByRole("button", { name: "Submitting approval..." })).toBeDisabled();
     });
-    expect(screen.getByRole("button", { name: "Solicitar ajustes" })).toBeDisabled();
-    expect(screen.getByRole("button", { name: "Rejeitar" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Request changes" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Reject" })).toBeDisabled();
     expect(commentBox).toBeDisabled();
 
-    // Status must NOT be updated before API confirms!
-    expect(screen.getByText("Pendente")).toBeInTheDocument();
-    expect(screen.queryByText("Aprovada")).not.toBeInTheDocument();
+    // Status must NOT be updated before server confirms!
+    expect(screen.getByText("Pending")).toBeInTheDocument();
+    expect(screen.queryByText("Approved")).not.toBeInTheDocument();
 
     taskStatusOnServer = "APPROVED";
     taskDecidedAtOnServer = "2026-11-21T15:00:00Z";
@@ -388,12 +393,12 @@ describe("TaskReviewPage", () => {
       ),
     );
 
-    expect(await screen.findByText(/Aprovação registrada/i)).toBeInTheDocument();
-    expect(screen.getAllByText("Aprovada").length).toBeGreaterThanOrEqual(1);
+    expect(await screen.findByText(/Approval recorded/i)).toBeInTheDocument();
+    expect(screen.getAllByText("Approved").length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText(/Cláusulas conferidas e aprovadas\./i)).toBeInTheDocument();
   });
 
-  it("displays conflict error without altering pending state when decision API returns 409", async () => {
+  it("displays conflict error without altering pending state when decision request returns 409", async () => {
     vi.spyOn(globalThis, "fetch").mockImplementation(async (input) => {
       const url = typeof input === "string" ? input : input.toString();
       if (url === `/api/v1/tasks/${TASK_ID}`) {
@@ -415,7 +420,7 @@ describe("TaskReviewPage", () => {
           JSON.stringify({
             error: {
               code: "CONFLICT",
-              message: "Esta tarefa já recebeu uma decisão concorrente.",
+              message: "Conflict.",
               requestId: ORG_ID,
             },
           }),
@@ -427,13 +432,13 @@ describe("TaskReviewPage", () => {
 
     renderTaskReviewPage();
 
-    const approveBtn = await screen.findByRole("button", { name: "Aprovar" });
+    const approveBtn = await screen.findByRole("button", { name: "Approve" });
     fireEvent.click(approveBtn);
 
     expect(
-      await screen.findByText("Esta tarefa já recebeu uma decisão concorrente."),
+      await screen.findByText("This action conflicts with the current record state."),
     ).toBeInTheDocument();
-    expect(screen.getByText("Pendente")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Aprovar" })).toBeEnabled();
+    expect(screen.getByText("Pending")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Approve" })).toBeEnabled();
   });
 });

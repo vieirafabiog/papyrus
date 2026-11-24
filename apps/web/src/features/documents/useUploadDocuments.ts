@@ -1,7 +1,6 @@
 import {
   CONTRACTS_API_PREFIX,
   type DocumentMetadataValue,
-  apiErrorResponseSchema,
   createApiResponseSchema,
   createUploadSessionRequestSchema,
   fileObjectStatusSchema,
@@ -10,6 +9,8 @@ import {
   uploadSessionRecordSchema,
 } from "@docuflow/contracts";
 import { useCallback, useMemo, useRef, useState } from "react";
+import { containsTechnicalJargon, extractUserErrorMessage } from "../../i18n/api-errors.js";
+import { formatBytes, getCurrentUiLocale, translate } from "../../i18n/index.js";
 
 const DEFAULT_MAX_FILE_BYTES = 50 * 1024 * 1024;
 const CSRF_COOKIE_NAME = "docuflow_csrf";
@@ -82,7 +83,7 @@ export interface UseUploadDocumentsOptions {
 
 export class UploadCancelledError extends Error {
   public constructor() {
-    super("Envio cancelado pelo usuário.");
+    super(translate("documents.upload.cancelledByUser"));
     this.name = "UploadCancelledError";
   }
 }
@@ -136,19 +137,6 @@ async function computeFileSha256IfSupported(file: File): Promise<string | undefi
   }
 }
 
-async function parseSafeApiErrorMessage(response: Response, fallback: string): Promise<string> {
-  try {
-    const raw: unknown = await response.json();
-    const parsed = apiErrorResponseSchema.safeParse(raw);
-    if (parsed.success) {
-      return parsed.data.error.message;
-    }
-  } catch {
-    // Mantém fallback seguro quando o corpo não é JSON válido.
-  }
-  return fallback;
-}
-
 export function defaultXhrBinaryUploader(
   request: BinaryUploadRequest,
 ): Promise<BinaryUploadResponse> {
@@ -187,7 +175,7 @@ export function defaultXhrBinaryUploader(
 
     xhr.onerror = () => {
       request.signal.removeEventListener("abort", onAbort);
-      reject(new Error("Falha de rede durante a transferência do arquivo."));
+      reject(new Error(translate("documents.upload.networkTransferError")));
     };
 
     xhr.onabort = () => {
@@ -199,17 +187,14 @@ export function defaultXhrBinaryUploader(
   });
 }
 
+/**
+ * Backward-compatible byte formatter delegating to the active UI locale formatter.
+ */
 export function formatBytesPtBr(bytes: number): string {
-  if (bytes < 1024) {
-    return `${bytes} B`;
-  }
-  const kb = bytes / 1024;
-  if (kb < 1024) {
-    return `${kb.toFixed(1).replace(".", ",")} KB`;
-  }
-  const mb = kb / 1024;
-  return `${mb.toFixed(1).replace(".", ",")} MB`;
+  return formatBytes(bytes, getCurrentUiLocale());
 }
+
+export { formatBytes };
 
 export function useUploadDocuments(options: UseUploadDocumentsOptions = {}) {
   const maxFileBytes = options.maxFileBytes ?? DEFAULT_MAX_FILE_BYTES;
@@ -258,7 +243,7 @@ export function useUploadDocuments(options: UseUploadDocumentsOptions = {}) {
           return rawJson.data.csrfToken;
         }
       } catch {
-        // Fallback para token em cookie caso endpoint CSRF não esteja disponível no ambiente de teste.
+        // Fallback to existing cookie when CSRF endpoint is unavailable in isolated tests.
       }
       return readCookieValue(CSRF_COOKIE_NAME);
     },
@@ -272,6 +257,7 @@ export function useUploadDocuments(options: UseUploadDocumentsOptions = {}) {
         return;
       }
 
+      const locale = getCurrentUiLocale();
       const nextItems: UploadQueueItem[] = fileArray.map((file) => {
         const localId = generateLocalId();
         const suggestedTitle = deriveTitleFromFileName(file.name);
@@ -285,7 +271,7 @@ export function useUploadDocuments(options: UseUploadDocumentsOptions = {}) {
             progressPercent: 0,
             bytesUploaded: 0,
             sessionId: null,
-            errorMessage: "Arquivo vazio não é permitido para envio.",
+            errorMessage: translate("documents.upload.emptyFileError", undefined, locale),
           };
         }
 
@@ -298,7 +284,11 @@ export function useUploadDocuments(options: UseUploadDocumentsOptions = {}) {
             progressPercent: 0,
             bytesUploaded: 0,
             sessionId: null,
-            errorMessage: `Arquivo excede o limite máximo permitido (${formatBytesPtBr(maxFileBytes)}).`,
+            errorMessage: translate(
+              "documents.upload.fileTooLargeError",
+              { maxSize: formatBytes(maxFileBytes, locale) },
+              locale,
+            ),
           };
         }
 
@@ -311,7 +301,7 @@ export function useUploadDocuments(options: UseUploadDocumentsOptions = {}) {
             progressPercent: 0,
             bytesUploaded: 0,
             sessionId: null,
-            errorMessage: "Nome de arquivo inválido para envio.",
+            errorMessage: translate("documents.upload.invalidFileNameError", undefined, locale),
           };
         }
 
@@ -357,7 +347,7 @@ export function useUploadDocuments(options: UseUploadDocumentsOptions = {}) {
           return {
             ...prev,
             status: "CANCELLED",
-            errorMessage: "Envio cancelado pelo usuário.",
+            errorMessage: translate("documents.upload.cancelledByUser"),
           };
         }
         return prev;
@@ -372,6 +362,7 @@ export function useUploadDocuments(options: UseUploadDocumentsOptions = {}) {
     }
     abortControllersRef.current.clear();
 
+    const cancelledMessage = translate("documents.upload.cancelledByUser");
     setItems((prev) =>
       prev.map((item) =>
         item.status === "CREATING_SESSION" ||
@@ -380,7 +371,7 @@ export function useUploadDocuments(options: UseUploadDocumentsOptions = {}) {
           ? {
               ...item,
               status: "CANCELLED",
-              errorMessage: "Envio cancelado pelo usuário.",
+              errorMessage: cancelledMessage,
             }
           : item,
       ),
@@ -446,16 +437,16 @@ export function useUploadDocuments(options: UseUploadDocumentsOptions = {}) {
         });
 
         if (!sessionRes.ok) {
-          const message = await parseSafeApiErrorMessage(
+          const message = await extractUserErrorMessage(
             sessionRes,
-            "Não foi possível iniciar a sessão de upload.",
+            "documents.upload.sessionCreateFailed",
           );
           throw new Error(message);
         }
 
         const parsedSession = uploadSessionEnvelopeSchema.safeParse(await sessionRes.json());
         if (!parsedSession.success) {
-          throw new Error("Resposta inválida ao iniciar sessão de upload.");
+          throw new Error(translate("common.errors.unexpectedResponse"));
         }
 
         const sessionId = parsedSession.data.data.id;
@@ -465,7 +456,6 @@ export function useUploadDocuments(options: UseUploadDocumentsOptions = {}) {
           status: "UPLOADING",
         }));
 
-        // Solicita destino assinado S3; se o storage for local (409), envia via streaming na API.
         const signedHeaders: Record<string, string> = { Accept: "application/json" };
         if (csrfToken) {
           signedHeaders[CSRF_HEADER_NAME] = csrfToken;
@@ -494,7 +484,7 @@ export function useUploadDocuments(options: UseUploadDocumentsOptions = {}) {
         if (targetRes.ok) {
           const parsedTarget = signedTargetEnvelopeSchema.safeParse(await targetRes.json());
           if (!parsedTarget.success) {
-            throw new Error("Resposta inválida ao gerar destino de upload.");
+            throw new Error(translate("common.errors.unexpectedResponse"));
           }
           const target = parsedTarget.data.data.target;
           const putRes = await binaryUploader({
@@ -507,7 +497,7 @@ export function useUploadDocuments(options: UseUploadDocumentsOptions = {}) {
             onProgress: handleProgress,
           });
           if (putRes.status < 200 || putRes.status >= 300) {
-            throw new Error("Falha ao enviar o arquivo para o armazenamento configurado.");
+            throw new Error(translate("documents.upload.transferFailed"));
           }
         } else if (targetRes.status === 409) {
           const streamHeaders: Record<string, string> = {
@@ -528,19 +518,19 @@ export function useUploadDocuments(options: UseUploadDocumentsOptions = {}) {
           });
 
           if (streamRes.status < 200 || streamRes.status >= 300) {
-            throw new Error("Falha ao transmitir o arquivo para o servidor.");
+            throw new Error(translate("documents.upload.transferFailed"));
           }
 
           const parsedStream = uploadContentEnvelopeSchema.safeParse(
             JSON.parse(streamRes.responseText) as unknown,
           );
           if (!parsedStream.success) {
-            throw new Error("Resposta inválida ao concluir o envio do arquivo.");
+            throw new Error(translate("common.errors.unexpectedResponse"));
           }
         } else {
-          const message = await parseSafeApiErrorMessage(
+          const message = await extractUserErrorMessage(
             targetRes,
-            "Não foi possível preparar o destino de envio.",
+            "documents.upload.prepareTargetFailed",
           );
           throw new Error(message);
         }
@@ -575,9 +565,9 @@ export function useUploadDocuments(options: UseUploadDocumentsOptions = {}) {
         );
 
         if (!finalizeRes.ok) {
-          const message = await parseSafeApiErrorMessage(
+          const message = await extractUserErrorMessage(
             finalizeRes,
-            "Não foi possível finalizar e confirmar o envio do arquivo.",
+            "documents.upload.finalizeFailed",
           );
           throw new Error(message);
         }
@@ -594,7 +584,7 @@ export function useUploadDocuments(options: UseUploadDocumentsOptions = {}) {
             }
           }
         } catch {
-          // Mantém estado de análise quando resposta 2xx não traz corpo detalhado.
+          // Keep under-review status when 2xx response omits detailed payload.
         }
 
         updateItem(item.localId, (prev) => ({
@@ -603,7 +593,7 @@ export function useUploadDocuments(options: UseUploadDocumentsOptions = {}) {
           progressPercent: 100,
           bytesUploaded: item.file.size,
           errorMessage:
-            finalStatus === "REJECTED" ? "Arquivo rejeitado na verificação de segurança." : null,
+            finalStatus === "REJECTED" ? translate("documents.upload.rejectedSecurityCheck") : null,
         }));
 
         if (options.createDocumentOnFinalize && !options.documentId) {
@@ -631,9 +621,9 @@ export function useUploadDocuments(options: UseUploadDocumentsOptions = {}) {
             signal: controller.signal,
           });
           if (!createDocRes.ok) {
-            const message = await parseSafeApiErrorMessage(
+            const message = await extractUserErrorMessage(
               createDocRes,
-              "O arquivo foi enviado, mas não foi possível registrar o documento.",
+              "documents.upload.createDocumentFailed",
             );
             throw new Error(message);
           }
@@ -647,15 +637,16 @@ export function useUploadDocuments(options: UseUploadDocumentsOptions = {}) {
           updateItem(item.localId, (prev) => ({
             ...prev,
             status: "CANCELLED",
-            errorMessage: "Envio cancelado pelo usuário.",
+            errorMessage: translate("documents.upload.cancelledByUser"),
           }));
           return;
         }
 
+        const rawMessage = error instanceof Error ? error.message.trim() : "";
         const safeMessage =
-          error instanceof Error && error.message.trim().length > 0
-            ? error.message
-            : "Falha ao enviar o arquivo. Tente novamente.";
+          rawMessage.length > 0 && !containsTechnicalJargon(rawMessage)
+            ? rawMessage
+            : translate("documents.upload.genericUploadError");
 
         updateItem(item.localId, (prev) => ({
           ...prev,

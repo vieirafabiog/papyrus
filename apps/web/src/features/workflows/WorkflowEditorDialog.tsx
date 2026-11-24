@@ -3,7 +3,7 @@ import type {
   WorkflowStepDefinition,
   WorkflowStepInput,
 } from "@docuflow/contracts";
-import { DOCUFLOW_COLOR_TOKENS } from "@docuflow/ui";
+import { PAPYRUS_COLOR_TOKENS } from "@docuflow/ui";
 import AddOutlinedIcon from "@mui/icons-material/AddOutlined";
 import ArrowDownwardOutlinedIcon from "@mui/icons-material/ArrowDownwardOutlined";
 import ArrowUpwardOutlinedIcon from "@mui/icons-material/ArrowUpwardOutlined";
@@ -27,6 +27,7 @@ import {
   Typography,
 } from "@mui/material";
 import { type FormEvent, useEffect, useId, useState } from "react";
+import { useI18n } from "../../i18n/index.js";
 
 type AssigneeType = "USER" | "GROUP" | "ROLE";
 
@@ -123,6 +124,7 @@ export function WorkflowEditorDialog({
   onSubmitCreate,
   onSubmitNewVersion,
 }: WorkflowEditorDialogProps) {
+  const { t } = useI18n();
   const titleId = useId();
   const [name, setName] = useState(existingName);
   const [description, setDescription] = useState(existingDescription ?? "");
@@ -191,7 +193,7 @@ export function WorkflowEditorDialog({
     setValidationError(null);
 
     if (mode === "create" && name.trim().length === 0) {
-      setValidationError("Informe o nome da definição de fluxo.");
+      setValidationError(t("workflows.editor.validation.nameRequired"));
       return;
     }
 
@@ -201,13 +203,14 @@ export function WorkflowEditorDialog({
       if (!step) {
         continue;
       }
+      const stepNumber = i + 1;
       const trimmedName = step.name.trim();
       if (trimmedName.length === 0) {
-        setValidationError(`Informe o nome da etapa ${i + 1}.`);
+        setValidationError(t("workflows.editor.validation.stepNameRequired", { step: stepNumber }));
         return;
       }
       if (step.assigneeTargetId.trim().length === 0) {
-        setValidationError(`Selecione o aprovador responsável pela etapa ${i + 1}.`);
+        setValidationError(t("workflows.editor.validation.assigneeRequired", { step: stepNumber }));
         return;
       }
 
@@ -216,7 +219,7 @@ export function WorkflowEditorDialog({
       if (trimmedDue.length > 0) {
         const numericDue = Number.parseInt(trimmedDue, 10);
         if (!Number.isInteger(numericDue) || numericDue < 1 || numericDue > 365) {
-          setValidationError(`O prazo da etapa ${i + 1} deve ser um número entre 1 e 365 dias.`);
+          setValidationError(t("workflows.editor.validation.dueDaysRange", { step: stepNumber }));
           return;
         }
         parsedDueDays = numericDue;
@@ -230,7 +233,7 @@ export function WorkflowEditorDialog({
             : ({ type: "ROLE", roleId: step.assigneeTargetId } as const);
 
       builtSteps.push({
-        stepOrder: i + 1,
+        stepOrder: stepNumber,
         name: trimmedName,
         assignee,
         dueDays: parsedDueDays,
@@ -241,7 +244,7 @@ export function WorkflowEditorDialog({
     }
 
     if (builtSteps.length === 0) {
-      setValidationError("Adicione ao menos uma etapa sequencial.");
+      setValidationError(t("workflows.editor.validation.atLeastOneStep"));
       return;
     }
 
@@ -269,10 +272,12 @@ export function WorkflowEditorDialog({
         sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", pb: 1 }}
       >
         <span>
-          {mode === "create" ? "Novo fluxo de aprovação" : `Publicar nova versão — ${existingName}`}
+          {mode === "create"
+            ? t("workflows.editor.createTitle")
+            : t("workflows.editor.newVersionTitle", { name: existingName })}
         </span>
         <IconButton
-          aria-label="Fechar editor de fluxo"
+          aria-label={t("workflows.editor.closeAriaLabel")}
           onClick={onClose}
           disabled={submitting}
           size="small"
@@ -285,10 +290,7 @@ export function WorkflowEditorDialog({
         <DialogContent dividers>
           <Stack spacing={2.5}>
             {mode === "newVersion" ? (
-              <Alert severity="info">
-                Alterar etapas cria uma nova versão imutável da definição. Processos de aprovação já
-                em andamento continuam vinculados à versão anterior até o encerramento.
-              </Alert>
+              <Alert severity="info">{t("workflows.editor.newVersionNotice")}</Alert>
             ) : null}
 
             {validationError ? (
@@ -306,17 +308,17 @@ export function WorkflowEditorDialog({
             {mode === "create" ? (
               <Stack spacing={2}>
                 <TextField
-                  label="Nome do fluxo"
+                  label={t("workflows.editor.nameLabel")}
                   required
                   value={name}
                   onChange={(event) => setName(event.target.value)}
                   disabled={submitting}
                   inputProps={{ maxLength: 120 }}
-                  placeholder="Ex.: Aprovação de Contratos"
+                  placeholder={t("workflows.editor.namePlaceholder")}
                   fullWidth
                 />
                 <TextField
-                  label="Descrição (opcional)"
+                  label={t("workflows.editor.descriptionLabel")}
                   value={description}
                   onChange={(event) => setDescription(event.target.value)}
                   disabled={submitting}
@@ -324,7 +326,7 @@ export function WorkflowEditorDialog({
                   minRows={2}
                   maxRows={3}
                   inputProps={{ maxLength: 500 }}
-                  placeholder="Descreva quando este fluxo sequencial deve ser utilizado."
+                  placeholder={t("workflows.editor.descriptionPlaceholder")}
                   fullWidth
                 />
               </Stack>
@@ -334,10 +336,10 @@ export function WorkflowEditorDialog({
               <Stack direction="row" alignItems="center" justifyContent="space-between">
                 <Box>
                   <Typography variant="subtitle1" component="h2">
-                    Etapas sequenciais ({steps.length})
+                    {t("workflows.editor.stepsHeading", { count: steps.length })}
                   </Typography>
                   <Typography variant="caption" color="text.secondary">
-                    Rejeições e solicitações de ajuste sempre exigem comentário do revisor.
+                    {t("workflows.editor.stepsHint")}
                   </Typography>
                 </Box>
                 <Button
@@ -348,11 +350,12 @@ export function WorkflowEditorDialog({
                   onClick={handleAddStep}
                   disabled={submitting || steps.length >= 20}
                 >
-                  Adicionar etapa
+                  {t("workflows.editor.addStep")}
                 </Button>
               </Stack>
 
               {steps.map((step, index) => {
+                const stepNumber = index + 1;
                 const targetOptions =
                   step.assigneeType === "USER"
                     ? catalog.users.map((user) => ({
@@ -369,17 +372,19 @@ export function WorkflowEditorDialog({
                     variant="outlined"
                     sx={{
                       p: 2,
-                      bgcolor: DOCUFLOW_COLOR_TOKENS.surface.containerLow,
-                      borderColor: DOCUFLOW_COLOR_TOKENS.surface.outlineVariant,
+                      bgcolor: PAPYRUS_COLOR_TOKENS.surface.containerLow,
+                      borderColor: PAPYRUS_COLOR_TOKENS.surface.outlineVariant,
                     }}
                   >
                     <Stack spacing={2}>
                       <Stack direction="row" alignItems="center" justifyContent="space-between">
-                        <Typography variant="subtitle2">Etapa {index + 1}</Typography>
+                        <Typography variant="subtitle2">
+                          {t("workflows.editor.stepTitle", { step: stepNumber })}
+                        </Typography>
                         <Stack direction="row" spacing={0.5}>
                           <IconButton
                             size="small"
-                            aria-label={`Mover etapa ${index + 1} para cima`}
+                            aria-label={t("workflows.editor.moveStepUpAria", { step: stepNumber })}
                             onClick={() => handleMoveStep(index, -1)}
                             disabled={submitting || index === 0}
                           >
@@ -387,7 +392,9 @@ export function WorkflowEditorDialog({
                           </IconButton>
                           <IconButton
                             size="small"
-                            aria-label={`Mover etapa ${index + 1} para baixo`}
+                            aria-label={t("workflows.editor.moveStepDownAria", {
+                              step: stepNumber,
+                            })}
                             onClick={() => handleMoveStep(index, 1)}
                             disabled={submitting || index === steps.length - 1}
                           >
@@ -395,7 +402,7 @@ export function WorkflowEditorDialog({
                           </IconButton>
                           <IconButton
                             size="small"
-                            aria-label={`Remover etapa ${index + 1}`}
+                            aria-label={t("workflows.editor.removeStepAria", { step: stepNumber })}
                             onClick={() => handleRemoveStep(index)}
                             disabled={submitting || steps.length <= 1}
                           >
@@ -412,18 +419,18 @@ export function WorkflowEditorDialog({
                         }}
                       >
                         <TextField
-                          label={`Nome da etapa ${index + 1}`}
+                          label={t("workflows.editor.stepNameLabel", { step: stepNumber })}
                           required
                           value={step.name}
                           onChange={(event) => updateStep(index, { name: event.target.value })}
                           disabled={submitting}
                           inputProps={{ maxLength: 120 }}
-                          placeholder="Ex.: Revisão Jurídica"
+                          placeholder={t("workflows.editor.stepNamePlaceholder")}
                           fullWidth
                         />
 
                         <TextField
-                          label="Prazo em dias (opcional)"
+                          label={t("workflows.editor.dueDaysLabel")}
                           type="number"
                           value={step.dueDays}
                           onChange={(event) => updateStep(index, { dueDays: event.target.value })}
@@ -434,7 +441,7 @@ export function WorkflowEditorDialog({
 
                         <TextField
                           select
-                          label="Tipo de aprovador"
+                          label={t("workflows.editor.assigneeTypeLabel")}
                           value={step.assigneeType}
                           onChange={(event) =>
                             handleAssigneeTypeChange(index, event.target.value as AssigneeType)
@@ -442,14 +449,20 @@ export function WorkflowEditorDialog({
                           disabled={submitting}
                           fullWidth
                         >
-                          <MenuItem value="USER">Usuário individual</MenuItem>
-                          <MenuItem value="GROUP">Grupo de trabalho</MenuItem>
-                          <MenuItem value="ROLE">Papel do sistema</MenuItem>
+                          <MenuItem value="USER">
+                            {t("workflows.editor.assigneeType.USER")}
+                          </MenuItem>
+                          <MenuItem value="GROUP">
+                            {t("workflows.editor.assigneeType.GROUP")}
+                          </MenuItem>
+                          <MenuItem value="ROLE">
+                            {t("workflows.editor.assigneeType.ROLE")}
+                          </MenuItem>
                         </TextField>
 
                         <TextField
                           select
-                          label="Aprovador responsável"
+                          label={t("workflows.editor.assigneeTargetLabel")}
                           required
                           value={
                             targetOptions.some((opt) => opt.id === step.assigneeTargetId)
@@ -463,8 +476,8 @@ export function WorkflowEditorDialog({
                           helperText={
                             targetOptions.length === 0
                               ? step.assigneeType === "GROUP"
-                                ? "Nenhum grupo cadastrado ainda."
-                                : "Nenhum aprovador disponível para este tipo."
+                                ? t("workflows.editor.noGroupsHelper")
+                                : t("workflows.editor.noAssigneesHelper")
                               : undefined
                           }
                           fullWidth
@@ -488,7 +501,7 @@ export function WorkflowEditorDialog({
                             disabled={submitting}
                           />
                         }
-                        label="Exigir comentário também ao aprovar esta etapa"
+                        label={t("workflows.editor.requireCommentOnApprove")}
                       />
                     </Stack>
                   </Paper>
@@ -500,14 +513,14 @@ export function WorkflowEditorDialog({
 
         <DialogActions sx={{ px: 3, py: 2 }}>
           <Button type="button" color="inherit" onClick={onClose} disabled={submitting}>
-            Cancelar
+            {t("workflows.editor.cancel")}
           </Button>
           <Button type="submit" variant="contained" disabled={submitting}>
             {submitting
-              ? "Salvando..."
+              ? t("workflows.editor.saving")
               : mode === "create"
-                ? "Criar definição"
-                : "Publicar nova versão"}
+                ? t("workflows.editor.submitCreate")
+                : t("workflows.editor.submitNewVersion")}
           </Button>
         </DialogActions>
       </Box>

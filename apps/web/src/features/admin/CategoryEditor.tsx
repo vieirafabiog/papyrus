@@ -10,7 +10,7 @@ import {
   updateCategoryFieldInputSchema,
   updateCategoryInputSchema,
 } from "@docuflow/contracts";
-import { DOCUFLOW_COLOR_TOKENS, EmptyState, ErrorState, LoadingState } from "@docuflow/ui";
+import { EmptyState, ErrorState, LoadingState, PAPYRUS_COLOR_TOKENS } from "@docuflow/ui";
 import AddOutlinedIcon from "@mui/icons-material/AddOutlined";
 import DeleteOutlineOutlinedIcon from "@mui/icons-material/DeleteOutlineOutlined";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
@@ -43,6 +43,7 @@ import {
   Typography,
 } from "@mui/material";
 import { type FormEvent, useEffect, useId, useMemo, useState } from "react";
+import { type MessageKey, useI18n } from "../../i18n/index.js";
 import {
   useAddCategoryFieldMutation,
   useCategoryFieldsQuery,
@@ -58,25 +59,22 @@ import {
   useUpsertStorageRoutingRuleMutation,
 } from "./useStorageSettings.js";
 
-const FIELD_TYPE_LABELS: Readonly<Record<CategoryFieldType, string>> = {
-  TEXT: "Texto",
-  NUMBER: "Número",
-  DATE: "Data",
-  BOOLEAN: "Sim / Não",
-  SINGLE_SELECT: "Seleção única",
-  MULTI_SELECT: "Seleção múltipla",
+const FIELD_TYPE_LABEL_KEYS: Readonly<Record<CategoryFieldType, MessageKey>> = {
+  TEXT: "admin.categories.fieldType.TEXT",
+  NUMBER: "admin.categories.fieldType.NUMBER",
+  DATE: "admin.categories.fieldType.DATE",
+  BOOLEAN: "admin.categories.fieldType.BOOLEAN",
+  SINGLE_SELECT: "admin.categories.fieldType.SINGLE_SELECT",
+  MULTI_SELECT: "admin.categories.fieldType.MULTI_SELECT",
 };
 
-const FIELD_TYPE_OPTIONS: ReadonlyArray<{
-  readonly value: CategoryFieldType;
-  readonly label: string;
-}> = [
-  { value: "TEXT", label: "Texto" },
-  { value: "NUMBER", label: "Número" },
-  { value: "DATE", label: "Data" },
-  { value: "BOOLEAN", label: "Sim / Não" },
-  { value: "SINGLE_SELECT", label: "Seleção única" },
-  { value: "MULTI_SELECT", label: "Seleção múltipla" },
+const FIELD_TYPE_VALUES: readonly CategoryFieldType[] = [
+  "TEXT",
+  "NUMBER",
+  "DATE",
+  "BOOLEAN",
+  "SINGLE_SELECT",
+  "MULTI_SELECT",
 ];
 
 type MigrationMode = "NONE" | "BACKFILL_DEFAULT" | "RESET_TO_DEFAULT";
@@ -116,7 +114,7 @@ export interface CategoryEditorProps {
   readonly onFeedback: (feedback: CategoryEditorFeedback) => void;
 }
 
-function toSnakeCaseKey(rawLabel: string): string {
+function toFieldKey(rawLabel: string): string {
   const normalized = rawLabel
     .normalize("NFD")
     .replace(/\p{Mn}/gu, "")
@@ -126,7 +124,7 @@ function toSnakeCaseKey(rawLabel: string): string {
   if (!normalized) {
     return "";
   }
-  return /^[a-z]/.test(normalized) ? normalized.slice(0, 64) : `campo_${normalized}`.slice(0, 64);
+  return /^[a-z]/.test(normalized) ? normalized.slice(0, 64) : `field_${normalized}`.slice(0, 64);
 }
 
 function createEmptyCategoryForm(category: CategorySummaryRecord | null): CategoryFormState {
@@ -177,6 +175,7 @@ function buildMigrationStrategy(
   mode: MigrationMode,
   rawDefault: string,
   fieldType: CategoryFieldType,
+  t: ReturnType<typeof useI18n>["t"],
 ): { readonly strategy?: FieldMigrationStrategy; readonly error?: string } {
   if (mode === "NONE") {
     return { strategy: { type: "NONE" } };
@@ -184,25 +183,31 @@ function buildMigrationStrategy(
 
   const trimmed = rawDefault.trim();
   if (!trimmed) {
-    return { error: "Informe o valor padrão da estratégia de migração." };
+    return { error: t("admin.categories.editor.validation.migrationDefaultRequired") };
   }
 
   if (fieldType === "NUMBER") {
     const parsed = Number(trimmed);
     if (!Number.isFinite(parsed)) {
-      return { error: "Informe um valor numérico válido para a estratégia de migração." };
+      return { error: t("admin.categories.editor.validation.migrationNumberInvalid") };
     }
     return { strategy: { type: mode, defaultValue: parsed } };
   }
 
   if (fieldType === "BOOLEAN") {
-    if (trimmed === "true" || trimmed === "sim") {
+    const normalized = trimmed.toLowerCase();
+    if (normalized === "true" || normalized === "sim" || normalized === "yes") {
       return { strategy: { type: mode, defaultValue: true } };
     }
-    if (trimmed === "false" || trimmed === "nao" || trimmed === "não") {
+    if (
+      normalized === "false" ||
+      normalized === "nao" ||
+      normalized === "não" ||
+      normalized === "no"
+    ) {
       return { strategy: { type: mode, defaultValue: false } };
     }
-    return { error: "Informe 'true' ou 'false' para valor padrão booleano." };
+    return { error: t("admin.categories.editor.validation.migrationBooleanInvalid") };
   }
 
   if (fieldType === "MULTI_SELECT") {
@@ -211,7 +216,7 @@ function buildMigrationStrategy(
       .map((item) => item.trim())
       .filter((item) => item.length > 0);
     if (values.length === 0) {
-      return { error: "Informe ao menos uma opção padrão separada por vírgula." };
+      return { error: t("admin.categories.editor.validation.migrationMultiInvalid") };
     }
     return { strategy: { type: mode, defaultValue: values } };
   }
@@ -221,7 +226,7 @@ function buildMigrationStrategy(
 
 /**
  * Unified editor dialog for category metadata, custom field definitions/options,
- * compatibility migration strategy, and per-category storage routing policy.
+ * compatibility migration strategy, and per-category storage destination policy.
  */
 export function CategoryEditor({
   open,
@@ -232,6 +237,7 @@ export function CategoryEditor({
   onFeedback,
 }: CategoryEditorProps) {
   const titleId = useId();
+  const { t } = useI18n();
   const [activeCategory, setActiveCategory] = useState<CategorySummaryRecord | null>(category);
   const [catForm, setCatForm] = useState<CategoryFormState>(() =>
     createEmptyCategoryForm(category),
@@ -313,7 +319,7 @@ export function CategoryEditor({
         icon: normalizedIcon.length > 0 ? normalizedIcon : null,
       });
       if (!parsed.success) {
-        setCatError(parsed.error.issues[0]?.message ?? "Revise os dados da categoria.");
+        setCatError(t("admin.categories.editor.reviewCategoryData"));
         return;
       }
 
@@ -323,10 +329,12 @@ export function CategoryEditor({
         setCatForm(createEmptyCategoryForm(created));
         onFeedback({
           severity: "success",
-          text: `Categoria "${created.name}" criada com sucesso. Agora você pode adicionar campos personalizados e definir a política de storage.`,
+          text: t("admin.categories.editor.categoryCreated", { name: created.name }),
         });
       } catch (error) {
-        setCatError(error instanceof Error ? error.message : "Não foi possível criar a categoria.");
+        setCatError(
+          error instanceof Error ? error.message : t("admin.categories.errors.createFailed"),
+        );
       }
       return;
     }
@@ -339,7 +347,7 @@ export function CategoryEditor({
       isActive: catForm.isActive,
     });
     if (!parsed.success) {
-      setCatError(parsed.error.issues[0]?.message ?? "Revise os dados da categoria.");
+      setCatError(t("admin.categories.editor.reviewCategoryData"));
       return;
     }
 
@@ -352,11 +360,11 @@ export function CategoryEditor({
       setCatForm(createEmptyCategoryForm(updated));
       onFeedback({
         severity: "success",
-        text: `Categoria "${updated.name}" atualizada com sucesso.`,
+        text: t("admin.categories.editor.categoryUpdated", { name: updated.name }),
       });
     } catch (error) {
       setCatError(
-        error instanceof Error ? error.message : "Não foi possível atualizar a categoria.",
+        error instanceof Error ? error.message : t("admin.categories.errors.updateFailed"),
       );
     }
   }
@@ -368,7 +376,7 @@ export function CategoryEditor({
       return;
     }
     if (fieldForm.options.includes(trimmed)) {
-      setFieldError("Esta opção já foi adicionada.");
+      setFieldError(t("admin.categories.editor.optionAlreadyAdded"));
       return;
     }
     setFieldForm((prev) => ({
@@ -394,7 +402,7 @@ export function CategoryEditor({
 
     const parsedSortOrder = Number(fieldForm.sortOrder);
     if (!Number.isInteger(parsedSortOrder) || parsedSortOrder < 0) {
-      setFieldError("Informe uma ordem numérica inteira maior ou igual a zero.");
+      setFieldError(t("admin.categories.editor.validation.invalidOrder"));
       return;
     }
 
@@ -402,6 +410,7 @@ export function CategoryEditor({
       fieldForm.migrationMode,
       fieldForm.migrationDefaultRaw,
       fieldForm.type,
+      t,
     );
     if (migrationBuilt.error) {
       setFieldError(migrationBuilt.error);
@@ -423,7 +432,7 @@ export function CategoryEditor({
           : {}),
       });
       if (!parsed.success) {
-        setFieldError(parsed.error.issues[0]?.message ?? "Revise os dados do campo.");
+        setFieldError(t("admin.categories.editor.validation.reviewFieldData"));
         return;
       }
 
@@ -435,11 +444,16 @@ export function CategoryEditor({
         setFieldForm(createEmptyFieldForm(nextSortOrder + 1));
         onFeedback({
           severity: "success",
-          text: `Campo "${added.label}" adicionado à categoria "${activeCategory.name}".`,
+          text: t("admin.categories.editor.feedback.fieldAdded", {
+            label: added.label,
+            categoryName: activeCategory.name,
+          }),
         });
       } catch (error) {
         setFieldError(
-          error instanceof Error ? error.message : "Não foi possível adicionar o campo.",
+          error instanceof Error
+            ? error.message
+            : t("admin.categories.editor.errors.addFieldFailed"),
         );
       }
       return;
@@ -456,7 +470,7 @@ export function CategoryEditor({
         : {}),
     });
     if (!parsed.success) {
-      setFieldError(parsed.error.issues[0]?.message ?? "Revise os dados do campo.");
+      setFieldError(t("admin.categories.editor.validation.reviewFieldData"));
       return;
     }
 
@@ -470,10 +484,14 @@ export function CategoryEditor({
       setFieldForm(createEmptyFieldForm(nextSortOrder));
       onFeedback({
         severity: "success",
-        text: `Campo "${updated.label}" atualizado com sucesso.`,
+        text: t("admin.categories.editor.feedback.fieldUpdated", { label: updated.label }),
       });
     } catch (error) {
-      setFieldError(error instanceof Error ? error.message : "Não foi possível atualizar o campo.");
+      setFieldError(
+        error instanceof Error
+          ? error.message
+          : t("admin.categories.editor.errors.updateFieldFailed"),
+      );
     }
   }
 
@@ -500,11 +518,18 @@ export function CategoryEditor({
       setPendingDeleteField(null);
       onFeedback({
         severity: "success",
-        text: `Campo "${removedLabel}" removido da categoria "${activeCategory.name}".`,
+        text: t("admin.categories.editor.feedback.fieldRemoved", {
+          label: removedLabel,
+          categoryName: activeCategory.name,
+        }),
       });
     } catch (error) {
       setPendingDeleteField(null);
-      setFieldError(error instanceof Error ? error.message : "Não foi possível remover o campo.");
+      setFieldError(
+        error instanceof Error
+          ? error.message
+          : t("admin.categories.editor.errors.removeFieldFailed"),
+      );
     }
   }
 
@@ -519,7 +544,9 @@ export function CategoryEditor({
           await clearRoutingRuleMutation.mutateAsync(activeCategory.id);
           onFeedback({
             severity: "success",
-            text: `Política de storage da categoria "${activeCategory.name}" redefinida para o padrão da organização.`,
+            text: t("admin.categories.editor.feedback.storageReset", {
+              name: activeCategory.name,
+            }),
           });
         }
         return;
@@ -534,13 +561,14 @@ export function CategoryEditor({
       );
       onFeedback({
         severity: "success",
-        text: `Política de storage da categoria "${activeCategory.name}" definida para "${targetConnection?.name ?? selectedStorageConnectionId}".`,
+        text: t("admin.categories.editor.feedback.storageUpdated", {
+          name: activeCategory.name,
+          target: targetConnection?.name ?? selectedStorageConnectionId,
+        }),
       });
     } catch (error) {
       setStorageError(
-        error instanceof Error
-          ? error.message
-          : "Não foi possível atualizar a política de storage.",
+        error instanceof Error ? error.message : t("admin.categories.editor.errors.storageFailed"),
       );
     }
   }
@@ -558,7 +586,9 @@ export function CategoryEditor({
       fullWidth
     >
       <DialogTitle id={titleId}>
-        {activeCategory ? `Editar categoria: ${activeCategory.name}` : "Nova categoria"}
+        {activeCategory
+          ? t("admin.categories.editor.editTitle", { name: activeCategory.name })
+          : t("admin.categories.editor.newTitle")}
       </DialogTitle>
 
       <DialogContent dividers>
@@ -566,14 +596,14 @@ export function CategoryEditor({
           <Box component="form" onSubmit={handleSaveCategory} noValidate>
             <Stack spacing={2}>
               <Typography variant="subtitle1" fontWeight={600}>
-                Dados básicos da categoria
+                {t("admin.categories.editor.basicInfo")}
               </Typography>
               {catError ? <Alert severity="error">{catError}</Alert> : null}
 
               <Grid container spacing={2}>
                 <Grid size={{ xs: 12, sm: 6 }}>
                   <TextField
-                    label="Nome da categoria"
+                    label={t("admin.categories.editor.name")}
                     required
                     fullWidth
                     value={catForm.name}
@@ -585,7 +615,7 @@ export function CategoryEditor({
                 </Grid>
                 <Grid size={{ xs: 12, sm: 3 }}>
                   <TextField
-                    label="Cor hexadecimal (opcional)"
+                    label={t("admin.categories.editor.color")}
                     fullWidth
                     placeholder="#0F5C73"
                     value={catForm.color}
@@ -597,7 +627,7 @@ export function CategoryEditor({
                 </Grid>
                 <Grid size={{ xs: 12, sm: 3 }}>
                   <TextField
-                    label="Ícone (opcional)"
+                    label={t("admin.categories.editor.icon")}
                     fullWidth
                     placeholder="description"
                     value={catForm.icon}
@@ -609,7 +639,7 @@ export function CategoryEditor({
                 </Grid>
                 <Grid size={{ xs: 12 }}>
                   <TextField
-                    label="Descrição da categoria (opcional)"
+                    label={t("admin.categories.editor.description")}
                     multiline
                     minRows={2}
                     fullWidth
@@ -633,7 +663,7 @@ export function CategoryEditor({
                       disabled={!canEditCategory || isSavingCategory}
                     />
                   }
-                  label="Categoria ativa para novos documentos"
+                  label={t("admin.categories.editor.activeSwitch")}
                 />
               ) : null}
 
@@ -646,10 +676,10 @@ export function CategoryEditor({
                     disabled={isSavingCategory}
                   >
                     {isSavingCategory
-                      ? "Salvando..."
+                      ? t("admin.common.saving")
                       : activeCategory
-                        ? "Salvar categoria"
-                        : "Criar categoria"}
+                        ? t("admin.categories.editor.saveCategory")
+                        : t("admin.categories.editor.createCategory")}
                   </Button>
                 </Box>
               ) : null}
@@ -664,36 +694,39 @@ export function CategoryEditor({
                 <Stack direction="row" spacing={1} alignItems="center">
                   <TuneOutlinedIcon color="primary" fontSize="small" />
                   <Typography variant="subtitle1" fontWeight={600}>
-                    Campos personalizados de metadados
+                    {t("admin.categories.editor.customFieldsTitle")}
                   </Typography>
                 </Stack>
 
                 {fieldError ? <Alert severity="error">{fieldError}</Alert> : null}
 
                 {fieldsQuery.isLoading ? (
-                  <LoadingState message="Carregando campos personalizados..." minHeight={100} />
+                  <LoadingState
+                    message={t("admin.categories.editor.loadingFields")}
+                    minHeight={100}
+                  />
                 ) : fieldsQuery.isError ? (
                   <ErrorState
-                    title="Erro ao carregar campos"
+                    title={t("admin.categories.editor.loadFieldsErrorTitle")}
                     description={fieldsQuery.error.message}
                     onRetry={() => void fieldsQuery.refetch()}
                   />
                 ) : currentFields.length === 0 ? (
                   <EmptyState
-                    title="Nenhum campo personalizado cadastrado"
-                    description="Adicione campos para estruturar os metadados específicos desta categoria."
+                    title={t("admin.categories.editor.emptyFieldsTitle")}
+                    description={t("admin.categories.editor.emptyFieldsDescription")}
                   />
                 ) : (
                   <TableContainer component={Paper} variant="outlined">
-                    <Table size="small" aria-label="Campos personalizados da categoria">
+                    <Table size="small" aria-label={t("admin.categories.editor.fieldsTableAria")}>
                       <TableHead>
                         <TableRow>
-                          <TableCell>Rótulo</TableCell>
-                          <TableCell>Chave</TableCell>
-                          <TableCell>Tipo</TableCell>
-                          <TableCell>Obrigatoriedade</TableCell>
-                          <TableCell>Opções / Ordem</TableCell>
-                          <TableCell align="right">Ações</TableCell>
+                          <TableCell>{t("admin.categories.editor.colLabel")}</TableCell>
+                          <TableCell>{t("admin.categories.editor.colFieldId")}</TableCell>
+                          <TableCell>{t("admin.categories.editor.colType")}</TableCell>
+                          <TableCell>{t("admin.categories.editor.colRequired")}</TableCell>
+                          <TableCell>{t("admin.categories.editor.colOptionsOrder")}</TableCell>
+                          <TableCell align="right">{t("admin.common.actions")}</TableCell>
                         </TableRow>
                       </TableHead>
                       <TableBody>
@@ -709,10 +742,14 @@ export function CategoryEditor({
                                 {field.key}
                               </Typography>
                             </TableCell>
-                            <TableCell>{FIELD_TYPE_LABELS[field.type]}</TableCell>
+                            <TableCell>{t(FIELD_TYPE_LABEL_KEYS[field.type])}</TableCell>
                             <TableCell>
                               <Chip
-                                label={field.required ? "Obrigatório" : "Opcional"}
+                                label={
+                                  field.required
+                                    ? t("admin.categories.editor.required")
+                                    : t("admin.categories.editor.optional")
+                                }
                                 size="small"
                                 color={field.required ? "primary" : "default"}
                                 variant="outlined"
@@ -722,11 +759,15 @@ export function CategoryEditor({
                               <Stack spacing={0.25}>
                                 {field.options && field.options.length > 0 ? (
                                   <Typography variant="caption" color="text.secondary">
-                                    Opções: {field.options.join(", ")}
+                                    {t("admin.categories.editor.optionsSummary", {
+                                      options: field.options.join(", "),
+                                    })}
                                   </Typography>
                                 ) : null}
                                 <Typography variant="caption" color="text.secondary">
-                                  Ordem: {field.sortOrder}
+                                  {t("admin.categories.editor.orderSummary", {
+                                    order: field.sortOrder,
+                                  })}
                                 </Typography>
                               </Stack>
                             </TableCell>
@@ -744,7 +785,7 @@ export function CategoryEditor({
                                       setPendingDeleteField(null);
                                     }}
                                   >
-                                    Editar
+                                    {t("admin.common.edit")}
                                   </Button>
                                   <Button
                                     size="small"
@@ -756,7 +797,7 @@ export function CategoryEditor({
                                       setFieldError(null);
                                     }}
                                   >
-                                    Remover
+                                    {t("admin.common.remove")}
                                   </Button>
                                 </Stack>
                               ) : null}
@@ -779,7 +820,7 @@ export function CategoryEditor({
                           disabled={deleteFieldMutation.isPending}
                           onClick={() => setPendingDeleteField(null)}
                         >
-                          Cancelar
+                          {t("admin.common.cancel")}
                         </Button>
                         <Button
                           size="small"
@@ -788,14 +829,19 @@ export function CategoryEditor({
                           disabled={deleteFieldMutation.isPending}
                           onClick={() => void handleConfirmDeleteField()}
                         >
-                          {deleteFieldMutation.isPending ? "Removendo..." : "Confirmar remoção"}
+                          {deleteFieldMutation.isPending
+                            ? t("admin.common.removing")
+                            : t("admin.categories.editor.confirmRemove")}
                         </Button>
                       </Stack>
                     }
                   >
                     <Stack spacing={1}>
                       <Typography variant="body2">
-                        Remover o campo "{pendingDeleteField.label}" ({pendingDeleteField.key})?
+                        {t("admin.categories.editor.deleteFieldPrompt", {
+                          label: pendingDeleteField.label,
+                          key: pendingDeleteField.key,
+                        })}
                       </Typography>
                       <FormControlLabel
                         control={
@@ -805,7 +851,7 @@ export function CategoryEditor({
                             onChange={(event) => setRemoveExistingMetadata(event.target.checked)}
                           />
                         }
-                        label="Remover também os valores existentes em documentos desta categoria (REMOVE_FROM_DOCUMENTS)"
+                        label={t("admin.categories.editor.removeExistingValues")}
                       />
                     </Stack>
                   </Alert>
@@ -817,21 +863,23 @@ export function CategoryEditor({
                     sx={{
                       p: 2,
                       borderRadius: 2,
-                      bgcolor: DOCUFLOW_COLOR_TOKENS.surface.containerLow,
+                      bgcolor: PAPYRUS_COLOR_TOKENS.surface.containerLow,
                     }}
                   >
                     <Box component="form" onSubmit={handleSaveField} noValidate>
                       <Stack spacing={2}>
                         <Typography variant="subtitle2" fontWeight={600}>
                           {editingField
-                            ? `Editar campo: ${editingField.label}`
-                            : "Adicionar campo personalizado"}
+                            ? t("admin.categories.editor.editFieldTitle", {
+                                label: editingField.label,
+                              })
+                            : t("admin.categories.editor.addFieldTitle")}
                         </Typography>
 
                         <Grid container spacing={2}>
                           <Grid size={{ xs: 12, sm: 4 }}>
                             <TextField
-                              label="Rótulo do campo"
+                              label={t("admin.categories.editor.fieldLabel")}
                               required
                               fullWidth
                               value={fieldForm.label}
@@ -842,7 +890,7 @@ export function CategoryEditor({
                                   label: nextLabel,
                                   key:
                                     !editingField && !prev.keyTouched
-                                      ? toSnakeCaseKey(nextLabel)
+                                      ? toFieldKey(nextLabel)
                                       : prev.key,
                                 }));
                               }}
@@ -851,7 +899,8 @@ export function CategoryEditor({
                           </Grid>
                           <Grid size={{ xs: 12, sm: 4 }}>
                             <TextField
-                              label="Chave técnica (snake_case)"
+                              label={t("admin.categories.editor.fieldId")}
+                              helperText={t("admin.categories.editor.fieldIdHelper")}
                               required
                               fullWidth
                               value={fieldForm.key}
@@ -868,7 +917,7 @@ export function CategoryEditor({
                           <Grid size={{ xs: 12, sm: 4 }}>
                             <TextField
                               select
-                              label="Tipo do campo"
+                              label={t("admin.categories.editor.fieldType")}
                               fullWidth
                               value={fieldForm.type}
                               onChange={(event) =>
@@ -879,16 +928,16 @@ export function CategoryEditor({
                               }
                               disabled={isSavingField}
                             >
-                              {FIELD_TYPE_OPTIONS.map((option) => (
-                                <MenuItem key={option.value} value={option.value}>
-                                  {option.label}
+                              {FIELD_TYPE_VALUES.map((typeValue) => (
+                                <MenuItem key={typeValue} value={typeValue}>
+                                  {t(FIELD_TYPE_LABEL_KEYS[typeValue])}
                                 </MenuItem>
                               ))}
                             </TextField>
                           </Grid>
                           <Grid size={{ xs: 12, sm: 4 }}>
                             <TextField
-                              label="Ordem de exibição"
+                              label={t("admin.categories.editor.displayOrder")}
                               type="number"
                               fullWidth
                               value={fieldForm.sortOrder}
@@ -915,7 +964,7 @@ export function CategoryEditor({
                                   disabled={isSavingField}
                                 />
                               }
-                              label="Preenchimento obrigatório nos documentos desta categoria"
+                              label={t("admin.categories.editor.requiredSwitch")}
                             />
                           </Grid>
                         </Grid>
@@ -923,11 +972,11 @@ export function CategoryEditor({
                         {isSelectType(fieldForm.type) ? (
                           <Stack spacing={1.5}>
                             <Typography variant="caption" fontWeight={600} color="text.secondary">
-                              Opções de seleção
+                              {t("admin.categories.editor.selectionOptions")}
                             </Typography>
                             <Stack direction="row" spacing={1}>
                               <TextField
-                                label="Nova opção de seleção"
+                                label={t("admin.categories.editor.newOption")}
                                 size="small"
                                 fullWidth
                                 value={fieldForm.newOptionInput}
@@ -951,7 +1000,7 @@ export function CategoryEditor({
                                 onClick={handleAddOption}
                                 disabled={isSavingField || !fieldForm.newOptionInput.trim()}
                               >
-                                Adicionar opção
+                                {t("admin.categories.editor.addOption")}
                               </Button>
                             </Stack>
                             {fieldForm.options.length > 0 ? (
@@ -966,7 +1015,7 @@ export function CategoryEditor({
                               </Stack>
                             ) : (
                               <Typography variant="caption" color="text.secondary">
-                                Adicione ao menos uma opção para este campo.
+                                {t("admin.categories.editor.addAtLeastOneOption")}
                               </Typography>
                             )}
                           </Stack>
@@ -976,7 +1025,7 @@ export function CategoryEditor({
                           <Grid size={{ xs: 12, sm: 6 }}>
                             <TextField
                               select
-                              label="Migração para documentos existentes"
+                              label={t("admin.categories.editor.migrationLabel")}
                               fullWidth
                               size="small"
                               value={fieldForm.migrationMode}
@@ -989,23 +1038,25 @@ export function CategoryEditor({
                               disabled={isSavingField}
                             >
                               <MenuItem value="NONE">
-                                Não alterar documentos existentes (NONE)
+                                {t("admin.categories.editor.migrationNone")}
                               </MenuItem>
                               <MenuItem value="BACKFILL_DEFAULT">
-                                Preencher documentos vazios com valor padrão (BACKFILL_DEFAULT)
+                                {t("admin.categories.editor.migrationBackfill")}
                               </MenuItem>
                               <MenuItem value="RESET_TO_DEFAULT">
-                                Redefinir todos os documentos para o valor padrão (RESET_TO_DEFAULT)
+                                {t("admin.categories.editor.migrationReset")}
                               </MenuItem>
                             </TextField>
                           </Grid>
                           {fieldForm.migrationMode !== "NONE" ? (
                             <Grid size={{ xs: 12, sm: 6 }}>
                               <TextField
-                                label="Valor padrão de migração"
+                                label={t("admin.categories.editor.migrationDefaultValue")}
                                 fullWidth
                                 size="small"
-                                placeholder="Ex.: N/A, 0, 2026-01-01 ou opção"
+                                placeholder={t(
+                                  "admin.categories.editor.migrationDefaultPlaceholder",
+                                )}
                                 value={fieldForm.migrationDefaultRaw}
                                 onChange={(event) =>
                                   setFieldForm((prev) => ({
@@ -1028,10 +1079,10 @@ export function CategoryEditor({
                             disabled={isSavingField}
                           >
                             {isSavingField
-                              ? "Salvando campo..."
+                              ? t("admin.categories.editor.savingField")
                               : editingField
-                                ? "Salvar alterações do campo"
-                                : "Adicionar campo"}
+                                ? t("admin.categories.editor.saveFieldChanges")
+                                : t("admin.categories.editor.addField")}
                           </Button>
                           {editingField ? (
                             <Button
@@ -1045,7 +1096,7 @@ export function CategoryEditor({
                                 setFieldError(null);
                               }}
                             >
-                              Cancelar edição de campo
+                              {t("admin.categories.editor.cancelFieldEdit")}
                             </Button>
                           ) : null}
                         </Stack>
@@ -1061,24 +1112,22 @@ export function CategoryEditor({
                 <Stack direction="row" spacing={1} alignItems="center">
                   <RouteOutlinedIcon color="primary" fontSize="small" />
                   <Typography variant="subtitle1" fontWeight={600}>
-                    Política de storage da categoria
+                    {t("admin.categories.editor.storageSectionTitle")}
                   </Typography>
                 </Stack>
                 <Typography variant="body2" color="text.secondary">
-                  Defina qual conexão de armazenamento receberá novos uploads desta categoria.
-                  Arquivos existentes permanecem na conexão em que foram gravados originalmente.
+                  {t("admin.categories.editor.storageSectionDescription")}
                 </Typography>
 
                 {storageError ? <Alert severity="error">{storageError}</Alert> : null}
 
                 {!canManageStoragePolicy ? (
                   <Alert severity="info">
-                    A edição da política de storage por categoria exige permissão de gerenciamento
-                    de armazenamento.
+                    {t("admin.categories.editor.storagePermissionRequired")}
                   </Alert>
                 ) : storageConnectionsQuery.isLoading || routingRulesQuery.isLoading ? (
                   <LoadingState
-                    message="Carregando conexões e regras de storage..."
+                    message={t("admin.categories.editor.loadingStorage")}
                     minHeight={80}
                   />
                 ) : (
@@ -1087,16 +1136,18 @@ export function CategoryEditor({
                       select
                       fullWidth
                       size="small"
-                      label="Política de destino de storage"
+                      label={t("admin.categories.editor.storageDestinationLabel")}
                       value={selectedStorageConnectionId}
                       onChange={(event) => setSelectedStorageConnectionId(event.target.value)}
                       disabled={isSavingStorage}
                     >
-                      <MenuItem value="">Usar destino padrão da organização</MenuItem>
+                      <MenuItem value="">
+                        {t("admin.categories.editor.useOrganizationDefault")}
+                      </MenuItem>
                       {activeStorageConnections.map((conn) => (
                         <MenuItem key={conn.id} value={conn.id}>
                           {conn.isDefault
-                            ? `${conn.name} (Padrão da organização)`
+                            ? t("admin.categories.editor.optionDefaultSuffix", { name: conn.name })
                             : `${conn.name} (${conn.kind.toUpperCase()})`}
                         </MenuItem>
                       ))}
@@ -1108,7 +1159,9 @@ export function CategoryEditor({
                       disabled={isSavingStorage}
                       sx={{ whiteSpace: "nowrap" }}
                     >
-                      {isSavingStorage ? "Aplicando..." : "Aplicar política de storage"}
+                      {isSavingStorage
+                        ? t("admin.categories.editor.applyingStorage")
+                        : t("admin.categories.editor.applyStorage")}
                     </Button>
                   </Stack>
                 )}
@@ -1120,7 +1173,7 @@ export function CategoryEditor({
 
       <DialogActions sx={{ px: 3, py: 2 }}>
         <Button onClick={onClose} variant="text">
-          Fechar
+          {t("admin.common.close")}
         </Button>
       </DialogActions>
     </Dialog>

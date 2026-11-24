@@ -6,7 +6,6 @@ import {
   type FolderRecord,
   type PermissionScopeAssignmentItem,
   type RoleWithPermissions,
-  apiErrorResponseSchema,
   assignPermissionScopeRequestSchema,
   categoryListResponseSchema,
   folderListResponseSchema,
@@ -15,6 +14,8 @@ import {
   roleCatalogListResponseSchema,
 } from "@docuflow/contracts";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { extractUserErrorMessage } from "../../i18n/api-errors.js";
+import { type MessageKey, translate } from "../../i18n/index.js";
 
 const CSRF_COOKIE_NAME = "docuflow_csrf";
 const CSRF_HEADER_NAME = "x-csrf-token";
@@ -74,21 +75,10 @@ async function resolveCsrfToken(): Promise<string> {
 
 async function parseErrorResponse(
   response: Response,
-  fallbackMessage: string,
+  fallbackKey: MessageKey,
 ): Promise<PermissionsAdminFetchError> {
-  try {
-    const rawJson: unknown = await response.json();
-    const parsed = apiErrorResponseSchema.safeParse(rawJson);
-    if (parsed.success) {
-      return new PermissionsAdminFetchError(response.status, parsed.data.error.message);
-    }
-  } catch {
-    // Non-JSON response fallback
-  }
-  return new PermissionsAdminFetchError(
-    response.status,
-    `${fallbackMessage} (HTTP ${response.status}).`,
-  );
+  const message = await extractUserErrorMessage(response, fallbackKey);
+  return new PermissionsAdminFetchError(response.status, message);
 }
 
 export async function fetchPermissionRoles(): Promise<readonly RoleWithPermissions[]> {
@@ -101,12 +91,12 @@ export async function fetchPermissionRoles(): Promise<readonly RoleWithPermissio
     return [];
   }
   if (!response.ok) {
-    throw await parseErrorResponse(response, "Falha ao carregar catálogo de papéis");
+    throw await parseErrorResponse(response, "admin.permissions.errors.loadRolesFailed");
   }
   const rawJson: unknown = await response.json();
   const parsed = roleCatalogListResponseSchema.safeParse(rawJson);
   if (!parsed.success) {
-    throw new PermissionsAdminFetchError(500, "Resposta inválida recebida do catálogo de papéis.");
+    throw new PermissionsAdminFetchError(500, translate("common.errors.unexpectedResponse"));
   }
   return parsed.data.data;
 }
@@ -120,15 +110,12 @@ export async function fetchPermissionAssignments(): Promise<
     headers: { Accept: "application/json" },
   });
   if (!response.ok) {
-    throw await parseErrorResponse(response, "Falha ao carregar atribuições de permissão");
+    throw await parseErrorResponse(response, "admin.permissions.errors.loadAssignmentsFailed");
   }
   const rawJson: unknown = await response.json();
   const parsed = permissionScopeAssignmentListResponseSchema.safeParse(rawJson);
   if (!parsed.success) {
-    throw new PermissionsAdminFetchError(
-      500,
-      "Resposta inválida recebida ao listar atribuições de escopo.",
-    );
+    throw new PermissionsAdminFetchError(500, translate("common.errors.unexpectedResponse"));
   }
   return parsed.data.data;
 }
@@ -178,15 +165,12 @@ export async function assignPermissionScope(
     body: JSON.stringify(validated),
   });
   if (!response.ok) {
-    throw await parseErrorResponse(response, "Falha ao atribuir regra de permissão");
+    throw await parseErrorResponse(response, "admin.permissions.errors.saveFailed");
   }
   const rawJson: unknown = await response.json();
   const parsed = permissionScopeAssignmentResponseSchema.safeParse(rawJson);
   if (!parsed.success) {
-    throw new PermissionsAdminFetchError(
-      500,
-      "Resposta inválida recebida ao salvar regra de permissão.",
-    );
+    throw new PermissionsAdminFetchError(500, translate("common.errors.unexpectedResponse"));
   }
   return parsed.data.data;
 }
@@ -205,15 +189,12 @@ export async function revokePermissionScope(
     },
   });
   if (!response.ok) {
-    throw await parseErrorResponse(response, "Falha ao revogar regra de permissão");
+    throw await parseErrorResponse(response, "admin.permissions.errors.revokeFailed");
   }
   const rawJson: unknown = await response.json();
   const parsed = permissionScopeAssignmentResponseSchema.safeParse(rawJson);
   if (!parsed.success) {
-    throw new PermissionsAdminFetchError(
-      500,
-      "Resposta inválida recebida ao revogar regra de permissão.",
-    );
+    throw new PermissionsAdminFetchError(500, translate("common.errors.unexpectedResponse"));
   }
   return parsed.data.data;
 }

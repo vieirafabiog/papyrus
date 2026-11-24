@@ -11,7 +11,8 @@ import {
   TableSortLabel,
 } from "@mui/material";
 import type { ChangeEvent, ReactNode } from "react";
-import { DOCUFLOW_COLOR_TOKENS } from "../theme/tokens.js";
+import { useUiLocale } from "../locale.js";
+import { PAPYRUS_COLOR_TOKENS } from "../theme/tokens.js";
 import { EmptyState } from "./EmptyState.js";
 import { ErrorState } from "./ErrorState.js";
 import { LoadingState } from "./LoadingState.js";
@@ -73,13 +74,15 @@ export function DataTable<TRow>({
   loading = false,
   errorMessage = null,
   onRetry,
-  emptyTitle = "Nenhum registro encontrado",
-  emptyDescription = "Ajuste os filtros aplicados ou cadastre um novo item.",
+  emptyTitle,
+  emptyDescription,
   emptyActionLabel,
   onEmptyAction,
 }: DataTableProps<TRow>) {
+  const { messages } = useUiLocale();
+
   if (loading) {
-    return <LoadingState message="Carregando registros..." />;
+    return <LoadingState message={messages.dataTable.loadingRecords} />;
   }
 
   if (errorMessage) {
@@ -89,8 +92,8 @@ export function DataTable<TRow>({
   if (rows.length === 0) {
     return (
       <EmptyState
-        title={emptyTitle}
-        description={emptyDescription}
+        title={emptyTitle ?? messages.dataTable.emptyTitle}
+        description={emptyDescription ?? messages.dataTable.emptyDescription}
         {...(emptyActionLabel && onEmptyAction
           ? { actionLabel: emptyActionLabel, onAction: onEmptyAction }
           : {})}
@@ -142,7 +145,7 @@ export function DataTable<TRow>({
   };
 
   return (
-    <Paper sx={{ overflow: "hidden", bgcolor: DOCUFLOW_COLOR_TOKENS.surface.containerLowest }}>
+    <Paper sx={{ overflow: "hidden", bgcolor: PAPYRUS_COLOR_TOKENS.surface.containerLowest }}>
       <TableContainer>
         <Table aria-label={ariaLabel}>
           <TableHead>
@@ -153,7 +156,7 @@ export function DataTable<TRow>({
                     checked={allOnPageSelected}
                     indeterminate={someOnPageSelected}
                     onChange={handleToggleAllOnPage}
-                    inputProps={{ "aria-label": "Selecionar todos os itens da página" }}
+                    inputProps={{ "aria-label": messages.dataTable.selectAllOnPage }}
                   />
                 </TableCell>
               ) : null}
@@ -201,7 +204,7 @@ export function DataTable<TRow>({
                       <Checkbox
                         checked={isSelected}
                         onChange={() => handleToggleRow(rowId)}
-                        inputProps={{ "aria-label": `Selecionar ${rowLabel}` }}
+                        inputProps={{ "aria-label": messages.dataTable.selectRow(rowLabel) }}
                       />
                     </TableCell>
                   ) : null}
@@ -233,9 +236,9 @@ export function DataTable<TRow>({
               }
             : undefined
         }
-        labelRowsPerPage="Itens por página:"
+        labelRowsPerPage={messages.dataTable.rowsPerPage}
         labelDisplayedRows={({ from, to, count }) =>
-          `${from}–${to} de ${count !== -1 ? count : `mais de ${to}`}`
+          messages.dataTable.displayedRows(from, to, count)
         }
       />
     </Paper>

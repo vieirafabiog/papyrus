@@ -40,6 +40,12 @@ test.describe("Fluxo de revisão e aprovação E2E", () => {
     await env?.stop();
   });
 
+  test.beforeEach(async ({ page }) => {
+    await page.context().addInitScript(() => {
+      window.localStorage.setItem("papyrus_ui_locale", "pt-BR");
+    });
+  });
+
   test("executa envio para aprovação, solicitação de ajuste, nova versão, aprovação final e histórico", async ({
     page,
     browser,
@@ -106,6 +112,9 @@ test.describe("Fluxo de revisão e aprovação E2E", () => {
 
     // 3. Revisor jurídico abre sua caixa de tarefas e solicita ajuste com comentário obrigatório
     const reviewerContext = await browser.newContext({ locale: "pt-BR" });
+    await reviewerContext.addInitScript(() => {
+      window.localStorage.setItem("papyrus_ui_locale", "pt-BR");
+    });
     const reviewerPage = await reviewerContext.newPage();
 
     await reviewerPage.goto(env.baseUrl);

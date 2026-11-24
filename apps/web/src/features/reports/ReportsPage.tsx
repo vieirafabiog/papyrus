@@ -1,5 +1,5 @@
 import type { DocumentStatus } from "@docuflow/contracts";
-import { DOCUFLOW_COLOR_TOKENS, EmptyState, ErrorState, LoadingState } from "@docuflow/ui";
+import { EmptyState, ErrorState, LoadingState, PAPYRUS_COLOR_TOKENS } from "@docuflow/ui";
 import DescriptionOutlinedIcon from "@mui/icons-material/DescriptionOutlined";
 import DownloadOutlinedIcon from "@mui/icons-material/DownloadOutlined";
 import EventBusyOutlinedIcon from "@mui/icons-material/EventBusyOutlined";
@@ -27,6 +27,7 @@ import {
 import type { ReactNode } from "react";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { type MessageKey, useI18n } from "../../i18n/index.js";
 import { useDocumentListCategoriesQuery } from "../documents/useDocumentList.js";
 import {
   DEFAULT_REPOSITORY_REPORT_FILTERS,
@@ -35,48 +36,32 @@ import {
   useRepositoryReportQuery,
 } from "./useRepositoryReport.js";
 
-const NUMBER_FORMATTER = new Intl.NumberFormat("pt-BR");
-const DECIMAL_FORMATTER = new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 1 });
-
 const DOCUMENT_STATUS_META: Readonly<
   Record<
     DocumentStatus,
-    { readonly label: string; readonly color: "default" | "info" | "success" | "warning" | "error" }
+    {
+      readonly key: MessageKey;
+      readonly color: "default" | "info" | "success" | "warning" | "error";
+    }
   >
 > = {
-  DRAFT: { label: "Rascunho", color: "default" },
-  IN_REVIEW: { label: "Em revisão", color: "info" },
-  APPROVED: { label: "Aprovado", color: "success" },
-  REJECTED: { label: "Rejeitado", color: "error" },
-  ARCHIVED: { label: "Arquivado", color: "default" },
-  EXPIRED: { label: "Expirado", color: "warning" },
-  DELETED: { label: "Excluído", color: "error" },
+  DRAFT: { key: "workflows.documentStatus.DRAFT", color: "default" },
+  IN_REVIEW: { key: "workflows.documentStatus.IN_REVIEW", color: "info" },
+  APPROVED: { key: "workflows.documentStatus.APPROVED", color: "success" },
+  REJECTED: { key: "workflows.documentStatus.REJECTED", color: "error" },
+  ARCHIVED: { key: "workflows.documentStatus.ARCHIVED", color: "default" },
+  EXPIRED: { key: "workflows.documentStatus.EXPIRED", color: "warning" },
+  DELETED: { key: "workflows.documentStatus.DELETED", color: "error" },
 };
 
-const STORAGE_KIND_LABELS: Readonly<Record<string, string>> = {
-  local: "Filesystem local",
-  s3: "S3 compatível",
-  azure_blob: "Azure Blob",
-  google_cloud: "Google Cloud Storage",
+const STORAGE_KIND_KEYS: Readonly<Record<string, MessageKey>> = {
+  local: "reports.page.byStorage.kinds.local",
+  s3: "reports.page.byStorage.kinds.s3",
+  azure_blob: "reports.page.byStorage.kinds.azure_blob",
+  google_cloud: "reports.page.byStorage.kinds.google_cloud",
 };
 
 const WINDOW_OPTIONS = [7, 15, 30, 60, 90] as const;
-
-function formatBytesPtBr(bytes: number): string {
-  if (bytes < 1024) {
-    return `${NUMBER_FORMATTER.format(bytes)} B`;
-  }
-  const kb = bytes / 1024;
-  if (kb < 1024) {
-    return `${DECIMAL_FORMATTER.format(kb)} KB`;
-  }
-  const mb = kb / 1024;
-  if (mb < 1024) {
-    return `${DECIMAL_FORMATTER.format(mb)} MB`;
-  }
-  const gb = mb / 1024;
-  return `${DECIMAL_FORMATTER.format(gb)} GB`;
-}
 
 function MetricSummaryCard({
   label,
@@ -94,7 +79,7 @@ function MetricSummaryCard({
       sx={{
         p: 2.25,
         flex: "1 1 190px",
-        bgcolor: DOCUFLOW_COLOR_TOKENS.surface.containerLowest,
+        bgcolor: PAPYRUS_COLOR_TOKENS.surface.containerLowest,
       }}
     >
       <Stack direction="row" justifyContent="space-between" alignItems="center" mb={1}>
@@ -116,10 +101,11 @@ function MetricSummaryCard({
 }
 
 /**
- * Consolidated repository reporting page (`/reports`) powered by server-side
- * PostgreSQL aggregations scoped strictly to the user's authorized documents.
+ * Consolidated document library reporting page (`/reports`) powered by server-side
+ * aggregations scoped to the user's authorized documents.
  */
 export function ReportsPage() {
+  const { t, formatDateTime, formatNumber, formatBytes } = useI18n();
   const navigate = useNavigate();
   const [filters, setFilters] = useState<RepositoryReportFilters>(
     DEFAULT_REPOSITORY_REPORT_FILTERS,
@@ -148,10 +134,10 @@ export function ReportsPage() {
       >
         <Box>
           <Typography variant="h1" gutterBottom>
-            Relatórios
+            {t("reports.page.title")}
           </Typography>
           <Typography variant="body1" color="text.secondary">
-            Totais por categoria, status, vencimentos e espaço utilizado no seu escopo autorizado.
+            {t("reports.page.subtitle")}
           </Typography>
         </Box>
 
@@ -163,23 +149,23 @@ export function ReportsPage() {
             disabled={reportQuery.isFetching}
             onClick={() => void reportQuery.refetch()}
           >
-            {reportQuery.isFetching ? "Atualizando..." : "Atualizar"}
+            {reportQuery.isFetching ? t("reports.page.refreshing") : t("reports.page.refresh")}
           </Button>
           <Button
             component="a"
             href={csvExportUrl}
-            download="docuflow-relatorio-acervo.csv"
+            download={t("reports.page.exportFilename")}
             variant="contained"
             size="small"
             startIcon={<DownloadOutlinedIcon />}
             disabled={reportQuery.isLoading || reportQuery.isError}
           >
-            Exportar CSV
+            {t("reports.page.exportCsv")}
           </Button>
         </Stack>
       </Stack>
 
-      <Paper sx={{ p: 2, bgcolor: DOCUFLOW_COLOR_TOKENS.surface.containerLowest }}>
+      <Paper sx={{ p: 2, bgcolor: PAPYRUS_COLOR_TOKENS.surface.containerLowest }}>
         <Stack
           direction={{ xs: "column", sm: "row" }}
           spacing={2}
@@ -189,7 +175,7 @@ export function ReportsPage() {
           <TextField
             select
             size="small"
-            label="Janela de vencimento"
+            label={t("reports.page.filters.windowLabel")}
             value={filters.expirationWindowDays}
             onChange={(event) =>
               setFilters((prev) => ({
@@ -201,7 +187,7 @@ export function ReportsPage() {
           >
             {WINDOW_OPTIONS.map((days) => (
               <MenuItem key={days} value={days}>
-                Próximos {days} dias
+                {t("reports.page.filters.windowOption", { days })}
               </MenuItem>
             ))}
           </TextField>
@@ -209,14 +195,14 @@ export function ReportsPage() {
           <TextField
             select
             size="small"
-            label="Categoria"
+            label={t("reports.page.filters.categoryLabel")}
             value={filters.categoryId}
             onChange={(event) =>
               setFilters((prev) => ({ ...prev, categoryId: event.target.value }))
             }
             sx={{ minWidth: 210 }}
           >
-            <MenuItem value="">Todas as categorias</MenuItem>
+            <MenuItem value="">{t("reports.page.filters.allCategories")}</MenuItem>
             {categories.map((cat) => (
               <MenuItem key={cat.id} value={cat.id}>
                 {cat.name}
@@ -227,18 +213,18 @@ export function ReportsPage() {
           <TextField
             select
             size="small"
-            label="Status"
+            label={t("reports.page.filters.statusLabel")}
             value={filters.status}
             onChange={(event) =>
               setFilters((prev) => ({ ...prev, status: event.target.value as DocumentStatus | "" }))
             }
             sx={{ minWidth: 180 }}
           >
-            <MenuItem value="">Todos os status ativos</MenuItem>
+            <MenuItem value="">{t("reports.page.filters.allActiveStatuses")}</MenuItem>
             {(["DRAFT", "IN_REVIEW", "APPROVED", "REJECTED", "ARCHIVED", "EXPIRED"] as const).map(
               (statusKey) => (
                 <MenuItem key={statusKey} value={statusKey}>
-                  {DOCUMENT_STATUS_META[statusKey].label}
+                  {t(DOCUMENT_STATUS_META[statusKey].key)}
                 </MenuItem>
               ),
             )}
@@ -250,14 +236,14 @@ export function ReportsPage() {
               color="inherit"
               onClick={() => setFilters(DEFAULT_REPOSITORY_REPORT_FILTERS)}
             >
-              Limpar filtros
+              {t("reports.page.filters.clear")}
             </Button>
           ) : null}
         </Stack>
       </Paper>
 
       {reportQuery.isLoading ? (
-        <LoadingState message="Calculando indicadores consolidados no PostgreSQL..." />
+        <LoadingState message={t("reports.page.loading")} />
       ) : reportQuery.isError ? (
         <ErrorState
           description={reportQuery.error.message}
@@ -265,46 +251,55 @@ export function ReportsPage() {
         />
       ) : !report || (report.totals.totalDocuments === 0 && !hasCustomFilter) ? (
         <EmptyState
-          title="Nenhum documento encontrado para relatório"
-          description="Envie documentos ao repositório para visualizar a distribuição por categoria, status, vencimentos e uso de armazenamento."
-          actionLabel="Ir para documentos"
+          title={t("reports.page.emptyTitle")}
+          description={t("reports.page.emptyDescription")}
+          actionLabel={t("reports.page.emptyAction")}
           onAction={() => void navigate("/documents")}
         />
       ) : (
         <Stack spacing={2.5}>
           <Box sx={{ display: "flex", flexWrap: "wrap", gap: 2 }}>
             <MetricSummaryCard
-              label="Total de documentos"
-              value={NUMBER_FORMATTER.format(report.totals.totalDocuments)}
+              label={t("reports.page.cards.totalDocuments")}
+              value={formatNumber(report.totals.totalDocuments)}
               icon={<DescriptionOutlinedIcon fontSize="small" />}
             />
             <MetricSummaryCard
-              label="Versões armazenadas"
-              value={NUMBER_FORMATTER.format(report.totals.totalVersions)}
-              subtitle={`${NUMBER_FORMATTER.format(report.totals.totalActiveFiles)} arquivo(s) ativo(s)`}
+              label={t("reports.page.cards.storedVersions")}
+              value={formatNumber(report.totals.totalVersions)}
+              subtitle={t(
+                report.totals.totalActiveFiles === 1
+                  ? "reports.page.cards.activeFilesSingular"
+                  : "reports.page.cards.activeFilesPlural",
+                { count: formatNumber(report.totals.totalActiveFiles) },
+              )}
               icon={<LayersOutlinedIcon fontSize="small" />}
             />
             <MetricSummaryCard
-              label="Espaço utilizado"
-              value={formatBytesPtBr(report.totals.storageUsedBytes)}
-              subtitle={`${NUMBER_FORMATTER.format(report.totals.quarantinedFiles)} em análise`}
+              label={t("reports.page.cards.storageUsed")}
+              value={formatBytes(report.totals.storageUsedBytes)}
+              subtitle={t("reports.page.cards.underReview", {
+                count: formatNumber(report.totals.quarantinedFiles),
+              })}
               icon={<StorageOutlinedIcon fontSize="small" />}
             />
             <MetricSummaryCard
-              label="Vencidos / Próximos"
-              value={`${NUMBER_FORMATTER.format(report.expirations.expired)} / ${NUMBER_FORMATTER.format(report.expirations.expiringSoon)}`}
-              subtitle={`Janela de ${report.expirations.windowDays} dias`}
+              label={t("reports.page.cards.expiredAndSoon")}
+              value={`${formatNumber(report.expirations.expired)} / ${formatNumber(report.expirations.expiringSoon)}`}
+              subtitle={t("reports.page.cards.windowDays", {
+                days: report.expirations.windowDays,
+              })}
               icon={<EventBusyOutlinedIcon fontSize="small" />}
             />
             <MetricSummaryCard
-              label="Tarefas pendentes"
-              value={NUMBER_FORMATTER.format(report.totals.pendingTasks)}
-              subtitle="Atribuídas ao seu escopo"
+              label={t("reports.page.cards.pendingTasks")}
+              value={formatNumber(report.totals.pendingTasks)}
+              subtitle={t("reports.page.cards.assignedToYou")}
               icon={<PendingActionsOutlinedIcon fontSize="small" />}
             />
           </Box>
 
-          <Paper sx={{ p: 2.5, bgcolor: DOCUFLOW_COLOR_TOKENS.surface.containerLowest }}>
+          <Paper sx={{ p: 2.5, bgcolor: PAPYRUS_COLOR_TOKENS.surface.containerLowest }}>
             <Stack
               direction={{ xs: "column", sm: "row" }}
               justifyContent="space-between"
@@ -313,10 +308,12 @@ export function ReportsPage() {
               mb={2}
             >
               <Typography variant="h3" component="h2">
-                Situação de vencimentos (janela de {report.expirations.windowDays} dias)
+                {t("reports.page.expirationsSection.title", {
+                  days: report.expirations.windowDays,
+                })}
               </Typography>
               <Button size="small" variant="text" onClick={() => void navigate("/expirations")}>
-                Abrir painel de vencimentos
+                {t("reports.page.expirationsSection.openPanel")}
               </Button>
             </Stack>
             <Box
@@ -328,46 +325,48 @@ export function ReportsPage() {
             >
               <Paper
                 variant="outlined"
-                sx={{ p: 1.5, bgcolor: DOCUFLOW_COLOR_TOKENS.surface.containerLow }}
+                sx={{ p: 1.5, bgcolor: PAPYRUS_COLOR_TOKENS.surface.containerLow }}
               >
                 <Typography variant="caption" color="error.main" fontWeight={600}>
-                  Vencidos
+                  {t("reports.page.expirationsSection.expired")}
                 </Typography>
                 <Typography variant="h3" sx={{ fontVariantNumeric: "tabular-nums" }}>
-                  {NUMBER_FORMATTER.format(report.expirations.expired)}
+                  {formatNumber(report.expirations.expired)}
                 </Typography>
               </Paper>
               <Paper
                 variant="outlined"
-                sx={{ p: 1.5, bgcolor: DOCUFLOW_COLOR_TOKENS.surface.containerLow }}
+                sx={{ p: 1.5, bgcolor: PAPYRUS_COLOR_TOKENS.surface.containerLow }}
               >
                 <Typography variant="caption" color="warning.main" fontWeight={600}>
-                  Próximos ({report.expirations.windowDays}d)
+                  {t("reports.page.expirationsSection.soon", {
+                    days: report.expirations.windowDays,
+                  })}
                 </Typography>
                 <Typography variant="h3" sx={{ fontVariantNumeric: "tabular-nums" }}>
-                  {NUMBER_FORMATTER.format(report.expirations.expiringSoon)}
+                  {formatNumber(report.expirations.expiringSoon)}
                 </Typography>
               </Paper>
               <Paper
                 variant="outlined"
-                sx={{ p: 1.5, bgcolor: DOCUFLOW_COLOR_TOKENS.surface.containerLow }}
+                sx={{ p: 1.5, bgcolor: PAPYRUS_COLOR_TOKENS.surface.containerLow }}
               >
                 <Typography variant="caption" color="success.main" fontWeight={600}>
-                  Em dia
+                  {t("reports.page.expirationsSection.onTrack")}
                 </Typography>
                 <Typography variant="h3" sx={{ fontVariantNumeric: "tabular-nums" }}>
-                  {NUMBER_FORMATTER.format(report.expirations.onTrack)}
+                  {formatNumber(report.expirations.onTrack)}
                 </Typography>
               </Paper>
               <Paper
                 variant="outlined"
-                sx={{ p: 1.5, bgcolor: DOCUFLOW_COLOR_TOKENS.surface.containerLow }}
+                sx={{ p: 1.5, bgcolor: PAPYRUS_COLOR_TOKENS.surface.containerLow }}
               >
                 <Typography variant="caption" color="text.secondary" fontWeight={600}>
-                  Sem data de vencimento
+                  {t("reports.page.expirationsSection.withoutDate")}
                 </Typography>
                 <Typography variant="h3" sx={{ fontVariantNumeric: "tabular-nums" }}>
-                  {NUMBER_FORMATTER.format(report.expirations.withoutDate)}
+                  {formatNumber(report.expirations.withoutDate)}
                 </Typography>
               </Paper>
             </Box>
@@ -380,23 +379,29 @@ export function ReportsPage() {
               gap: 2.5,
             }}
           >
-            <Paper sx={{ p: 2.5, bgcolor: DOCUFLOW_COLOR_TOKENS.surface.containerLowest }}>
+            <Paper sx={{ p: 2.5, bgcolor: PAPYRUS_COLOR_TOKENS.surface.containerLowest }}>
               <Typography variant="h3" component="h2" gutterBottom>
-                Totais por status
+                {t("reports.page.byStatus.title")}
               </Typography>
               {report.byStatus.length === 0 ? (
                 <Typography variant="body2" color="text.secondary">
-                  Nenhum documento corresponde aos filtros selecionados.
+                  {t("reports.page.byStatus.empty")}
                 </Typography>
               ) : (
                 <TableContainer>
-                  <Table size="small" aria-label="Totais de documentos por status">
+                  <Table size="small" aria-label={t("reports.page.byStatus.tableAriaLabel")}>
                     <TableHead>
                       <TableRow>
-                        <TableCell>Status</TableCell>
-                        <TableCell align="right">Documentos</TableCell>
-                        <TableCell sx={{ minWidth: 110 }}>Participação</TableCell>
-                        <TableCell align="right">Espaço</TableCell>
+                        <TableCell>{t("reports.page.byStatus.columns.status")}</TableCell>
+                        <TableCell align="right">
+                          {t("reports.page.byStatus.columns.documents")}
+                        </TableCell>
+                        <TableCell sx={{ minWidth: 110 }}>
+                          {t("reports.page.byStatus.columns.share")}
+                        </TableCell>
+                        <TableCell align="right">
+                          {t("reports.page.byStatus.columns.storage")}
+                        </TableCell>
                       </TableRow>
                     </TableHead>
                     <TableBody>
@@ -409,10 +414,10 @@ export function ReportsPage() {
                         return (
                           <TableRow key={row.status}>
                             <TableCell>
-                              <Chip size="small" label={meta.label} color={meta.color} />
+                              <Chip size="small" label={t(meta.key)} color={meta.color} />
                             </TableCell>
                             <TableCell align="right" sx={{ fontVariantNumeric: "tabular-nums" }}>
-                              {NUMBER_FORMATTER.format(row.documentCount)}
+                              {formatNumber(row.documentCount)}
                             </TableCell>
                             <TableCell>
                               <Stack direction="row" spacing={1} alignItems="center">
@@ -431,7 +436,7 @@ export function ReportsPage() {
                               </Stack>
                             </TableCell>
                             <TableCell align="right" sx={{ fontVariantNumeric: "tabular-nums" }}>
-                              {formatBytesPtBr(row.storageBytes)}
+                              {formatBytes(row.storageBytes)}
                             </TableCell>
                           </TableRow>
                         );
@@ -442,42 +447,49 @@ export function ReportsPage() {
               )}
             </Paper>
 
-            <Paper sx={{ p: 2.5, bgcolor: DOCUFLOW_COLOR_TOKENS.surface.containerLowest }}>
+            <Paper sx={{ p: 2.5, bgcolor: PAPYRUS_COLOR_TOKENS.surface.containerLowest }}>
               <Typography variant="h3" component="h2" gutterBottom>
-                Espaço por conexão de armazenamento
+                {t("reports.page.byStorage.title")}
               </Typography>
               {report.byStorageConnection.length === 0 ? (
                 <Typography variant="body2" color="text.secondary">
-                  Nenhum arquivo ativo contabilizado no escopo selecionado.
+                  {t("reports.page.byStorage.empty")}
                 </Typography>
               ) : (
                 <TableContainer>
-                  <Table size="small" aria-label="Uso de espaço por conexão de armazenamento">
+                  <Table size="small" aria-label={t("reports.page.byStorage.tableAriaLabel")}>
                     <TableHead>
                       <TableRow>
-                        <TableCell>Conexão</TableCell>
-                        <TableCell>Tipo</TableCell>
-                        <TableCell align="right">Arquivos</TableCell>
-                        <TableCell align="right">Espaço utilizado</TableCell>
+                        <TableCell>{t("reports.page.byStorage.columns.connection")}</TableCell>
+                        <TableCell>{t("reports.page.byStorage.columns.type")}</TableCell>
+                        <TableCell align="right">
+                          {t("reports.page.byStorage.columns.files")}
+                        </TableCell>
+                        <TableCell align="right">
+                          {t("reports.page.byStorage.columns.storageUsed")}
+                        </TableCell>
                       </TableRow>
                     </TableHead>
                     <TableBody>
-                      {report.byStorageConnection.map((row) => (
-                        <TableRow key={row.storageConnectionId}>
-                          <TableCell>
-                            <Typography variant="body2" fontWeight={500}>
-                              {row.storageConnectionName}
-                            </Typography>
-                          </TableCell>
-                          <TableCell>{STORAGE_KIND_LABELS[row.kind] ?? row.kind}</TableCell>
-                          <TableCell align="right" sx={{ fontVariantNumeric: "tabular-nums" }}>
-                            {NUMBER_FORMATTER.format(row.fileCount)}
-                          </TableCell>
-                          <TableCell align="right" sx={{ fontVariantNumeric: "tabular-nums" }}>
-                            {formatBytesPtBr(row.storageBytes)}
-                          </TableCell>
-                        </TableRow>
-                      ))}
+                      {report.byStorageConnection.map((row) => {
+                        const kindKey = STORAGE_KIND_KEYS[row.kind];
+                        return (
+                          <TableRow key={row.storageConnectionId}>
+                            <TableCell>
+                              <Typography variant="body2" fontWeight={500}>
+                                {row.storageConnectionName}
+                              </Typography>
+                            </TableCell>
+                            <TableCell>{kindKey ? t(kindKey) : row.kind}</TableCell>
+                            <TableCell align="right" sx={{ fontVariantNumeric: "tabular-nums" }}>
+                              {formatNumber(row.fileCount)}
+                            </TableCell>
+                            <TableCell align="right" sx={{ fontVariantNumeric: "tabular-nums" }}>
+                              {formatBytes(row.storageBytes)}
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
                     </TableBody>
                   </Table>
                 </TableContainer>
@@ -485,27 +497,37 @@ export function ReportsPage() {
             </Paper>
           </Box>
 
-          <Paper sx={{ p: 2.5, bgcolor: DOCUFLOW_COLOR_TOKENS.surface.containerLowest }}>
+          <Paper sx={{ p: 2.5, bgcolor: PAPYRUS_COLOR_TOKENS.surface.containerLowest }}>
             <Typography variant="h3" component="h2" gutterBottom>
-              Totais por categoria documental
+              {t("reports.page.byCategory.title")}
             </Typography>
             {report.byCategory.length === 0 ? (
               <Typography variant="body2" color="text.secondary">
-                Nenhuma categoria com documentos para os filtros selecionados.
+                {t("reports.page.byCategory.empty")}
               </Typography>
             ) : (
               <TableContainer>
-                <Table size="small" aria-label="Totais de documentos por categoria">
+                <Table size="small" aria-label={t("reports.page.byCategory.tableAriaLabel")}>
                   <TableHead>
                     <TableRow>
-                      <TableCell>Categoria</TableCell>
-                      <TableCell align="right">Documentos</TableCell>
-                      <TableCell align="right">Versões</TableCell>
-                      <TableCell align="right">Vencidos</TableCell>
+                      <TableCell>{t("reports.page.byCategory.columns.category")}</TableCell>
                       <TableCell align="right">
-                        Próximos ({report.expirations.windowDays}d)
+                        {t("reports.page.byCategory.columns.documents")}
                       </TableCell>
-                      <TableCell align="right">Espaço utilizado</TableCell>
+                      <TableCell align="right">
+                        {t("reports.page.byCategory.columns.versions")}
+                      </TableCell>
+                      <TableCell align="right">
+                        {t("reports.page.byCategory.columns.expired")}
+                      </TableCell>
+                      <TableCell align="right">
+                        {t("reports.page.byCategory.columns.soon", {
+                          days: report.expirations.windowDays,
+                        })}
+                      </TableCell>
+                      <TableCell align="right">
+                        {t("reports.page.byCategory.columns.storageUsed")}
+                      </TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
@@ -517,17 +539,17 @@ export function ReportsPage() {
                           </Typography>
                         </TableCell>
                         <TableCell align="right" sx={{ fontVariantNumeric: "tabular-nums" }}>
-                          {NUMBER_FORMATTER.format(row.documentCount)}
+                          {formatNumber(row.documentCount)}
                         </TableCell>
                         <TableCell align="right" sx={{ fontVariantNumeric: "tabular-nums" }}>
-                          {NUMBER_FORMATTER.format(row.versionCount)}
+                          {formatNumber(row.versionCount)}
                         </TableCell>
                         <TableCell align="right" sx={{ fontVariantNumeric: "tabular-nums" }}>
                           {row.expiredCount > 0 ? (
                             <Chip
                               size="small"
                               color="error"
-                              label={NUMBER_FORMATTER.format(row.expiredCount)}
+                              label={formatNumber(row.expiredCount)}
                             />
                           ) : (
                             "0"
@@ -538,14 +560,14 @@ export function ReportsPage() {
                             <Chip
                               size="small"
                               color="warning"
-                              label={NUMBER_FORMATTER.format(row.expiringSoonCount)}
+                              label={formatNumber(row.expiringSoonCount)}
                             />
                           ) : (
                             "0"
                           )}
                         </TableCell>
                         <TableCell align="right" sx={{ fontVariantNumeric: "tabular-nums" }}>
-                          {formatBytesPtBr(row.storageBytes)}
+                          {formatBytes(row.storageBytes)}
                         </TableCell>
                       </TableRow>
                     ))}
@@ -556,8 +578,10 @@ export function ReportsPage() {
           </Paper>
 
           <Typography variant="caption" color="text.secondary">
-            Relatório gerado em {new Date(report.generatedAt).toLocaleString("pt-BR")} • Fuso
-            horário da organização: {report.timezone}
+            {t("reports.page.footer", {
+              date: formatDateTime(report.generatedAt),
+              timezone: report.timezone,
+            })}
           </Typography>
         </Stack>
       )}

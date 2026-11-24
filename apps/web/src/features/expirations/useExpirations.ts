@@ -4,10 +4,11 @@ import {
   type DocumentExpirationsListData,
   type DocumentExpirationsQuery,
   type ExpirationBucket,
-  apiErrorResponseSchema,
   documentExpirationsResponseSchema,
 } from "@docuflow/contracts";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
+import { extractUserErrorMessage } from "../../i18n/api-errors.js";
+import { translate } from "../../i18n/index.js";
 
 export type ExpirationsSortField = NonNullable<DocumentExpirationsQuery["sortBy"]>;
 
@@ -63,19 +64,6 @@ export function buildExpirationsSearchParams(filters: ExpirationsFiltersState): 
   return params;
 }
 
-async function parseExpirationsError(response: Response, fallback: string): Promise<string> {
-  try {
-    const raw: unknown = await response.json();
-    const parsed = apiErrorResponseSchema.safeParse(raw);
-    if (parsed.success) {
-      return parsed.data.error.message;
-    }
-  } catch {
-    // Fallback to HTTP status message.
-  }
-  return `${fallback} (${response.status}).`;
-}
-
 export async function fetchDocumentExpirations(
   filters: ExpirationsFiltersState,
   signal?: AbortSignal,
@@ -92,15 +80,13 @@ export async function fetchDocumentExpirations(
   );
 
   if (!response.ok) {
-    throw new Error(
-      await parseExpirationsError(response, "Não foi possível carregar a lista de vencimentos"),
-    );
+    throw new Error(await extractUserErrorMessage(response, "expirations.errors.load"));
   }
 
   const rawJson: unknown = await response.json();
   const parsed = documentExpirationsResponseSchema.safeParse(rawJson);
   if (!parsed.success) {
-    throw new Error("Resposta inválida recebida ao consultar vencimentos.");
+    throw new Error(translate("expirations.errors.invalidResponse"));
   }
 
   return parsed.data.data;

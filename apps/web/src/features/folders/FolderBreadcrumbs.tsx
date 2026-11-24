@@ -2,6 +2,7 @@ import HomeOutlinedIcon from "@mui/icons-material/HomeOutlined";
 import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
 import NavigateNextOutlinedIcon from "@mui/icons-material/NavigateNextOutlined";
 import { Breadcrumbs, Chip, Link, Stack, Typography } from "@mui/material";
+import { useI18n } from "../../i18n/index.js";
 import type { FolderBreadcrumbItem } from "./useFolderNavigation.js";
 
 export interface FolderBreadcrumbsProps {
@@ -12,16 +13,18 @@ export interface FolderBreadcrumbsProps {
 /**
  * Renders an accessible Material UI hierarchical breadcrumb trail where each
  * authorized level navigates on click, restricted ancestors are non-navigable,
- * and archived or removed states are clearly labeled in pt-BR.
+ * and archived or removed states are clearly labeled.
  */
 export function FolderBreadcrumbs({ items, onNavigate }: FolderBreadcrumbsProps) {
+  const { t } = useI18n();
+
   if (items.length === 0) {
     return null;
   }
 
   return (
     <Breadcrumbs
-      aria-label="Caminho hierárquico de pastas"
+      aria-label={t("folders.breadcrumbs.ariaLabel")}
       separator={<NavigateNextOutlinedIcon fontSize="small" />}
     >
       {items.map((item, index) => {
@@ -57,7 +60,7 @@ export function FolderBreadcrumbs({ items, onNavigate }: FolderBreadcrumbsProps)
                 {item.label}
               </Typography>
               {item.status === "ARCHIVED" ? (
-                <Chip label="Arquivada" size="small" variant="outlined" />
+                <Chip label={t("folders.status.archived")} size="small" variant="outlined" />
               ) : null}
             </Stack>
           );
@@ -83,7 +86,7 @@ export function FolderBreadcrumbs({ items, onNavigate }: FolderBreadcrumbsProps)
               <span>{item.label}</span>
             </Link>
             {item.status === "ARCHIVED" ? (
-              <Chip label="Arquivada" size="small" variant="outlined" />
+              <Chip label={t("folders.status.archived")} size="small" variant="outlined" />
             ) : null}
           </Stack>
         );

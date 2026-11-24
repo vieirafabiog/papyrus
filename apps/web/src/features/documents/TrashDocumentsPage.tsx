@@ -3,7 +3,7 @@ import type {
   TrashDocumentListItem,
   TrashDocumentsSortField,
 } from "@docuflow/contracts";
-import { DOCUFLOW_COLOR_TOKENS, DataTable, type DataTableColumn, FilterBar } from "@docuflow/ui";
+import { DataTable, type DataTableColumn, FilterBar, PAPYRUS_COLOR_TOKENS } from "@docuflow/ui";
 import DeleteSweepOutlinedIcon from "@mui/icons-material/DeleteSweepOutlined";
 import OpenInNewOutlinedIcon from "@mui/icons-material/OpenInNewOutlined";
 import RestoreFromTrashOutlinedIcon from "@mui/icons-material/RestoreFromTrashOutlined";
@@ -25,26 +25,18 @@ import {
 } from "@mui/material";
 import { useId, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { containsTechnicalJargon } from "../../i18n/api-errors.js";
+import { useI18n } from "../../i18n/index.js";
 import { useRestoreTrashedDocumentMutation, useTrashDocumentsQuery } from "./useDocumentDetails.js";
 
 const SERVER_SORTABLE_FIELDS = new Set<string>(["deletedAt", "title", "updatedAt"]);
 
-function formatDateTimePtBr(isoDateTime: string | null): string {
-  if (!isoDateTime) {
-    return "Não informada";
-  }
-  const parsed = new Date(isoDateTime);
-  if (Number.isNaN(parsed.getTime())) {
-    return isoDateTime;
-  }
-  return parsed.toLocaleString("pt-BR");
-}
-
 /**
- * Trash bin management page listing authorized logically deleted documents,
+ * Trash bin management page listing authorized deleted documents,
  * restore deadline windows, and accessible confirmation dialogs to recover items.
  */
 export function TrashDocumentsPage() {
+  const { t, formatDateTime } = useI18n();
   const navigate = useNavigate();
   const dialogTitleId = useId();
   const dialogDescId = useId();
@@ -116,24 +108,34 @@ export function TrashDocumentsPage() {
       });
       setSelectedDoc(null);
       setReason("");
+      const statusLabel =
+        restored.status === "ARCHIVED"
+          ? t("documents.status.ARCHIVED")
+          : t("documents.status.DRAFT");
       setFeedback({
         severity: "success",
-        message: `Documento "${restored.title}" restaurado com sucesso como ${
-          restored.status === "ARCHIVED" ? "Arquivado" : "Rascunho"
-        }, mantendo versões e permissões.`,
+        message: t("documents.trash.restoreSuccess", {
+          title: restored.title,
+          status: statusLabel,
+        }),
       });
     } catch (error) {
+      const rawMessage = error instanceof Error ? error.message.trim() : "";
       const message =
-        error instanceof Error ? error.message : "Falha ao restaurar documento da lixeira.";
+        rawMessage.length > 0 && !containsTechnicalJargon(rawMessage)
+          ? rawMessage
+          : t("documents.trash.restoreFailed");
       setDialogError(message);
       setFeedback({ severity: "error", message });
     }
   };
 
+  const notProvided = t("documents.common.notProvidedFem");
+
   const columns: DataTableColumn<TrashDocumentListItem>[] = [
     {
       id: "title",
-      label: "Título",
+      label: t("documents.trash.columns.title"),
       sortable: true,
       render: (row) => (
         <Typography variant="body2" fontWeight={500}>
@@ -143,34 +145,40 @@ export function TrashDocumentsPage() {
     },
     {
       id: "categoryId",
-      label: "Categoria",
+      label: t("documents.trash.columns.category"),
       sortable: false,
-      render: (row) => row.categoryName ?? "Categoria restrita",
+      render: (row) => row.categoryName ?? t("documents.trash.restrictedCategory"),
     },
     {
       id: "deletedAt",
-      label: "Enviado à lixeira em",
+      label: t("documents.trash.columns.deletedAt"),
       sortable: true,
-      render: (row) => formatDateTimePtBr(row.deletedAt),
+      render: (row) => formatDateTime(row.deletedAt, notProvided),
     },
     {
       id: "restoreDeadlineAt",
-      label: "Prazo para restauração",
+      label: t("documents.trash.columns.restoreDeadline"),
       sortable: false,
       render: (row) => (
         <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
-          <Typography variant="body2">{formatDateTimePtBr(row.restoreDeadlineAt)}</Typography>
+          <Typography variant="body2">
+            {formatDateTime(row.restoreDeadlineAt, notProvided)}
+          </Typography>
           <Chip
             size="small"
             color={row.canRestore ? "success" : "error"}
-            label={row.canRestore ? "Disponível" : "Prazo expirado"}
+            label={
+              row.canRestore
+                ? t("documents.trash.statusAvailable")
+                : t("documents.trash.statusExpired")
+            }
           />
         </Stack>
       ),
     },
     {
       id: "actions",
-      label: "Ações",
+      label: t("documents.trash.columns.actions"),
       align: "right",
       render: (row) => (
         <Stack direction="row" spacing={1} justifyContent="flex-end">
@@ -182,9 +190,9 @@ export function TrashDocumentsPage() {
               event.stopPropagation();
               void navigate(`/documents/${row.id}`);
             }}
-            aria-label={`Abrir ${row.title}`}
+            aria-label={t("documents.trash.openAria", { title: row.title })}
           >
-            Detalhes
+            {t("documents.trash.detailsButton")}
           </Button>
           <Button
             size="small"
@@ -195,9 +203,9 @@ export function TrashDocumentsPage() {
               event.stopPropagation();
               openRestoreDialog(row);
             }}
-            aria-label={`Restaurar ${row.title}`}
+            aria-label={t("documents.trash.restoreAria", { title: row.title })}
           >
-            Restaurar
+            {t("documents.trash.restoreButton")}
           </Button>
         </Stack>
       ),
@@ -213,8 +221,8 @@ export function TrashDocumentsPage() {
         variant="outlined"
         sx={{
           p: 2.5,
-          bgcolor: DOCUFLOW_COLOR_TOKENS.surface.containerLowest,
-          borderColor: DOCUFLOW_COLOR_TOKENS.surface.outlineVariant,
+          bgcolor: PAPYRUS_COLOR_TOKENS.surface.containerLowest,
+          borderColor: PAPYRUS_COLOR_TOKENS.surface.outlineVariant,
         }}
       >
         <Stack
@@ -226,15 +234,14 @@ export function TrashDocumentsPage() {
           <Box>
             <Stack direction="row" spacing={1} alignItems="center">
               <DeleteSweepOutlinedIcon color="primary" />
-              <Typography variant="h1">Lixeira documental</Typography>
+              <Typography variant="h1">{t("documents.trash.title")}</Typography>
             </Stack>
             <Typography variant="body1" color="text.secondary" sx={{ mt: 0.5 }}>
-              Documentos excluídos logicamente permanecem recuperáveis durante o prazo de carência
-              configurado, preservando histórico de versões e permissões.
+              {t("documents.trash.subtitle")}
             </Typography>
           </Box>
           <Button variant="outlined" onClick={() => void navigate("/documents")}>
-            Voltar aos documentos
+            {t("documents.trash.backToDocuments")}
           </Button>
         </Stack>
       </Paper>
@@ -251,8 +258,8 @@ export function TrashDocumentsPage() {
           setSearch(value);
           setPage(1);
         }}
-        searchLabel="Pesquisar na lixeira"
-        searchPlaceholder="Título do documento..."
+        searchLabel={t("documents.trash.searchLabel")}
+        searchPlaceholder={t("documents.trash.searchPlaceholder")}
         filters={[]}
         hasActiveFilters={search.trim().length > 0}
         onClearFilters={() => {
@@ -262,7 +269,7 @@ export function TrashDocumentsPage() {
       />
 
       <DataTable
-        ariaLabel="Tabela da lixeira documental"
+        ariaLabel={t("documents.trash.tableAriaLabel")}
         columns={columns}
         rows={rows}
         getRowId={(row) => row.id}
@@ -282,8 +289,8 @@ export function TrashDocumentsPage() {
         loading={trashQuery.isLoading}
         errorMessage={trashQuery.isError ? trashQuery.error.message : null}
         onRetry={() => void trashQuery.refetch()}
-        emptyTitle="Nenhum documento na lixeira"
-        emptyDescription="Não há documentos autorizados aguardando restauração na lixeira."
+        emptyTitle={t("documents.trash.emptyTitle")}
+        emptyDescription={t("documents.trash.emptyDescription")}
       />
 
       <Dialog
@@ -294,12 +301,11 @@ export function TrashDocumentsPage() {
         maxWidth="xs"
         fullWidth
       >
-        <DialogTitle id={dialogTitleId}>Restaurar documento</DialogTitle>
+        <DialogTitle id={dialogTitleId}>{t("documents.trash.dialogTitle")}</DialogTitle>
         <DialogContent>
           <Stack spacing={2} sx={{ pt: 0.5 }}>
             <DialogContentText id={dialogDescId}>
-              Ao restaurar "{selectedDoc?.title ?? ""}", todas as versões imutáveis, trilha de
-              auditoria e permissões de acesso configuradas serão preservadas.
+              {t("documents.trash.dialogDescription", { title: selectedDoc?.title ?? "" })}
             </DialogContentText>
 
             {dialogError ? (
@@ -310,7 +316,7 @@ export function TrashDocumentsPage() {
 
             <TextField
               select
-              label="Status após restauração"
+              label={t("documents.lifecycle.restoreStatusLabel")}
               value={targetStatus}
               onChange={(event) =>
                 setTargetStatus(event.target.value as RestoreTrashedDocumentTargetStatus)
@@ -318,12 +324,12 @@ export function TrashDocumentsPage() {
               fullWidth
               disabled={restoreMutation.isPending}
             >
-              <MenuItem value="DRAFT">Rascunho</MenuItem>
-              <MenuItem value="ARCHIVED">Arquivado</MenuItem>
+              <MenuItem value="DRAFT">{t("documents.status.DRAFT")}</MenuItem>
+              <MenuItem value="ARCHIVED">{t("documents.status.ARCHIVED")}</MenuItem>
             </TextField>
 
             <TextField
-              label="Motivo da restauração (opcional)"
+              label={t("documents.lifecycle.restoreReasonLabel")}
               value={reason}
               onChange={(event) => setReason(event.target.value)}
               fullWidth
@@ -336,14 +342,16 @@ export function TrashDocumentsPage() {
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>
           <Button onClick={closeRestoreDialog} disabled={restoreMutation.isPending} variant="text">
-            Cancelar
+            {t("documents.common.cancel")}
           </Button>
           <Button
             onClick={() => void handleConfirmRestore()}
             disabled={restoreMutation.isPending}
             variant="contained"
           >
-            {restoreMutation.isPending ? "Restaurando..." : "Confirmar restauração"}
+            {restoreMutation.isPending
+              ? t("documents.lifecycle.restoring")
+              : t("documents.lifecycle.confirmRestore")}
           </Button>
         </DialogActions>
       </Dialog>

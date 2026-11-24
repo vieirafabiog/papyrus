@@ -1,11 +1,12 @@
 import "@testing-library/jest-dom/vitest";
-import { ConfirmDialog, DOCUFLOW_COLOR_TOKENS, docuflowTheme } from "@docuflow/ui";
+import { ConfirmDialog, PAPYRUS_COLOR_TOKENS, UiLocaleProvider, papyrusTheme } from "@docuflow/ui";
 import { CssBaseline, ThemeProvider } from "@mui/material";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { AppRoutes } from "../src/app/router.js";
+import { I18nProvider, resetUiLocaleForTests } from "../src/i18n/index.js";
 
 function hexToRelativeLuminance(hex: string): number {
   const clean = hex.replace("#", "");
@@ -67,29 +68,34 @@ function renderAuthenticatedShell(initialPath = "/") {
   });
 
   return render(
-    <ThemeProvider theme={docuflowTheme}>
-      <CssBaseline />
-      <QueryClientProvider client={queryClient}>
-        <MemoryRouter initialEntries={[initialPath]}>
-          <AppRoutes />
-        </MemoryRouter>
-      </QueryClientProvider>
-    </ThemeProvider>,
+    <I18nProvider initialLocale="en-US">
+      <UiLocaleProvider locale="en-US">
+        <ThemeProvider theme={papyrusTheme}>
+          <CssBaseline />
+          <QueryClientProvider client={queryClient}>
+            <MemoryRouter initialEntries={[initialPath]}>
+              <AppRoutes />
+            </MemoryRouter>
+          </QueryClientProvider>
+        </ThemeProvider>
+      </UiLocaleProvider>
+    </I18nProvider>,
   );
 }
 
 describe("Shell and shared states accessibility", () => {
   afterEach(() => {
     cleanup();
+    resetUiLocaleForTests();
     vi.restoreAllMocks();
   });
 
-  it("provides landmarks, skip link, accessible labels, and responsive sidebar controls", async () => {
+  it("provides landmarks, skip link, accessible labels, language switcher, and responsive sidebar controls", async () => {
     mockAuthenticatedFetch();
     renderAuthenticatedShell("/");
 
     const skipLink = await screen.findByRole("link", {
-      name: "Pular para o conteúdo principal",
+      name: "Skip to main content",
     });
     expect(skipLink).toHaveAttribute("href", "#main-content");
 
@@ -97,37 +103,42 @@ describe("Shell and shared states accessibility", () => {
     expect(main).toHaveAttribute("id", "main-content");
     expect(main).toHaveAttribute("tabindex", "-1");
 
-    const navs = screen.getAllByRole("navigation", { name: "Navegação principal" });
+    const navs = screen.getAllByRole("navigation", { name: "Main navigation" });
     expect(navs.length).toBeGreaterThanOrEqual(1);
 
-    const collapseBtn = screen.getByRole("button", { name: "Recolher barra lateral" });
-    fireEvent.click(collapseBtn);
-    expect(screen.getByRole("button", { name: "Expandir barra lateral" })).toBeInTheDocument();
+    expect(screen.getByText("Document Management")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Change language" })).toBeInTheDocument();
 
-    const profileBtn = screen.getByRole("button", { name: "Perfil do usuário" });
+    const collapseBtn = screen.getByRole("button", { name: "Collapse sidebar" });
+    fireEvent.click(collapseBtn);
+    expect(screen.getByRole("button", { name: "Expand sidebar" })).toBeInTheDocument();
+
+    const profileBtn = screen.getByRole("button", { name: "User profile" });
     expect(profileBtn).toHaveAttribute("aria-haspopup", "true");
     fireEvent.click(profileBtn);
     await waitFor(() => {
       expect(profileBtn).toHaveAttribute("aria-expanded", "true");
     });
-    expect(screen.getByRole("menuitem", { name: "Sair" })).toBeInTheDocument();
+    expect(screen.getByRole("menuitem", { name: "Sign out" })).toBeInTheDocument();
   });
 
   it("supports keyboard Escape dismissal and ARIA attributes in ConfirmDialog", () => {
     const onCancel = vi.fn();
     render(
-      <ThemeProvider theme={docuflowTheme}>
-        <ConfirmDialog
-          open={true}
-          title="Excluir documento"
-          description="O item será movido para a lixeira."
-          onConfirm={vi.fn()}
-          onCancel={onCancel}
-        />
-      </ThemeProvider>,
+      <UiLocaleProvider locale="en-US">
+        <ThemeProvider theme={papyrusTheme}>
+          <ConfirmDialog
+            open={true}
+            title="Delete document"
+            description="The item will be moved to trash."
+            onConfirm={vi.fn()}
+            onCancel={onCancel}
+          />
+        </ThemeProvider>
+      </UiLocaleProvider>,
     );
 
-    const dialog = screen.getByRole("dialog", { name: "Excluir documento" });
+    const dialog = screen.getByRole("dialog", { name: "Delete document" });
     expect(dialog).toHaveAttribute("aria-labelledby");
     expect(dialog).toHaveAttribute("aria-describedby");
 
@@ -137,40 +148,40 @@ describe("Shell and shared states accessibility", () => {
 
   it("meets WCAG 2.2 AA contrast (>= 4.5:1) and visible focus styling in theme tokens", () => {
     expect(
-      contrastRatio(DOCUFLOW_COLOR_TOKENS.text.primary, DOCUFLOW_COLOR_TOKENS.surface.background),
+      contrastRatio(PAPYRUS_COLOR_TOKENS.text.primary, PAPYRUS_COLOR_TOKENS.surface.background),
     ).toBeGreaterThanOrEqual(4.5);
     expect(
-      contrastRatio(DOCUFLOW_COLOR_TOKENS.text.secondary, DOCUFLOW_COLOR_TOKENS.surface.paper),
+      contrastRatio(PAPYRUS_COLOR_TOKENS.text.secondary, PAPYRUS_COLOR_TOKENS.surface.paper),
     ).toBeGreaterThanOrEqual(4.5);
     expect(
-      contrastRatio(DOCUFLOW_COLOR_TOKENS.primary.contrastText, DOCUFLOW_COLOR_TOKENS.primary.main),
+      contrastRatio(PAPYRUS_COLOR_TOKENS.primary.contrastText, PAPYRUS_COLOR_TOKENS.primary.main),
     ).toBeGreaterThanOrEqual(4.5);
     expect(
       contrastRatio(
-        DOCUFLOW_COLOR_TOKENS.primary.onContainer,
-        DOCUFLOW_COLOR_TOKENS.primary.container,
+        PAPYRUS_COLOR_TOKENS.primary.onContainer,
+        PAPYRUS_COLOR_TOKENS.primary.container,
       ),
     ).toBeGreaterThanOrEqual(4.5);
     expect(
       contrastRatio(
-        DOCUFLOW_COLOR_TOKENS.semantic.errorContrast,
-        DOCUFLOW_COLOR_TOKENS.semantic.errorMain,
+        PAPYRUS_COLOR_TOKENS.semantic.errorContrast,
+        PAPYRUS_COLOR_TOKENS.semantic.errorMain,
       ),
     ).toBeGreaterThanOrEqual(4.5);
     expect(
       contrastRatio(
-        DOCUFLOW_COLOR_TOKENS.semantic.warningContrast,
-        DOCUFLOW_COLOR_TOKENS.semantic.warningMain,
+        PAPYRUS_COLOR_TOKENS.semantic.warningContrast,
+        PAPYRUS_COLOR_TOKENS.semantic.warningMain,
       ),
     ).toBeGreaterThanOrEqual(4.5);
     expect(
       contrastRatio(
-        DOCUFLOW_COLOR_TOKENS.semantic.successContrast,
-        DOCUFLOW_COLOR_TOKENS.semantic.successMain,
+        PAPYRUS_COLOR_TOKENS.semantic.successContrast,
+        PAPYRUS_COLOR_TOKENS.semantic.successMain,
       ),
     ).toBeGreaterThanOrEqual(4.5);
 
-    const buttonBaseOverrides = docuflowTheme.components?.MuiButtonBase?.styleOverrides?.root;
+    const buttonBaseOverrides = papyrusTheme.components?.MuiButtonBase?.styleOverrides?.root;
     expect(buttonBaseOverrides).toBeDefined();
     expect(JSON.stringify(buttonBaseOverrides)).toContain("Mui-focusVisible");
   });

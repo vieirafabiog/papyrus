@@ -7,12 +7,12 @@ import type {
 } from "@docuflow/contracts";
 import {
   ConfirmDialog,
-  DOCUFLOW_COLOR_TOKENS,
   DataTable,
   type DataTableColumn,
   ErrorState,
   FilterBar,
   LoadingState,
+  PAPYRUS_COLOR_TOKENS,
 } from "@docuflow/ui";
 import AddModeratorOutlinedIcon from "@mui/icons-material/AddModeratorOutlined";
 import CheckCircleOutlinedIcon from "@mui/icons-material/CheckCircleOutlined";
@@ -42,6 +42,7 @@ import {
 } from "@mui/material";
 import { useId, useMemo, useState } from "react";
 import { useSessionQuery } from "../../app/session.js";
+import { type MessageKey, useI18n } from "../../i18n/index.js";
 import {
   canAdministerPermissions,
   useAssignPermissionScopeMutation,
@@ -53,46 +54,46 @@ import {
 } from "./usePermissionsAdmin.js";
 import { useAdminGroupsQuery, useAdminUsersQuery } from "./useUsersAndGroups.js";
 
-const RESOURCE_LABELS: Readonly<Record<AccessResource, string>> = {
-  DOCUMENT: "Documentos",
-  FOLDER: "Pastas",
-  CATEGORY: "Categorias",
-  WORKFLOW: "Fluxos de aprovação",
-  USER: "Usuários",
-  GROUP: "Grupos",
-  ROLE: "Papéis e escopos",
-  STORAGE: "Armazenamento",
-  AUDIT: "Auditoria",
-  ORGANIZATION: "Organização",
+const RESOURCE_LABEL_KEYS: Readonly<Record<AccessResource, MessageKey>> = {
+  DOCUMENT: "admin.permissions.resource.DOCUMENT",
+  FOLDER: "admin.permissions.resource.FOLDER",
+  CATEGORY: "admin.permissions.resource.CATEGORY",
+  WORKFLOW: "admin.permissions.resource.WORKFLOW",
+  USER: "admin.permissions.resource.USER",
+  GROUP: "admin.permissions.resource.GROUP",
+  ROLE: "admin.permissions.resource.ROLE",
+  STORAGE: "admin.permissions.resource.STORAGE",
+  AUDIT: "admin.permissions.resource.AUDIT",
+  ORGANIZATION: "admin.permissions.resource.ORGANIZATION",
 };
 
-const ACTION_LABELS: Readonly<Record<AccessAction, string>> = {
-  READ: "Consultar",
-  CREATE: "Criar",
-  UPDATE: "Editar",
-  DELETE: "Excluir",
-  UPLOAD: "Enviar",
-  DOWNLOAD: "Baixar",
-  APPROVE: "Aprovar",
-  REJECT: "Rejeitar",
-  MANAGE_PERMISSIONS: "Administrar permissões",
-  MANAGE_STORAGE: "Administrar armazenamento",
-  MANAGE_USERS: "Gerenciar contas",
-  VIEW_AUDIT: "Ver trilha de auditoria",
+const ACTION_LABEL_KEYS: Readonly<Record<AccessAction, MessageKey>> = {
+  READ: "admin.permissions.action.READ",
+  CREATE: "admin.permissions.action.CREATE",
+  UPDATE: "admin.permissions.action.UPDATE",
+  DELETE: "admin.permissions.action.DELETE",
+  UPLOAD: "admin.permissions.action.UPLOAD",
+  DOWNLOAD: "admin.permissions.action.DOWNLOAD",
+  APPROVE: "admin.permissions.action.APPROVE",
+  REJECT: "admin.permissions.action.REJECT",
+  MANAGE_PERMISSIONS: "admin.permissions.action.MANAGE_PERMISSIONS",
+  MANAGE_STORAGE: "admin.permissions.action.MANAGE_STORAGE",
+  MANAGE_USERS: "admin.permissions.action.MANAGE_USERS",
+  VIEW_AUDIT: "admin.permissions.action.VIEW_AUDIT",
 };
 
-const SCOPE_LABELS: Readonly<Record<AccessScopeType, string>> = {
-  GLOBAL: "Global da instalação",
-  CATEGORY: "Categoria",
-  FOLDER: "Pasta (com herança em subpastas)",
-  DOCUMENT: "Documento específico",
+const SCOPE_LABEL_KEYS: Readonly<Record<AccessScopeType, MessageKey>> = {
+  GLOBAL: "admin.permissions.scope.GLOBAL",
+  CATEGORY: "admin.permissions.scope.CATEGORY",
+  FOLDER: "admin.permissions.scope.FOLDER",
+  DOCUMENT: "admin.permissions.scope.DOCUMENT",
 };
 
-const EFFECT_BADGE: Readonly<
-  Record<AccessEffect, { readonly label: string; readonly color: "success" | "error" }>
+const EFFECT_BADGE_CONFIG: Readonly<
+  Record<AccessEffect, { readonly labelKey: MessageKey; readonly color: "success" | "error" }>
 > = {
-  ALLOW: { label: "Permitir (concessão)", color: "success" },
-  DENY: { label: "Negar (exceção)", color: "error" },
+  ALLOW: { labelKey: "admin.permissions.effect.ALLOW", color: "success" },
+  DENY: { labelKey: "admin.permissions.effect.DENY", color: "error" },
 };
 
 const ORDERED_RESOURCES: readonly AccessResource[] = [
@@ -108,53 +109,59 @@ const ORDERED_RESOURCES: readonly AccessResource[] = [
   "ORGANIZATION",
 ];
 
-function formatDateTimePtBr(isoDateTime: string): string {
-  const parsed = new Date(isoDateTime);
-  if (Number.isNaN(parsed.getTime())) {
-    return isoDateTime;
-  }
-  return parsed.toLocaleString("pt-BR");
-}
+type TranslateFn = ReturnType<typeof useI18n>["t"];
 
 function formatSubjectDisplay(
   row: PermissionScopeAssignmentItem,
   userById: ReadonlyMap<string, { readonly fullName: string; readonly email: string }>,
   groupById: ReadonlyMap<string, { readonly name: string }>,
+  t: TranslateFn,
 ): string {
   if (row.userId !== null) {
     const user = userById.get(row.userId);
-    return user ? `Usuário: ${user.fullName} (${user.email})` : "Usuário da organização";
+    return user
+      ? t("admin.permissions.display.userPrefix", { name: user.fullName, email: user.email })
+      : t("admin.permissions.display.organizationUser");
   }
   if (row.groupId !== null) {
     const group = groupById.get(row.groupId);
-    return group ? `Grupo: ${group.name}` : "Grupo de trabalho";
+    return group
+      ? t("admin.permissions.display.groupPrefix", { name: group.name })
+      : t("admin.permissions.display.workGroup");
   }
-  return "Sujeito não identificado";
+  return t("admin.permissions.display.unknownSubject");
 }
 
 function formatTargetDisplay(
   row: PermissionScopeAssignmentItem,
   categoryById: ReadonlyMap<string, { readonly name: string }>,
   folderById: ReadonlyMap<string, { readonly name: string }>,
+  t: TranslateFn,
 ): string {
   if (row.scopeType === "GLOBAL" || row.scopeTargetId === null) {
-    return "Toda a instalação";
+    return t("admin.permissions.display.entireOrganization");
   }
   if (row.scopeType === "CATEGORY") {
-    return categoryById.get(row.scopeTargetId)?.name ?? "Categoria selecionada";
+    return (
+      categoryById.get(row.scopeTargetId)?.name ?? t("admin.permissions.display.selectedCategory")
+    );
   }
   if (row.scopeType === "FOLDER") {
-    const folderName = folderById.get(row.scopeTargetId)?.name ?? "Pasta selecionada";
-    return `${folderName} (herda subpastas)`;
+    const folderName =
+      folderById.get(row.scopeTargetId)?.name ?? t("admin.permissions.display.selectedFolder");
+    return t("admin.permissions.display.folderWithSubfolders", { name: folderName });
   }
-  return `Documento (${row.scopeTargetId.slice(0, 8)}…)`;
+  return t("admin.permissions.display.documentShort", {
+    prefix: row.scopeTargetId.slice(0, 8),
+  });
 }
 
 function formatRoleDisplay(
   roleId: string,
   roleById: ReadonlyMap<string, { readonly name: string }>,
+  t: TranslateFn,
 ): string {
-  return roleById.get(roleId)?.name ?? "Papel atribuído";
+  return roleById.get(roleId)?.name ?? t("admin.permissions.display.assignedRole");
 }
 
 /**
@@ -164,6 +171,7 @@ function formatRoleDisplay(
  */
 export function PermissionsPage() {
   const assignTitleId = useId();
+  const { t, formatDateTime } = useI18n();
 
   const sessionQuery = useSessionQuery();
   const hasPermissionAccess =
@@ -223,12 +231,12 @@ export function PermissionsPage() {
   );
 
   const resolveSubjectLabel = (row: PermissionScopeAssignmentItem): string =>
-    formatSubjectDisplay(row, userById, groupById);
+    formatSubjectDisplay(row, userById, groupById, t);
 
   const resolveTargetLabel = (row: PermissionScopeAssignmentItem): string =>
-    formatTargetDisplay(row, categoryById, folderById);
+    formatTargetDisplay(row, categoryById, folderById, t);
 
-  const resolveRoleLabel = (id: string): string => formatRoleDisplay(id, roleById);
+  const resolveRoleLabel = (id: string): string => formatRoleDisplay(id, roleById, t);
 
   const filteredAssignments = useMemo(() => {
     const items = assignmentsQuery.data ?? [];
@@ -241,9 +249,9 @@ export function PermissionsPage() {
         return false;
       }
       if (term.length > 0) {
-        const subjectText = formatSubjectDisplay(row, userById, groupById).toLowerCase();
-        const roleText = formatRoleDisplay(row.roleId, roleById).toLowerCase();
-        const targetText = formatTargetDisplay(row, categoryById, folderById).toLowerCase();
+        const subjectText = formatSubjectDisplay(row, userById, groupById, t).toLowerCase();
+        const roleText = formatRoleDisplay(row.roleId, roleById, t).toLowerCase();
+        const targetText = formatTargetDisplay(row, categoryById, folderById, t).toLowerCase();
         return subjectText.includes(term) || roleText.includes(term) || targetText.includes(term);
       }
       return true;
@@ -258,6 +266,7 @@ export function PermissionsPage() {
     roleById,
     categoryById,
     folderById,
+    t,
   ]);
 
   const pagedAssignments = useMemo(() => {
@@ -266,14 +275,14 @@ export function PermissionsPage() {
   }, [filteredAssignments, page, pageSize]);
 
   if (sessionQuery.isLoading) {
-    return <LoadingState message="Verificando permissões de governança..." />;
+    return <LoadingState message={t("admin.permissions.loading")} />;
   }
 
   if (sessionQuery.data && !hasPermissionAccess) {
     return (
       <ErrorState
-        title="Acesso restrito"
-        description="Você não possui permissão para visualizar ou alterar papéis e escopos de acesso."
+        title={t("admin.common.restrictedAccessTitle")}
+        description={t("admin.permissions.noAccessDescription")}
       />
     );
   }
@@ -292,15 +301,15 @@ export function PermissionsPage() {
   const handleConfirmAssign = async (): Promise<void> => {
     setAssignError(null);
     if (subjectId.trim().length === 0) {
-      setAssignError("Selecione o usuário ou grupo de destino.");
+      setAssignError(t("admin.permissions.validation.selectRecipient"));
       return;
     }
     if (roleId.trim().length === 0) {
-      setAssignError("Selecione o papel a ser atribuído.");
+      setAssignError(t("admin.permissions.validation.selectRole"));
       return;
     }
     if (scopeType !== "GLOBAL" && scopeTargetId.trim().length === 0) {
-      setAssignError("Selecione ou informe o recurso alvo para este escopo.");
+      setAssignError(t("admin.permissions.validation.selectTarget"));
       return;
     }
 
@@ -318,12 +327,12 @@ export function PermissionsPage() {
         severity: "success",
         message:
           effect === "DENY"
-            ? "Exceção de bloqueio registrada com sucesso."
-            : "Concessão de permissão registrada com sucesso.",
+            ? t("admin.permissions.feedback.denyCreated")
+            : t("admin.permissions.feedback.allowCreated"),
       });
     } catch (error) {
       setAssignError(
-        error instanceof Error ? error.message : "Não foi possível salvar a regra de permissão.",
+        error instanceof Error ? error.message : t("admin.permissions.errors.saveFailed"),
       );
     }
   };
@@ -337,14 +346,14 @@ export function PermissionsPage() {
       setRevokeTarget(null);
       setFeedback({
         severity: "success",
-        message: "Atribuição de permissão revogada com sucesso.",
+        message: t("admin.permissions.feedback.revoked"),
       });
     } catch (error) {
       setRevokeTarget(null);
       setFeedback({
         severity: "error",
         message:
-          error instanceof Error ? error.message : "Não foi possível revogar a regra selecionada.",
+          error instanceof Error ? error.message : t("admin.permissions.errors.revokeFailed"),
       });
     }
   };
@@ -352,7 +361,7 @@ export function PermissionsPage() {
   const assignmentColumns: DataTableColumn<PermissionScopeAssignmentItem>[] = [
     {
       id: "subject",
-      label: "Usuário ou grupo",
+      label: t("admin.permissions.table.subject"),
       render: (row) => (
         <Typography variant="body2" fontWeight={500}>
           {resolveSubjectLabel(row)}
@@ -361,24 +370,24 @@ export function PermissionsPage() {
     },
     {
       id: "roleId",
-      label: "Papel",
+      label: t("admin.permissions.table.role"),
       render: (row) => resolveRoleLabel(row.roleId),
     },
     {
       id: "scopeType",
-      label: "Escopo",
-      render: (row) => SCOPE_LABELS[row.scopeType],
+      label: t("admin.permissions.table.scope"),
+      render: (row) => t(SCOPE_LABEL_KEYS[row.scopeType]),
     },
     {
       id: "target",
-      label: "Alvo / Herança",
+      label: t("admin.permissions.table.target"),
       render: (row) => resolveTargetLabel(row),
     },
     {
       id: "effect",
-      label: "Regra",
+      label: t("admin.permissions.table.effect"),
       render: (row) => {
-        const descriptor = EFFECT_BADGE[row.effect];
+        const descriptor = EFFECT_BADGE_CONFIG[row.effect];
         return (
           <Chip
             size="small"
@@ -390,19 +399,19 @@ export function PermissionsPage() {
                 <CheckCircleOutlinedIcon fontSize="small" />
               )
             }
-            label={descriptor.label}
+            label={t(descriptor.labelKey)}
           />
         );
       },
     },
     {
       id: "createdAt",
-      label: "Criada em",
-      render: (row) => formatDateTimePtBr(row.createdAt),
+      label: t("admin.common.createdAt"),
+      render: (row) => formatDateTime(row.createdAt),
     },
     {
       id: "actions",
-      label: "Ações",
+      label: t("admin.common.actions"),
       align: "right",
       render: (row) => (
         <Button
@@ -414,9 +423,11 @@ export function PermissionsPage() {
             event.stopPropagation();
             setRevokeTarget(row);
           }}
-          aria-label={`Revogar regra de ${resolveSubjectLabel(row)}`}
+          aria-label={t("admin.permissions.actions.revokeAria", {
+            subject: resolveSubjectLabel(row),
+          })}
         >
-          Revogar
+          {t("admin.permissions.actions.revoke")}
         </Button>
       ),
     },
@@ -430,27 +441,24 @@ export function PermissionsPage() {
         variant="outlined"
         sx={{
           p: 2.5,
-          bgcolor: DOCUFLOW_COLOR_TOKENS.surface.containerLowest,
-          borderColor: DOCUFLOW_COLOR_TOKENS.surface.outlineVariant,
+          bgcolor: PAPYRUS_COLOR_TOKENS.surface.containerLowest,
+          borderColor: PAPYRUS_COLOR_TOKENS.surface.outlineVariant,
         }}
       >
         <Stack direction="row" spacing={1.25} alignItems="center">
           <SecurityOutlinedIcon color="primary" />
           <Box>
-            <Typography variant="h1">Papéis, herança e exceções de acesso</Typography>
+            <Typography variant="h1">{t("admin.permissions.title")}</Typography>
             <Typography variant="body1" color="text.secondary" sx={{ mt: 0.5 }}>
-              Visualize a matriz de capacidades por papel e gerencie concessões e bloqueios
-              explícitos por escopo.
+              {t("admin.permissions.subtitle")}
             </Typography>
           </Box>
         </Stack>
       </Paper>
 
       <Alert severity="info">
-        <strong>Regras de herança e precedência:</strong> permissões concedidas em uma pasta são
-        herdadas pelas subpastas descendentes. Quando houver conflito, uma exceção explícita de{" "}
-        <strong>Negação</strong> sempre prevalece sobre qualquer concessão herdada, seja por usuário
-        ou por grupo.
+        <strong>{t("admin.permissions.inheritanceNoticeLead")}</strong>{" "}
+        {t("admin.permissions.inheritanceNoticeBody")}
       </Alert>
 
       {feedback ? (
@@ -463,31 +471,31 @@ export function PermissionsPage() {
         variant="outlined"
         sx={{
           p: 2.5,
-          bgcolor: DOCUFLOW_COLOR_TOKENS.surface.containerLowest,
-          borderColor: DOCUFLOW_COLOR_TOKENS.surface.outlineVariant,
+          bgcolor: PAPYRUS_COLOR_TOKENS.surface.containerLowest,
+          borderColor: PAPYRUS_COLOR_TOKENS.surface.outlineVariant,
         }}
       >
         <Typography variant="h6" component="h2" gutterBottom>
-          Matriz compreensível de permissões por papel
+          {t("admin.permissions.matrix.title")}
         </Typography>
         <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-          Resumo funcional das ações autorizadas para cada papel do sistema nesta organização.
+          {t("admin.permissions.matrix.subtitle")}
         </Typography>
 
         {rolesQuery.isLoading ? (
-          <LoadingState message="Carregando matriz de papéis..." minHeight={120} />
+          <LoadingState message={t("admin.permissions.matrix.loading")} minHeight={120} />
         ) : rolesQuery.isError ? (
           <Alert severity="error">{rolesQuery.error.message}</Alert>
         ) : roles.length === 0 ? (
           <Typography variant="body2" color="text.secondary">
-            Nenhum catálogo de papéis detalhado disponível para exibição no momento.
+            {t("admin.permissions.matrix.empty")}
           </Typography>
         ) : (
           <TableContainer>
-            <Table size="small" aria-label="Matriz de permissões por papel">
+            <Table size="small" aria-label={t("admin.permissions.matrix.ariaLabel")}>
               <TableHead>
                 <TableRow>
-                  <TableCell>Recurso</TableCell>
+                  <TableCell>{t("admin.permissions.matrix.resourceHeader")}</TableCell>
                   {roles.map((role) => (
                     <TableCell key={role.id}>
                       <Typography variant="body2" fontWeight={600}>
@@ -507,18 +515,18 @@ export function PermissionsPage() {
                   <TableRow key={resource} hover>
                     <TableCell component="th" scope="row">
                       <Typography variant="body2" fontWeight={500}>
-                        {RESOURCE_LABELS[resource]}
+                        {t(RESOURCE_LABEL_KEYS[resource])}
                       </Typography>
                     </TableCell>
                     {roles.map((role) => {
                       const actionsForResource = role.permissions
                         .filter((perm) => perm.resource === resource)
-                        .map((perm) => ACTION_LABELS[perm.action]);
+                        .map((perm) => t(ACTION_LABEL_KEYS[perm.action]));
                       return (
                         <TableCell key={role.id}>
                           {actionsForResource.length === 0 ? (
                             <Typography variant="caption" color="text.secondary">
-                              Sem acesso
+                              {t("admin.permissions.matrix.noAccess")}
                             </Typography>
                           ) : (
                             <Stack direction="row" spacing={0.5} flexWrap="wrap" useFlexGap>
@@ -544,17 +552,17 @@ export function PermissionsPage() {
           setSearch(value);
           setPage(1);
         }}
-        searchLabel="Filtrar regras de escopo"
-        searchPlaceholder="Usuário, grupo, papel ou destino..."
+        searchLabel={t("admin.permissions.filters.searchLabel")}
+        searchPlaceholder={t("admin.permissions.filters.searchPlaceholder")}
         filters={[
           {
             id: "effect-filter",
-            label: "Tipo de regra",
+            label: t("admin.permissions.filters.effectLabel"),
             value: effectFilter,
-            allOptionLabel: "Concessões e exceções",
+            allOptionLabel: t("admin.permissions.filters.allEffects"),
             options: [
-              { value: "ALLOW", label: "Concessões (Permitir)" },
-              { value: "DENY", label: "Exceções (Negar)" },
+              { value: "ALLOW", label: t("admin.permissions.filters.effectAllow") },
+              { value: "DENY", label: t("admin.permissions.filters.effectDeny") },
             ],
             onChange: (value) => {
               setEffectFilter(value as AccessEffect | "");
@@ -563,14 +571,14 @@ export function PermissionsPage() {
           },
           {
             id: "scope-filter",
-            label: "Escopo",
+            label: t("admin.permissions.filters.scopeLabel"),
             value: scopeFilter,
-            allOptionLabel: "Todos os escopos",
+            allOptionLabel: t("admin.permissions.filters.allScopes"),
             options: [
-              { value: "GLOBAL", label: "Global da instalação" },
-              { value: "CATEGORY", label: "Categoria" },
-              { value: "FOLDER", label: "Pasta (herança)" },
-              { value: "DOCUMENT", label: "Documento" },
+              { value: "GLOBAL", label: t("admin.permissions.filters.scopeGlobal") },
+              { value: "CATEGORY", label: t("admin.permissions.filters.scopeCategory") },
+              { value: "FOLDER", label: t("admin.permissions.filters.scopeFolder") },
+              { value: "DOCUMENT", label: t("admin.permissions.filters.scopeDocument") },
             ],
             onChange: (value) => {
               setScopeFilter(value as AccessScopeType | "");
@@ -593,13 +601,13 @@ export function PermissionsPage() {
             startIcon={<AddModeratorOutlinedIcon />}
             onClick={handleOpenAssign}
           >
-            Nova regra ou exceção
+            {t("admin.permissions.actions.newRule")}
           </Button>
         }
       />
 
       <DataTable
-        ariaLabel="Tabela de atribuições e exceções de permissão"
+        ariaLabel={t("admin.permissions.table.ariaLabel")}
         columns={assignmentColumns}
         rows={pagedAssignments}
         getRowId={(row) => row.id}
@@ -615,9 +623,9 @@ export function PermissionsPage() {
         loading={assignmentsQuery.isLoading}
         errorMessage={assignmentsQuery.isError ? assignmentsQuery.error.message : null}
         onRetry={() => void assignmentsQuery.refetch()}
-        emptyTitle="Nenhuma atribuição ou exceção encontrada"
-        emptyDescription="Nenhuma regra de escopo corresponde aos filtros aplicados."
-        emptyActionLabel="Nova regra ou exceção"
+        emptyTitle={t("admin.permissions.table.emptyTitle")}
+        emptyDescription={t("admin.permissions.table.emptyDescription")}
+        emptyActionLabel={t("admin.permissions.actions.newRule")}
         onEmptyAction={handleOpenAssign}
       />
 
@@ -628,7 +636,7 @@ export function PermissionsPage() {
         maxWidth="sm"
         fullWidth
       >
-        <DialogTitle id={assignTitleId}>Atribuir papel ou registrar exceção</DialogTitle>
+        <DialogTitle id={assignTitleId}>{t("admin.permissions.dialog.title")}</DialogTitle>
         <DialogContent>
           <Stack spacing={2} sx={{ pt: 0.5 }}>
             {assignError ? (
@@ -639,7 +647,7 @@ export function PermissionsPage() {
 
             <TextField
               select
-              label="Tipo de destinatário"
+              label={t("admin.permissions.dialog.recipientType")}
               value={subjectType}
               onChange={(event) => {
                 setSubjectType(event.target.value as "USER" | "GROUP");
@@ -648,13 +656,17 @@ export function PermissionsPage() {
               fullWidth
               disabled={assignMutation.isPending}
             >
-              <MenuItem value="USER">Usuário</MenuItem>
-              <MenuItem value="GROUP">Grupo de trabalho</MenuItem>
+              <MenuItem value="USER">{t("admin.permissions.dialog.recipientUser")}</MenuItem>
+              <MenuItem value="GROUP">{t("admin.permissions.dialog.recipientGroup")}</MenuItem>
             </TextField>
 
             <TextField
               select
-              label={subjectType === "USER" ? "Selecionar usuário" : "Selecionar grupo"}
+              label={
+                subjectType === "USER"
+                  ? t("admin.permissions.dialog.selectUser")
+                  : t("admin.permissions.dialog.selectGroup")
+              }
               value={subjectId}
               onChange={(event) => setSubjectId(event.target.value)}
               fullWidth
@@ -675,7 +687,7 @@ export function PermissionsPage() {
 
             <TextField
               select
-              label="Papel"
+              label={t("admin.permissions.dialog.role")}
               value={roleId}
               onChange={(event) => setRoleId(event.target.value)}
               fullWidth
@@ -690,19 +702,19 @@ export function PermissionsPage() {
 
             <TextField
               select
-              label="Efeito da regra"
+              label={t("admin.permissions.dialog.effect")}
               value={effect}
               onChange={(event) => setEffect(event.target.value as AccessEffect)}
               fullWidth
               disabled={assignMutation.isPending}
             >
-              <MenuItem value="ALLOW">Permitir acesso (concessão)</MenuItem>
-              <MenuItem value="DENY">Negar acesso (exceção explícita)</MenuItem>
+              <MenuItem value="ALLOW">{t("admin.permissions.dialog.effectAllow")}</MenuItem>
+              <MenuItem value="DENY">{t("admin.permissions.dialog.effectDeny")}</MenuItem>
             </TextField>
 
             <TextField
               select
-              label="Escopo de aplicação"
+              label={t("admin.permissions.dialog.appliesTo")}
               value={scopeType}
               onChange={(event) => {
                 setScopeType(event.target.value as AccessScopeType);
@@ -711,16 +723,20 @@ export function PermissionsPage() {
               fullWidth
               disabled={assignMutation.isPending}
             >
-              <MenuItem value="GLOBAL">Global da instalação</MenuItem>
-              <MenuItem value="CATEGORY">Categoria documental</MenuItem>
-              <MenuItem value="FOLDER">Pasta (herda subpastas)</MenuItem>
-              <MenuItem value="DOCUMENT">Documento específico</MenuItem>
+              <MenuItem value="GLOBAL">{t("admin.permissions.dialog.appliesToGlobal")}</MenuItem>
+              <MenuItem value="CATEGORY">
+                {t("admin.permissions.dialog.appliesToCategory")}
+              </MenuItem>
+              <MenuItem value="FOLDER">{t("admin.permissions.dialog.appliesToFolder")}</MenuItem>
+              <MenuItem value="DOCUMENT">
+                {t("admin.permissions.dialog.appliesToDocument")}
+              </MenuItem>
             </TextField>
 
             {scopeType === "CATEGORY" ? (
               <TextField
                 select
-                label="Categoria alvo"
+                label={t("admin.permissions.dialog.targetCategory")}
                 value={scopeTargetId}
                 onChange={(event) => setScopeTargetId(event.target.value)}
                 fullWidth
@@ -735,7 +751,7 @@ export function PermissionsPage() {
             ) : scopeType === "FOLDER" ? (
               <TextField
                 select
-                label="Pasta alvo"
+                label={t("admin.permissions.dialog.targetFolder")}
                 value={scopeTargetId}
                 onChange={(event) => setScopeTargetId(event.target.value)}
                 fullWidth
@@ -749,11 +765,11 @@ export function PermissionsPage() {
               </TextField>
             ) : scopeType === "DOCUMENT" ? (
               <TextField
-                label="Identificador do documento"
+                label={t("admin.permissions.dialog.documentId")}
                 value={scopeTargetId}
                 onChange={(event) => setScopeTargetId(event.target.value)}
                 fullWidth
-                placeholder="UUID do documento alvo"
+                placeholder={t("admin.permissions.dialog.documentIdPlaceholder")}
                 disabled={assignMutation.isPending}
               />
             ) : null}
@@ -765,23 +781,27 @@ export function PermissionsPage() {
             disabled={assignMutation.isPending}
             variant="text"
           >
-            Cancelar
+            {t("admin.common.cancel")}
           </Button>
           <Button
             onClick={() => void handleConfirmAssign()}
             disabled={assignMutation.isPending}
             variant="contained"
           >
-            {assignMutation.isPending ? "Salvando..." : "Salvar regra"}
+            {assignMutation.isPending
+              ? t("admin.common.saving")
+              : t("admin.permissions.dialog.submit")}
           </Button>
         </DialogActions>
       </Dialog>
 
       <ConfirmDialog
         open={revokeTarget !== null}
-        title="Revogar regra de acesso"
-        description={`Confirmar a remoção desta regra para "${revokeTarget ? resolveSubjectLabel(revokeTarget) : ""}"?`}
-        confirmLabel="Confirmar revogação"
+        title={t("admin.permissions.confirmRevoke.title")}
+        description={t("admin.permissions.confirmRevoke.description", {
+          subject: revokeTarget ? resolveSubjectLabel(revokeTarget) : "",
+        })}
+        confirmLabel={t("admin.permissions.confirmRevoke.confirm")}
         confirmColor="error"
         loading={revokeMutation.isPending}
         onConfirm={() => void handleConfirmRevoke()}

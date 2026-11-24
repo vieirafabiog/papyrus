@@ -1,11 +1,12 @@
 import "@testing-library/jest-dom/vitest";
-import { docuflowTheme } from "@docuflow/ui";
+import { UiLocaleProvider, papyrusTheme } from "@docuflow/ui";
 import { CssBaseline, ThemeProvider } from "@mui/material";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { OrganizationSettingsPage } from "../src/features/admin/OrganizationSettingsPage.js";
+import { I18nProvider } from "../src/i18n/index.js";
 
 function renderOrganizationPage() {
   const queryClient = new QueryClient({
@@ -15,14 +16,18 @@ function renderOrganizationPage() {
   });
 
   return render(
-    <ThemeProvider theme={docuflowTheme}>
-      <CssBaseline />
-      <QueryClientProvider client={queryClient}>
-        <MemoryRouter>
-          <OrganizationSettingsPage />
-        </MemoryRouter>
-      </QueryClientProvider>
-    </ThemeProvider>,
+    <I18nProvider initialLocale="en-US">
+      <UiLocaleProvider locale="en-US">
+        <ThemeProvider theme={papyrusTheme}>
+          <CssBaseline />
+          <QueryClientProvider client={queryClient}>
+            <MemoryRouter>
+              <OrganizationSettingsPage />
+            </MemoryRouter>
+          </QueryClientProvider>
+        </ThemeProvider>
+      </UiLocaleProvider>
+    </I18nProvider>,
   );
 }
 
@@ -32,7 +37,7 @@ describe("OrganizationSettingsPage (Step 14.01)", () => {
     vi.restoreAllMocks();
   });
 
-  it("loads organization preferences and submits valid updates in pt-BR", async () => {
+  it("loads organization preferences and submits valid updates", async () => {
     let sentPatch: Record<string, unknown> | null = null;
     const initialOrg = {
       id: "550e8400-e29b-41d4-a716-446655440000",
@@ -99,17 +104,20 @@ describe("OrganizationSettingsPage (Step 14.01)", () => {
       expect(screen.getByDisplayValue("DocuFlow Brasil")).toBeInTheDocument();
     });
 
-    const nameField = screen.getByLabelText(/Nome da organização/i);
+    expect(screen.getByText("Organization settings")).toBeInTheDocument();
+    expect(screen.getByText(/Organization code: docuflow-brasil/i)).toBeInTheDocument();
+    expect(screen.getByLabelText("Time zone")).toBeInTheDocument();
+    expect(screen.getByText("General preferences")).toBeInTheDocument();
+
+    const nameField = screen.getByLabelText(/Organization name/i);
     fireEvent.change(nameField, { target: { value: "DocuFlow Corporativo" } });
 
-    const saveBtn = screen.getByRole("button", { name: "Salvar configurações" });
+    const saveBtn = screen.getByRole("button", { name: "Save settings" });
     expect(saveBtn).not.toBeDisabled();
     fireEvent.click(saveBtn);
 
     await waitFor(() => {
-      expect(
-        screen.getByText("Dados e preferências da organização salvos com sucesso."),
-      ).toBeInTheDocument();
+      expect(screen.getByText("Organization settings saved.")).toBeInTheDocument();
     });
 
     expect(sentPatch).toMatchObject({
@@ -153,12 +161,10 @@ describe("OrganizationSettingsPage (Step 14.01)", () => {
 
     await waitFor(() => {
       expect(
-        screen.getByText(
-          "Seu perfil possui acesso somente de leitura às configurações da organização.",
-        ),
+        screen.getByText("You have read-only access to organization settings."),
       ).toBeInTheDocument();
     });
 
-    expect(screen.getByRole("button", { name: "Salvar configurações" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Save settings" })).toBeDisabled();
   });
 });

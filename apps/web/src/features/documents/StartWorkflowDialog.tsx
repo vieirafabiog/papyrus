@@ -3,7 +3,6 @@ import {
   type StartDocumentWorkflowRequest,
   type StartDocumentWorkflowResult,
   type WorkflowDefinitionSummary,
-  apiErrorResponseSchema,
   startDocumentWorkflowResponseSchema,
   workflowDefinitionListResponseSchema,
 } from "@docuflow/contracts";
@@ -22,6 +21,8 @@ import {
 } from "@mui/material";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useId, useState } from "react";
+import { extractUserErrorMessage } from "../../i18n/api-errors.js";
+import { translate, useI18n } from "../../i18n/index.js";
 import { TASK_INBOX_COUNTS_QUERY_KEY } from "../tasks/useTaskInbox.js";
 import { documentWorkflowTimelineQueryKey } from "./DocumentWorkflowTimeline.js";
 import { documentDetailsQueryKey } from "./useDocumentDetails.js";
@@ -66,20 +67,11 @@ async function fetchWorkflowDefinitions(): Promise<readonly WorkflowDefinitionSu
     headers: { Accept: "application/json" },
   });
   if (!response.ok) {
-    let message = `Não foi possível listar fluxos de aprovação (${response.status}).`;
-    try {
-      const parsed = apiErrorResponseSchema.safeParse(await response.json());
-      if (parsed.success) {
-        message = parsed.data.error.message;
-      }
-    } catch {
-      // Fallback para mensagem padrão.
-    }
-    throw new Error(message);
+    throw new Error(await extractUserErrorMessage(response, "workflows.errors.listDefinitions"));
   }
   const parsed = workflowDefinitionListResponseSchema.safeParse(await response.json());
   if (!parsed.success) {
-    throw new Error("Resposta inválida recebida ao listar definições de fluxo.");
+    throw new Error(translate("workflows.errors.invalidDefinitionsResponse"));
   }
   return parsed.data.data;
 }
@@ -109,6 +101,7 @@ export function StartWorkflowDialog({
   onClose,
   onStarted,
 }: StartWorkflowDialogProps) {
+  const { t } = useI18n();
   const titleId = useId();
   const descId = useId();
   const queryClient = useQueryClient();
@@ -156,20 +149,11 @@ export function StartWorkflowDialog({
         },
       );
       if (!response.ok) {
-        let message = `Não foi possível iniciar o fluxo de aprovação (${response.status}).`;
-        try {
-          const parsedErr = apiErrorResponseSchema.safeParse(await response.json());
-          if (parsedErr.success) {
-            message = parsedErr.data.error.message;
-          }
-        } catch {
-          // Mantém mensagem padrão.
-        }
-        throw new Error(message);
+        throw new Error(await extractUserErrorMessage(response, "workflows.errors.startWorkflow"));
       }
       const parsed = startDocumentWorkflowResponseSchema.safeParse(await response.json());
       if (!parsed.success) {
-        throw new Error("Resposta inválida recebida ao iniciar o fluxo de aprovação.");
+        throw new Error(translate("workflows.errors.invalidStartResponse"));
       }
       return parsed.data.data;
     },
@@ -193,18 +177,16 @@ export function StartWorkflowDialog({
 
   const handleConfirm = async (): Promise<void> => {
     if (!selectedDefinitionId) {
-      setSubmitError("Selecione um fluxo de aprovação antes de confirmar.");
+      setSubmitError(t("workflows.startDialog.selectRequired"));
       return;
     }
     setSubmitError(null);
     try {
       await startMutation.mutateAsync(selectedDefinitionId);
-      onStarted?.("Documento enviado para revisão e aprovação.");
+      onStarted?.(t("workflows.startDialog.startedSuccess"));
       onClose();
     } catch (error) {
-      setSubmitError(
-        error instanceof Error ? error.message : "Não foi possível iniciar o fluxo de aprovação.",
-      );
+      setSubmitError(error instanceof Error ? error.message : t("workflows.errors.startWorkflow"));
     }
   };
 
@@ -217,19 +199,24 @@ export function StartWorkflowDialog({
       maxWidth="xs"
       fullWidth
     >
-      <DialogTitle id={titleId}>Enviar para revisão e aprovação</DialogTitle>
+      <DialogTitle id={titleId}>{t("workflows.startDialog.title")}</DialogTitle>
       <DialogContent>
         <Stack spacing={2} sx={{ pt: 0.5 }}>
           <DialogContentText id={descId}>
-            O documento "{documentTitle}"
-            {documentVersionNumber !== undefined ? ` (versão v${documentVersionNumber})` : ""} será
-            bloqueado em revisão até a conclusão das etapas do fluxo selecionado.
+            {documentVersionNumber !== undefined
+              ? t("workflows.startDialog.descriptionWithVersion", {
+                  title: documentTitle,
+                  version: documentVersionNumber,
+                })
+              : t("workflows.startDialog.description", {
+                  title: documentTitle,
+                })}
           </DialogContentText>
 
           {definitionsQuery.isLoading ? (
             <Stack direction="row" spacing={1} alignItems="center">
               <CircularProgress size={18} />
-              <span>Carregando fluxos disponíveis...</span>
+              <span>{t("workflows.startDialog.loading")}</span>
             </Stack>
           ) : null}
 
@@ -247,7 +234,7 @@ export function StartWorkflowDialog({
 
           <TextField
             select
-            label="Fluxo de aprovação"
+            label={t("workflows.startDialog.selectLabel")}
             value={selectedDefinitionId}
             onChange={(event) => setSelectedDefinitionId(event.target.value)}
             disabled={
@@ -256,7 +243,7 @@ export function StartWorkflowDialog({
             fullWidth
             helperText={
               !definitionsQuery.isLoading && definitions.length === 0
-                ? "Nenhum fluxo ativo configurado para esta organização."
+                ? t("workflows.startDialog.noActiveWorkflows")
                 : undefined
             }
           >
@@ -270,7 +257,7 @@ export function StartWorkflowDialog({
       </DialogContent>
       <DialogActions>
         <Button onClick={handleClose} disabled={startMutation.isPending}>
-          Cancelar
+          {t("workflows.startDialog.cancel")}
         </Button>
         <Button
           variant="contained"
@@ -281,7 +268,9 @@ export function StartWorkflowDialog({
             selectedDefinitionId.length === 0
           }
         >
-          {startMutation.isPending ? "Enviando..." : "Confirmar envio"}
+          {startMutation.isPending
+            ? t("workflows.startDialog.submitting")
+            : t("workflows.startDialog.confirm")}
         </Button>
       </DialogActions>
     </Dialog>

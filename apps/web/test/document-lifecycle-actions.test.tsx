@@ -1,6 +1,6 @@
 import "@testing-library/jest-dom/vitest";
 import type { DocumentDetail } from "@docuflow/contracts";
-import { docuflowTheme } from "@docuflow/ui";
+import { papyrusTheme } from "@docuflow/ui";
 import { CssBaseline, ThemeProvider } from "@mui/material";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
@@ -68,7 +68,7 @@ describe("DocumentLifecycleActions", () => {
   it("hides move and archive buttons when user lacks UPDATE permission", () => {
     const queryClient = new QueryClient();
     render(
-      <ThemeProvider theme={docuflowTheme}>
+      <ThemeProvider theme={papyrusTheme}>
         <CssBaseline />
         <QueryClientProvider client={queryClient}>
           <DocumentLifecycleActions
@@ -85,8 +85,8 @@ describe("DocumentLifecycleActions", () => {
       </ThemeProvider>,
     );
 
-    expect(screen.queryByRole("button", { name: "Mover pasta" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Arquivar" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Move folder" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Archive" })).not.toBeInTheDocument();
   });
 
   it("moves document to selected active folder and archives eligible document with feedback", async () => {
@@ -182,7 +182,7 @@ describe("DocumentLifecycleActions", () => {
     });
 
     render(
-      <ThemeProvider theme={docuflowTheme}>
+      <ThemeProvider theme={papyrusTheme}>
         <CssBaseline />
         <QueryClientProvider client={queryClient}>
           <DocumentLifecycleActions document={createDoc()} onActionFeedback={onFeedback} />
@@ -191,40 +191,40 @@ describe("DocumentLifecycleActions", () => {
     );
 
     // Move flow
-    fireEvent.click(screen.getByRole("button", { name: "Mover pasta" }));
-    const moveDialog = await screen.findByRole("dialog", { name: "Mover documento de pasta" });
+    fireEvent.click(screen.getByRole("button", { name: "Move folder" }));
+    const moveDialog = await screen.findByRole("dialog", { name: "Move document to folder" });
     const folderSelect = within(moveDialog).getByRole("combobox");
     await waitFor(() => {
       expect(folderSelect).not.toHaveAttribute("aria-disabled", "true");
     });
     fireEvent.mouseDown(folderSelect);
     fireEvent.click(await screen.findByRole("option", { name: "Destino" }));
-    fireEvent.click(within(moveDialog).getByRole("button", { name: "Confirmar movimentação" }));
+    fireEvent.click(within(moveDialog).getByRole("button", { name: "Confirm move" }));
 
     await waitFor(() => {
       expect(onFeedback).toHaveBeenCalledWith({
         severity: "success",
-        message: 'Documento movido para "Destino".',
+        message: 'Document moved to "Destino".',
       });
     });
     await waitFor(() => {
       expect(
-        screen.queryByRole("dialog", { name: "Mover documento de pasta" }),
+        screen.queryByRole("dialog", { name: "Move document to folder" }),
       ).not.toBeInTheDocument();
     });
 
     // Archive flow
-    fireEvent.click(await screen.findByRole("button", { name: "Arquivar" }));
-    const archiveDialog = await screen.findByRole("dialog", { name: "Arquivar documento" });
-    fireEvent.change(within(archiveDialog).getByLabelText("Motivo do arquivamento (opcional)"), {
+    fireEvent.click(await screen.findByRole("button", { name: "Archive" }));
+    const archiveDialog = await screen.findByRole("dialog", { name: "Archive document" });
+    fireEvent.change(within(archiveDialog).getByLabelText("Archive reason (optional)"), {
       target: { value: "Contrato encerrado" },
     });
-    fireEvent.click(within(archiveDialog).getByRole("button", { name: "Confirmar arquivamento" }));
+    fireEvent.click(within(archiveDialog).getByRole("button", { name: "Confirm archive" }));
 
     await waitFor(() => {
       expect(onFeedback).toHaveBeenCalledWith({
         severity: "success",
-        message: "Documento arquivado com sucesso.",
+        message: "Document archived successfully.",
       });
     });
 

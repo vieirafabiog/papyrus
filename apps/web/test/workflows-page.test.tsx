@@ -1,11 +1,12 @@
 import "@testing-library/jest-dom/vitest";
-import { docuflowTheme } from "@docuflow/ui";
+import { UiLocaleProvider, createPapyrusTheme } from "@docuflow/ui";
 import { CssBaseline, ThemeProvider } from "@mui/material";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { WorkflowsPage } from "../src/features/workflows/WorkflowsPage.js";
+import { I18nProvider, type UiLocale } from "../src/i18n/index.js";
 
 const ORG_ID = "550e8400-e29b-41d4-a716-446655440001";
 const USER_ID = "550e8400-e29b-41d4-a716-446655440002";
@@ -13,19 +14,23 @@ const DEF_ID = "550e8400-e29b-41d4-a716-446655440010";
 const VER_ID = "550e8400-e29b-41d4-a716-446655440011";
 const ROLE_ID = "550e8400-e29b-41d4-a716-446655440020";
 
-function renderWorkflowsPage() {
+function renderWorkflowsPage(locale: UiLocale = "en-US") {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   });
   return render(
-    <ThemeProvider theme={docuflowTheme}>
-      <CssBaseline />
-      <QueryClientProvider client={queryClient}>
-        <MemoryRouter>
-          <WorkflowsPage />
-        </MemoryRouter>
-      </QueryClientProvider>
-    </ThemeProvider>,
+    <I18nProvider initialLocale={locale}>
+      <UiLocaleProvider locale={locale}>
+        <ThemeProvider theme={createPapyrusTheme(locale)}>
+          <CssBaseline />
+          <QueryClientProvider client={queryClient}>
+            <MemoryRouter>
+              <WorkflowsPage />
+            </MemoryRouter>
+          </QueryClientProvider>
+        </ThemeProvider>
+      </UiLocaleProvider>
+    </I18nProvider>,
   );
 }
 
@@ -113,7 +118,7 @@ describe("WorkflowsPage", () => {
                 steps: [
                   {
                     stepOrder: 1,
-                    name: "Revisão Jurídica",
+                    name: "Legal Review",
                     assignee: { type: "USER", userId: USER_ID },
                     dueDays: 3,
                   },
@@ -130,28 +135,70 @@ describe("WorkflowsPage", () => {
 
     renderWorkflowsPage();
 
-    expect(await screen.findByText("Nenhum fluxo de aprovação cadastrado")).toBeInTheDocument();
+    expect(await screen.findByText("No approval workflows yet")).toBeInTheDocument();
 
-    const newButtons = screen.getAllByRole("button", { name: "Novo fluxo" });
+    const newButtons = screen.getAllByRole("button", { name: "New workflow" });
     const primaryNewButton = newButtons[0];
     expect(primaryNewButton).toBeDefined();
     if (primaryNewButton) {
       fireEvent.click(primaryNewButton);
     }
 
-    fireEvent.change(await screen.findByLabelText(/Nome do fluxo/), {
-      target: { value: "Aprovação de Contratos" },
+    fireEvent.change(await screen.findByLabelText(/Workflow name/), {
+      target: { value: "Contract Approval" },
     });
-    fireEvent.change(screen.getByLabelText(/Nome da etapa 1/), {
-      target: { value: "Revisão Jurídica" },
+    fireEvent.change(screen.getByLabelText(/Step 1 name/), {
+      target: { value: "Legal Review" },
     });
 
-    fireEvent.click(screen.getByRole("button", { name: "Criar definição" }));
+    fireEvent.click(screen.getByRole("button", { name: "Create workflow" }));
 
     await waitFor(() => {
       expect(createdPayload).not.toBeNull();
     });
-    expect(createdPayload?.name).toBe("Aprovação de Contratos");
-    expect(await screen.findByText("Aprovação de Contratos")).toBeInTheDocument();
+    expect(createdPayload?.name).toBe("Contract Approval");
+    expect(await screen.findByText("Contract Approval")).toBeInTheDocument();
+  });
+
+  it("renders pt-BR copy when locale is pt-BR", async () => {
+    vi.spyOn(globalThis, "fetch").mockImplementation(async (input) => {
+      const url = typeof input === "string" ? input : input.toString();
+      if (url.endsWith("/auth/me")) {
+        return new Response(
+          JSON.stringify({
+            data: {
+              user: {
+                id: USER_ID,
+                organizationId: ORG_ID,
+                email: "admin@docuflow.local",
+                fullName: "Administrador",
+                status: "ACTIVE",
+                createdAt: "2026-11-24T10:00:00.000Z",
+                updatedAt: "2026-11-24T10:00:00.000Z",
+              },
+              groups: [],
+              roles: [],
+              permissions: [],
+              sessionExpiresAt: "2026-11-25T10:00:00.000Z",
+            },
+          }),
+          { status: 200 },
+        );
+      }
+      if (url.endsWith("/workflows/assignees")) {
+        return new Response(JSON.stringify({ data: { users: [], groups: [], roles: [] } }), {
+          status: 200,
+        });
+      }
+      if (url.includes("/workflows/definitions")) {
+        return new Response(JSON.stringify({ data: [] }), { status: 200 });
+      }
+      return new Response(null, { status: 404 });
+    });
+
+    renderWorkflowsPage("pt-BR");
+
+    expect(await screen.findByText("Nenhum fluxo de aprovação cadastrado")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Fluxos de aprovação" })).toBeInTheDocument();
   });
 });

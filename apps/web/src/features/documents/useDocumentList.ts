@@ -6,7 +6,6 @@ import {
   type DocumentStatus,
   type FolderRecord,
   type UserSummary,
-  apiErrorResponseSchema,
   categoryListResponseSchema,
   documentListResponseSchema,
   folderListResponseSchema,
@@ -14,6 +13,8 @@ import {
 } from "@docuflow/contracts";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { useSessionQuery } from "../../app/session.js";
+import { extractUserErrorMessage } from "../../i18n/api-errors.js";
+import { type UiLocale, getCurrentUiLocale, translate, useI18n } from "../../i18n/index.js";
 
 export type DocumentListSortField = NonNullable<DocumentSearchQuery["sortBy"]>;
 
@@ -94,19 +95,6 @@ export function documentSearchQueryKey(filters: DocumentListFiltersState) {
   return ["documents", "search", filters] as const;
 }
 
-async function parseSearchErrorMessage(response: Response, fallback: string): Promise<string> {
-  try {
-    const raw: unknown = await response.json();
-    const parsed = apiErrorResponseSchema.safeParse(raw);
-    if (parsed.success) {
-      return parsed.data.error.message;
-    }
-  } catch {
-    // Fallback to HTTP status text.
-  }
-  return `${fallback} (${response.status}).`;
-}
-
 export async function fetchDocumentSearchPage(
   filters: DocumentListFiltersState,
   signal?: AbortSignal,
@@ -120,13 +108,13 @@ export async function fetchDocumentSearchPage(
   });
 
   if (!response.ok) {
-    throw new Error(await parseSearchErrorMessage(response, "Falha ao listar documentos"));
+    throw new Error(await extractUserErrorMessage(response, "documents.errors.listFailed"));
   }
 
   const rawJson: unknown = await response.json();
   const parsed = documentListResponseSchema.safeParse(rawJson);
   if (!parsed.success) {
-    throw new Error("Resposta inválida recebida ao consultar a lista de documentos.");
+    throw new Error(translate("common.errors.unexpectedResponse"));
   }
 
   return parsed.data;
@@ -163,14 +151,28 @@ export async function fetchActiveFolders(): Promise<readonly FolderRecord[]> {
   return parsed.success ? parsed.data.data.items : [];
 }
 
+function buildAssignedToMeOption(
+  currentUser: UserSummary | null,
+  locale: UiLocale,
+): readonly OwnerFilterOption[] {
+  if (!currentUser) {
+    return [];
+  }
+  return [
+    {
+      id: currentUser.id,
+      label: translate("documents.filters.assignedToMe", { name: currentUser.fullName }, locale),
+    },
+  ];
+}
+
 export async function fetchOwnerFilterOptions(
   canListUsers: boolean,
   currentUser: UserSummary | null,
+  locale: UiLocale = getCurrentUiLocale(),
 ): Promise<readonly OwnerFilterOption[]> {
   if (!canListUsers) {
-    return currentUser
-      ? [{ id: currentUser.id, label: `Sob minha responsabilidade (${currentUser.fullName})` }]
-      : [];
+    return buildAssignedToMeOption(currentUser, locale);
   }
 
   const response = await fetch(`${CONTRACTS_API_PREFIX}/admin/users`, {
@@ -179,9 +181,7 @@ export async function fetchOwnerFilterOptions(
     headers: { Accept: "application/json" },
   });
   if (!response.ok) {
-    return currentUser
-      ? [{ id: currentUser.id, label: `Sob minha responsabilidade (${currentUser.fullName})` }]
-      : [];
+    return buildAssignedToMeOption(currentUser, locale);
   }
 
   const rawJson: unknown = await response.json();
@@ -190,9 +190,7 @@ export async function fetchOwnerFilterOptions(
       ? (rawJson as { data?: unknown }).data
       : null;
   if (!Array.isArray(rawItems)) {
-    return currentUser
-      ? [{ id: currentUser.id, label: `Sob minha responsabilidade (${currentUser.fullName})` }]
-      : [];
+    return buildAssignedToMeOption(currentUser, locale);
   }
 
   const options: OwnerFilterOption[] = [];
@@ -225,6 +223,7 @@ export function useDocumentListFoldersQuery() {
 }
 
 export function useDocumentOwnersQuery() {
+  const { locale } = useI18n();
   const { data: session } = useSessionQuery();
   const canListUsers = Boolean(
     session &&
@@ -235,8 +234,8 @@ export function useDocumentOwnersQuery() {
   );
 
   return useQuery({
-    queryKey: ["users", "owner-filter-options", session?.user.id ?? "", canListUsers],
-    queryFn: () => fetchOwnerFilterOptions(canListUsers, session?.user ?? null),
+    queryKey: ["users", "owner-filter-options", session?.user.id ?? "", canListUsers, locale],
+    queryFn: () => fetchOwnerFilterOptions(canListUsers, session?.user ?? null, locale),
     enabled: session !== undefined,
     retry: false,
   });

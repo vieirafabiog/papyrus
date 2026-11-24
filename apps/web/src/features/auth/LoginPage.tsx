@@ -23,6 +23,9 @@ import { useQueryClient } from "@tanstack/react-query";
 import { type FormEvent, useRef, useState } from "react";
 import { Link as RouterLink, useLocation, useNavigate } from "react-router-dom";
 import { SESSION_QUERY_KEY } from "../../app/session.js";
+import { LanguageSwitcher } from "../../components/LanguageSwitcher.js";
+import { getLocalizedApiErrorMessage } from "../../i18n/api-errors.js";
+import { useI18n } from "../../i18n/index.js";
 
 const CSRF_COOKIE_NAME = "docuflow_csrf";
 const CSRF_HEADER_NAME = "x-csrf-token";
@@ -74,7 +77,7 @@ async function resolveLoginCsrfToken(): Promise<string | null> {
       return rawJson.data.csrfToken;
     }
   } catch {
-    // Fallback para cookie ou ambiente de teste sem endpoint CSRF dedicado.
+    // Fallback to cookie or test environment without a dedicated CSRF endpoint.
   }
   return readCookieValue(CSRF_COOKIE_NAME);
 }
@@ -94,6 +97,7 @@ function resolveSafeRedirectPath(state: unknown): string {
 }
 
 export function LoginPage() {
+  const { t, locale } = useI18n();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const location = useLocation();
@@ -119,10 +123,10 @@ export function LoginPage() {
       for (const issue of parsed.error.issues) {
         const field = issue.path[0];
         if (field === "email" && !nextErrors.email) {
-          nextErrors.email = "Informe um endereço de e-mail válido.";
+          nextErrors.email = t("auth.login.invalidEmail");
         }
         if (field === "password" && !nextErrors.password) {
-          nextErrors.password = "Informe sua senha.";
+          nextErrors.password = t("auth.login.requiredPassword");
         }
       }
       setFieldErrors(nextErrors);
@@ -147,17 +151,31 @@ export function LoginPage() {
       });
 
       if (!response.ok) {
-        let errorMessage = "Credenciais inválidas ou acesso temporariamente indisponível.";
+        if (response.status === 401) {
+          setSubmitError(t("auth.login.invalidCredentials"));
+          return;
+        }
+        let code: string | undefined;
+        let serverMessage: string | undefined;
         try {
           const rawError: unknown = await response.json();
           const parsedError = apiErrorResponseSchema.safeParse(rawError);
           if (parsedError.success) {
-            errorMessage = parsedError.data.error.message;
+            code = parsedError.data.error.code;
+            serverMessage = parsedError.data.error.message;
           }
         } catch {
-          // Mantém mensagem padrão segura caso o corpo não seja JSON.
+          // Keep safe localized fallback when error body is not JSON.
         }
-        setSubmitError(errorMessage);
+        if (code === "UNAUTHORIZED") {
+          setSubmitError(t("auth.login.invalidCredentials"));
+          return;
+        }
+        setSubmitError(
+          code !== undefined || response.status === 403 || response.status === 429
+            ? getLocalizedApiErrorMessage(code, response.status, serverMessage, locale)
+            : t("auth.login.invalidCredentials"),
+        );
         return;
       }
 
@@ -165,7 +183,7 @@ export function LoginPage() {
       const targetPath = resolveSafeRedirectPath(location.state);
       navigate(targetPath, { replace: true });
     } catch {
-      setSubmitError("Não foi possível conectar ao servidor. Tente novamente.");
+      setSubmitError(t("common.errors.network"));
     } finally {
       submitLockRef.current = false;
       setIsSubmitting(false);
@@ -194,14 +212,22 @@ export function LoginPage() {
         }}
       >
         <Stack spacing={3}>
-          <Stack spacing={1.5} alignItems="flex-start">
-            <PapyrusLogo size="md" />
+          <Stack spacing={1.5} alignItems="stretch">
+            <Stack
+              direction="row"
+              justifyContent="space-between"
+              alignItems="flex-start"
+              spacing={2}
+            >
+              <PapyrusLogo size="md" />
+              <LanguageSwitcher />
+            </Stack>
             <Box>
               <Typography variant="h1" component="h1">
-                Entrar no papyrus
+                {t("auth.login.title")}
               </Typography>
               <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-                Acesse o repositório documental da sua organização.
+                {t("auth.login.subtitle")}
               </Typography>
             </Box>
           </Stack>
@@ -216,7 +242,7 @@ export function LoginPage() {
             <Stack spacing={2}>
               <TextField
                 id="login-email"
-                label="E-mail corporativo"
+                label={t("auth.login.emailLabel")}
                 type="email"
                 name="email"
                 autoComplete="email"
@@ -231,7 +257,7 @@ export function LoginPage() {
 
               <TextField
                 id="login-password"
-                label="Senha"
+                label={t("auth.login.passwordLabel")}
                 type={showPassword ? "text" : "password"}
                 name="password"
                 autoComplete="current-password"
@@ -247,7 +273,11 @@ export function LoginPage() {
                     endAdornment: (
                       <InputAdornment position="end">
                         <IconButton
-                          aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
+                          aria-label={
+                            showPassword
+                              ? t("auth.login.hidePassword")
+                              : t("auth.login.showPassword")
+                          }
                           onClick={() => setShowPassword((prev) => !prev)}
                           edge="end"
                           disabled={isSubmitting}
@@ -266,7 +296,7 @@ export function LoginPage() {
 
               <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
                 <Link component={RouterLink} to="/forgot-password" variant="body2">
-                  Esqueci minha senha
+                  {t("auth.login.forgotPassword")}
                 </Link>
               </Box>
 
@@ -279,7 +309,7 @@ export function LoginPage() {
                   isSubmitting ? <CircularProgress size={16} color="inherit" /> : undefined
                 }
               >
-                {isSubmitting ? "Entrando..." : "Entrar"}
+                {isSubmitting ? t("auth.login.submitting") : t("auth.login.submit")}
               </Button>
             </Stack>
           </Box>

@@ -1,11 +1,12 @@
 import "@testing-library/jest-dom/vitest";
-import { docuflowTheme } from "@docuflow/ui";
+import { UiLocaleProvider, createPapyrusTheme } from "@docuflow/ui";
 import { CssBaseline, ThemeProvider } from "@mui/material";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { TaskInboxPage } from "../src/features/tasks/TaskInboxPage.js";
+import { I18nProvider, type UiLocale } from "../src/i18n/index.js";
 
 const DOC_1_ID = "550e8400-e29b-41d4-a716-446655440001";
 const DOC_2_ID = "550e8400-e29b-41d4-a716-446655440002";
@@ -21,13 +22,13 @@ function DocumentRouteProbe() {
   const location = useLocation();
   return (
     <div>
-      <h1>Detalhe do Documento</h1>
+      <h1>Document Details</h1>
       <p data-testid="doc-location">{`${location.pathname}${location.search}`}</p>
     </div>
   );
 }
 
-function renderTaskInboxPage(initialPath = "/tasks") {
+function renderTaskInboxPage(initialPath = "/tasks", locale: UiLocale = "en-US") {
   const queryClient = new QueryClient({
     defaultOptions: {
       queries: { retry: false },
@@ -35,17 +36,21 @@ function renderTaskInboxPage(initialPath = "/tasks") {
   });
 
   return render(
-    <ThemeProvider theme={docuflowTheme}>
-      <CssBaseline />
-      <QueryClientProvider client={queryClient}>
-        <MemoryRouter initialEntries={[initialPath]}>
-          <Routes>
-            <Route path="/tasks" element={<TaskInboxPage />} />
-            <Route path="/documents/:id" element={<DocumentRouteProbe />} />
-          </Routes>
-        </MemoryRouter>
-      </QueryClientProvider>
-    </ThemeProvider>,
+    <I18nProvider initialLocale={locale}>
+      <UiLocaleProvider locale={locale}>
+        <ThemeProvider theme={createPapyrusTheme(locale)}>
+          <CssBaseline />
+          <QueryClientProvider client={queryClient}>
+            <MemoryRouter initialEntries={[initialPath]}>
+              <Routes>
+                <Route path="/tasks" element={<TaskInboxPage />} />
+                <Route path="/documents/:id" element={<DocumentRouteProbe />} />
+              </Routes>
+            </MemoryRouter>
+          </QueryClientProvider>
+        </ThemeProvider>
+      </UiLocaleProvider>
+    </I18nProvider>,
   );
 }
 
@@ -108,7 +113,7 @@ function mockTaskInboxFetch() {
         JSON.stringify({
           error: {
             code: "FORBIDDEN",
-            message: "Acesso fora do escopo da tarefa.",
+            message: "Access denied.",
             requestId: "test-req",
           },
         }),
@@ -155,7 +160,7 @@ function mockTaskInboxFetch() {
   });
 }
 
-describe("TaskInboxPage (Minhas tarefas)", () => {
+describe("TaskInboxPage (My tasks)", () => {
   afterEach(() => {
     cleanup();
     vi.restoreAllMocks();
@@ -168,12 +173,12 @@ describe("TaskInboxPage (Minhas tarefas)", () => {
 
     expect(await screen.findByText("Contrato Fornecedor ACME")).toBeInTheDocument();
     expect(screen.getByText("Aprovação de Contratos")).toBeInTheDocument();
-    expect(screen.getByText("Etapa 1: Revisão Jurídica")).toBeInTheDocument();
-    expect(screen.getByText("Versão v2 · Em revisão")).toBeInTheDocument();
+    expect(screen.getByText("Step 1: Revisão Jurídica")).toBeInTheDocument();
+    expect(screen.getByText("Version v2 · In review")).toBeInTheDocument();
 
-    expect(screen.getByText("Pendentes: 1")).toBeInTheDocument();
-    expect(screen.getByText("Em atraso: 1")).toBeInTheDocument();
-    expect(screen.getByText("Total no filtro atual: 2 tarefas")).toBeInTheDocument();
+    expect(screen.getByText("Pending: 1")).toBeInTheDocument();
+    expect(screen.getByText("Overdue: 1")).toBeInTheDocument();
+    expect(screen.getByText("Total in current filter: 2 tasks")).toBeInTheDocument();
 
     for (const [callArg] of fetchSpy.mock.calls) {
       const requestedUrl = typeof callArg === "string" ? callArg : callArg.toString();
@@ -191,12 +196,12 @@ describe("TaskInboxPage (Minhas tarefas)", () => {
 
     fireEvent.mouseDown(screen.getByLabelText("Status"));
     const statusListbox = within(screen.getByRole("listbox"));
-    fireEvent.click(statusListbox.getByRole("option", { name: "Pendente" }));
+    fireEvent.click(statusListbox.getByRole("option", { name: "Pending" }));
 
     await waitFor(() => {
       expect(screen.queryByText("Laudo Arquivado Removido")).not.toBeInTheDocument();
     });
-    expect(screen.getByText("Total no filtro atual: 1 tarefa")).toBeInTheDocument();
+    expect(screen.getByText("Total in current filter: 1 task")).toBeInTheDocument();
 
     const calledUrlsAfterStatus = fetchSpy.mock.calls.map(([arg]) =>
       typeof arg === "string" ? arg : arg.toString(),
@@ -205,25 +210,23 @@ describe("TaskInboxPage (Minhas tarefas)", () => {
       calledUrlsAfterStatus.some((u) => u.includes("status=PENDING") && u.includes("pageSize=20")),
     ).toBe(true);
 
-    fireEvent.click(screen.getByRole("button", { name: "Limpar filtros" }));
+    fireEvent.click(screen.getByRole("button", { name: "Clear filters" }));
 
     expect(await screen.findByText("Laudo Arquivado Removido")).toBeInTheDocument();
-    expect(screen.getByText("Total no filtro atual: 2 tarefas")).toBeInTheDocument();
+    expect(screen.getByText("Total in current filter: 2 tasks")).toBeInTheDocument();
 
-    fireEvent.mouseDown(screen.getByLabelText("Atribuição"));
+    fireEvent.mouseDown(screen.getByLabelText("Assignment"));
     const assigneeListbox = within(screen.getByRole("listbox"));
-    fireEvent.click(assigneeListbox.getByRole("option", { name: "Grupo" }));
+    fireEvent.click(assigneeListbox.getByRole("option", { name: "Group" }));
 
     await waitFor(() => {
       expect(screen.queryByText("Contrato Fornecedor ACME")).not.toBeInTheDocument();
     });
     expect(screen.getByText("Laudo Arquivado Removido")).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("switch", { name: "Somente em atraso" }));
+    fireEvent.click(screen.getByRole("switch", { name: "Overdue only" }));
 
-    expect(
-      await screen.findByRole("heading", { name: "Nenhuma tarefa encontrada" }),
-    ).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "No tasks found" })).toBeInTheDocument();
   });
 
   it("opens related document with strict task/version scope and blocks navigation for deleted documents", async () => {
@@ -233,38 +236,34 @@ describe("TaskInboxPage (Minhas tarefas)", () => {
 
     expect(await screen.findByText("Contrato Fornecedor ACME")).toBeInTheDocument();
 
-    const deletedAction = screen.getByRole("button", { name: "Documento indisponível" });
+    const deletedAction = screen.getByRole("button", { name: "Document unavailable" });
     expect(deletedAction).toBeDisabled();
 
     fireEvent.click(
       screen.getByRole("button", {
-        name: "Abrir documento Contrato Fornecedor ACME (versão v2)",
+        name: "Open document Contrato Fornecedor ACME (version v2)",
       }),
     );
 
-    expect(
-      await screen.findByRole("heading", { name: "Detalhe do Documento" }),
-    ).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Document Details" })).toBeInTheDocument();
     expect(screen.getByTestId("doc-location")).toHaveTextContent(
       `/documents/${DOC_1_ID}?versionId=${VER_1_ID}&taskId=${TASK_1_ID}`,
     );
   });
 
-  it("displays an actionable ErrorState when the tasks API request fails and supports retry", async () => {
+  it("displays an actionable ErrorState when the tasks request fails and supports retry", async () => {
     const fetchSpy = vi
       .spyOn(globalThis, "fetch")
       .mockResolvedValue(new Response(null, { status: 500 }));
 
     renderTaskInboxPage();
 
-    expect(await screen.findByRole("alert")).toHaveTextContent(
-      "Não foi possível carregar suas tarefas (500).",
-    );
+    expect(await screen.findByRole("alert")).toHaveTextContent("Unable to load your tasks.");
 
     fetchSpy.mockRestore();
     const okSpy = mockTaskInboxFetch();
 
-    fireEvent.click(screen.getByRole("button", { name: "Tentar novamente" }));
+    fireEvent.click(screen.getByRole("button", { name: "Try again" }));
 
     expect(await screen.findByText("Contrato Fornecedor ACME")).toBeInTheDocument();
     expect(okSpy).toHaveBeenCalled();

@@ -1,6 +1,6 @@
 import "@testing-library/jest-dom/vitest";
 import type { DocumentDetail } from "@docuflow/contracts";
-import { docuflowTheme } from "@docuflow/ui";
+import { papyrusTheme } from "@docuflow/ui";
 import { CssBaseline, ThemeProvider } from "@mui/material";
 import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -77,7 +77,7 @@ describe("PdfPreviewPanel", () => {
     vi.restoreAllMocks();
   });
 
-  it("fetches authorized PDF stream into object URL iframe and revokes it on unmount", async () => {
+  it("fetches authorized PDF preview into object URL iframe and revokes it on unmount", async () => {
     const originalCreateObjectUrl = URL.createObjectURL;
     const originalRevokeObjectUrl = URL.revokeObjectURL;
     const createObjectUrlMock = vi.fn(() => "blob:http://localhost/pdf-preview-1");
@@ -102,13 +102,13 @@ describe("PdfPreviewPanel", () => {
       });
 
       const { unmount } = render(
-        <ThemeProvider theme={docuflowTheme}>
+        <ThemeProvider theme={papyrusTheme}>
           <CssBaseline />
           <PdfPreviewPanel document={createSampleDocument("AVAILABLE")} fetchFn={fetchMock} />
         </ThemeProvider>,
       );
 
-      const frame = await screen.findByTitle("Pré-visualização do PDF: contrato-vigente.pdf");
+      const frame = await screen.findByTitle("PDF preview: contrato-vigente.pdf");
       expect(frame).toHaveAttribute("src", "blob:http://localhost/pdf-preview-1");
       expect(fetchMock).toHaveBeenCalledWith(
         `/api/v1/documents/${DOC_ID}/preview`,
@@ -136,14 +136,14 @@ describe("PdfPreviewPanel", () => {
     const fetchMock = vi.fn<typeof fetch>();
 
     render(
-      <ThemeProvider theme={docuflowTheme}>
+      <ThemeProvider theme={papyrusTheme}>
         <CssBaseline />
         <PdfPreviewPanel document={createSampleDocument("QUARANTINED")} fetchFn={fetchMock} />
       </ThemeProvider>,
     );
 
     expect(
-      screen.getByText(/Pré-visualização indisponível até que a análise de segurança/i),
+      screen.getByText(/Preview is unavailable until the file passes security checks/i),
     ).toBeInTheDocument();
     expect(fetchMock).not.toHaveBeenCalled();
   });
@@ -163,7 +163,7 @@ describe("PdfPreviewPanel", () => {
     });
 
     render(
-      <ThemeProvider theme={docuflowTheme}>
+      <ThemeProvider theme={papyrusTheme}>
         <CssBaseline />
         <PdfPreviewPanel document={createSampleDocument("AVAILABLE")} fetchFn={fetchMock} />
       </ThemeProvider>,
@@ -171,7 +171,7 @@ describe("PdfPreviewPanel", () => {
 
     await waitFor(() => {
       expect(
-        screen.getByText("Você não possui permissão para acessar este documento."),
+        screen.getByText("You do not have permission to preview this document."),
       ).toBeInTheDocument();
     });
   });

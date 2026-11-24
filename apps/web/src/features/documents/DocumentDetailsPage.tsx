@@ -1,5 +1,5 @@
 import type { DocumentMetadataValue, DocumentStatus } from "@docuflow/contracts";
-import { DOCUFLOW_COLOR_TOKENS, EmptyState, ErrorState, LoadingState } from "@docuflow/ui";
+import { EmptyState, ErrorState, LoadingState, PAPYRUS_COLOR_TOKENS } from "@docuflow/ui";
 import ArrowBackOutlinedIcon from "@mui/icons-material/ArrowBackOutlined";
 import CategoryOutlinedIcon from "@mui/icons-material/CategoryOutlined";
 import DescriptionOutlinedIcon from "@mui/icons-material/DescriptionOutlined";
@@ -13,6 +13,7 @@ import { Alert, Box, Button, Chip, Divider, Grid, Paper, Stack, Typography } fro
 import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { type MessageKey, useI18n } from "../../i18n/index.js";
 import { DocumentTagsField } from "../tags/DocumentTagsField.js";
 import { DocumentLifecycleActions } from "./DocumentLifecycleActions.js";
 import { DocumentMetadataForm } from "./DocumentMetadataForm.js";
@@ -28,74 +29,68 @@ import {
   useDocumentDetailsQuery,
 } from "./useDocumentDetails.js";
 
-const DOCUMENT_STATUS_LABELS: Readonly<
-  Record<
-    DocumentStatus,
-    { readonly label: string; readonly color: "default" | "info" | "success" | "warning" | "error" }
-  >
+const DOCUMENT_STATUS_COLOR: Readonly<
+  Record<DocumentStatus, "default" | "info" | "success" | "warning" | "error">
 > = {
-  DRAFT: { label: "Rascunho", color: "default" },
-  IN_REVIEW: { label: "Em revisão", color: "info" },
-  APPROVED: { label: "Aprovado", color: "success" },
-  REJECTED: { label: "Rejeitado", color: "error" },
-  ARCHIVED: { label: "Arquivado", color: "default" },
-  EXPIRED: { label: "Expirado", color: "warning" },
-  DELETED: { label: "Excluído", color: "error" },
+  DRAFT: "default",
+  IN_REVIEW: "info",
+  APPROVED: "success",
+  REJECTED: "error",
+  ARCHIVED: "default",
+  EXPIRED: "warning",
+  DELETED: "error",
 };
 
-function formatIsoDatePtBr(isoDate: string | null): string {
+function formatIsoCalendarDate(
+  isoDate: string | null,
+  formatDateFn: (value: string | Date | null | undefined, emptyFallback?: string) => string,
+  emptyFallback: string,
+): string {
   if (!isoDate) {
-    return "Não informada";
+    return emptyFallback;
   }
   const [yearRaw, monthRaw, dayRaw] = isoDate.split("-");
   if (!yearRaw || !monthRaw || !dayRaw) {
     return isoDate;
   }
-  return `${dayRaw}/${monthRaw}/${yearRaw}`;
-}
-
-function formatDateTimePtBr(isoDateTime: string): string {
-  const date = new Date(isoDateTime);
-  if (Number.isNaN(date.getTime())) {
-    return isoDateTime;
+  const localDate = new Date(Number(yearRaw), Number(monthRaw) - 1, Number(dayRaw));
+  if (Number.isNaN(localDate.getTime())) {
+    return isoDate;
   }
-  return date.toLocaleString("pt-BR");
+  return formatDateFn(localDate, emptyFallback);
 }
 
-function formatMetadataValue(value: DocumentMetadataValue | undefined): string {
+function formatMetadataValue(
+  value: DocumentMetadataValue | undefined,
+  t: (key: MessageKey) => string,
+  formatDateFn: (value: string | Date | null | undefined, emptyFallback?: string) => string,
+  formatNumberFn: (value: number) => string,
+): string {
+  const notProvided = t("documents.common.notProvided");
   if (value === undefined || value === null) {
-    return "Não informado";
+    return notProvided;
   }
   if (typeof value === "boolean") {
-    return value ? "Sim" : "Não";
+    return value ? t("documents.common.yes") : t("documents.common.no");
   }
   if (Array.isArray(value)) {
-    return value.length > 0 ? value.join(", ") : "Nenhum item selecionado";
+    return value.length > 0 ? value.join(", ") : t("documents.common.noItemsSelected");
   }
   if (typeof value === "number") {
-    return String(value);
+    return formatNumberFn(value);
   }
   if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
-    return formatIsoDatePtBr(value);
+    return formatIsoCalendarDate(value, formatDateFn, notProvided);
   }
-  return value.trim().length > 0 ? value : "Não informado";
-}
-
-function formatFileSizePtBr(sizeBytes: number): string {
-  if (sizeBytes < 1024) {
-    return `${sizeBytes} B`;
-  }
-  if (sizeBytes < 1024 * 1024) {
-    return `${(sizeBytes / 1024).toFixed(1)} KB`;
-  }
-  return `${(sizeBytes / (1024 * 1024)).toFixed(2)} MB`;
+  return value.trim().length > 0 ? value : notProvided;
 }
 
 /**
- * Document details view displaying taxonomy, owner, dates, typed metadata,
- * file security status, and authorized actions in pt-BR.
+ * Document details view displaying taxonomy, owner, dates, custom fields,
+ * file security status, and authorized actions.
  */
 export function DocumentDetailsPage() {
+  const { t, formatDate, formatDateTime, formatNumber, formatBytes } = useI18n();
   const { id = "" } = useParams();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -110,7 +105,7 @@ export function DocumentDetailsPage() {
   const query = useDocumentDetailsQuery(id);
 
   if (query.isLoading) {
-    return <LoadingState message="Carregando detalhes do documento..." />;
+    return <LoadingState message={t("documents.details.loading")} />;
   }
 
   if (query.isError) {
@@ -118,7 +113,7 @@ export function DocumentDetailsPage() {
       return (
         <Stack spacing={2}>
           <Alert severity="warning" role="alert">
-            Acesso negado: {query.error.message}
+            {t("documents.details.accessDeniedPrefix", { message: query.error.message })}
           </Alert>
           <Box>
             <Button
@@ -126,7 +121,7 @@ export function DocumentDetailsPage() {
               startIcon={<ArrowBackOutlinedIcon />}
               onClick={() => void navigate("/documents")}
             >
-              Voltar para documentos
+              {t("documents.details.backToList")}
             </Button>
           </Box>
         </Stack>
@@ -136,9 +131,9 @@ export function DocumentDetailsPage() {
     if (query.error.statusCode === 404) {
       return (
         <EmptyState
-          title="Documento não encontrado"
-          description="O registro solicitado não existe ou não está mais disponível nesta organização."
-          actionLabel="Voltar para documentos"
+          title={t("documents.details.notFoundTitle")}
+          description={t("documents.details.notFoundDescription")}
+          actionLabel={t("documents.details.backToList")}
           onAction={() => void navigate("/documents")}
         />
       );
@@ -146,7 +141,7 @@ export function DocumentDetailsPage() {
 
     return (
       <ErrorState
-        title="Não foi possível carregar o documento"
+        title={t("documents.details.loadErrorTitle")}
         description={query.error.message}
         onRetry={() => void query.refetch()}
       />
@@ -158,10 +153,10 @@ export function DocumentDetailsPage() {
     return null;
   }
 
-  const statusDescriptor = DOCUMENT_STATUS_LABELS[doc.status];
   const sortedFields = [...doc.category.fields].sort((a, b) => a.sortOrder - b.sortOrder);
   const definedKeys = new Set(sortedFields.map((field) => field.key));
   const extraMetadataKeys = Object.keys(doc.metadata).filter((key) => !definedKeys.has(key));
+  const emptyDateLabel = t("documents.common.notProvidedFem");
 
   return (
     <Stack spacing={3}>
@@ -182,15 +177,21 @@ export function DocumentDetailsPage() {
             onClick={() => void navigate("/documents")}
             sx={{ alignSelf: "flex-start" }}
           >
-            Voltar para documentos
+            {t("documents.details.backToList")}
           </Button>
           <Stack direction="row" spacing={1.5} alignItems="center" flexWrap="wrap">
             <DescriptionOutlinedIcon color="primary" />
             <Typography variant="h1">{doc.title}</Typography>
-            <Chip label={statusDescriptor.label} color={statusDescriptor.color} size="small" />
+            <Chip
+              label={t(`documents.status.${doc.status}`)}
+              color={DOCUMENT_STATUS_COLOR[doc.status]}
+              size="small"
+            />
             {doc.currentVersion ? (
               <Chip
-                label={`Versão v${doc.currentVersion.versionNumber}`}
+                label={t("documents.details.versionBadge", {
+                  version: doc.currentVersion.versionNumber,
+                })}
                 variant="outlined"
                 size="small"
               />
@@ -205,7 +206,7 @@ export function DocumentDetailsPage() {
               startIcon={<EditOutlinedIcon />}
               onClick={() => setEditingMetadata(true)}
             >
-              Editar metadados
+              {t("documents.details.editDetails")}
             </Button>
           ) : null}
 
@@ -220,7 +221,7 @@ export function DocumentDetailsPage() {
               startIcon={<UploadFileOutlinedIcon />}
               onClick={() => setUploadNewVersionOpen(true)}
             >
-              Enviar nova versão
+              {t("documents.details.uploadNewVersion")}
             </Button>
           ) : null}
 
@@ -233,7 +234,7 @@ export function DocumentDetailsPage() {
               startIcon={<SendOutlinedIcon />}
               onClick={() => setStartWorkflowOpen(true)}
             >
-              Enviar para aprovação
+              {t("documents.details.sendForApproval")}
             </Button>
           ) : null}
         </Stack>
@@ -252,12 +253,12 @@ export function DocumentDetailsPage() {
               variant="outlined"
               sx={{
                 p: 2.5,
-                bgcolor: DOCUFLOW_COLOR_TOKENS.surface.containerLowest,
-                borderColor: DOCUFLOW_COLOR_TOKENS.surface.outlineVariant,
+                bgcolor: PAPYRUS_COLOR_TOKENS.surface.containerLowest,
+                borderColor: PAPYRUS_COLOR_TOKENS.surface.outlineVariant,
               }}
             >
               <Typography variant="h6" component="h2" gutterBottom>
-                Classificação, responsável e datas
+                {t("documents.details.summaryHeading")}
               </Typography>
               <Divider sx={{ mb: 2 }} />
 
@@ -267,7 +268,7 @@ export function DocumentDetailsPage() {
                     <Stack direction="row" spacing={0.75} alignItems="center">
                       <CategoryOutlinedIcon fontSize="small" color="action" />
                       <Typography variant="caption" color="text.secondary">
-                        Categoria
+                        {t("documents.details.category")}
                       </Typography>
                     </Stack>
                     <Typography variant="body1" fontWeight={500}>
@@ -281,7 +282,7 @@ export function DocumentDetailsPage() {
                     <Stack direction="row" spacing={0.75} alignItems="center">
                       <FolderOutlinedIcon fontSize="small" color="action" />
                       <Typography variant="caption" color="text.secondary">
-                        Pasta
+                        {t("documents.details.folder")}
                       </Typography>
                     </Stack>
                     {doc.folder ? (
@@ -295,7 +296,7 @@ export function DocumentDetailsPage() {
                       </Button>
                     ) : (
                       <Typography variant="body1" fontWeight={500}>
-                        Sem pasta (raiz)
+                        {t("documents.common.noFolderRoot")}
                       </Typography>
                     )}
                   </Stack>
@@ -306,7 +307,7 @@ export function DocumentDetailsPage() {
                     <Stack direction="row" spacing={0.75} alignItems="center">
                       <PersonOutlineOutlinedIcon fontSize="small" color="action" />
                       <Typography variant="caption" color="text.secondary">
-                        Responsável
+                        {t("documents.details.owner")}
                       </Typography>
                     </Stack>
                     <Typography variant="body1" fontWeight={500}>
@@ -323,30 +324,36 @@ export function DocumentDetailsPage() {
                     <Stack direction="row" spacing={0.75} alignItems="center">
                       <EventOutlinedIcon fontSize="small" color="action" />
                       <Typography variant="caption" color="text.secondary">
-                        Vigência
+                        {t("documents.details.validity")}
                       </Typography>
                     </Stack>
                     <Typography variant="body2">
-                      Emissão: <strong>{formatIsoDatePtBr(doc.issueDate)}</strong>
+                      {t("documents.details.issueDate")}{" "}
+                      <strong>
+                        {formatIsoCalendarDate(doc.issueDate, formatDate, emptyDateLabel)}
+                      </strong>
                     </Typography>
                     <Typography variant="body2">
-                      Vencimento: <strong>{formatIsoDatePtBr(doc.expirationDate)}</strong>
+                      {t("documents.details.expirationDate")}{" "}
+                      <strong>
+                        {formatIsoCalendarDate(doc.expirationDate, formatDate, emptyDateLabel)}
+                      </strong>
                     </Typography>
                   </Stack>
                 </Grid>
 
                 <Grid size={{ xs: 12, sm: 6 }}>
                   <Typography variant="caption" color="text.secondary">
-                    Criado em
+                    {t("documents.details.createdAt")}
                   </Typography>
-                  <Typography variant="body2">{formatDateTimePtBr(doc.createdAt)}</Typography>
+                  <Typography variant="body2">{formatDateTime(doc.createdAt)}</Typography>
                 </Grid>
 
                 <Grid size={{ xs: 12, sm: 6 }}>
                   <Typography variant="caption" color="text.secondary">
-                    Última atualização
+                    {t("documents.details.updatedAt")}
                   </Typography>
-                  <Typography variant="body2">{formatDateTimePtBr(doc.updatedAt)}</Typography>
+                  <Typography variant="body2">{formatDateTime(doc.updatedAt)}</Typography>
                 </Grid>
               </Grid>
             </Paper>
@@ -355,12 +362,12 @@ export function DocumentDetailsPage() {
               variant="outlined"
               sx={{
                 p: 2.5,
-                bgcolor: DOCUFLOW_COLOR_TOKENS.surface.containerLowest,
-                borderColor: DOCUFLOW_COLOR_TOKENS.surface.outlineVariant,
+                bgcolor: PAPYRUS_COLOR_TOKENS.surface.containerLowest,
+                borderColor: PAPYRUS_COLOR_TOKENS.surface.outlineVariant,
               }}
             >
               <Typography variant="h6" component="h2" gutterBottom>
-                Metadados personalizados
+                {t("documents.details.customFieldsHeading")}
               </Typography>
               <Divider sx={{ mb: 2 }} />
 
@@ -372,7 +379,7 @@ export function DocumentDetailsPage() {
                 />
               ) : sortedFields.length === 0 && extraMetadataKeys.length === 0 ? (
                 <Typography variant="body2" color="text.secondary">
-                  Nenhum metadado personalizado configurado para esta categoria.
+                  {t("documents.details.noCustomFields")}
                 </Typography>
               ) : (
                 <Grid container spacing={2}>
@@ -382,7 +389,7 @@ export function DocumentDetailsPage() {
                         {field.label}
                       </Typography>
                       <Typography variant="body1">
-                        {formatMetadataValue(doc.metadata[field.key])}
+                        {formatMetadataValue(doc.metadata[field.key], t, formatDate, formatNumber)}
                       </Typography>
                     </Grid>
                   ))}
@@ -392,7 +399,7 @@ export function DocumentDetailsPage() {
                         {extraKey}
                       </Typography>
                       <Typography variant="body1">
-                        {formatMetadataValue(doc.metadata[extraKey])}
+                        {formatMetadataValue(doc.metadata[extraKey], t, formatDate, formatNumber)}
                       </Typography>
                     </Grid>
                   ))}
@@ -408,12 +415,12 @@ export function DocumentDetailsPage() {
               variant="outlined"
               sx={{
                 p: 2.5,
-                bgcolor: DOCUFLOW_COLOR_TOKENS.surface.containerLowest,
-                borderColor: DOCUFLOW_COLOR_TOKENS.surface.outlineVariant,
+                bgcolor: PAPYRUS_COLOR_TOKENS.surface.containerLowest,
+                borderColor: PAPYRUS_COLOR_TOKENS.surface.outlineVariant,
               }}
             >
               <Typography variant="h6" component="h2" gutterBottom>
-                Arquivo vigente
+                {t("documents.details.currentFileHeading")}
               </Typography>
               <Divider sx={{ mb: 2 }} />
 
@@ -428,18 +435,18 @@ export function DocumentDetailsPage() {
                   />
                   <Stack spacing={0.5}>
                     <Typography variant="caption" color="text.secondary">
-                      Tipo detectado:{" "}
+                      {t("documents.details.fileType")}{" "}
                       <strong>{doc.currentVersion.fileObject.detectedContentType}</strong>
                     </Typography>
                     <Typography variant="caption" color="text.secondary">
-                      Tamanho:{" "}
-                      <strong>{formatFileSizePtBr(doc.currentVersion.fileObject.sizeBytes)}</strong>
+                      {t("documents.details.fileSize")}{" "}
+                      <strong>{formatBytes(doc.currentVersion.fileObject.sizeBytes)}</strong>
                     </Typography>
                   </Stack>
                 </Stack>
               ) : (
                 <Typography variant="body2" color="text.secondary">
-                  Nenhuma versão de arquivo vinculada a este documento.
+                  {t("documents.details.noFileLinked")}
                 </Typography>
               )}
             </Paper>
@@ -448,8 +455,8 @@ export function DocumentDetailsPage() {
               variant="outlined"
               sx={{
                 p: 2.5,
-                bgcolor: DOCUFLOW_COLOR_TOKENS.surface.containerLowest,
-                borderColor: DOCUFLOW_COLOR_TOKENS.surface.outlineVariant,
+                bgcolor: PAPYRUS_COLOR_TOKENS.surface.containerLowest,
+                borderColor: PAPYRUS_COLOR_TOKENS.surface.outlineVariant,
               }}
             >
               <DocumentTagsField documentId={doc.id} canEdit={doc.permissions.canUpdate} />

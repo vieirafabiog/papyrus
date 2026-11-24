@@ -1,10 +1,11 @@
 import "@testing-library/jest-dom/vitest";
-import { docuflowTheme } from "@docuflow/ui";
+import { UiLocaleProvider, createPapyrusTheme } from "@docuflow/ui";
 import { CssBaseline, ThemeProvider } from "@mui/material";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { DocumentWorkflowTimeline } from "../src/features/documents/DocumentWorkflowTimeline.js";
+import { I18nProvider, type UiLocale } from "../src/i18n/index.js";
 
 const DOC_ID = "550e8400-e29b-41d4-a716-446655440001";
 const VER_ID = "550e8400-e29b-41d4-a716-446655440011";
@@ -15,7 +16,7 @@ const TASK_2_ID = "550e8400-e29b-41d4-a716-446655440042";
 const DECISION_1_ID = "550e8400-e29b-41d4-a716-446655440051";
 const REQ_ID = "550e8400-e29b-41d4-a716-446655440099";
 
-function renderTimeline(documentId = DOC_ID) {
+function renderTimeline(documentId = DOC_ID, locale: UiLocale = "en-US") {
   const queryClient = new QueryClient({
     defaultOptions: {
       queries: { retry: false },
@@ -23,12 +24,16 @@ function renderTimeline(documentId = DOC_ID) {
   });
 
   return render(
-    <ThemeProvider theme={docuflowTheme}>
-      <CssBaseline />
-      <QueryClientProvider client={queryClient}>
-        <DocumentWorkflowTimeline documentId={documentId} />
-      </QueryClientProvider>
-    </ThemeProvider>,
+    <I18nProvider initialLocale={locale}>
+      <UiLocaleProvider locale={locale}>
+        <ThemeProvider theme={createPapyrusTheme(locale)}>
+          <CssBaseline />
+          <QueryClientProvider client={queryClient}>
+            <DocumentWorkflowTimeline documentId={documentId} />
+          </QueryClientProvider>
+        </ThemeProvider>
+      </UiLocaleProvider>
+    </I18nProvider>,
   );
 }
 
@@ -110,27 +115,27 @@ describe("DocumentWorkflowTimeline", () => {
     renderTimeline();
 
     expect(await screen.findByText("Aprovação de Contratos (v3)")).toBeInTheDocument();
-    expect(screen.getByText("Somente leitura")).toBeInTheDocument();
-    expect(screen.getByText("Versão avaliada v2")).toBeInTheDocument();
-    expect(screen.getByText(/Iniciado por Carlos Solicitante/i)).toBeInTheDocument();
+    expect(screen.getByText("Read-only")).toBeInTheDocument();
+    expect(screen.getByText("Reviewed version v2")).toBeInTheDocument();
+    expect(screen.getByText(/Started by Carlos Solicitante/i)).toBeInTheDocument();
 
-    expect(screen.getByText("Etapa 1: Revisão Jurídica")).toBeInTheDocument();
+    expect(screen.getByText("Step 1: Revisão Jurídica")).toBeInTheDocument();
     expect(screen.getByText("Equipe Jurídica")).toBeInTheDocument();
-    expect(screen.getByText(/Aprovado por Ana Advogada/i)).toBeInTheDocument();
+    expect(screen.getByText(/Approved by Ana Advogada/i)).toBeInTheDocument();
     expect(screen.getByText(/Minuta validada sem ressalvas\./i)).toBeInTheDocument();
 
-    expect(screen.getByText("Etapa 2: Aprovação Diretoria")).toBeInTheDocument();
+    expect(screen.getByText("Step 2: Aprovação Diretoria")).toBeInTheDocument();
     expect(screen.getByText("Diretor Financeiro")).toBeInTheDocument();
-    expect(screen.getByText("Pendente")).toBeInTheDocument();
+    expect(screen.getByText("Pending")).toBeInTheDocument();
 
-    expect(screen.getByText("Etapa 3: Publicação Final")).toBeInTheDocument();
+    expect(screen.getByText("Step 3: Publicação Final")).toBeInTheDocument();
     expect(screen.getByText("Mariana Gestora")).toBeInTheDocument();
-    expect(screen.getByText("Aguardando etapa anterior")).toBeInTheDocument();
+    expect(screen.getByText("Waiting for previous step")).toBeInTheDocument();
 
     // Strictly read-only: no mutation or approval buttons should exist in the timeline
-    expect(screen.queryByRole("button", { name: "Aprovar" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Rejeitar" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Solicitar ajustes" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Approve" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Reject" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Request changes" })).not.toBeInTheDocument();
   });
 
   it("displays explicit access restriction alert when server returns 403", async () => {
@@ -150,7 +155,7 @@ describe("DocumentWorkflowTimeline", () => {
     renderTimeline();
 
     expect(await screen.findByRole("alert")).toHaveTextContent(
-      "Acesso restrito ao histórico do fluxo: Usuário sem permissão para consultar histórico de fluxo.",
+      "Access restricted to workflow history: You do not have permission to perform this action.",
     );
   });
 
@@ -167,14 +172,12 @@ describe("DocumentWorkflowTimeline", () => {
 
     renderTimeline();
 
-    expect(await screen.findByRole("alert")).toHaveTextContent(
-      "Não foi possível carregar a linha do tempo do processo (500).",
-    );
+    expect(await screen.findByRole("alert")).toHaveTextContent("Unable to load workflow timeline.");
 
-    fireEvent.click(screen.getByRole("button", { name: "Tentar novamente" }));
+    fireEvent.click(screen.getByRole("button", { name: "Try again" }));
 
     expect(
-      await screen.findByRole("heading", { name: "Nenhum fluxo de aprovação registrado" }),
+      await screen.findByRole("heading", { name: "No approval workflows recorded" }),
     ).toBeInTheDocument();
     expect(fetchSpy).toHaveBeenCalledTimes(2);
   });

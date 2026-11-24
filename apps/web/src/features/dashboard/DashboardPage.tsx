@@ -1,4 +1,4 @@
-import { DOCUFLOW_COLOR_TOKENS, EmptyState, ErrorState, LoadingState } from "@docuflow/ui";
+import { EmptyState, ErrorState, LoadingState, PAPYRUS_COLOR_TOKENS } from "@docuflow/ui";
 import DescriptionOutlinedIcon from "@mui/icons-material/DescriptionOutlined";
 import EventBusyOutlinedIcon from "@mui/icons-material/EventBusyOutlined";
 import PendingActionsOutlinedIcon from "@mui/icons-material/PendingActionsOutlined";
@@ -18,6 +18,7 @@ import {
 } from "@mui/material";
 import type { ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
+import { type MessageKey, useI18n } from "../../i18n/index.js";
 import { useDashboardSummary } from "./useDashboardSummary.js";
 
 interface KpiCardProps {
@@ -27,25 +28,57 @@ interface KpiCardProps {
   readonly icon: ReactNode;
 }
 
-const NUMBER_FORMATTER = new Intl.NumberFormat("pt-BR");
-const BYTE_NUMBER_FORMATTER = new Intl.NumberFormat("pt-BR", {
-  maximumFractionDigits: 1,
-});
+const ACTION_LABEL_KEYS: Readonly<Record<string, MessageKey>> = {
+  AUTH_LOGIN_SUCCEEDED: "dashboard.activity.action.AUTH_LOGIN_SUCCEEDED",
+  AUTH_LOGIN_FAILED: "dashboard.activity.action.AUTH_LOGIN_FAILED",
+  AUTH_LOGOUT: "dashboard.activity.action.AUTH_LOGOUT",
+  DOCUMENT_CREATED: "dashboard.activity.action.DOCUMENT_CREATED",
+  DOCUMENT_VIEWED: "dashboard.activity.action.DOCUMENT_VIEWED",
+  DOCUMENT_UPDATED: "dashboard.activity.action.DOCUMENT_UPDATED",
+  DOCUMENT_MOVED: "dashboard.activity.action.DOCUMENT_MOVED",
+  DOCUMENT_ARCHIVED: "dashboard.activity.action.DOCUMENT_ARCHIVED",
+  DOCUMENT_TRASHED: "dashboard.activity.action.DOCUMENT_TRASHED",
+  DOCUMENT_RESTORED: "dashboard.activity.action.DOCUMENT_RESTORED",
+  DOCUMENT_DELETED: "dashboard.activity.action.DOCUMENT_DELETED",
+  DOCUMENT_VERSION_CREATED: "dashboard.activity.action.DOCUMENT_VERSION_CREATED",
+  DOCUMENT_VERSION_RESTORED: "dashboard.activity.action.DOCUMENT_VERSION_RESTORED",
+  DOCUMENT_DOWNLOAD_REQUESTED: "dashboard.activity.action.DOCUMENT_DOWNLOAD_REQUESTED",
+  DOCUMENT_DOWNLOADED: "dashboard.activity.action.DOCUMENT_DOWNLOADED",
+  DOCUMENT_DOWNLOAD_DENIED: "dashboard.activity.action.DOCUMENT_DOWNLOAD_DENIED",
+  DOCUMENT_DOWNLOAD_FAILED: "dashboard.activity.action.DOCUMENT_DOWNLOAD_FAILED",
+  DOCUMENT_PREVIEWED: "dashboard.activity.action.DOCUMENT_PREVIEWED",
+  DOCUMENT_PREVIEW_DENIED: "dashboard.activity.action.DOCUMENT_PREVIEW_DENIED",
+  PERMISSION_ASSIGNED: "dashboard.activity.action.PERMISSION_ASSIGNED",
+  PERMISSION_REVOKED: "dashboard.activity.action.PERMISSION_REVOKED",
+  AUTHORIZATION_DENIED: "dashboard.activity.action.AUTHORIZATION_DENIED",
+  WORKFLOW_STARTED: "dashboard.activity.action.WORKFLOW_STARTED",
+  WORKFLOW_TASK_CREATED: "dashboard.activity.action.WORKFLOW_TASK_CREATED",
+  WORKFLOW_TASK_DECIDED: "dashboard.activity.action.WORKFLOW_TASK_DECIDED",
+  WORKFLOW_TASK_CANCELLED: "dashboard.activity.action.WORKFLOW_TASK_CANCELLED",
+  AUDIT_EXPORTED: "dashboard.activity.action.AUDIT_EXPORTED",
+  AUDIT_EXPORT_DENIED: "dashboard.activity.action.AUDIT_EXPORT_DENIED",
+};
 
-function formatStorageBytes(bytes: number): string {
-  if (bytes < 1024) {
-    return `${NUMBER_FORMATTER.format(bytes)} B`;
+const RESOURCE_TYPE_LABEL_KEYS: Readonly<Record<string, MessageKey>> = {
+  DOCUMENT: "dashboard.activity.resource.DOCUMENT",
+  FOLDER: "dashboard.activity.resource.FOLDER",
+  CATEGORY: "dashboard.activity.resource.CATEGORY",
+  WORKFLOW_INSTANCE: "dashboard.activity.resource.WORKFLOW_INSTANCE",
+  WORKFLOW_TASK: "dashboard.activity.resource.WORKFLOW_TASK",
+  ROLE_SCOPE: "dashboard.activity.resource.ROLE_SCOPE",
+  USER: "dashboard.activity.resource.USER",
+  GROUP: "dashboard.activity.resource.GROUP",
+  STORAGE_CONNECTION: "dashboard.activity.resource.STORAGE_CONNECTION",
+  AUDIT: "dashboard.activity.resource.AUDIT",
+};
+
+function formatFallbackToken(rawToken: string): string {
+  const words = rawToken.toLowerCase().split("_").filter(Boolean);
+  if (words.length === 0) {
+    return rawToken;
   }
-  const kb = bytes / 1024;
-  if (kb < 1024) {
-    return `${BYTE_NUMBER_FORMATTER.format(kb)} KB`;
-  }
-  const mb = kb / 1024;
-  if (mb < 1024) {
-    return `${BYTE_NUMBER_FORMATTER.format(mb)} MB`;
-  }
-  const gb = mb / 1024;
-  return `${BYTE_NUMBER_FORMATTER.format(gb)} GB`;
+  const [first, ...rest] = words;
+  return [first ? `${first.charAt(0).toUpperCase()}${first.slice(1)}` : "", ...rest].join(" ");
 }
 
 function KpiSummaryItem({ label, value, subtitle, icon }: KpiCardProps) {
@@ -54,7 +87,7 @@ function KpiSummaryItem({ label, value, subtitle, icon }: KpiCardProps) {
       sx={{
         p: 2.5,
         flex: "1 1 200px",
-        bgcolor: DOCUFLOW_COLOR_TOKENS.surface.containerLowest,
+        bgcolor: PAPYRUS_COLOR_TOKENS.surface.containerLowest,
       }}
     >
       <Stack direction="row" alignItems="center" justifyContent="space-between" spacing={1} mb={1}>
@@ -76,6 +109,7 @@ function KpiSummaryItem({ label, value, subtitle, icon }: KpiCardProps) {
 }
 
 export function DashboardPage() {
+  const { t, formatDateTime, formatBytes, formatNumber } = useI18n();
   const navigate = useNavigate();
   const { data, isPending, isFetching, isError, error, refetch } = useDashboardSummary();
 
@@ -100,10 +134,10 @@ export function DashboardPage() {
       >
         <Box>
           <Typography variant="h1" gutterBottom>
-            Visão geral
+            {t("dashboard.title")}
           </Typography>
           <Typography variant="body1" color="text.secondary">
-            Resumo operacional e indicadores reais do repositório documental.
+            {t("dashboard.subtitle")}
           </Typography>
         </Box>
         {data !== undefined && data !== null ? (
@@ -115,75 +149,87 @@ export function DashboardPage() {
               disabled={isFetching}
               onClick={() => void refetch()}
             >
-              {isFetching ? "Atualizando..." : "Atualizar"}
+              {isFetching ? t("dashboard.refreshing") : t("dashboard.refresh")}
             </Button>
             <Button variant="contained" size="small" onClick={() => navigate("/documents")}>
-              Ver documentos
+              {t("dashboard.viewDocuments")}
             </Button>
           </Stack>
         ) : null}
       </Stack>
 
       {isPending ? (
-        <LoadingState message="Carregando resumo do acervo..." />
+        <LoadingState message={t("dashboard.loading")} />
       ) : isError ? (
         <ErrorState description={error.message} onRetry={() => void refetch()} />
       ) : hasNoSummaryData ? (
         <EmptyState
-          title="Nenhum resumo disponível no momento"
-          description="Os indicadores serão exibidos assim que houver documentos ou atividades autorizadas no seu escopo."
-          actionLabel="Ir para documentos"
+          title={t("dashboard.emptyTitle")}
+          description={t("dashboard.emptyDescription")}
+          actionLabel={t("dashboard.emptyAction")}
           onAction={() => navigate("/documents")}
         />
       ) : data ? (
         <Stack spacing={3}>
           <Box sx={{ display: "flex", flexWrap: "wrap", gap: 2 }}>
             <KpiSummaryItem
-              label="Total de documentos"
-              value={data.totalDocuments}
+              label={t("dashboard.kpi.totalDocuments")}
+              value={formatNumber(data.totalDocuments)}
               icon={<DescriptionOutlinedIcon fontSize="small" />}
             />
             <KpiSummaryItem
-              label="Tarefas pendentes"
-              value={data.pendingTasks}
+              label={t("dashboard.kpi.pendingTasks")}
+              value={formatNumber(data.pendingTasks)}
               icon={<PendingActionsOutlinedIcon fontSize="small" />}
             />
             <KpiSummaryItem
-              label="Vencimentos próximos"
-              value={data.expiringSoonDocuments}
-              subtitle="Próximos 30 dias"
+              label={t("dashboard.kpi.expiringSoon")}
+              value={formatNumber(data.expiringSoonDocuments)}
+              subtitle={t("dashboard.kpi.expiringSoonSubtitle")}
               icon={<EventBusyOutlinedIcon fontSize="small" />}
             />
             <KpiSummaryItem
-              label="Arquivos em análise"
-              value={data.quarantinedFiles}
+              label={t("dashboard.kpi.quarantinedFiles")}
+              value={formatNumber(data.quarantinedFiles)}
               icon={<SecurityOutlinedIcon fontSize="small" />}
             />
             <KpiSummaryItem
-              label="Armazenamento utilizado"
-              value={formatStorageBytes(data.storageUsedBytes)}
-              subtitle={`${NUMBER_FORMATTER.format(data.storageFileCount)} ${
-                data.storageFileCount === 1 ? "arquivo ativo" : "arquivos ativos"
-              }`}
+              label={t("dashboard.kpi.storageUsed")}
+              value={formatBytes(data.storageUsedBytes)}
+              subtitle={t(
+                data.storageFileCount === 1
+                  ? "dashboard.kpi.activeFileSingular"
+                  : "dashboard.kpi.activeFilePlural",
+                { count: formatNumber(data.storageFileCount) },
+              )}
               icon={<StorageOutlinedIcon fontSize="small" />}
             />
           </Box>
 
-          <Paper sx={{ p: 2.5, bgcolor: DOCUFLOW_COLOR_TOKENS.surface.containerLowest }}>
+          <Paper sx={{ p: 2.5, bgcolor: PAPYRUS_COLOR_TOKENS.surface.containerLowest }}>
             <Typography variant="h3" component="h2" gutterBottom>
-              Atividade recente
+              {t("dashboard.recentActivity.title")}
             </Typography>
             {data.recentActivity.length === 0 ? (
               <Typography variant="body2" color="text.secondary">
-                Nenhuma atividade recente registrada.
+                {t("dashboard.recentActivity.empty")}
               </Typography>
             ) : (
               <List dense disablePadding>
                 {data.recentActivity.map((item) => {
                   const isNavigableDoc =
                     item.resourceType === "DOCUMENT" && item.resourceId !== null;
-                  const occurredLabel = new Date(item.occurredAt).toLocaleString("pt-BR");
-                  const titleLabel = `${item.action} — ${item.resourceType}`;
+                  const occurredLabel = formatDateTime(item.occurredAt);
+                  const actionKey = ACTION_LABEL_KEYS[item.action];
+                  const resourceKey = RESOURCE_TYPE_LABEL_KEYS[item.resourceType];
+                  const actionLabel = actionKey ? t(actionKey) : formatFallbackToken(item.action);
+                  const resourceLabel = resourceKey
+                    ? t(resourceKey)
+                    : formatFallbackToken(item.resourceType);
+                  const titleLabel = t("dashboard.recentActivity.itemFormat", {
+                    action: actionLabel,
+                    resource: resourceLabel,
+                  });
 
                   if (isNavigableDoc && item.resourceId) {
                     const targetId = item.resourceId;

@@ -3,13 +3,20 @@ import {
   type DocumentListResponse,
   type FolderRecord,
   type FolderStatus,
-  apiErrorResponseSchema,
   documentListResponseSchema,
   folderListResponseSchema,
   folderResponseSchema,
   uuidSchema,
 } from "@docuflow/contracts";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { extractUserErrorMessage } from "../../i18n/api-errors.js";
+import {
+  type MessageKey,
+  type UiLocale,
+  getCurrentUiLocale,
+  translate,
+  useI18n,
+} from "../../i18n/index.js";
 
 const CSRF_HEADER_NAME = "x-csrf-token";
 const MAX_BREADCRUMB_DEPTH = 20;
@@ -70,18 +77,10 @@ async function resolveCsrfToken(): Promise<string> {
 
 async function parseFolderApiError(
   response: Response,
-  fallbackMessage: string,
+  fallbackKey: MessageKey,
+  locale: UiLocale = getCurrentUiLocale(),
 ): Promise<FolderNavigationError> {
-  let message = fallbackMessage;
-  try {
-    const raw: unknown = await response.json();
-    const parsed = apiErrorResponseSchema.safeParse(raw);
-    if (parsed.success) {
-      message = parsed.data.error.message;
-    }
-  } catch {
-    // Keep fallback error message when response body is not JSON.
-  }
+  const message = await extractUserErrorMessage(response, fallbackKey, locale);
 
   if (response.status === 403) {
     return new FolderNavigationError("FORBIDDEN", message, 403);
@@ -96,15 +95,20 @@ async function parseFolderApiError(
 }
 
 /**
- * Loads a single folder directly from the API so folder-level READ authorization
+ * Loads a single folder directly from the server so folder-level READ authorization
  * and removed/archived states are always verified by the server.
  */
 export async function fetchAuthorizedFolderById(
   folderId: string,
   signal?: AbortSignal,
+  locale: UiLocale = getCurrentUiLocale(),
 ): Promise<FolderRecord> {
   if (!uuidSchema.safeParse(folderId).success) {
-    throw new FolderNavigationError("NOT_FOUND", "Identificador de pasta inválido.", 404);
+    throw new FolderNavigationError(
+      "NOT_FOUND",
+      translate("folders.errors.notFound", undefined, locale),
+      404,
+    );
   }
 
   const response = await fetch(`${CONTRACTS_API_PREFIX}/folders/${folderId}`, {
@@ -115,19 +119,23 @@ export async function fetchAuthorizedFolderById(
   });
 
   if (!response.ok) {
-    const fallback =
+    const fallbackKey: MessageKey =
       response.status === 403
-        ? "Você não possui permissão para acessar esta pasta."
+        ? "folders.errors.forbidden"
         : response.status === 404
-          ? "A pasta solicitada foi removida ou não existe."
-          : "Não foi possível carregar os dados da pasta.";
-    throw await parseFolderApiError(response, fallback);
+          ? "folders.errors.notFound"
+          : "folders.errors.loadFailed";
+    throw await parseFolderApiError(response, fallbackKey, locale);
   }
 
   const rawJson: unknown = await response.json();
   const parsed = folderResponseSchema.safeParse(rawJson);
   if (!parsed.success) {
-    throw new FolderNavigationError("NETWORK", "Resposta inválida ao consultar pasta.", 502);
+    throw new FolderNavigationError(
+      "NETWORK",
+      translate("common.errors.unexpectedResponse", undefined, locale),
+      502,
+    );
   }
 
   return parsed.data.data;
@@ -135,11 +143,12 @@ export async function fetchAuthorizedFolderById(
 
 /**
  * Resolves the hierarchical breadcrumb path for `currentFolder`, authorizing every
- * ancestor step against the API and handling restricted or missing ancestors safely.
+ * ancestor step against the server and handling restricted or missing ancestors safely.
  */
 export async function resolveAuthorizedBreadcrumbs(
   currentFolder: FolderRecord,
   signal?: AbortSignal,
+  locale: UiLocale = getCurrentUiLocale(),
 ): Promise<{
   readonly breadcrumbs: readonly FolderBreadcrumbItem[];
   readonly archivedNotice: string | null;
@@ -157,7 +166,7 @@ export async function resolveAuthorizedBreadcrumbs(
   let cursorParentId = currentFolder.parentId;
   let archivedNotice: string | null =
     currentFolder.status === "ARCHIVED"
-      ? "Esta pasta está arquivada. Não é possível criar novas subpastas ou enviar novos documentos nela."
+      ? translate("folders.archived.currentNotice", undefined, locale)
       : null;
 
   let depth = 0;
@@ -169,7 +178,7 @@ export async function resolveAuthorizedBreadcrumbs(
     depth += 1;
 
     try {
-      const ancestor = await fetchAuthorizedFolderById(cursorParentId, signal);
+      const ancestor = await fetchAuthorizedFolderById(cursorParentId, signal, locale);
       chain.unshift({
         id: ancestor.id,
         label: ancestor.name,
@@ -177,14 +186,18 @@ export async function resolveAuthorizedBreadcrumbs(
         accessible: true,
       });
       if (ancestor.status === "ARCHIVED" && archivedNotice === null) {
-        archivedNotice = `Uma pasta superior ("${ancestor.name}") está arquivada.`;
+        archivedNotice = translate(
+          "folders.archived.ancestorNotice",
+          { name: ancestor.name },
+          locale,
+        );
       }
       cursorParentId = ancestor.parentId;
     } catch (error) {
       if (error instanceof FolderNavigationError && error.kind === "FORBIDDEN") {
         chain.unshift({
           id: cursorParentId,
-          label: "Pasta superior restrita",
+          label: translate("folders.breadcrumbs.restrictedParent", undefined, locale),
           status: null,
           accessible: false,
         });
@@ -193,7 +206,7 @@ export async function resolveAuthorizedBreadcrumbs(
       if (error instanceof FolderNavigationError && error.kind === "NOT_FOUND") {
         chain.unshift({
           id: cursorParentId,
-          label: "Pasta superior removida",
+          label: translate("folders.breadcrumbs.removedParent", undefined, locale),
           status: null,
           accessible: false,
           removed: true,
@@ -207,7 +220,7 @@ export async function resolveAuthorizedBreadcrumbs(
   const breadcrumbs: FolderBreadcrumbItem[] = [
     {
       id: null,
-      label: "Raiz",
+      label: translate("folders.breadcrumbs.root", undefined, locale),
       status: "ACTIVE",
       accessible: true,
     },
@@ -222,6 +235,7 @@ export async function fetchAuthorizedSubfolders(
   statusFilter: FolderStatusFilter,
   search: string,
   signal?: AbortSignal,
+  locale: UiLocale = getCurrentUiLocale(),
 ): Promise<readonly FolderRecord[]> {
   const params = new URLSearchParams();
   params.set("page", "1");
@@ -249,13 +263,17 @@ export async function fetchAuthorizedSubfolders(
   });
 
   if (!response.ok) {
-    throw await parseFolderApiError(response, "Falha ao listar pastas autorizadas.");
+    throw await parseFolderApiError(response, "folders.errors.listFailed", locale);
   }
 
   const rawJson: unknown = await response.json();
   const parsed = folderListResponseSchema.safeParse(rawJson);
   if (!parsed.success) {
-    throw new FolderNavigationError("NETWORK", "Resposta inválida ao listar pastas.", 502);
+    throw new FolderNavigationError(
+      "NETWORK",
+      translate("common.errors.unexpectedResponse", undefined, locale),
+      502,
+    );
   }
 
   return parsed.data.data.items;
@@ -266,6 +284,7 @@ export async function fetchAuthorizedFolderDocuments(
   page: number,
   pageSize: number,
   signal?: AbortSignal,
+  locale: UiLocale = getCurrentUiLocale(),
 ): Promise<DocumentListResponse> {
   const params = new URLSearchParams({
     folderId,
@@ -283,7 +302,7 @@ export async function fetchAuthorizedFolderDocuments(
   });
 
   if (!response.ok) {
-    throw await parseFolderApiError(response, "Falha ao carregar documentos desta pasta.");
+    throw await parseFolderApiError(response, "folders.errors.documentsLoadFailed", locale);
   }
 
   const rawJson: unknown = await response.json();
@@ -291,7 +310,7 @@ export async function fetchAuthorizedFolderDocuments(
   if (!parsed.success) {
     throw new FolderNavigationError(
       "NETWORK",
-      "Resposta inválida ao carregar documentos da pasta.",
+      translate("common.errors.unexpectedResponse", undefined, locale),
       502,
     );
   }
@@ -308,6 +327,7 @@ export async function loadFolderNavigationState(
     readonly docPageSize: number;
   },
   signal?: AbortSignal,
+  locale: UiLocale = getCurrentUiLocale(),
 ): Promise<FolderNavigationResult> {
   if (folderId === null) {
     const subfolders = await fetchAuthorizedSubfolders(
@@ -315,21 +335,41 @@ export async function loadFolderNavigationState(
       options.statusFilter,
       options.search,
       signal,
+      locale,
     );
     return {
       currentFolder: null,
-      breadcrumbs: [{ id: null, label: "Raiz", status: "ACTIVE", accessible: true }],
+      breadcrumbs: [
+        {
+          id: null,
+          label: translate("folders.breadcrumbs.root", undefined, locale),
+          status: "ACTIVE",
+          accessible: true,
+        },
+      ],
       subfolders,
       documents: null,
       archivedNotice: null,
     };
   }
 
-  const currentFolder = await fetchAuthorizedFolderById(folderId, signal);
+  const currentFolder = await fetchAuthorizedFolderById(folderId, signal, locale);
   const [trail, subfolders, documents] = await Promise.all([
-    resolveAuthorizedBreadcrumbs(currentFolder, signal),
-    fetchAuthorizedSubfolders(currentFolder.id, options.statusFilter, options.search, signal),
-    fetchAuthorizedFolderDocuments(currentFolder.id, options.docPage, options.docPageSize, signal),
+    resolveAuthorizedBreadcrumbs(currentFolder, signal, locale),
+    fetchAuthorizedSubfolders(
+      currentFolder.id,
+      options.statusFilter,
+      options.search,
+      signal,
+      locale,
+    ),
+    fetchAuthorizedFolderDocuments(
+      currentFolder.id,
+      options.docPage,
+      options.docPageSize,
+      signal,
+      locale,
+    ),
   ]);
 
   return {
@@ -347,6 +387,7 @@ export function folderNavigationQueryKey(
   search: string,
   docPage: number,
   docPageSize: number,
+  locale: UiLocale = getCurrentUiLocale(),
 ) {
   return [
     "folders",
@@ -356,6 +397,7 @@ export function folderNavigationQueryKey(
     search,
     docPage,
     docPageSize,
+    locale,
   ] as const;
 }
 
@@ -372,6 +414,7 @@ export function useFolderNavigationQuery(
     readonly docPageSize: number;
   },
 ) {
+  const { locale } = useI18n();
   return useQuery<FolderNavigationResult, Error>({
     queryKey: folderNavigationQueryKey(
       folderId,
@@ -379,8 +422,9 @@ export function useFolderNavigationQuery(
       options.search,
       options.docPage,
       options.docPageSize,
+      locale,
     ),
-    queryFn: ({ signal }) => loadFolderNavigationState(folderId, options, signal),
+    queryFn: ({ signal }) => loadFolderNavigationState(folderId, options, signal, locale),
     staleTime: 0,
     refetchOnMount: "always",
     retry: false,
@@ -408,13 +452,13 @@ export function useCreateFolderMutation() {
       });
 
       if (!response.ok) {
-        throw await parseFolderApiError(response, "Não foi possível criar a pasta.");
+        throw await parseFolderApiError(response, "folders.feedback.createError");
       }
 
       const rawJson: unknown = await response.json();
       const parsed = folderResponseSchema.safeParse(rawJson);
       if (!parsed.success) {
-        throw new Error("Resposta inválida após criar a pasta.");
+        throw new Error(translate("common.errors.unexpectedResponse"));
       }
       return parsed.data.data;
     },
@@ -444,13 +488,13 @@ export function useRenameFolderMutation() {
       });
 
       if (!response.ok) {
-        throw await parseFolderApiError(response, "Não foi possível renomear a pasta.");
+        throw await parseFolderApiError(response, "folders.feedback.renameError");
       }
 
       const rawJson: unknown = await response.json();
       const parsed = folderResponseSchema.safeParse(rawJson);
       if (!parsed.success) {
-        throw new Error("Resposta inválida após renomear a pasta.");
+        throw new Error(translate("common.errors.unexpectedResponse"));
       }
       return parsed.data.data;
     },
@@ -478,13 +522,13 @@ export function useArchiveFolderMutation() {
       });
 
       if (!response.ok) {
-        throw await parseFolderApiError(response, "Não foi possível arquivar a pasta.");
+        throw await parseFolderApiError(response, "folders.feedback.archiveError");
       }
 
       const rawJson: unknown = await response.json();
       const parsed = folderResponseSchema.safeParse(rawJson);
       if (!parsed.success) {
-        throw new Error("Resposta inválida após arquivar a pasta.");
+        throw new Error(translate("common.errors.unexpectedResponse"));
       }
       return parsed.data.data;
     },

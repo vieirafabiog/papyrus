@@ -1,11 +1,12 @@
 import "@testing-library/jest-dom/vitest";
-import { docuflowTheme } from "@docuflow/ui";
+import { UiLocaleProvider, papyrusTheme } from "@docuflow/ui";
 import { CssBaseline, ThemeProvider } from "@mui/material";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { AuditPage } from "../src/features/audit/AuditPage.js";
+import { I18nProvider } from "../src/i18n/index.js";
 
 const ORG_ID = "550e8400-e29b-41d4-a716-446655440000";
 const USER_ADMIN_ID = "550e8400-e29b-41d4-a716-446655440001";
@@ -22,16 +23,20 @@ function renderAuditPage() {
   });
 
   return render(
-    <ThemeProvider theme={docuflowTheme}>
-      <CssBaseline />
-      <QueryClientProvider client={queryClient}>
-        <MemoryRouter initialEntries={["/admin/audit"]}>
-          <Routes>
-            <Route path="/admin/audit" element={<AuditPage />} />
-          </Routes>
-        </MemoryRouter>
-      </QueryClientProvider>
-    </ThemeProvider>,
+    <I18nProvider initialLocale="en-US">
+      <UiLocaleProvider locale="en-US">
+        <ThemeProvider theme={papyrusTheme}>
+          <CssBaseline />
+          <QueryClientProvider client={queryClient}>
+            <MemoryRouter initialEntries={["/admin/audit"]}>
+              <Routes>
+                <Route path="/admin/audit" element={<AuditPage />} />
+              </Routes>
+            </MemoryRouter>
+          </QueryClientProvider>
+        </ThemeProvider>
+      </UiLocaleProvider>
+    </I18nProvider>,
   );
 }
 
@@ -118,7 +123,7 @@ describe("AuditPage (Step 13.03)", () => {
           status: 200,
           headers: {
             "Content-Type": "text/csv; charset=utf-8",
-            "Content-Disposition": 'attachment; filename="auditoria-docuflow-2026-11-21.csv"',
+            "Content-Disposition": 'attachment; filename="auditoria-papyrus-2026-11-21.csv"',
           },
         });
       }
@@ -140,7 +145,7 @@ describe("AuditPage (Step 13.03)", () => {
                 result: "SUCCESS",
                 requestId: REQ_1_ID,
                 ipAddress: "127.0.0.1",
-                metadata: { delivery: "STREAM" },
+                metadata: { delivery: "STREAM", optionalField: null },
               },
             ],
             pagination: {
@@ -158,26 +163,26 @@ describe("AuditPage (Step 13.03)", () => {
     renderAuditPage();
 
     expect(await screen.findByText("Gestor Documental")).toBeInTheDocument();
-    expect(screen.getByText("Download realizado")).toBeInTheDocument();
+    expect(screen.getByText("Download completed")).toBeInTheDocument();
 
     // Filter by user
-    fireEvent.mouseDown(screen.getByLabelText("Usuário"));
+    fireEvent.mouseDown(screen.getByLabelText("User"));
     const userListbox = await screen.findByRole("listbox");
     fireEvent.click(within(userListbox).getByText("Gestor Documental (gestor@docuflow.local)"));
 
     // Filter by action
-    fireEvent.mouseDown(screen.getByLabelText("Ação"));
+    fireEvent.mouseDown(screen.getByLabelText("Action"));
     const actionListbox = await screen.findByRole("listbox");
-    fireEvent.click(within(actionListbox).getByText("Download realizado"));
+    fireEvent.click(within(actionListbox).getByText("Download completed"));
 
     // Filter by resource
-    fireEvent.mouseDown(screen.getByLabelText("Recurso"));
+    fireEvent.mouseDown(screen.getByLabelText("Resource"));
     const resourceListbox = await screen.findByRole("listbox");
-    fireEvent.click(within(resourceListbox).getByText("Documento"));
+    fireEvent.click(within(resourceListbox).getByText("Document"));
 
     // Filter by period
-    fireEvent.change(screen.getByLabelText("Data inicial"), { target: { value: "2026-11-01" } });
-    fireEvent.change(screen.getByLabelText("Data final"), { target: { value: "2026-11-21" } });
+    fireEvent.change(screen.getByLabelText("From date"), { target: { value: "2026-11-01" } });
+    fireEvent.change(screen.getByLabelText("To date"), { target: { value: "2026-11-21" } });
 
     await waitFor(() => {
       expect(
@@ -193,18 +198,22 @@ describe("AuditPage (Step 13.03)", () => {
     });
 
     // Open details modal
-    fireEvent.click(screen.getByRole("button", { name: "Detalhes" }));
+    fireEvent.click(screen.getByRole("button", { name: "Details" }));
     const dialog = await screen.findByRole("dialog");
-    expect(within(dialog).getByText("Detalhes do evento de auditoria")).toBeInTheDocument();
+    expect(within(dialog).getByText("Event details")).toBeInTheDocument();
+    expect(within(dialog).getByText("Reference ID")).toBeInTheDocument();
+    expect(within(dialog).getByText("IP address")).toBeInTheDocument();
+    expect(within(dialog).getByText("Additional details")).toBeInTheDocument();
     expect(within(dialog).getByText(REQ_1_ID)).toBeInTheDocument();
     expect(within(dialog).getByText("STREAM")).toBeInTheDocument();
-    fireEvent.click(within(dialog).getByRole("button", { name: "Fechar" }));
+    expect(within(dialog).queryByText("null")).not.toBeInTheDocument();
+    fireEvent.click(within(dialog).getByRole("button", { name: "Close" }));
     await waitFor(() => {
       expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     });
 
     // Trigger authorized CSV export with filters preserved
-    fireEvent.click(screen.getByRole("button", { name: "Exportar CSV" }));
+    fireEvent.click(screen.getByRole("button", { name: "Export CSV" }));
     await waitFor(() => {
       expect(
         requestedUrls.some(
@@ -216,7 +225,7 @@ describe("AuditPage (Step 13.03)", () => {
       ).toBe(true);
     });
     expect(anchorClickSpy).toHaveBeenCalledTimes(1);
-    expect(await screen.findByText(/Exportação concluída/i)).toBeInTheDocument();
+    expect(await screen.findByText(/Export completed/i)).toBeInTheDocument();
   });
 
   it("blocks access and hides export controls when the user lacks VIEW_AUDIT permission", async () => {
@@ -229,11 +238,9 @@ describe("AuditPage (Step 13.03)", () => {
 
     renderAuditPage();
 
-    expect(
-      await screen.findByText("Acesso não autorizado à trilha de auditoria"),
-    ).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Exportar CSV" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Exportar JSON" })).not.toBeInTheDocument();
+    expect(await screen.findByText("Access denied")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Export CSV" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Export JSON" })).not.toBeInTheDocument();
     expect(fetchSpy).toHaveBeenCalledTimes(1);
   });
 });

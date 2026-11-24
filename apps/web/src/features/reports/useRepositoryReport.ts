@@ -2,10 +2,11 @@ import {
   CONTRACTS_API_PREFIX,
   type DocumentStatus,
   type RepositoryReport,
-  apiErrorResponseSchema,
   repositoryReportResponseSchema,
 } from "@docuflow/contracts";
 import { useQuery } from "@tanstack/react-query";
+import { extractUserErrorMessage } from "../../i18n/api-errors.js";
+import { translate } from "../../i18n/index.js";
 
 export interface RepositoryReportFilters {
   readonly expirationWindowDays: number;
@@ -49,21 +50,12 @@ export async function fetchRepositoryReport(
   });
 
   if (!response.ok) {
-    let message = `Não foi possível gerar o relatório do acervo (${response.status}).`;
-    try {
-      const parsedError = apiErrorResponseSchema.safeParse(await response.json());
-      if (parsedError.success) {
-        message = parsedError.data.error.message;
-      }
-    } catch {
-      // Fallback para mensagem padrão.
-    }
-    throw new Error(message);
+    throw new Error(await extractUserErrorMessage(response, "reports.errors.load"));
   }
 
   const parsed = repositoryReportResponseSchema.safeParse(await response.json());
   if (!parsed.success) {
-    throw new Error("Resposta inválida recebida ao consultar o relatório do acervo.");
+    throw new Error(translate("reports.errors.invalidResponse"));
   }
 
   return parsed.data.data;

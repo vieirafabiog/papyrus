@@ -1,12 +1,12 @@
 import type { GroupSummary, UserSummary } from "@docuflow/contracts";
 import {
   ConfirmDialog,
-  DOCUFLOW_COLOR_TOKENS,
   DataTable,
   type DataTableColumn,
   ErrorState,
   FilterBar,
   LoadingState,
+  PAPYRUS_COLOR_TOKENS,
 } from "@docuflow/ui";
 import DeleteOutlineOutlinedIcon from "@mui/icons-material/DeleteOutlineOutlined";
 import GroupAddOutlinedIcon from "@mui/icons-material/GroupAddOutlined";
@@ -37,6 +37,7 @@ import {
 import { useId, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useSessionQuery } from "../../app/session.js";
+import { useI18n } from "../../i18n/index.js";
 import {
   canManageGroups,
   canManageUsers,
@@ -48,20 +49,13 @@ import {
   useRemoveGroupMemberMutation,
 } from "./useUsersAndGroups.js";
 
-function formatDateTimePtBr(isoDateTime: string): string {
-  const parsed = new Date(isoDateTime);
-  if (Number.isNaN(parsed.getTime())) {
-    return isoDateTime;
-  }
-  return parsed.toLocaleString("pt-BR");
-}
-
 /**
  * Administrative group directory page supporting group creation, filtering,
  * and associating or disassociating users in groups according to permissions.
  */
 export function GroupsPage() {
   const navigate = useNavigate();
+  const { locale, t, formatDateTime } = useI18n();
   const createTitleId = useId();
   const membersTitleId = useId();
 
@@ -118,10 +112,10 @@ export function GroupsPage() {
     });
 
     return [...filtered].sort((a, b) => {
-      const cmp = a[sortBy].localeCompare(b[sortBy], "pt-BR");
+      const cmp = a[sortBy].localeCompare(b[sortBy], locale);
       return sortDirection === "asc" ? cmp : -cmp;
     });
-  }, [groupsQuery.data, search, sortBy, sortDirection]);
+  }, [groupsQuery.data, search, sortBy, sortDirection, locale]);
 
   const pagedGroups = useMemo(() => {
     const start = (page - 1) * pageSize;
@@ -135,14 +129,14 @@ export function GroupsPage() {
   }, [usersQuery.data, membersQuery.data]);
 
   if (sessionQuery.isLoading) {
-    return <LoadingState message="Verificando permissões de administração..." />;
+    return <LoadingState message={t("admin.common.checkingPermissions")} />;
   }
 
   if (sessionQuery.data && !hasGroupAdminAccess) {
     return (
       <ErrorState
-        title="Acesso restrito"
-        description="Você não possui permissão para administrar grupos nesta organização."
+        title={t("admin.common.restrictedAccessTitle")}
+        description={t("admin.groups.noAccessDescription")}
       />
     );
   }
@@ -161,7 +155,7 @@ export function GroupsPage() {
     const trimmedDesc = groupDescription.trim();
 
     if (trimmedName.length < 2) {
-      setCreateError("O nome do grupo deve ter pelo menos 2 caracteres.");
+      setCreateError(t("admin.groups.validation.nameTooShort"));
       return;
     }
 
@@ -175,10 +169,12 @@ export function GroupsPage() {
       setGroupDescription("");
       setFeedback({
         severity: "success",
-        message: `Grupo "${created.name}" criado com sucesso.`,
+        message: t("admin.groups.feedback.created", { name: created.name }),
       });
     } catch (error) {
-      setCreateError(error instanceof Error ? error.message : "Não foi possível criar o grupo.");
+      setCreateError(
+        error instanceof Error ? error.message : t("admin.groups.errors.createFailed"),
+      );
     }
   };
 
@@ -196,11 +192,11 @@ export function GroupsPage() {
       setSelectedUserId("");
       setFeedback({
         severity: "success",
-        message: `Usuário associado ao grupo "${selectedGroup.name}".`,
+        message: t("admin.groups.feedback.memberAdded", { name: selectedGroup.name }),
       });
     } catch (error) {
       setMemberError(
-        error instanceof Error ? error.message : "Não foi possível associar o usuário ao grupo.",
+        error instanceof Error ? error.message : t("admin.groups.errors.addMemberFailed"),
       );
     }
   };
@@ -218,12 +214,15 @@ export function GroupsPage() {
       });
       setFeedback({
         severity: "success",
-        message: `Usuário "${memberToRemove.fullName}" removido do grupo "${selectedGroup.name}".`,
+        message: t("admin.groups.feedback.memberRemoved", {
+          userName: memberToRemove.fullName,
+          groupName: selectedGroup.name,
+        }),
       });
       setMemberToRemove(null);
     } catch (error) {
       setMemberError(
-        error instanceof Error ? error.message : "Não foi possível remover o membro do grupo.",
+        error instanceof Error ? error.message : t("admin.groups.errors.removeMemberFailed"),
       );
       setMemberToRemove(null);
     }
@@ -232,7 +231,7 @@ export function GroupsPage() {
   const columns: DataTableColumn<GroupSummary>[] = [
     {
       id: "name",
-      label: "Nome do grupo",
+      label: t("admin.groups.table.name"),
       sortable: true,
       render: (row) => (
         <Typography variant="body2" fontWeight={500}>
@@ -242,19 +241,19 @@ export function GroupsPage() {
     },
     {
       id: "description",
-      label: "Descrição",
+      label: t("admin.groups.table.description"),
       sortable: false,
-      render: (row) => row.description ?? "Sem descrição",
+      render: (row) => row.description ?? t("admin.groups.table.noDescription"),
     },
     {
       id: "updatedAt",
-      label: "Atualizado em",
+      label: t("admin.common.updatedAt"),
       sortable: true,
-      render: (row) => formatDateTimePtBr(row.updatedAt),
+      render: (row) => formatDateTime(row.updatedAt),
     },
     {
       id: "actions",
-      label: "Ações",
+      label: t("admin.common.actions"),
       align: "right",
       render: (row) => (
         <Button
@@ -267,9 +266,9 @@ export function GroupsPage() {
             setSelectedUserId("");
             setSelectedGroup(row);
           }}
-          aria-label={`Gerenciar membros de ${row.name}`}
+          aria-label={t("admin.groups.actions.manageMembersAria", { name: row.name })}
         >
-          Gerenciar membros
+          {t("admin.groups.actions.manageMembers")}
         </Button>
       ),
     },
@@ -281,18 +280,18 @@ export function GroupsPage() {
         variant="outlined"
         sx={{
           p: 2.5,
-          bgcolor: DOCUFLOW_COLOR_TOKENS.surface.containerLowest,
-          borderColor: DOCUFLOW_COLOR_TOKENS.surface.outlineVariant,
+          bgcolor: PAPYRUS_COLOR_TOKENS.surface.containerLowest,
+          borderColor: PAPYRUS_COLOR_TOKENS.surface.outlineVariant,
         }}
       >
         <Stack spacing={1.5}>
           <Box>
             <Stack direction="row" spacing={1} alignItems="center">
               <GroupOutlinedIcon color="primary" />
-              <Typography variant="h1">Usuários e grupos</Typography>
+              <Typography variant="h1">{t("admin.usersAndGroups.title")}</Typography>
             </Stack>
             <Typography variant="body1" color="text.secondary" sx={{ mt: 0.5 }}>
-              Organize equipes de trabalho e associe membros para escopos e aprovações.
+              {t("admin.groups.subtitle")}
             </Typography>
           </Box>
 
@@ -303,12 +302,12 @@ export function GroupsPage() {
                 void navigate("/admin/users");
               }
             }}
-            aria-label="Seções de usuários e grupos"
+            aria-label={t("admin.usersAndGroups.tabsAriaLabel")}
           >
             {hasUserAdminAccess || sessionQuery.data === null ? (
-              <Tab value="users" label="Usuários" />
+              <Tab value="users" label={t("admin.usersAndGroups.usersTab")} />
             ) : null}
-            <Tab value="groups" label="Grupos" />
+            <Tab value="groups" label={t("admin.usersAndGroups.groupsTab")} />
           </Tabs>
         </Stack>
       </Paper>
@@ -325,8 +324,8 @@ export function GroupsPage() {
           setSearch(value);
           setPage(1);
         }}
-        searchLabel="Pesquisar grupo"
-        searchPlaceholder="Nome ou descrição..."
+        searchLabel={t("admin.groups.filters.searchLabel")}
+        searchPlaceholder={t("admin.groups.filters.searchPlaceholder")}
         filters={[]}
         hasActiveFilters={search.trim().length > 0}
         onClearFilters={() => {
@@ -342,13 +341,13 @@ export function GroupsPage() {
               setCreateOpen(true);
             }}
           >
-            Novo grupo
+            {t("admin.groups.actions.newGroup")}
           </Button>
         }
       />
 
       <DataTable
-        ariaLabel="Tabela de grupos da organização"
+        ariaLabel={t("admin.groups.table.ariaLabel")}
         columns={columns}
         rows={pagedGroups}
         getRowId={(row) => row.id}
@@ -372,9 +371,9 @@ export function GroupsPage() {
         loading={groupsQuery.isLoading}
         errorMessage={groupsQuery.isError ? groupsQuery.error.message : null}
         onRetry={() => void groupsQuery.refetch()}
-        emptyTitle="Nenhum grupo encontrado"
-        emptyDescription="Nenhum grupo corresponde ao filtro informado."
-        emptyActionLabel="Novo grupo"
+        emptyTitle={t("admin.groups.table.emptyTitle")}
+        emptyDescription={t("admin.groups.table.emptyDescription")}
+        emptyActionLabel={t("admin.groups.actions.newGroup")}
         onEmptyAction={() => setCreateOpen(true)}
       />
 
@@ -385,7 +384,7 @@ export function GroupsPage() {
         maxWidth="xs"
         fullWidth
       >
-        <DialogTitle id={createTitleId}>Criar grupo</DialogTitle>
+        <DialogTitle id={createTitleId}>{t("admin.groups.createDialog.title")}</DialogTitle>
         <DialogContent>
           <Stack spacing={2} sx={{ pt: 0.5 }}>
             {createError ? (
@@ -394,7 +393,7 @@ export function GroupsPage() {
               </Alert>
             ) : null}
             <TextField
-              label="Nome do grupo"
+              label={t("admin.groups.createDialog.name")}
               value={groupName}
               onChange={(event) => setGroupName(event.target.value)}
               fullWidth
@@ -403,7 +402,7 @@ export function GroupsPage() {
               disabled={createGroupMutation.isPending}
             />
             <TextField
-              label="Descrição (opcional)"
+              label={t("admin.groups.createDialog.description")}
               value={groupDescription}
               onChange={(event) => setGroupDescription(event.target.value)}
               fullWidth
@@ -420,14 +419,16 @@ export function GroupsPage() {
             disabled={createGroupMutation.isPending}
             variant="text"
           >
-            Cancelar
+            {t("admin.common.cancel")}
           </Button>
           <Button
             onClick={() => void handleCreateGroup()}
             disabled={createGroupMutation.isPending}
             variant="contained"
           >
-            {createGroupMutation.isPending ? "Criando..." : "Criar grupo"}
+            {createGroupMutation.isPending
+              ? t("admin.common.creating")
+              : t("admin.groups.createDialog.submit")}
           </Button>
         </DialogActions>
       </Dialog>
@@ -439,7 +440,9 @@ export function GroupsPage() {
         maxWidth="sm"
         fullWidth
       >
-        <DialogTitle id={membersTitleId}>Membros do grupo: {selectedGroup?.name ?? ""}</DialogTitle>
+        <DialogTitle id={membersTitleId}>
+          {t("admin.groups.membersDialog.title", { name: selectedGroup?.name ?? "" })}
+        </DialogTitle>
         <DialogContent>
           <Stack spacing={2} sx={{ pt: 0.5 }}>
             {memberError ? (
@@ -451,7 +454,7 @@ export function GroupsPage() {
             <Stack direction={{ xs: "column", sm: "row" }} spacing={1} alignItems="stretch">
               <TextField
                 select
-                label="Associar usuário ativo"
+                label={t("admin.groups.membersDialog.selectUserLabel")}
                 value={selectedUserId}
                 onChange={(event) => setSelectedUserId(event.target.value)}
                 fullWidth
@@ -459,7 +462,7 @@ export function GroupsPage() {
               >
                 {availableUsersToAdd.length === 0 ? (
                   <MenuItem value="" disabled>
-                    Nenhum usuário ativo disponível para associação
+                    {t("admin.groups.membersDialog.noAvailableUsers")}
                   </MenuItem>
                 ) : (
                   availableUsersToAdd.map((user) => (
@@ -476,19 +479,24 @@ export function GroupsPage() {
                 onClick={() => void handleAssociateMember()}
                 sx={{ whiteSpace: "nowrap" }}
               >
-                {addMemberMutation.isPending ? "Associando..." : "Associar membro"}
+                {addMemberMutation.isPending
+                  ? t("admin.groups.membersDialog.addingMember")
+                  : t("admin.groups.membersDialog.addMember")}
               </Button>
             </Stack>
 
             <Divider />
 
             {membersQuery.isLoading ? (
-              <LoadingState message="Carregando membros..." minHeight={100} />
+              <LoadingState
+                message={t("admin.groups.membersDialog.loadingMembers")}
+                minHeight={100}
+              />
             ) : membersQuery.isError ? (
               <Alert severity="error">{membersQuery.error.message}</Alert>
             ) : (membersQuery.data ?? []).length === 0 ? (
               <Typography variant="body2" color="text.secondary">
-                Este grupo ainda não possui usuários associados.
+                {t("admin.groups.membersDialog.emptyMembers")}
               </Typography>
             ) : (
               <List dense disablePadding>
@@ -500,7 +508,9 @@ export function GroupsPage() {
                       <IconButton
                         edge="end"
                         color="error"
-                        aria-label={`Remover ${member.fullName} do grupo`}
+                        aria-label={t("admin.groups.membersDialog.removeMemberAria", {
+                          name: member.fullName,
+                        })}
                         onClick={() => setMemberToRemove(member)}
                       >
                         <DeleteOutlineOutlinedIcon fontSize="small" />
@@ -516,16 +526,19 @@ export function GroupsPage() {
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>
           <Button onClick={() => setSelectedGroup(null)} variant="text">
-            Fechar
+            {t("admin.common.close")}
           </Button>
         </DialogActions>
       </Dialog>
 
       <ConfirmDialog
         open={memberToRemove !== null}
-        title="Remover membro do grupo"
-        description={`Confirmar a remoção de "${memberToRemove?.fullName ?? ""}" do grupo "${selectedGroup?.name ?? ""}"?`}
-        confirmLabel="Remover membro"
+        title={t("admin.groups.confirmRemove.title")}
+        description={t("admin.groups.confirmRemove.description", {
+          userName: memberToRemove?.fullName ?? "",
+          groupName: selectedGroup?.name ?? "",
+        })}
+        confirmLabel={t("admin.groups.confirmRemove.confirm")}
         confirmColor="error"
         loading={removeMemberMutation.isPending}
         onConfirm={() => void handleConfirmRemoveMember()}

@@ -1,10 +1,11 @@
 import "@testing-library/jest-dom/vitest";
-import { docuflowTheme } from "@docuflow/ui";
+import { UiLocaleProvider, papyrusTheme } from "@docuflow/ui";
 import { CssBaseline, ThemeProvider } from "@mui/material";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { GlobalSearch } from "../src/components/GlobalSearch.js";
+import { I18nProvider, resetUiLocaleForTests } from "../src/i18n/index.js";
 
 const DOC_1_ID = "550e8400-e29b-41d4-a716-446655440001";
 const CAT_ID = "550e8400-e29b-41d4-a716-446655440002";
@@ -15,22 +16,27 @@ function renderGlobalSearch(props?: {
   readonly fetchFn?: typeof fetch;
 }) {
   return render(
-    <ThemeProvider theme={docuflowTheme}>
-      <CssBaseline />
-      <MemoryRouter initialEntries={["/"]}>
-        <GlobalSearch debounceMs={props?.debounceMs ?? 20} fetchFn={props?.fetchFn} />
-        <Routes>
-          <Route path="/" element={<div>Início</div>} />
-          <Route path="/documents/:id" element={<h1>Detalhe do Documento Destino</h1>} />
-        </Routes>
-      </MemoryRouter>
-    </ThemeProvider>,
+    <I18nProvider initialLocale="en-US">
+      <UiLocaleProvider locale="en-US">
+        <ThemeProvider theme={papyrusTheme}>
+          <CssBaseline />
+          <MemoryRouter initialEntries={["/"]}>
+            <GlobalSearch debounceMs={props?.debounceMs ?? 20} fetchFn={props?.fetchFn} />
+            <Routes>
+              <Route path="/" element={<div>Home</div>} />
+              <Route path="/documents/:id" element={<h1>Target Document Details</h1>} />
+            </Routes>
+          </MemoryRouter>
+        </ThemeProvider>
+      </UiLocaleProvider>
+    </I18nProvider>,
   );
 }
 
 describe("GlobalSearch", () => {
   afterEach(() => {
     cleanup();
+    resetUiLocaleForTests();
     vi.restoreAllMocks();
     vi.useRealTimers();
   });
@@ -83,7 +89,7 @@ describe("GlobalSearch", () => {
 
     renderGlobalSearch({ debounceMs: 30, fetchFn: fetchMock });
 
-    const input = screen.getByRole("textbox", { name: "Busca global de documentos" });
+    const input = screen.getByRole("textbox", { name: "Global document search" });
     fireEvent.change(input, { target: { value: "Co" } });
 
     // Trigger first debounced fetch
@@ -101,11 +107,11 @@ describe("GlobalSearch", () => {
 
     const option = await screen.findByText("Contrato Fornecedor Alpha");
     expect(option).toBeInTheDocument();
-    expect(screen.getByText("Aprovado")).toBeInTheDocument();
+    expect(screen.getByText("Approved")).toBeInTheDocument();
 
     fireEvent.click(option);
     expect(
-      await screen.findByRole("heading", { name: "Detalhe do Documento Destino" }),
+      await screen.findByRole("heading", { name: "Target Document Details" }),
     ).toBeInTheDocument();
   });
 
@@ -122,30 +128,30 @@ describe("GlobalSearch", () => {
 
     renderGlobalSearch({ debounceMs: 10, fetchFn: fetchMock });
 
-    const input = screen.getByRole("textbox", { name: "Busca global de documentos" });
+    const input = screen.getByRole("textbox", { name: "Global document search" });
     fireEvent.change(input, { target: { value: "Inexistente" } });
 
-    expect(await screen.findByText("Nenhum documento encontrado")).toBeInTheDocument();
-    expect(
-      screen.getByText('Nenhum resultado autorizado corresponde a "Inexistente".'),
-    ).toBeInTheDocument();
+    expect(await screen.findByText("No documents found")).toBeInTheDocument();
+    expect(screen.getByText('No available results match "Inexistente".')).toBeInTheDocument();
 
     fireEvent.keyDown(input, { key: "Escape", code: "Escape" });
     await waitFor(() => {
-      expect(screen.queryByText("Nenhum documento encontrado")).not.toBeInTheDocument();
+      expect(screen.queryByText("No documents found")).not.toBeInTheDocument();
     });
   });
 
-  it("displays safe error state when search request fails", async () => {
+  it("displays safe error state without technical jargon when search request fails", async () => {
     const fetchMock = vi.fn<typeof fetch>(async () => {
       return new Response(null, { status: 500 });
     });
 
     renderGlobalSearch({ debounceMs: 10, fetchFn: fetchMock });
 
-    const input = screen.getByRole("textbox", { name: "Busca global de documentos" });
+    const input = screen.getByRole("textbox", { name: "Global document search" });
     fireEvent.change(input, { target: { value: "Contrato" } });
 
-    expect(await screen.findByText("Não foi possível concluir a busca (500).")).toBeInTheDocument();
+    expect(
+      await screen.findByText("Unable to complete the search. Please try again."),
+    ).toBeInTheDocument();
   });
 });

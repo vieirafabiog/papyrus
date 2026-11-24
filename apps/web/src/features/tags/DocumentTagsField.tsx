@@ -13,6 +13,8 @@ import {
   Typography,
 } from "@mui/material";
 import { useMemo, useState } from "react";
+import { containsTechnicalJargon } from "../../i18n/api-errors.js";
+import { useI18n } from "../../i18n/index.js";
 import {
   useAttachDocumentTagMutation,
   useCreateTagMutation,
@@ -30,6 +32,7 @@ export interface DocumentTagsFieldProps {
  * Interactive MD3-aligned chip and picker control to view, create, attach, and detach document tags.
  */
 export function DocumentTagsField({ documentId, canEdit }: DocumentTagsFieldProps) {
+  const { t } = useI18n();
   const [selectedTag, setSelectedTag] = useState<TagRecord | null>(null);
   const [newTagName, setNewTagName] = useState("");
   const [feedbackError, setFeedbackError] = useState<string | null>(null);
@@ -60,14 +63,19 @@ export function DocumentTagsField({ documentId, canEdit }: DocumentTagsFieldProp
       await attachMutation.mutateAsync(selectedTag.id);
       setSelectedTag(null);
     } catch (error) {
-      setFeedbackError(error instanceof Error ? error.message : "Falha ao associar etiqueta.");
+      const rawMessage = error instanceof Error ? error.message.trim() : "";
+      setFeedbackError(
+        rawMessage.length > 0 && !containsTechnicalJargon(rawMessage)
+          ? rawMessage
+          : t("tags.field.attachFailed"),
+      );
     }
   };
 
   const handleCreateAndAttach = async () => {
     const trimmed = newTagName.trim();
     if (trimmed.length === 0) {
-      setFeedbackError("Informe o nome da nova etiqueta.");
+      setFeedbackError(t("tags.field.newNameRequired"));
       return;
     }
     setFeedbackError(null);
@@ -76,7 +84,12 @@ export function DocumentTagsField({ documentId, canEdit }: DocumentTagsFieldProp
       await attachMutation.mutateAsync(created.id);
       setNewTagName("");
     } catch (error) {
-      setFeedbackError(error instanceof Error ? error.message : "Falha ao criar etiqueta.");
+      const rawMessage = error instanceof Error ? error.message.trim() : "";
+      setFeedbackError(
+        rawMessage.length > 0 && !containsTechnicalJargon(rawMessage)
+          ? rawMessage
+          : t("tags.page.createFailed"),
+      );
     }
   };
 
@@ -85,15 +98,20 @@ export function DocumentTagsField({ documentId, canEdit }: DocumentTagsFieldProp
     try {
       await detachMutation.mutateAsync(tagId);
     } catch (error) {
-      setFeedbackError(error instanceof Error ? error.message : "Falha ao remover etiqueta.");
+      const rawMessage = error instanceof Error ? error.message.trim() : "";
+      setFeedbackError(
+        rawMessage.length > 0 && !containsTechnicalJargon(rawMessage)
+          ? rawMessage
+          : t("tags.field.detachFailed"),
+      );
     }
   };
 
   return (
-    <Stack spacing={1.5} aria-label="Etiquetas do documento">
+    <Stack spacing={1.5} aria-label={t("tags.field.ariaLabel")}>
       <Stack direction="row" alignItems="center" spacing={1}>
         <LabelOutlinedIcon fontSize="small" color="action" />
-        <Typography variant="subtitle2">Etiquetas</Typography>
+        <Typography variant="subtitle2">{t("tags.field.heading")}</Typography>
         {(documentTagsQuery.isLoading || isBusy) && <CircularProgress size={16} />}
       </Stack>
 
@@ -110,7 +128,7 @@ export function DocumentTagsField({ documentId, canEdit }: DocumentTagsFieldProp
       <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
         {attachedTags.length === 0 && !documentTagsQuery.isLoading ? (
           <Typography variant="body2" color="text.secondary">
-            Nenhuma etiqueta associada a este documento.
+            {t("tags.field.empty")}
           </Typography>
         ) : (
           attachedTags.map((tag) => (
@@ -145,9 +163,9 @@ export function DocumentTagsField({ documentId, canEdit }: DocumentTagsFieldProp
               onChange={(_event, value) => setSelectedTag(value)}
               getOptionLabel={(option) => option.name}
               isOptionEqualToValue={(option, value) => option.id === value.id}
-              noOptionsText="Nenhuma etiqueta disponível"
+              noOptionsText={t("tags.field.noOptions")}
               renderInput={(params) => (
-                <TextField {...params} label="Associar etiqueta existente" />
+                <TextField {...params} label={t("tags.field.attachExistingLabel")} />
               )}
             />
             <Button
@@ -155,15 +173,15 @@ export function DocumentTagsField({ documentId, canEdit }: DocumentTagsFieldProp
               disabled={!selectedTag || isBusy}
               onClick={() => void handleAttachSelected()}
             >
-              Associar
+              {t("tags.field.attachButton")}
             </Button>
           </Stack>
 
           <Stack direction={{ xs: "column", sm: "row" }} spacing={1} alignItems={{ sm: "center" }}>
             <TextField
               size="small"
-              label="Criar e associar etiqueta"
-              placeholder="Ex.: Prioritário"
+              label={t("tags.field.createAndAttachLabel")}
+              placeholder={t("tags.field.createAndAttachPlaceholder")}
               value={newTagName}
               onChange={(event) => setNewTagName(event.target.value)}
               disabled={isBusy}
@@ -175,7 +193,7 @@ export function DocumentTagsField({ documentId, canEdit }: DocumentTagsFieldProp
               disabled={isBusy || newTagName.trim().length === 0}
               onClick={() => void handleCreateAndAttach()}
             >
-              Criar etiqueta
+              {t("tags.field.createButton")}
             </Button>
           </Stack>
         </Stack>

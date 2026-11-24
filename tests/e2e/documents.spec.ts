@@ -46,6 +46,12 @@ test.describe("Gestão documental E2E", () => {
     await env?.stop();
   });
 
+  test.beforeEach(async ({ page }) => {
+    await page.context().addInitScript(() => {
+      window.localStorage.setItem("papyrus_ui_locale", "pt-BR");
+    });
+  });
+
   test("executa login, envio, processamento, pesquisa, pré-visualização, download e nova versão", async ({
     page,
   }) => {

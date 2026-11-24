@@ -34,66 +34,83 @@ import {
 } from "@mui/material";
 import type { ReactElement } from "react";
 import { Link as RouterLink, useLocation } from "react-router-dom";
+import { type MessageKey, useI18n } from "../i18n/index.js";
 
 interface NavItem {
-  readonly label: string;
+  readonly labelKey: MessageKey;
   readonly to: string;
   readonly icon: ReactElement;
 }
 
 const PRIMARY_NAV_ITEMS: readonly NavItem[] = [
-  { label: "Visão geral", to: "/", icon: <DashboardOutlinedIcon fontSize="small" /> },
-  { label: "Documentos", to: "/documents", icon: <DescriptionOutlinedIcon fontSize="small" /> },
-  { label: "Lixeira", to: "/trash", icon: <DeleteOutlineOutlinedIcon fontSize="small" /> },
-  { label: "Pastas", to: "/folders", icon: <FolderOutlinedIcon fontSize="small" /> },
+  { labelKey: "shell.nav.overview", to: "/", icon: <DashboardOutlinedIcon fontSize="small" /> },
   {
-    label: "Categorias e campos",
+    labelKey: "shell.nav.documents",
+    to: "/documents",
+    icon: <DescriptionOutlinedIcon fontSize="small" />,
+  },
+  {
+    labelKey: "shell.nav.trash",
+    to: "/trash",
+    icon: <DeleteOutlineOutlinedIcon fontSize="small" />,
+  },
+  { labelKey: "shell.nav.folders", to: "/folders", icon: <FolderOutlinedIcon fontSize="small" /> },
+  {
+    labelKey: "shell.nav.categories",
     to: "/categories",
     icon: <CategoryOutlinedIcon fontSize="small" />,
   },
   {
-    label: "Etiquetas",
+    labelKey: "shell.nav.tags",
     to: "/tags",
     icon: <LabelOutlinedIcon fontSize="small" />,
   },
-  { label: "Fluxos de aprovação", to: "/workflows", icon: <RuleOutlinedIcon fontSize="small" /> },
-  { label: "Minhas tarefas", to: "/tasks", icon: <TaskAltOutlinedIcon fontSize="small" /> },
   {
-    label: "Vencimentos",
+    labelKey: "shell.nav.workflows",
+    to: "/workflows",
+    icon: <RuleOutlinedIcon fontSize="small" />,
+  },
+  { labelKey: "shell.nav.tasks", to: "/tasks", icon: <TaskAltOutlinedIcon fontSize="small" /> },
+  {
+    labelKey: "shell.nav.expirations",
     to: "/expirations",
     icon: <EventAvailableOutlinedIcon fontSize="small" />,
   },
-  { label: "Relatórios", to: "/reports", icon: <AssessmentOutlinedIcon fontSize="small" /> },
+  {
+    labelKey: "shell.nav.reports",
+    to: "/reports",
+    icon: <AssessmentOutlinedIcon fontSize="small" />,
+  },
 ];
 
 const ADMIN_NAV_ITEMS: readonly NavItem[] = [
   {
-    label: "Usuários e grupos",
+    labelKey: "shell.nav.usersAndGroups",
     to: "/admin/users",
     icon: <GroupOutlinedIcon fontSize="small" />,
   },
   {
-    label: "Papéis e permissões",
+    labelKey: "shell.nav.rolesAndPermissions",
     to: "/admin/permissions",
     icon: <SecurityOutlinedIcon fontSize="small" />,
   },
   {
-    label: "Armazenamento",
+    labelKey: "shell.nav.storage",
     to: "/admin/storage",
     icon: <StorageOutlinedIcon fontSize="small" />,
   },
   {
-    label: "Status operacional",
+    labelKey: "shell.nav.systemStatus",
     to: "/admin/status",
     icon: <MonitorHeartOutlinedIcon fontSize="small" />,
   },
   {
-    label: "Auditoria",
+    labelKey: "shell.nav.audit",
     to: "/admin/audit",
     icon: <HistoryEduOutlinedIcon fontSize="small" />,
   },
   {
-    label: "Configurações",
+    labelKey: "shell.nav.settings",
     to: "/admin/settings",
     icon: <SettingsOutlinedIcon fontSize="small" />,
   },
@@ -116,6 +133,8 @@ function SidebarNavSection({
   readonly currentPath: string;
   readonly onSelectItem: () => void;
 }) {
+  const { t } = useI18n();
+
   return (
     <Box>
       {heading ? (
@@ -164,7 +183,7 @@ function SidebarNavSection({
                   {item.icon}
                 </ListItemIcon>
                 <ListItemText
-                  primary={item.label}
+                  primary={t(item.labelKey)}
                   primaryTypographyProps={{
                     variant: "body2",
                     fontWeight: isActive ? 600 : 500,
@@ -180,13 +199,14 @@ function SidebarNavSection({
 }
 
 export function AppSidebar({ mobileOpen, desktopCollapsed, onCloseMobile }: AppSidebarProps) {
+  const { t } = useI18n();
   const location = useLocation();
   const drawerWidth = PAPYRUS_DENSITY_TOKENS.sidebarWidth;
 
   const drawerContent = (
     <Box
       component="nav"
-      aria-label="Navegação principal"
+      aria-label={t("shell.sidebar.navAriaLabel")}
       sx={{
         display: "flex",
         flexDirection: "column",
@@ -206,7 +226,7 @@ export function AppSidebar({ mobileOpen, desktopCollapsed, onCloseMobile }: AppS
         />
         <Divider sx={{ my: 1.5 }} />
         <SidebarNavSection
-          heading="Administração"
+          heading={t("shell.sidebar.adminHeading")}
           items={ADMIN_NAV_ITEMS}
           currentPath={location.pathname}
           onSelectItem={onCloseMobile}

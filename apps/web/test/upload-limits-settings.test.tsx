@@ -1,11 +1,12 @@
 import "@testing-library/jest-dom/vitest";
 import { SAFE_UPLOAD_FORMAT_CATALOG } from "@docuflow/contracts";
-import { docuflowTheme } from "@docuflow/ui";
+import { UiLocaleProvider, papyrusTheme } from "@docuflow/ui";
 import { CssBaseline, ThemeProvider } from "@mui/material";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { UploadLimitsSettingsSection } from "../src/features/admin/UploadLimitsSettingsSection.js";
+import { I18nProvider } from "../src/i18n/index.js";
 
 function renderSection() {
   const queryClient = new QueryClient({
@@ -15,12 +16,16 @@ function renderSection() {
   });
 
   return render(
-    <ThemeProvider theme={docuflowTheme}>
-      <CssBaseline />
-      <QueryClientProvider client={queryClient}>
-        <UploadLimitsSettingsSection />
-      </QueryClientProvider>
-    </ThemeProvider>,
+    <I18nProvider initialLocale="en-US">
+      <UiLocaleProvider locale="en-US">
+        <ThemeProvider theme={papyrusTheme}>
+          <CssBaseline />
+          <QueryClientProvider client={queryClient}>
+            <UploadLimitsSettingsSection />
+          </QueryClientProvider>
+        </ThemeProvider>
+      </UiLocaleProvider>
+    </I18nProvider>,
   );
 }
 
@@ -97,14 +102,14 @@ describe("UploadLimitsSettingsSection (Step 14.06)", () => {
 
     renderSection();
 
-    expect(await screen.findByText("Limites e formatos de upload")).toBeInTheDocument();
+    expect(await screen.findByText("File upload limits")).toBeInTheDocument();
 
-    fireEvent.change(screen.getByLabelText("Tamanho máximo por arquivo (MB)"), {
+    fireEvent.change(screen.getByLabelText("Maximum file size (MB)"), {
       target: { value: "10" },
     });
     fireEvent.click(screen.getByText("Imagem PNG (.png)"));
     fireEvent.click(screen.getByText("Microsoft Word (.docx)"));
-    fireEvent.click(screen.getByRole("button", { name: "Salvar limites de upload" }));
+    fireEvent.click(screen.getByRole("button", { name: "Save upload limits" }));
 
     await waitFor(() => {
       expect(capturedPatch).toEqual({
@@ -114,10 +119,6 @@ describe("UploadLimitsSettingsSection (Step 14.06)", () => {
       });
     });
 
-    expect(
-      await screen.findByText(
-        "Limites de tamanho e extensões permitidas atualizados para API, proxy e worker.",
-      ),
-    ).toBeInTheDocument();
+    expect(await screen.findByText("File upload limits updated.")).toBeInTheDocument();
   });
 });

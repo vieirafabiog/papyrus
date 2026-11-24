@@ -4,7 +4,7 @@ import type {
   OrganizationListPageSize,
   OrganizationSettingsViewContract,
 } from "@docuflow/contracts";
-import { DOCUFLOW_COLOR_TOKENS, ErrorState, LoadingState } from "@docuflow/ui";
+import { ErrorState, LoadingState, PAPYRUS_COLOR_TOKENS } from "@docuflow/ui";
 import CorporateFareOutlinedIcon from "@mui/icons-material/CorporateFareOutlined";
 import RestartAltOutlinedIcon from "@mui/icons-material/RestartAltOutlined";
 import SaveOutlinedIcon from "@mui/icons-material/SaveOutlined";
@@ -23,22 +23,23 @@ import {
   Typography,
 } from "@mui/material";
 import { type FormEvent, useEffect, useState } from "react";
+import { type MessageKey, getStoredUiLocale, resolveUiLocale, useI18n } from "../../i18n/index.js";
 import { UploadLimitsSettingsSection } from "./UploadLimitsSettingsSection.js";
 import {
   useOrganizationSettingsQuery,
   useUpdateOrganizationSettingsMutation,
 } from "./useOrganizationSettings.js";
 
-const LANGUAGE_OPTIONS: ReadonlyArray<{
+const LANGUAGE_OPTION_KEYS: ReadonlyArray<{
   readonly value: OrganizationLanguage;
-  readonly label: string;
+  readonly labelKey: MessageKey;
 }> = [
-  { value: "pt-BR", label: "Português (Brasil) — pt-BR" },
-  { value: "en-US", label: "Inglês (EUA) — en-US" },
-  { value: "es-ES", label: "Espanhol (Espanha) — es-ES" },
+  { value: "pt-BR", labelKey: "admin.organization.language.ptBR" },
+  { value: "en-US", labelKey: "admin.organization.language.enUS" },
+  { value: "es-ES", labelKey: "admin.organization.language.esES" },
 ];
 
-const COMMON_IANA_TIMEZONES: readonly string[] = [
+const COMMON_TIMEZONES: readonly string[] = [
   "America/Sao_Paulo",
   "America/Manaus",
   "America/Cuiaba",
@@ -51,13 +52,13 @@ const COMMON_IANA_TIMEZONES: readonly string[] = [
   "Europe/Lisbon",
 ];
 
-const DATE_FORMAT_OPTIONS: ReadonlyArray<{
+const DATE_FORMAT_OPTION_KEYS: ReadonlyArray<{
   readonly value: OrganizationDateFormat;
-  readonly label: string;
+  readonly labelKey: MessageKey;
 }> = [
-  { value: "DD/MM/YYYY", label: "DD/MM/AAAA (31/12/2026)" },
-  { value: "YYYY-MM-DD", label: "AAAA-MM-DD (2026-12-31)" },
-  { value: "MM/DD/YYYY", label: "MM/DD/AAAA (12/31/2026)" },
+  { value: "DD/MM/YYYY", labelKey: "admin.organization.dateFormat.dmy" },
+  { value: "YYYY-MM-DD", labelKey: "admin.organization.dateFormat.ymd" },
+  { value: "MM/DD/YYYY", labelKey: "admin.organization.dateFormat.mdy" },
 ];
 
 const PAGE_SIZE_OPTIONS: readonly OrganizationListPageSize[] = [10, 20, 50];
@@ -91,9 +92,10 @@ function toFormState(view: OrganizationSettingsViewContract): OrganizationFormSt
 
 /**
  * Administrative page for viewing and updating installation-level organization
- * identity, localization defaults, and strictly allowlisted installation preferences.
+ * identity, localization defaults, and general preferences.
  */
 export function OrganizationSettingsPage() {
+  const { t, setLocale } = useI18n();
   const settingsQuery = useOrganizationSettingsQuery();
   const updateMutation = useUpdateOrganizationSettingsMutation();
 
@@ -110,13 +112,13 @@ export function OrganizationSettingsPage() {
   }, [settingsQuery.data]);
 
   if (settingsQuery.isLoading) {
-    return <LoadingState message="Carregando dados e preferências da organização..." />;
+    return <LoadingState message={t("admin.organization.loading")} />;
   }
 
   if (settingsQuery.isError) {
     return (
       <ErrorState
-        title="Não foi possível carregar as configurações da organização"
+        title={t("admin.organization.loadErrorTitle")}
         description={settingsQuery.error.message}
         onRetry={() => void settingsQuery.refetch()}
       />
@@ -126,8 +128,8 @@ export function OrganizationSettingsPage() {
   if (!settingsQuery.data || !form) {
     return (
       <ErrorState
-        title="Dados da organização indisponíveis"
-        description="Tente recarregar a página para consultar os dados atualizados."
+        title={t("admin.organization.unavailableTitle")}
+        description={t("admin.organization.unavailableDescription")}
         onRetry={() => void settingsQuery.refetch()}
       />
     );
@@ -146,9 +148,9 @@ export function OrganizationSettingsPage() {
     form.auditDocumentViews !== baseline.auditDocumentViews ||
     form.auditDocumentDownloads !== baseline.auditDocumentDownloads;
 
-  const timezoneChoices = COMMON_IANA_TIMEZONES.includes(form.timezone)
-    ? COMMON_IANA_TIMEZONES
-    : [form.timezone, ...COMMON_IANA_TIMEZONES];
+  const timezoneChoices = COMMON_TIMEZONES.includes(form.timezone)
+    ? COMMON_TIMEZONES
+    : [form.timezone, ...COMMON_TIMEZONES];
 
   const handleReset = (): void => {
     setForm(baseline);
@@ -166,7 +168,7 @@ export function OrganizationSettingsPage() {
     if (trimmedName.length < 2) {
       setFeedback({
         severity: "error",
-        message: "O nome da organização deve ter pelo menos 2 caracteres.",
+        message: t("admin.organization.validation.nameTooShort"),
       });
       return;
     }
@@ -178,7 +180,7 @@ export function OrganizationSettingsPage() {
     ) {
       setFeedback({
         severity: "error",
-        message: "A janela padrão de vencimentos deve estar entre 1 e 365 dias.",
+        message: t("admin.organization.validation.expirationWindowRange"),
       });
       return;
     }
@@ -190,10 +192,12 @@ export function OrganizationSettingsPage() {
     ) {
       setFeedback({
         severity: "error",
-        message: "O prazo de carência da lixeira deve estar entre 1 e 3650 dias.",
+        message: t("admin.organization.validation.trashGraceRange"),
       });
       return;
     }
+
+    const languageChanged = form.defaultLanguage !== baseline.defaultLanguage;
 
     try {
       const updated = await updateMutation.mutateAsync({
@@ -210,17 +214,17 @@ export function OrganizationSettingsPage() {
         },
       });
       setForm(toFormState(updated));
+      if (languageChanged && getStoredUiLocale() === null) {
+        setLocale(resolveUiLocale(updated.organization.defaultLanguage));
+      }
       setFeedback({
         severity: "success",
-        message: "Dados e preferências da organização salvos com sucesso.",
+        message: t("admin.organization.feedback.saved"),
       });
     } catch (error) {
       setFeedback({
         severity: "error",
-        message:
-          error instanceof Error
-            ? error.message
-            : "Falha ao atualizar as configurações da organização.",
+        message: error instanceof Error ? error.message : t("admin.organization.errors.saveFailed"),
       });
     }
   };
@@ -231,27 +235,22 @@ export function OrganizationSettingsPage() {
         variant="outlined"
         sx={{
           p: 2.5,
-          bgcolor: DOCUFLOW_COLOR_TOKENS.surface.containerLowest,
-          borderColor: DOCUFLOW_COLOR_TOKENS.surface.outlineVariant,
+          bgcolor: PAPYRUS_COLOR_TOKENS.surface.containerLowest,
+          borderColor: PAPYRUS_COLOR_TOKENS.surface.outlineVariant,
         }}
       >
         <Stack direction="row" spacing={1.25} alignItems="center">
           <CorporateFareOutlinedIcon color="primary" />
           <Box>
-            <Typography variant="h1">Dados e preferências da organização</Typography>
+            <Typography variant="h1">{t("admin.organization.title")}</Typography>
             <Typography variant="body1" color="text.secondary" sx={{ mt: 0.5 }}>
-              Configure nome institucional, idioma padrão, fuso horário e preferências operacionais
-              permitidas para esta instalação self-hosted.
+              {t("admin.organization.subtitle")}
             </Typography>
           </Box>
         </Stack>
       </Paper>
 
-      {!canEdit ? (
-        <Alert severity="info">
-          Seu perfil possui acesso somente de leitura às configurações da organização.
-        </Alert>
-      ) : null}
+      {!canEdit ? <Alert severity="info">{t("admin.organization.readOnlyNotice")}</Alert> : null}
 
       {feedback ? (
         <Alert severity={feedback.severity} onClose={() => setFeedback(null)}>
@@ -265,24 +264,24 @@ export function OrganizationSettingsPage() {
         variant="outlined"
         sx={{
           p: 3,
-          bgcolor: DOCUFLOW_COLOR_TOKENS.surface.containerLowest,
-          borderColor: DOCUFLOW_COLOR_TOKENS.surface.outlineVariant,
+          bgcolor: PAPYRUS_COLOR_TOKENS.surface.containerLowest,
+          borderColor: PAPYRUS_COLOR_TOKENS.surface.outlineVariant,
         }}
       >
         <Stack spacing={3}>
           <Box>
             <Typography variant="h6" component="h2">
-              Identidade e localização
+              {t("admin.organization.identityTitle")}
             </Typography>
             <Typography variant="body2" color="text.secondary" sx={{ mt: 0.25 }}>
-              Identificador técnico da instalação: <strong>{organization.slug}</strong>
+              {t("admin.organization.organizationCode", { slug: organization.slug })}
             </Typography>
           </Box>
 
           <Grid container spacing={2}>
             <Grid size={{ xs: 12, md: 6 }}>
               <TextField
-                label="Nome da organização"
+                label={t("admin.organization.name")}
                 value={form.name}
                 onChange={(event) => setForm({ ...form, name: event.target.value })}
                 fullWidth
@@ -295,7 +294,7 @@ export function OrganizationSettingsPage() {
             <Grid size={{ xs: 12, sm: 6, md: 3 }}>
               <TextField
                 select
-                label="Idioma padrão"
+                label={t("admin.organization.defaultLanguage")}
                 value={form.defaultLanguage}
                 onChange={(event) =>
                   setForm({ ...form, defaultLanguage: event.target.value as OrganizationLanguage })
@@ -303,9 +302,9 @@ export function OrganizationSettingsPage() {
                 fullWidth
                 disabled={!canEdit || updateMutation.isPending}
               >
-                {LANGUAGE_OPTIONS.map((option) => (
+                {LANGUAGE_OPTION_KEYS.map((option) => (
                   <MenuItem key={option.value} value={option.value}>
-                    {option.label}
+                    {t(option.labelKey)}
                   </MenuItem>
                 ))}
               </TextField>
@@ -314,7 +313,7 @@ export function OrganizationSettingsPage() {
             <Grid size={{ xs: 12, sm: 6, md: 3 }}>
               <TextField
                 select
-                label="Fuso horário (IANA)"
+                label={t("admin.organization.timeZone")}
                 value={form.timezone}
                 onChange={(event) => setForm({ ...form, timezone: event.target.value })}
                 fullWidth
@@ -333,11 +332,10 @@ export function OrganizationSettingsPage() {
 
           <Box>
             <Typography variant="h6" component="h2">
-              Preferências operacionais permitidas
+              {t("admin.organization.preferencesTitle")}
             </Typography>
             <Typography variant="body2" color="text.secondary" sx={{ mt: 0.25 }}>
-              Parâmetros não sensíveis utilizados na apresentação de datas, paginação, auditoria e
-              prazos padrão.
+              {t("admin.organization.preferencesSubtitle")}
             </Typography>
           </Box>
 
@@ -345,7 +343,7 @@ export function OrganizationSettingsPage() {
             <Grid size={{ xs: 12, sm: 6, md: 3 }}>
               <TextField
                 type="number"
-                label="Janela padrão de vencimentos (dias)"
+                label={t("admin.organization.expirationWindowDays")}
                 value={form.defaultExpirationWindowDays}
                 onChange={(event) =>
                   setForm({
@@ -362,7 +360,7 @@ export function OrganizationSettingsPage() {
             <Grid size={{ xs: 12, sm: 6, md: 3 }}>
               <TextField
                 type="number"
-                label="Carência padrão da lixeira (dias)"
+                label={t("admin.organization.trashGraceDays")}
                 value={form.trashGraceDays}
                 onChange={(event) =>
                   setForm({
@@ -379,7 +377,7 @@ export function OrganizationSettingsPage() {
             <Grid size={{ xs: 12, sm: 6, md: 3 }}>
               <TextField
                 select
-                label="Formato de data"
+                label={t("admin.organization.dateFormat")}
                 value={form.dateFormat}
                 onChange={(event) =>
                   setForm({ ...form, dateFormat: event.target.value as OrganizationDateFormat })
@@ -387,9 +385,9 @@ export function OrganizationSettingsPage() {
                 fullWidth
                 disabled={!canEdit || updateMutation.isPending}
               >
-                {DATE_FORMAT_OPTIONS.map((option) => (
+                {DATE_FORMAT_OPTION_KEYS.map((option) => (
                   <MenuItem key={option.value} value={option.value}>
-                    {option.label}
+                    {t(option.labelKey)}
                   </MenuItem>
                 ))}
               </TextField>
@@ -398,7 +396,7 @@ export function OrganizationSettingsPage() {
             <Grid size={{ xs: 12, sm: 6, md: 3 }}>
               <TextField
                 select
-                label="Itens por página padrão"
+                label={t("admin.organization.defaultPageSize")}
                 value={form.defaultListPageSize}
                 onChange={(event) =>
                   setForm({
@@ -414,7 +412,7 @@ export function OrganizationSettingsPage() {
               >
                 {PAGE_SIZE_OPTIONS.map((size) => (
                   <MenuItem key={size} value={size}>
-                    {size} itens
+                    {t("admin.organization.pageSizeOption", { count: size })}
                   </MenuItem>
                 ))}
               </TextField>
@@ -432,7 +430,7 @@ export function OrganizationSettingsPage() {
                   disabled={!canEdit || updateMutation.isPending}
                 />
               }
-              label="Registrar eventos de visualização de documentos na auditoria"
+              label={t("admin.organization.auditViews")}
             />
             <FormControlLabel
               control={
@@ -444,7 +442,7 @@ export function OrganizationSettingsPage() {
                   disabled={!canEdit || updateMutation.isPending}
                 />
               }
-              label="Registrar eventos de download de arquivos na auditoria"
+              label={t("admin.organization.auditDownloads")}
             />
           </Stack>
 
@@ -456,7 +454,7 @@ export function OrganizationSettingsPage() {
               onClick={handleReset}
               disabled={!canEdit || !hasChanges || updateMutation.isPending}
             >
-              Descartar alterações
+              {t("admin.common.discardChanges")}
             </Button>
             <Button
               type="submit"
@@ -464,7 +462,7 @@ export function OrganizationSettingsPage() {
               startIcon={<SaveOutlinedIcon />}
               disabled={!canEdit || !hasChanges || updateMutation.isPending}
             >
-              {updateMutation.isPending ? "Salvando..." : "Salvar configurações"}
+              {updateMutation.isPending ? t("admin.common.saving") : t("admin.organization.submit")}
             </Button>
           </Stack>
         </Stack>

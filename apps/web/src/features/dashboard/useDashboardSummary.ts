@@ -5,6 +5,8 @@ import {
   dashboardSummarySchema,
 } from "@docuflow/contracts";
 import { useQuery } from "@tanstack/react-query";
+import { extractUserErrorMessage } from "../../i18n/api-errors.js";
+import { translate } from "../../i18n/index.js";
 
 const dashboardSummaryEnvelopeSchema = createApiResponseSchema(dashboardSummarySchema);
 
@@ -24,13 +26,13 @@ export async function fetchDashboardSummary(): Promise<DashboardSummary | null> 
   }
 
   if (!response.ok) {
-    throw new Error("Não foi possível carregar o resumo operacional do acervo.");
+    throw new Error(await extractUserErrorMessage(response, "dashboard.loadError"));
   }
 
   const rawJson: unknown = await response.json();
   const parsed = dashboardSummaryEnvelopeSchema.safeParse(rawJson);
   if (!parsed.success) {
-    throw new Error("Resposta inválida ao consultar o resumo do painel.");
+    throw new Error(translate("common.errors.unexpectedResponse"));
   }
 
   return parsed.data.data;

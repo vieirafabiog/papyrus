@@ -1,6 +1,6 @@
 import "@testing-library/jest-dom/vitest";
 import type { DocumentDetail } from "@docuflow/contracts";
-import { docuflowTheme } from "@docuflow/ui";
+import { papyrusTheme } from "@docuflow/ui";
 import { CssBaseline, ThemeProvider } from "@mui/material";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
@@ -120,7 +120,7 @@ function renderForm(onSaved = vi.fn()) {
   return {
     onSaved,
     ...render(
-      <ThemeProvider theme={docuflowTheme}>
+      <ThemeProvider theme={papyrusTheme}>
         <CssBaseline />
         <QueryClientProvider client={queryClient}>
           <DocumentMetadataForm document={createSampleDocument()} onSaved={onSaved} />
@@ -146,10 +146,10 @@ describe("DocumentMetadataForm", () => {
     fireEvent.change(screen.getByLabelText(/Fornecedor/i), { target: { value: "   " } });
     fireEvent.change(screen.getByLabelText(/Valor do contrato/i), { target: { value: "abc" } });
 
-    fireEvent.click(screen.getByRole("button", { name: "Salvar metadados" }));
+    fireEvent.click(screen.getByRole("button", { name: "Save details" }));
 
-    expect(await screen.findByText("Campo obrigatório não informado.")).toBeInTheDocument();
-    expect(screen.getByText("Deve ser um número válido.")).toBeInTheDocument();
+    expect(await screen.findByText("This field is required.")).toBeInTheDocument();
+    expect(screen.getByText("Enter a valid number.")).toBeInTheDocument();
     expect(fetchSpy).not.toHaveBeenCalled();
   });
 
@@ -216,12 +216,12 @@ describe("DocumentMetadataForm", () => {
 
     renderForm(onSaved);
 
-    fireEvent.click(screen.getByRole("button", { name: "Salvar metadados" }));
+    fireEvent.click(screen.getByRole("button", { name: "Save details" }));
     expect(
       await screen.findByText("Fornecedor bloqueado pela política de compliance."),
     ).toBeInTheDocument();
 
-    fireEvent.change(screen.getByLabelText(/Título do documento/i), {
+    fireEvent.change(screen.getByLabelText(/Document title/i), {
       target: { value: "Contrato ACME Atualizado" },
     });
     fireEvent.change(screen.getByLabelText(/Fornecedor/i), {
@@ -232,7 +232,7 @@ describe("DocumentMetadataForm", () => {
     });
     fireEvent.click(screen.getByRole("switch", { name: /Confidencial/i }));
 
-    fireEvent.click(screen.getByRole("button", { name: "Salvar metadados" }));
+    fireEvent.click(screen.getByRole("button", { name: "Save details" }));
 
     await waitFor(() => {
       expect(onSaved).toHaveBeenCalledTimes(1);

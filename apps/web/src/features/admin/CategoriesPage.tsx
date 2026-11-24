@@ -15,6 +15,7 @@ import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import { Alert, Box, Button, Chip, Stack, Typography } from "@mui/material";
 import { useCallback, useMemo, useState } from "react";
 import { useSessionQuery } from "../../app/session.js";
+import { useI18n } from "../../i18n/index.js";
 import { CategoryEditor, type CategoryEditorFeedback } from "./CategoryEditor.js";
 import {
   canCreateCategories,
@@ -26,21 +27,11 @@ import {
 } from "./useCategoriesAdmin.js";
 import { canManageStorage } from "./useStorageSettings.js";
 
-function formatDatePtBr(isoString: string): string {
-  const date = new Date(isoString);
-  if (Number.isNaN(date.getTime())) {
-    return isoString;
-  }
-  return new Intl.DateTimeFormat("pt-BR", {
-    dateStyle: "short",
-    timeStyle: "short",
-  }).format(date);
-}
-
 /**
  * Category and custom metadata management page wired at /categories.
  */
 export function CategoriesPage() {
+  const { t, formatDateTime } = useI18n();
   const sessionQuery = useSessionQuery();
   const [search, setSearch] = useState("");
   const [isActiveFilter, setIsActiveFilter] = useState<"true" | "false" | "">("");
@@ -83,13 +74,14 @@ export function CategoriesPage() {
       setPendingDeactivate(null);
       setFeedback({
         severity: "success",
-        text: `Categoria "${updated.name}" desativada.`,
+        text: t("admin.categories.feedback.deactivated", { name: updated.name }),
       });
     } catch (error) {
       setPendingDeactivate(null);
       setFeedback({
         severity: "error",
-        text: error instanceof Error ? error.message : "Não foi possível desativar a categoria.",
+        text:
+          error instanceof Error ? error.message : t("admin.categories.errors.deactivateFailed"),
       });
     }
   }
@@ -104,23 +96,24 @@ export function CategoriesPage() {
         });
         setFeedback({
           severity: "success",
-          text: `Categoria "${updated.name}" reativada.`,
+          text: t("admin.categories.feedback.reactivated", { name: updated.name }),
         });
       } catch (error) {
         setFeedback({
           severity: "error",
-          text: error instanceof Error ? error.message : "Não foi possível reativar a categoria.",
+          text:
+            error instanceof Error ? error.message : t("admin.categories.errors.reactivateFailed"),
         });
       }
     },
-    [updateMutation.mutateAsync],
+    [updateMutation.mutateAsync, t],
   );
 
   const columns: readonly DataTableColumn<CategorySummaryRecord>[] = useMemo(
     () => [
       {
         id: "name",
-        label: "Categoria",
+        label: t("admin.categories.table.category"),
         sortable: true,
         render: (row) => (
           <Stack spacing={0.5}>
@@ -152,12 +145,16 @@ export function CategoriesPage() {
       },
       {
         id: "isActive",
-        label: "Status",
+        label: t("admin.common.status"),
         sortable: true,
         width: 120,
         render: (row) => (
           <Chip
-            label={row.isActive ? "Ativa" : "Inativa"}
+            label={
+              row.isActive
+                ? t("admin.categories.table.statusActive")
+                : t("admin.categories.table.statusInactive")
+            }
             color={row.isActive ? "success" : "default"}
             size="small"
           />
@@ -165,18 +162,18 @@ export function CategoriesPage() {
       },
       {
         id: "updatedAt",
-        label: "Atualizada em",
+        label: t("admin.common.updatedAt"),
         sortable: true,
         width: 180,
         render: (row) => (
           <Typography variant="body2" color="text.secondary">
-            {formatDatePtBr(row.updatedAt)}
+            {formatDateTime(row.updatedAt)}
           </Typography>
         ),
       },
       {
         id: "actions",
-        label: "Ações",
+        label: t("admin.common.actions"),
         align: "right",
         render: (row) => (
           <Stack direction="row" spacing={1} justifyContent="flex-end">
@@ -189,7 +186,9 @@ export function CategoriesPage() {
                 setEditorOpen(true);
               }}
             >
-              {canEdit ? "Configurar campos e storage" : "Visualizar campos"}
+              {canEdit
+                ? t("admin.categories.actions.configureFieldsAndStorage")
+                : t("admin.categories.actions.viewFields")}
             </Button>
             {canDelete && row.isActive ? (
               <Button
@@ -200,7 +199,7 @@ export function CategoriesPage() {
                 disabled={deactivateMutation.isPending}
                 onClick={() => setPendingDeactivate(row)}
               >
-                Desativar
+                {t("admin.common.deactivate")}
               </Button>
             ) : null}
             {canEdit && !row.isActive ? (
@@ -212,7 +211,7 @@ export function CategoriesPage() {
                 disabled={updateMutation.isPending}
                 onClick={() => void handleReactivateCategory(row)}
               >
-                Reativar
+                {t("admin.common.reactivate")}
               </Button>
             ) : null}
           </Stack>
@@ -220,6 +219,8 @@ export function CategoriesPage() {
       },
     ],
     [
+      t,
+      formatDateTime,
       canEdit,
       canDelete,
       deactivateMutation.isPending,
@@ -229,13 +230,13 @@ export function CategoriesPage() {
   );
 
   if (sessionQuery.isLoading) {
-    return <LoadingState message="Carregando sessão..." />;
+    return <LoadingState message={t("admin.common.sessionLoading")} />;
   }
 
   if (sessionQuery.isError) {
     return (
       <ErrorState
-        title="Erro ao consultar sessão"
+        title={t("admin.common.sessionErrorTitle")}
         description={sessionQuery.error.message}
         onRetry={() => void sessionQuery.refetch()}
       />
@@ -257,11 +258,10 @@ export function CategoriesPage() {
           <CategoryOutlinedIcon color="primary" fontSize="large" />
           <Box>
             <Typography variant="h1" component="h1">
-              Categorias e campos
+              {t("admin.categories.title")}
             </Typography>
             <Typography variant="body2" color="text.secondary">
-              Estruture tipos documentais, campos personalizados, opções de seleção e destino de
-              storage por categoria.
+              {t("admin.categories.subtitle")}
             </Typography>
           </Box>
         </Stack>
@@ -274,7 +274,7 @@ export function CategoriesPage() {
               setEditorOpen(true);
             }}
           >
-            Nova categoria
+            {t("admin.categories.actions.newCategory")}
           </Button>
         ) : null}
       </Stack>
@@ -291,17 +291,17 @@ export function CategoriesPage() {
           setSearch(value);
           setPage(1);
         }}
-        searchLabel="Buscar categoria"
-        searchPlaceholder="Nome da categoria..."
+        searchLabel={t("admin.categories.filters.searchLabel")}
+        searchPlaceholder={t("admin.categories.filters.searchPlaceholder")}
         filters={[
           {
             id: "category-active-status",
-            label: "Status",
+            label: t("admin.common.status"),
             value: isActiveFilter,
-            allOptionLabel: "Todas",
+            allOptionLabel: t("admin.categories.filters.all"),
             options: [
-              { value: "true", label: "Ativas" },
-              { value: "false", label: "Inativas" },
+              { value: "true", label: t("admin.categories.filters.active") },
+              { value: "false", label: t("admin.categories.filters.inactive") },
             ],
             onChange: (value) => {
               setIsActiveFilter(value as "true" | "false" | "");
@@ -318,7 +318,7 @@ export function CategoriesPage() {
       />
 
       <DataTable
-        ariaLabel="Lista de categorias documentais"
+        ariaLabel={t("admin.categories.table.ariaLabel")}
         columns={columns}
         rows={rows}
         getRowId={(row) => row.id}
@@ -348,15 +348,15 @@ export function CategoriesPage() {
         loading={categoriesQuery.isLoading}
         errorMessage={categoriesQuery.isError ? categoriesQuery.error.message : null}
         onRetry={() => void categoriesQuery.refetch()}
-        emptyTitle="Nenhuma categoria encontrada"
+        emptyTitle={t("admin.categories.table.emptyTitle")}
         emptyDescription={
           canCreate
-            ? "Cadastre a primeira categoria documental para estruturar metadados e regras de armazenamento."
-            : "Nenhuma categoria visível para o seu nível de acesso atual."
+            ? t("admin.categories.table.emptyDescriptionCanCreate")
+            : t("admin.categories.table.emptyDescriptionReadOnly")
         }
         {...(canCreate
           ? {
-              emptyActionLabel: "Nova categoria",
+              emptyActionLabel: t("admin.categories.actions.newCategory"),
               onEmptyAction: () => {
                 setEditorCategory(null);
                 setEditorOpen(true);
@@ -379,9 +379,11 @@ export function CategoriesPage() {
 
       <ConfirmDialog
         open={pendingDeactivate !== null}
-        title="Desativar categoria"
-        description={`Deseja desativar a categoria "${pendingDeactivate?.name ?? ""}"? Ela deixará de aparecer para novos uploads, preservando os documentos já classificados.`}
-        confirmLabel="Desativar"
+        title={t("admin.categories.confirmDeactivate.title")}
+        description={t("admin.categories.confirmDeactivate.description", {
+          name: pendingDeactivate?.name ?? "",
+        })}
+        confirmLabel={t("admin.common.deactivate")}
         confirmColor="warning"
         loading={deactivateMutation.isPending}
         onConfirm={() => void handleConfirmDeactivate()}

@@ -1,5 +1,5 @@
 import type { DocumentStatus, TaskInboxItem, WorkflowTaskStatus } from "@docuflow/contracts";
-import { DOCUFLOW_COLOR_TOKENS, DataTable, type DataTableColumn } from "@docuflow/ui";
+import { DataTable, type DataTableColumn, PAPYRUS_COLOR_TOKENS } from "@docuflow/ui";
 import OpenInNewOutlinedIcon from "@mui/icons-material/OpenInNewOutlined";
 import PendingActionsOutlinedIcon from "@mui/icons-material/PendingActionsOutlined";
 import RefreshOutlinedIcon from "@mui/icons-material/RefreshOutlined";
@@ -21,6 +21,7 @@ import {
 } from "@mui/material";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { type MessageKey, useI18n } from "../../i18n/index.js";
 import {
   DEFAULT_TASK_INBOX_FILTERS,
   type TaskAssigneeFilterType,
@@ -34,74 +35,55 @@ import {
 const TASK_STATUS_BADGE: Readonly<
   Record<
     WorkflowTaskStatus,
-    { readonly label: string; readonly color: "default" | "info" | "success" | "warning" | "error" }
+    {
+      readonly key: MessageKey;
+      readonly color: "default" | "info" | "success" | "warning" | "error";
+    }
   >
 > = {
-  PENDING: { label: "Pendente", color: "info" },
-  APPROVED: { label: "Aprovada", color: "success" },
-  REJECTED: { label: "Rejeitada", color: "error" },
-  CHANGES_REQUESTED: { label: "Ajustes solicitados", color: "warning" },
-  CANCELLED: { label: "Cancelada", color: "default" },
-  EXPIRED: { label: "Expirada", color: "error" },
+  PENDING: { key: "workflows.taskStatus.PENDING", color: "info" },
+  APPROVED: { key: "workflows.taskStatus.APPROVED", color: "success" },
+  REJECTED: { key: "workflows.taskStatus.REJECTED", color: "error" },
+  CHANGES_REQUESTED: { key: "workflows.taskStatus.CHANGES_REQUESTED", color: "warning" },
+  CANCELLED: { key: "workflows.taskStatus.CANCELLED", color: "default" },
+  EXPIRED: { key: "workflows.taskStatus.EXPIRED", color: "error" },
 };
 
-const DOCUMENT_STATUS_LABEL: Readonly<Record<DocumentStatus, string>> = {
-  DRAFT: "Rascunho",
-  IN_REVIEW: "Em revisão",
-  APPROVED: "Aprovado",
-  REJECTED: "Rejeitado",
-  ARCHIVED: "Arquivado",
-  EXPIRED: "Expirado",
-  DELETED: "Excluído",
+const DOCUMENT_STATUS_KEY: Readonly<Record<DocumentStatus, MessageKey>> = {
+  DRAFT: "workflows.documentStatus.DRAFT",
+  IN_REVIEW: "workflows.documentStatus.IN_REVIEW",
+  APPROVED: "workflows.documentStatus.APPROVED",
+  REJECTED: "workflows.documentStatus.REJECTED",
+  ARCHIVED: "workflows.documentStatus.ARCHIVED",
+  EXPIRED: "workflows.documentStatus.EXPIRED",
+  DELETED: "workflows.documentStatus.DELETED",
 };
 
-const ASSIGNEE_TYPE_LABEL: Readonly<Record<TaskAssigneeFilterType, string>> = {
-  USER: "Direta (usuário)",
-  GROUP: "Grupo",
-  ROLE: "Papel",
+const ASSIGNEE_TYPE_KEY: Readonly<Record<TaskAssigneeFilterType, MessageKey>> = {
+  USER: "tasks.inbox.assigneeFilter.USER",
+  GROUP: "tasks.inbox.assigneeFilter.GROUP",
+  ROLE: "tasks.inbox.assigneeFilter.ROLE",
 };
 
-const TASK_STATUS_FILTER_OPTIONS: ReadonlyArray<{
-  readonly value: WorkflowTaskStatus;
-  readonly label: string;
-}> = [
-  { value: "PENDING", label: "Pendente" },
-  { value: "APPROVED", label: "Aprovada" },
-  { value: "REJECTED", label: "Rejeitada" },
-  { value: "CHANGES_REQUESTED", label: "Ajustes solicitados" },
-  { value: "CANCELLED", label: "Cancelada" },
-  { value: "EXPIRED", label: "Expirada" },
+const TASK_STATUS_FILTER_VALUES: readonly WorkflowTaskStatus[] = [
+  "PENDING",
+  "APPROVED",
+  "REJECTED",
+  "CHANGES_REQUESTED",
+  "CANCELLED",
+  "EXPIRED",
 ];
 
-const ASSIGNEE_TYPE_FILTER_OPTIONS: ReadonlyArray<{
-  readonly value: TaskAssigneeFilterType;
-  readonly label: string;
-}> = [
-  { value: "USER", label: "Direta (usuário)" },
-  { value: "GROUP", label: "Grupo" },
-  { value: "ROLE", label: "Papel" },
-];
+const ASSIGNEE_TYPE_FILTER_VALUES: readonly TaskAssigneeFilterType[] = ["USER", "GROUP", "ROLE"];
 
 const SERVER_SORTABLE_FIELDS = new Set<string>(["dueAt", "createdAt", "status", "stepOrder", "id"]);
 
-const NUMBER_FORMATTER = new Intl.NumberFormat("pt-BR");
-
-function formatDateTimePtBr(isoDateTime: string | null, emptyLabel: string): string {
-  if (!isoDateTime) {
-    return emptyLabel;
-  }
-  const parsed = new Date(isoDateTime);
-  if (Number.isNaN(parsed.getTime())) {
-    return isoDateTime;
-  }
-  return parsed.toLocaleString("pt-BR");
-}
-
 /**
- * Authorized "Minhas tarefas" inbox listing with server-filtered status, assignee type,
- * overdue filter, PostgreSQL counts, and scoped navigation to the task's bound document.
+ * Authorized task inbox listing with server-filtered status, assignee type,
+ * overdue filter, counts, and scoped navigation to the task's bound document.
  */
 export function TaskInboxPage() {
+  const { t, formatDateTime, formatNumber } = useI18n();
   const navigate = useNavigate();
   const [filters, setFilters] = useState<TaskInboxFiltersState>(DEFAULT_TASK_INBOX_FILTERS);
 
@@ -160,7 +142,7 @@ export function TaskInboxPage() {
   const columns: DataTableColumn<TaskInboxItem>[] = [
     {
       id: "workflowDefinitionName",
-      label: "Fluxo e etapa",
+      label: t("tasks.inbox.columns.workflowAndStep"),
       sortable: false,
       render: (row) => (
         <Stack spacing={0.25}>
@@ -168,14 +150,14 @@ export function TaskInboxPage() {
             {row.workflowDefinitionName}
           </Typography>
           <Typography variant="caption" color="text.secondary">
-            Etapa {row.stepOrder}: {row.stepName}
+            {t("tasks.inbox.stepLabel", { order: row.stepOrder, name: row.stepName })}
           </Typography>
         </Stack>
       ),
     },
     {
       id: "documentTitle",
-      label: "Documento vinculado",
+      label: t("tasks.inbox.columns.document"),
       sortable: false,
       render: (row) => (
         <Stack spacing={0.25}>
@@ -183,32 +165,37 @@ export function TaskInboxPage() {
             {row.documentTitle}
           </Typography>
           <Typography variant="caption" color="text.secondary">
-            Versão v{row.documentVersionNumber} · {DOCUMENT_STATUS_LABEL[row.documentStatus]}
+            {t("tasks.inbox.versionAndStatus", {
+              version: row.documentVersionNumber,
+              status: t(DOCUMENT_STATUS_KEY[row.documentStatus]),
+            })}
           </Typography>
         </Stack>
       ),
     },
     {
       id: "assigneeType",
-      label: "Atribuição",
+      label: t("tasks.inbox.columns.assignment"),
       sortable: false,
       render: (row) => (
         <Typography variant="body2" color="text.secondary">
-          {ASSIGNEE_TYPE_LABEL[row.assignee.type]}
+          {t(ASSIGNEE_TYPE_KEY[row.assignee.type])}
         </Typography>
       ),
     },
     {
       id: "dueAt",
-      label: "Prazo",
+      label: t("tasks.inbox.columns.dueAt"),
       sortable: true,
       render: (row) => (
         <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
-          <Typography variant="body2">{formatDateTimePtBr(row.dueAt, "Sem prazo")}</Typography>
+          <Typography variant="body2">
+            {formatDateTime(row.dueAt, t("tasks.inbox.noDueDate"))}
+          </Typography>
           {row.isOverdue ? (
             <Chip
               icon={<WarningAmberOutlinedIcon fontSize="small" />}
-              label="Em atraso"
+              label={t("tasks.inbox.overdueChipLabel")}
               color="error"
               size="small"
             />
@@ -218,22 +205,22 @@ export function TaskInboxPage() {
     },
     {
       id: "status",
-      label: "Status",
+      label: t("tasks.inbox.columns.status"),
       sortable: true,
       render: (row) => {
         const badge = TASK_STATUS_BADGE[row.status];
-        return <Chip label={badge.label} color={badge.color} size="small" />;
+        return <Chip label={t(badge.key)} color={badge.color} size="small" />;
       },
     },
     {
       id: "createdAt",
-      label: "Criada em",
+      label: t("tasks.inbox.columns.createdAt"),
       sortable: true,
-      render: (row) => formatDateTimePtBr(row.createdAt, "Não informada"),
+      render: (row) => formatDateTime(row.createdAt, t("tasks.inbox.notProvided")),
     },
     {
       id: "actions",
-      label: "Ações",
+      label: t("tasks.inbox.columns.actions"),
       align: "right",
       render: (row) => {
         const target = resolveTaskDocumentTarget(row);
@@ -246,9 +233,12 @@ export function TaskInboxPage() {
                 event.stopPropagation();
                 void navigate(`/tasks/${encodeURIComponent(row.id)}`);
               }}
-              aria-label={`Revisar tarefa ${row.workflowDefinitionName} — ${row.documentTitle}`}
+              aria-label={t("tasks.inbox.actions.reviewAria", {
+                workflow: row.workflowDefinitionName,
+                document: row.documentTitle,
+              })}
             >
-              Revisar
+              {t("tasks.inbox.actions.review")}
             </Button>
 
             {target ? (
@@ -260,13 +250,16 @@ export function TaskInboxPage() {
                   event.stopPropagation();
                   openScopedDocument(row);
                 }}
-                aria-label={`Abrir documento ${row.documentTitle} (versão v${row.documentVersionNumber})`}
+                aria-label={t("tasks.inbox.actions.openDocumentAria", {
+                  document: row.documentTitle,
+                  version: row.documentVersionNumber,
+                })}
               >
-                Abrir documento
+                {t("tasks.inbox.actions.openDocument")}
               </Button>
             ) : (
               <Button size="small" variant="text" disabled>
-                Documento indisponível
+                {t("tasks.inbox.actions.documentUnavailable")}
               </Button>
             )}
           </Stack>
@@ -287,10 +280,10 @@ export function TaskInboxPage() {
       >
         <Box>
           <Typography variant="h1" gutterBottom>
-            Minhas tarefas
+            {t("tasks.inbox.title")}
           </Typography>
           <Typography variant="body1" color="text.secondary">
-            Fila de revisões e aprovações atribuídas ao seu usuário, grupos ou papéis autorizados.
+            {t("tasks.inbox.subtitle")}
           </Typography>
         </Box>
 
@@ -301,7 +294,7 @@ export function TaskInboxPage() {
           disabled={isRefreshing}
           onClick={handleRefresh}
         >
-          {isRefreshing ? "Atualizando..." : "Atualizar"}
+          {isRefreshing ? t("tasks.inbox.refreshing") : t("tasks.inbox.refresh")}
         </Button>
       </Stack>
 
@@ -310,8 +303,8 @@ export function TaskInboxPage() {
         sx={{
           px: 2,
           py: 1.5,
-          bgcolor: DOCUFLOW_COLOR_TOKENS.surface.containerLowest,
-          borderColor: DOCUFLOW_COLOR_TOKENS.surface.outlineVariant,
+          bgcolor: PAPYRUS_COLOR_TOKENS.surface.containerLowest,
+          borderColor: PAPYRUS_COLOR_TOKENS.surface.outlineVariant,
         }}
       >
         <Stack
@@ -326,8 +319,10 @@ export function TaskInboxPage() {
               icon={<PendingActionsOutlinedIcon fontSize="small" />}
               label={
                 countsQuery.data
-                  ? `Pendentes: ${NUMBER_FORMATTER.format(countsQuery.data.pendingCount)}`
-                  : "Pendentes: —"
+                  ? t("tasks.inbox.pendingChip", {
+                      count: formatNumber(countsQuery.data.pendingCount),
+                    })
+                  : t("tasks.inbox.pendingChipLoading")
               }
               color={isPendingShortcutActive ? "primary" : "default"}
               variant={isPendingShortcutActive ? "filled" : "outlined"}
@@ -345,8 +340,10 @@ export function TaskInboxPage() {
               icon={<ScheduleOutlinedIcon fontSize="small" />}
               label={
                 countsQuery.data
-                  ? `Em atraso: ${NUMBER_FORMATTER.format(countsQuery.data.overduePendingCount)}`
-                  : "Em atraso: —"
+                  ? t("tasks.inbox.overdueChip", {
+                      count: formatNumber(countsQuery.data.overduePendingCount),
+                    })
+                  : t("tasks.inbox.overdueChipLoading")
               }
               color={isOverdueShortcutActive ? "error" : "default"}
               variant={isOverdueShortcutActive ? "filled" : "outlined"}
@@ -367,10 +364,10 @@ export function TaskInboxPage() {
             sx={{ fontVariantNumeric: "tabular-nums" }}
           >
             {tasksQuery.data
-              ? `Total no filtro atual: ${NUMBER_FORMATTER.format(totalItems)} ${
-                  totalItems === 1 ? "tarefa" : "tarefas"
-                }`
-              : "Consultando contagem de tarefas..."}
+              ? t(totalItems === 1 ? "tasks.inbox.totalSingular" : "tasks.inbox.totalPlural", {
+                  count: formatNumber(totalItems),
+                })
+              : t("tasks.inbox.loadingCounts")}
           </Typography>
         </Stack>
       </Paper>
@@ -378,7 +375,7 @@ export function TaskInboxPage() {
       <Paper
         sx={{
           p: 2,
-          bgcolor: DOCUFLOW_COLOR_TOKENS.surface.containerLowest,
+          bgcolor: PAPYRUS_COLOR_TOKENS.surface.containerLowest,
         }}
       >
         <Stack
@@ -395,12 +392,14 @@ export function TaskInboxPage() {
             sx={{ flex: 1 }}
           >
             <FormControl size="small" sx={{ minWidth: 200 }}>
-              <InputLabel id="task-filter-status-label">Status</InputLabel>
+              <InputLabel id="task-filter-status-label">
+                {t("tasks.inbox.filters.statusLabel")}
+              </InputLabel>
               <Select
                 labelId="task-filter-status-label"
                 id="task-filter-status"
                 value={filters.status}
-                label="Status"
+                label={t("tasks.inbox.filters.statusLabel")}
                 onChange={(event) =>
                   updateFilters({
                     status: event.target.value as WorkflowTaskStatus | "",
@@ -408,22 +407,24 @@ export function TaskInboxPage() {
                   })
                 }
               >
-                <MenuItem value="">Todos os status</MenuItem>
-                {TASK_STATUS_FILTER_OPTIONS.map((option) => (
-                  <MenuItem key={option.value} value={option.value}>
-                    {option.label}
+                <MenuItem value="">{t("tasks.inbox.filters.allStatuses")}</MenuItem>
+                {TASK_STATUS_FILTER_VALUES.map((statusValue) => (
+                  <MenuItem key={statusValue} value={statusValue}>
+                    {t(TASK_STATUS_BADGE[statusValue].key)}
                   </MenuItem>
                 ))}
               </Select>
             </FormControl>
 
             <FormControl size="small" sx={{ minWidth: 200 }}>
-              <InputLabel id="task-filter-assignee-label">Atribuição</InputLabel>
+              <InputLabel id="task-filter-assignee-label">
+                {t("tasks.inbox.filters.assignmentLabel")}
+              </InputLabel>
               <Select
                 labelId="task-filter-assignee-label"
                 id="task-filter-assignee"
                 value={filters.assigneeType}
-                label="Atribuição"
+                label={t("tasks.inbox.filters.assignmentLabel")}
                 onChange={(event) =>
                   updateFilters({
                     assigneeType: event.target.value as TaskAssigneeFilterType | "",
@@ -431,10 +432,10 @@ export function TaskInboxPage() {
                   })
                 }
               >
-                <MenuItem value="">Todas as atribuições</MenuItem>
-                {ASSIGNEE_TYPE_FILTER_OPTIONS.map((option) => (
-                  <MenuItem key={option.value} value={option.value}>
-                    {option.label}
+                <MenuItem value="">{t("tasks.inbox.filters.allAssignments")}</MenuItem>
+                {ASSIGNEE_TYPE_FILTER_VALUES.map((assigneeValue) => (
+                  <MenuItem key={assigneeValue} value={assigneeValue}>
+                    {t(ASSIGNEE_TYPE_KEY[assigneeValue])}
                   </MenuItem>
                 ))}
               </Select>
@@ -452,12 +453,12 @@ export function TaskInboxPage() {
                   }
                 />
               }
-              label="Somente em atraso"
+              label={t("tasks.inbox.filters.overdueOnly")}
             />
 
             {hasActiveFilters ? (
               <Button variant="text" onClick={clearFilters}>
-                Limpar filtros
+                {t("tasks.inbox.filters.clear")}
               </Button>
             ) : null}
           </Stack>
@@ -465,7 +466,7 @@ export function TaskInboxPage() {
       </Paper>
 
       <DataTable
-        ariaLabel="Tabela de minhas tarefas"
+        ariaLabel={t("tasks.inbox.tableAriaLabel")}
         columns={columns}
         rows={rows}
         getRowId={(row) => row.id}
@@ -482,13 +483,15 @@ export function TaskInboxPage() {
         loading={tasksQuery.isLoading}
         errorMessage={tasksQuery.isError ? tasksQuery.error.message : null}
         onRetry={handleRefresh}
-        emptyTitle="Nenhuma tarefa encontrada"
+        emptyTitle={t("tasks.inbox.emptyTitle")}
         emptyDescription={
           hasActiveFilters
-            ? "Nenhuma tarefa autorizada corresponde aos filtros selecionados."
-            : "Não há tarefas de revisão ou aprovação atribuídas no momento."
+            ? t("tasks.inbox.emptyFilteredDescription")
+            : t("tasks.inbox.emptyDefaultDescription")
         }
-        emptyActionLabel={hasActiveFilters ? "Limpar filtros" : "Atualizar"}
+        emptyActionLabel={
+          hasActiveFilters ? t("tasks.inbox.filters.clear") : t("tasks.inbox.refresh")
+        }
         onEmptyAction={hasActiveFilters ? clearFilters : handleRefresh}
       />
     </Stack>

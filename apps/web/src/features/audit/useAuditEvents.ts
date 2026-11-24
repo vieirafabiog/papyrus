@@ -6,11 +6,12 @@ import {
   type AuditListSortField,
   type AuditResult,
   CONTRACTS_API_PREFIX,
-  apiErrorResponseSchema,
   auditEventsListResponseSchema,
   auditFacetsResponseSchema,
 } from "@docuflow/contracts";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
+import { extractUserErrorMessage } from "../../i18n/api-errors.js";
+import { translate } from "../../i18n/index.js";
 
 export interface AuditFiltersState {
   readonly actorUserId: string;
@@ -85,19 +86,6 @@ export function buildAuditExportSearchParams(
   return params;
 }
 
-async function parseAuditApiError(response: Response, fallback: string): Promise<string> {
-  try {
-    const raw: unknown = await response.json();
-    const parsed = apiErrorResponseSchema.safeParse(raw);
-    if (parsed.success) {
-      return parsed.data.error.message;
-    }
-  } catch {
-    // Fallback to status message when body is not JSON.
-  }
-  return `${fallback} (${response.status}).`;
-}
-
 export async function fetchAuditEventsPage(
   filters: AuditFiltersState,
   signal?: AbortSignal,
@@ -111,15 +99,13 @@ export async function fetchAuditEventsPage(
   });
 
   if (!response.ok) {
-    throw new Error(
-      await parseAuditApiError(response, "Não foi possível consultar os eventos de auditoria"),
-    );
+    throw new Error(await extractUserErrorMessage(response, "audit.errors.loadFailed"));
   }
 
   const rawJson: unknown = await response.json();
   const parsed = auditEventsListResponseSchema.safeParse(rawJson);
   if (!parsed.success) {
-    throw new Error("Resposta inválida recebida ao consultar a trilha de auditoria.");
+    throw new Error(translate("common.errors.unexpectedResponse"));
   }
 
   return parsed.data.data;
@@ -134,15 +120,13 @@ export async function fetchAuditFacets(signal?: AbortSignal): Promise<AuditFacet
   });
 
   if (!response.ok) {
-    throw new Error(
-      await parseAuditApiError(response, "Não foi possível carregar os filtros de auditoria"),
-    );
+    throw new Error(await extractUserErrorMessage(response, "audit.errors.loadFacetsFailed"));
   }
 
   const rawJson: unknown = await response.json();
   const parsed = auditFacetsResponseSchema.safeParse(rawJson);
   if (!parsed.success) {
-    throw new Error("Resposta inválida recebida ao carregar filtros de auditoria.");
+    throw new Error(translate("common.errors.unexpectedResponse"));
   }
 
   return parsed.data.data;
@@ -177,13 +161,11 @@ export async function downloadAuthorizedAuditExport(
   );
 
   if (!response.ok) {
-    throw new Error(
-      await parseAuditApiError(response, "Não foi possível exportar a trilha de auditoria"),
-    );
+    throw new Error(await extractUserErrorMessage(response, "audit.errors.exportFailed"));
   }
 
   const blob = await response.blob();
-  const fallbackName = `auditoria-docuflow.${format}`;
+  const fallbackName = `${translate("audit.exportDefaultFilename")}.${format}`;
   const fileName = parseContentDispositionFileName(
     response.headers.get("content-disposition"),
     fallbackName,

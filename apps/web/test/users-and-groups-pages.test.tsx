@@ -1,5 +1,5 @@
 import "@testing-library/jest-dom/vitest";
-import { docuflowTheme } from "@docuflow/ui";
+import { UiLocaleProvider, papyrusTheme } from "@docuflow/ui";
 import { CssBaseline, ThemeProvider } from "@mui/material";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
@@ -7,6 +7,7 @@ import { MemoryRouter } from "react-router-dom";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { GroupsPage } from "../src/features/admin/GroupsPage.js";
 import { UsersPage } from "../src/features/admin/UsersPage.js";
+import { I18nProvider } from "../src/i18n/index.js";
 
 const ORG_ID = "550e8400-e29b-41d4-a716-446655440000";
 const USER_1_ID = "550e8400-e29b-41d4-a716-446655440011";
@@ -47,12 +48,16 @@ function renderWithProviders(element: React.ReactElement) {
   });
 
   return render(
-    <ThemeProvider theme={docuflowTheme}>
-      <CssBaseline />
-      <QueryClientProvider client={queryClient}>
-        <MemoryRouter>{element}</MemoryRouter>
-      </QueryClientProvider>
-    </ThemeProvider>,
+    <I18nProvider initialLocale="en-US">
+      <UiLocaleProvider locale="en-US">
+        <ThemeProvider theme={papyrusTheme}>
+          <CssBaseline />
+          <QueryClientProvider client={queryClient}>
+            <MemoryRouter>{element}</MemoryRouter>
+          </QueryClientProvider>
+        </ThemeProvider>
+      </UiLocaleProvider>
+    </I18nProvider>,
   );
 }
 
@@ -78,7 +83,7 @@ describe("UsersPage and GroupsPage (Step 14.02)", () => {
     renderWithProviders(<UsersPage />);
 
     await waitFor(() => {
-      expect(screen.getByText("Acesso restrito")).toBeInTheDocument();
+      expect(screen.getByText("Access restricted")).toBeInTheDocument();
     });
   });
 
@@ -167,53 +172,49 @@ describe("UsersPage and GroupsPage (Step 14.02)", () => {
     });
 
     // Create new user
-    fireEvent.click(screen.getByRole("button", { name: "Novo usuário" }));
+    fireEvent.click(screen.getByRole("button", { name: "New user" }));
     const createDialog = await screen.findByRole("dialog");
-    fireEvent.change(within(createDialog).getByLabelText(/Nome completo/i), {
+    fireEvent.change(within(createDialog).getByLabelText(/Full name/i), {
       target: { value: "Mariana Souza" },
     });
-    fireEvent.change(within(createDialog).getByLabelText(/E-mail corporativo/i), {
+    fireEvent.change(within(createDialog).getByLabelText(/Work email/i), {
       target: { value: "mariana@docuflow.local" },
     });
-    fireEvent.change(within(createDialog).getByLabelText(/Senha inicial/i), {
+    fireEvent.change(within(createDialog).getByLabelText(/Initial password/i), {
       target: { value: "SenhaSegura!2026" },
     });
-    fireEvent.click(within(createDialog).getByRole("button", { name: "Criar usuário" }));
+    fireEvent.click(within(createDialog).getByRole("button", { name: "Create user" }));
 
     await waitFor(() => {
-      expect(screen.getByText('Usuário "Mariana Souza" criado com sucesso.')).toBeInTheDocument();
+      expect(screen.getByText('User "Mariana Souza" created.')).toBeInTheDocument();
       expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     });
 
     // Edit user
-    fireEvent.click(await screen.findByRole("button", { name: "Editar Mariana Souza" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Edit Mariana Souza" }));
     const editDialog = await screen.findByRole("dialog");
-    fireEvent.change(within(editDialog).getByLabelText(/Nome completo/i), {
+    fireEvent.change(within(editDialog).getByLabelText(/Full name/i), {
       target: { value: "Mariana Costa" },
     });
-    fireEvent.click(within(editDialog).getByRole("button", { name: "Salvar alterações" }));
+    fireEvent.click(within(editDialog).getByRole("button", { name: "Save changes" }));
 
     await waitFor(() => {
-      expect(
-        screen.getByText('Dados de "Mariana Costa" atualizados com sucesso.'),
-      ).toBeInTheDocument();
+      expect(screen.getByText('User "Mariana Costa" updated.')).toBeInTheDocument();
       expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     });
 
     // Deactivate user
-    fireEvent.click(await screen.findByRole("button", { name: "Desativar Mariana Costa" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Deactivate Mariana Costa" }));
     const confirmDialog = await screen.findByRole("dialog");
-    fireEvent.click(within(confirmDialog).getByRole("button", { name: "Desativar conta" }));
+    fireEvent.click(within(confirmDialog).getByRole("button", { name: "Deactivate account" }));
 
     await waitFor(() => {
-      expect(
-        screen.getByText('Usuário "Mariana Costa" desativado com sucesso.'),
-      ).toBeInTheDocument();
+      expect(screen.getByText('User "Mariana Costa" deactivated.')).toBeInTheDocument();
       expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     });
 
     // Filter by search
-    fireEvent.change(screen.getByLabelText("Pesquisar usuário"), {
+    fireEvent.change(screen.getByLabelText("Search users"), {
       target: { value: "Mariana" },
     });
     expect(screen.getByText("Mariana Costa")).toBeInTheDocument();
@@ -333,44 +334,44 @@ describe("UsersPage and GroupsPage (Step 14.02)", () => {
     });
 
     // Create group
-    fireEvent.click(screen.getByRole("button", { name: "Novo grupo" }));
+    fireEvent.click(screen.getByRole("button", { name: "New group" }));
     const createDialog = await screen.findByRole("dialog");
-    fireEvent.change(within(createDialog).getByLabelText(/Nome do grupo/i), {
+    fireEvent.change(within(createDialog).getByLabelText(/Group name/i), {
       target: { value: "Compliance" },
     });
-    fireEvent.click(within(createDialog).getByRole("button", { name: "Criar grupo" }));
+    fireEvent.click(within(createDialog).getByRole("button", { name: "Create group" }));
 
     await waitFor(() => {
-      expect(screen.getByText('Grupo "Compliance" criado com sucesso.')).toBeInTheDocument();
+      expect(screen.getByText('Group "Compliance" created.')).toBeInTheDocument();
       expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     });
 
     // Open group members dialog and associate user
-    fireEvent.click(await screen.findByRole("button", { name: "Gerenciar membros de Jurídico" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Manage members of Jurídico" }));
     const membersDialog = await screen.findByRole("dialog");
-    const selectInput = within(membersDialog).getByLabelText(/Associar usuário ativo/i);
+    const selectInput = within(membersDialog).getByLabelText(/Add active user/i);
     fireEvent.mouseDown(selectInput);
     const option = await screen.findByRole("option", { name: /Carlos Analista/i });
     fireEvent.click(option);
-    fireEvent.click(within(membersDialog).getByRole("button", { name: "Associar membro" }));
+    fireEvent.click(within(membersDialog).getByRole("button", { name: "Add member" }));
 
     await waitFor(() => {
-      expect(screen.getByText('Usuário associado ao grupo "Jurídico".')).toBeInTheDocument();
+      expect(screen.getByText('User added to group "Jurídico".')).toBeInTheDocument();
     });
 
     // Remove member
     await waitFor(() => {
       expect(
-        screen.getByRole("button", { name: "Remover Carlos Analista do grupo" }),
+        screen.getByRole("button", { name: "Remove Carlos Analista from group" }),
       ).toBeInTheDocument();
     });
-    fireEvent.click(screen.getByRole("button", { name: "Remover Carlos Analista do grupo" }));
-    const confirmRemove = await screen.findByRole("button", { name: "Remover membro" });
+    fireEvent.click(screen.getByRole("button", { name: "Remove Carlos Analista from group" }));
+    const confirmRemove = await screen.findByRole("button", { name: "Remove member" });
     fireEvent.click(confirmRemove);
 
     await waitFor(() => {
       expect(
-        screen.getByText('Usuário "Carlos Analista" removido do grupo "Jurídico".'),
+        screen.getByText('User "Carlos Analista" removed from group "Jurídico".'),
       ).toBeInTheDocument();
     });
   });

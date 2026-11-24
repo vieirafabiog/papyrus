@@ -13,10 +13,10 @@ import {
 } from "@docuflow/contracts";
 import {
   ConfirmDialog,
-  DOCUFLOW_COLOR_TOKENS,
   EmptyState,
   ErrorState,
   LoadingState,
+  PAPYRUS_COLOR_TOKENS,
 } from "@docuflow/ui";
 import AddOutlinedIcon from "@mui/icons-material/AddOutlined";
 import CheckCircleOutlineOutlinedIcon from "@mui/icons-material/CheckCircleOutlineOutlined";
@@ -56,6 +56,7 @@ import {
 } from "@mui/material";
 import { type FormEvent, useId, useMemo, useState } from "react";
 import { useSessionQuery } from "../../app/session.js";
+import { type MessageKey, useI18n } from "../../i18n/index.js";
 import {
   canManageStorage,
   useClearCategoryRoutingRuleMutation,
@@ -70,22 +71,22 @@ import {
   useUpsertStorageRoutingRuleMutation,
 } from "./useStorageSettings.js";
 
-const CONNECTION_KIND_LABELS: Readonly<Record<StorageConnectionKindContract, string>> = {
-  local: "Armazenamento local",
-  s3: "S3 compatível",
-  azure_blob: "Azure Blob",
-  google_cloud: "Google Cloud Storage",
+const CONNECTION_KIND_LABEL_KEYS: Readonly<Record<StorageConnectionKindContract, MessageKey>> = {
+  local: "admin.storage.kind.local",
+  s3: "admin.storage.kind.s3",
+  azure_blob: "admin.storage.kind.azure_blob",
+  google_cloud: "admin.storage.kind.google_cloud",
 };
 
-const CONNECTION_STATUS_BADGE: Readonly<
+const CONNECTION_STATUS_BADGE_CONFIG: Readonly<
   Record<
     StorageConnectionStatusContract,
-    { readonly label: string; readonly color: "success" | "default" | "error" }
+    { readonly labelKey: MessageKey; readonly color: "success" | "default" | "error" }
   >
 > = {
-  ACTIVE: { label: "Ativa", color: "success" },
-  INACTIVE: { label: "Inativa", color: "default" },
-  ERROR: { label: "Com falha", color: "error" },
+  ACTIVE: { labelKey: "admin.storage.status.ACTIVE", color: "success" },
+  INACTIVE: { labelKey: "admin.storage.status.INACTIVE", color: "default" },
+  ERROR: { labelKey: "admin.storage.status.ERROR", color: "error" },
 };
 
 type EditableKind = "local" | "s3";
@@ -116,6 +117,8 @@ interface FeedbackMessage {
   readonly severity: "success" | "error" | "info";
   readonly text: string;
 }
+
+type TranslateFn = ReturnType<typeof useI18n>["t"];
 
 function readConfigString(
   config: Readonly<Record<string, string | number | boolean | null>>,
@@ -188,7 +191,7 @@ function formStateFromConnection(connection: StorageConnectionViewContract): Con
     caCertificatePem: readConfigString(config, "caCertificatePem"),
     connectionTimeoutMs: readConfigNumberString(config, "connectionTimeoutMs", "5000"),
     requestTimeoutMs: readConfigNumberString(config, "requestTimeoutMs", "30000"),
-    // Credentials are never returned by the backend; fields stay empty unless rotated.
+    // Credentials are never returned by the backend; fields stay empty unless updated.
     accessKeyId: "",
     secretAccessKey: "",
     sessionToken: "",
@@ -204,36 +207,28 @@ function parseOptionalInt(rawValue: string): number | undefined {
   return Number.isInteger(parsed) ? parsed : Number.NaN;
 }
 
-function formatDateTimePtBr(value: string | null): string {
-  if (!value) {
-    return "Nunca verificada";
-  }
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return value;
-  }
-  return new Intl.DateTimeFormat("pt-BR", {
-    dateStyle: "short",
-    timeStyle: "short",
-  }).format(date);
-}
-
-function describeNonSecretTarget(connection: StorageConnectionViewContract): string {
+function describeNonSecretTarget(
+  connection: StorageConnectionViewContract,
+  t: TranslateFn,
+): string {
   const config = connection.nonSecretConfig;
   if (connection.kind === "local") {
     const rootDirectory = readConfigString(config, "rootDirectory", "—");
-    return `Diretório: ${rootDirectory}`;
+    return t("admin.storage.target.local", { path: rootDirectory });
   }
   const bucket = readConfigString(config, "bucket", "—");
   const endpoint = readConfigString(config, "endpoint", "—");
   const region = readConfigString(config, "region", "—");
   const prefix = readConfigString(config, "keyPrefix");
   return prefix
-    ? `${bucket} (${region}) • ${endpoint} • prefixo ${prefix}`
-    : `${bucket} (${region}) • ${endpoint}`;
+    ? t("admin.storage.target.s3WithPrefix", { bucket, region, endpoint, prefix })
+    : t("admin.storage.target.s3", { bucket, region, endpoint });
 }
 
-function validateAndBuildCreatePayload(form: ConnectionFormState): {
+function validateAndBuildCreatePayload(
+  form: ConnectionFormState,
+  t: TranslateFn,
+): {
   readonly payload?: CreateStorageConnectionContract;
   readonly error?: string;
 } {
@@ -243,11 +238,11 @@ function validateAndBuildCreatePayload(form: ConnectionFormState): {
       maxObjectSizeBytes !== undefined &&
       (Number.isNaN(maxObjectSizeBytes) || maxObjectSizeBytes <= 0)
     ) {
-      return { error: "Informe um tamanho máximo por objeto inteiro e positivo." };
+      return { error: t("admin.storage.validation.invalidMaxFileSize") };
     }
     const minFreeBytes = parseOptionalInt(form.minFreeBytes);
     if (minFreeBytes !== undefined && (Number.isNaN(minFreeBytes) || minFreeBytes < 0)) {
-      return { error: "Informe um espaço livre mínimo inteiro e não negativo." };
+      return { error: t("admin.storage.validation.invalidMinFreeBytes") };
     }
     const parsed = createStorageConnectionContractSchema.safeParse({
       kind: "local",
@@ -258,10 +253,7 @@ function validateAndBuildCreatePayload(form: ConnectionFormState): {
       ...(minFreeBytes !== undefined ? { minFreeBytes } : {}),
     });
     if (!parsed.success) {
-      return {
-        error:
-          parsed.error.issues[0]?.message ?? "Dados inválidos para conexão de armazenamento local.",
-      };
+      return { error: t("admin.storage.validation.invalidLocalCreate") };
     }
     return { payload: parsed.data };
   }
@@ -269,7 +261,7 @@ function validateAndBuildCreatePayload(form: ConnectionFormState): {
   const connectionTimeoutMs = parseOptionalInt(form.connectionTimeoutMs) ?? 5_000;
   const requestTimeoutMs = parseOptionalInt(form.requestTimeoutMs) ?? 30_000;
   if (Number.isNaN(connectionTimeoutMs) || Number.isNaN(requestTimeoutMs)) {
-    return { error: "Informe timeouts numéricos válidos em milissegundos." };
+    return { error: t("admin.storage.validation.invalidTimeouts") };
   }
 
   const parsed = createStorageConnectionContractSchema.safeParse({
@@ -297,14 +289,15 @@ function validateAndBuildCreatePayload(form: ConnectionFormState): {
     ...(form.isDefault ? { isDefault: true } : {}),
   });
   if (!parsed.success) {
-    return {
-      error: parsed.error.issues[0]?.message ?? "Dados inválidos para conexão S3 compatível.",
-    };
+    return { error: t("admin.storage.validation.invalidS3Create") };
   }
   return { payload: parsed.data };
 }
 
-function validateAndBuildUpdatePayload(form: ConnectionFormState): {
+function validateAndBuildUpdatePayload(
+  form: ConnectionFormState,
+  t: TranslateFn,
+): {
   readonly payload?: UpdateStorageConnectionContract;
   readonly error?: string;
 } {
@@ -314,11 +307,11 @@ function validateAndBuildUpdatePayload(form: ConnectionFormState): {
       maxObjectSizeBytes !== undefined &&
       (Number.isNaN(maxObjectSizeBytes) || maxObjectSizeBytes <= 0)
     ) {
-      return { error: "Informe um tamanho máximo por objeto inteiro e positivo." };
+      return { error: t("admin.storage.validation.invalidMaxFileSize") };
     }
     const minFreeBytes = parseOptionalInt(form.minFreeBytes);
     if (minFreeBytes !== undefined && (Number.isNaN(minFreeBytes) || minFreeBytes < 0)) {
-      return { error: "Informe um espaço livre mínimo inteiro e não negativo." };
+      return { error: t("admin.storage.validation.invalidMinFreeBytes") };
     }
 
     const parsed = updateStorageConnectionContractSchema.safeParse({
@@ -328,11 +321,7 @@ function validateAndBuildUpdatePayload(form: ConnectionFormState): {
       ...(minFreeBytes !== undefined ? { minFreeBytes } : {}),
     });
     if (!parsed.success) {
-      return {
-        error:
-          parsed.error.issues[0]?.message ??
-          "Dados inválidos ao atualizar conexão de armazenamento local.",
-      };
+      return { error: t("admin.storage.validation.invalidLocalUpdate") };
     }
     return { payload: parsed.data };
   }
@@ -341,15 +330,13 @@ function validateAndBuildUpdatePayload(form: ConnectionFormState): {
   const hasSecretKey = form.secretAccessKey.length > 0;
   const hasSessionToken = form.sessionToken.trim().length > 0;
   if ((hasAccessKey || hasSecretKey || hasSessionToken) && !(hasAccessKey && hasSecretKey)) {
-    return {
-      error: "Para rotacionar credenciais S3, informe Access Key ID e Secret Access Key.",
-    };
+    return { error: t("admin.storage.validation.credentialsRequiredTogether") };
   }
 
   const connectionTimeoutMs = parseOptionalInt(form.connectionTimeoutMs) ?? 5_000;
   const requestTimeoutMs = parseOptionalInt(form.requestTimeoutMs) ?? 30_000;
   if (Number.isNaN(connectionTimeoutMs) || Number.isNaN(requestTimeoutMs)) {
-    return { error: "Informe timeouts numéricos válidos em milissegundos." };
+    return { error: t("admin.storage.validation.invalidTimeouts") };
   }
 
   const parsed = updateStorageConnectionContractSchema.safeParse({
@@ -379,19 +366,17 @@ function validateAndBuildUpdatePayload(form: ConnectionFormState): {
       : {}),
   });
   if (!parsed.success) {
-    return {
-      error:
-        parsed.error.issues[0]?.message ?? "Dados inválidos ao atualizar conexão S3 compatível.",
-    };
+    return { error: t("admin.storage.validation.invalidS3Update") };
   }
   return { payload: parsed.data };
 }
 
 /**
  * Administrative page for managing local and S3 storage connections, health checks,
- * default destination selection, masked credential rotation, and category routing rules.
+ * default destination selection, masked credential updates, and category routing rules.
  */
 export function StorageSettingsPage() {
+  const { t, formatDateTime } = useI18n();
   const sessionQuery = useSessionQuery();
   const hasStorageAccess = canManageStorage(sessionQuery.data);
 
@@ -465,13 +450,13 @@ export function StorageSettingsPage() {
   );
 
   if (sessionQuery.isLoading) {
-    return <LoadingState message="Verificando permissões de armazenamento..." />;
+    return <LoadingState message={t("admin.storage.loadingPermissions")} />;
   }
 
   if (sessionQuery.isError) {
     return (
       <ErrorState
-        title="Erro ao validar sessão"
+        title={t("admin.common.sessionErrorTitle")}
         description={sessionQuery.error.message}
         onRetry={() => void sessionQuery.refetch()}
       />
@@ -481,10 +466,14 @@ export function StorageSettingsPage() {
   if (!hasStorageAccess) {
     return (
       <ErrorState
-        title="Acesso restrito"
-        description="Você não possui permissão para gerenciar conexões de storage e regras de roteamento."
+        title={t("admin.common.restrictedAccessTitle")}
+        description={t("admin.storage.noAccessDescription")}
       />
     );
+  }
+
+  function formatHealthTimestamp(value: string | null): string {
+    return formatDateTime(value, t("admin.common.neverChecked"));
   }
 
   function handleOpenCreateDialog() {
@@ -498,7 +487,7 @@ export function StorageSettingsPage() {
     if (connection.kind !== "local" && connection.kind !== "s3") {
       setFeedback({
         severity: "info",
-        text: `O provedor "${connection.kind}" ainda não possui edição habilitada nesta interface.`,
+        text: t("admin.storage.feedback.providerNotEditable", { kind: connection.kind }),
       });
       return;
     }
@@ -522,9 +511,9 @@ export function StorageSettingsPage() {
     setFormError(null);
 
     if (editingConnection) {
-      const built = validateAndBuildUpdatePayload(formState);
+      const built = validateAndBuildUpdatePayload(formState, t);
       if (!built.payload) {
-        setFormError(built.error ?? "Revise os dados da conexão.");
+        setFormError(built.error ?? t("admin.storage.validation.reviewConnectionData"));
         return;
       }
       try {
@@ -536,19 +525,19 @@ export function StorageSettingsPage() {
         setEditingConnection(null);
         setFeedback({
           severity: "success",
-          text: `Conexão "${updated.name}" atualizada com sucesso.`,
+          text: t("admin.storage.feedback.updated", { name: updated.name }),
         });
       } catch (error) {
         setFormError(
-          error instanceof Error ? error.message : "Não foi possível atualizar a conexão.",
+          error instanceof Error ? error.message : t("admin.storage.errors.updateFailed"),
         );
       }
       return;
     }
 
-    const built = validateAndBuildCreatePayload(formState);
+    const built = validateAndBuildCreatePayload(formState, t);
     if (!built.payload) {
-      setFormError(built.error ?? "Revise os dados da conexão.");
+      setFormError(built.error ?? t("admin.storage.validation.reviewConnectionData"));
       return;
     }
 
@@ -557,12 +546,10 @@ export function StorageSettingsPage() {
       setDialogOpen(false);
       setFeedback({
         severity: "success",
-        text: `Conexão "${created.name}" cadastrada com sucesso.`,
+        text: t("admin.storage.feedback.created", { name: created.name }),
       });
     } catch (error) {
-      setFormError(
-        error instanceof Error ? error.message : "Não foi possível cadastrar a conexão.",
-      );
+      setFormError(error instanceof Error ? error.message : t("admin.storage.errors.createFailed"));
     }
   }
 
@@ -574,13 +561,19 @@ export function StorageSettingsPage() {
       setFeedback({
         severity: result.health.healthy ? "success" : "error",
         text: result.health.healthy
-          ? `Saúde verificada em "${connection.name}": ${result.health.message}`
-          : `Falha no teste de saúde de "${connection.name}": ${result.health.message}`,
+          ? t("admin.storage.feedback.healthOk", {
+              name: connection.name,
+              message: result.health.message,
+            })
+          : t("admin.storage.feedback.healthFailed", {
+              name: connection.name,
+              message: result.health.message,
+            }),
       });
     } catch (error) {
       setFeedback({
         severity: "error",
-        text: error instanceof Error ? error.message : "Falha ao testar saúde da conexão.",
+        text: error instanceof Error ? error.message : t("admin.storage.errors.testFailed"),
       });
     } finally {
       setTestingConnectionId(null);
@@ -593,12 +586,12 @@ export function StorageSettingsPage() {
       const updated = await setDefaultMutation.mutateAsync(connection.id);
       setFeedback({
         severity: "success",
-        text: `"${updated.name}" definida como destino padrão da organização.`,
+        text: t("admin.storage.feedback.defaultSet", { name: updated.name }),
       });
     } catch (error) {
       setFeedback({
         severity: "error",
-        text: error instanceof Error ? error.message : "Não foi possível definir destino padrão.",
+        text: error instanceof Error ? error.message : t("admin.storage.errors.setDefaultFailed"),
       });
     }
   }
@@ -619,15 +612,14 @@ export function StorageSettingsPage() {
         severity: "success",
         text:
           action === "activate"
-            ? `Conexão "${updated.name}" ativada.`
-            : `Conexão "${updated.name}" desativada.`,
+            ? t("admin.storage.feedback.activated", { name: updated.name })
+            : t("admin.storage.feedback.deactivated", { name: updated.name }),
       });
     } catch (error) {
       setPendingStatusToggle(null);
       setFeedback({
         severity: "error",
-        text:
-          error instanceof Error ? error.message : "Não foi possível alterar o status da conexão.",
+        text: error instanceof Error ? error.message : t("admin.storage.errors.toggleStatusFailed"),
       });
     }
   }
@@ -638,7 +630,7 @@ export function StorageSettingsPage() {
     if (!selectedRuleCategoryId || !selectedRuleConnectionId) {
       setFeedback({
         severity: "error",
-        text: "Selecione a categoria e a conexão de destino antes de salvar a regra.",
+        text: t("admin.storage.validation.selectCategoryAndConnection"),
       });
       return;
     }
@@ -655,13 +647,15 @@ export function StorageSettingsPage() {
       setSelectedRuleConnectionId("");
       setFeedback({
         severity: "success",
-        text: `Regra salva: novos arquivos da categoria "${categoryName}" serão enviados para "${connectionName}".`,
+        text: t("admin.storage.feedback.ruleSaved", {
+          category: categoryName,
+          connection: connectionName,
+        }),
       });
     } catch (error) {
       setFeedback({
         severity: "error",
-        text:
-          error instanceof Error ? error.message : "Não foi possível salvar a regra de roteamento.",
+        text: error instanceof Error ? error.message : t("admin.storage.errors.saveRuleFailed"),
       });
     }
   }
@@ -677,16 +671,13 @@ export function StorageSettingsPage() {
       setPendingRuleRemoval(null);
       setFeedback({
         severity: "success",
-        text: `Regra específica da categoria "${categoryName}" removida. Novos envios seguirão o destino padrão.`,
+        text: t("admin.storage.feedback.ruleRemoved", { category: categoryName }),
       });
     } catch (error) {
       setPendingRuleRemoval(null);
       setFeedback({
         severity: "error",
-        text:
-          error instanceof Error
-            ? error.message
-            : "Não foi possível remover a regra de roteamento.",
+        text: error instanceof Error ? error.message : t("admin.storage.errors.removeRuleFailed"),
       });
     }
   }
@@ -705,11 +696,10 @@ export function StorageSettingsPage() {
           <StorageOutlinedIcon color="primary" fontSize="large" />
           <Box>
             <Typography variant="h1" component="h1">
-              Armazenamento e conexões
+              {t("admin.storage.title")}
             </Typography>
             <Typography variant="body2" color="text.secondary">
-              Gerencie destinos locais e S3 compatíveis, teste a integridade das conexões e defina
-              regras de roteamento por categoria.
+              {t("admin.storage.subtitle")}
             </Typography>
           </Box>
         </Stack>
@@ -718,7 +708,7 @@ export function StorageSettingsPage() {
           startIcon={<AddOutlinedIcon />}
           onClick={handleOpenCreateDialog}
         >
-          Nova conexão
+          {t("admin.storage.actions.newConnection")}
         </Button>
       </Stack>
 
@@ -733,52 +723,51 @@ export function StorageSettingsPage() {
         sx={{
           p: 3,
           borderRadius: 3,
-          borderColor: DOCUFLOW_COLOR_TOKENS.surface.outlineVariant,
-          backgroundColor: DOCUFLOW_COLOR_TOKENS.surface.containerLowest,
+          borderColor: PAPYRUS_COLOR_TOKENS.surface.outlineVariant,
+          backgroundColor: PAPYRUS_COLOR_TOKENS.surface.containerLowest,
         }}
       >
         <Stack spacing={2}>
           <Box>
             <Typography variant="h2" component="h2" fontWeight={600}>
-              Conexões configuradas
+              {t("admin.storage.connectionsTitle")}
             </Typography>
             <Typography variant="body2" color="text.secondary">
-              Credenciais armazenadas permanecem criptografadas no servidor e nunca são exibidas em
-              texto plano.
+              {t("admin.storage.connectionsSubtitle")}
             </Typography>
           </Box>
 
           {connectionsQuery.isLoading ? (
-            <LoadingState message="Carregando conexões de armazenamento..." />
+            <LoadingState message={t("admin.storage.loadingConnections")} />
           ) : connectionsQuery.isError ? (
             <ErrorState
-              title="Erro ao carregar conexões"
+              title={t("admin.storage.loadConnectionsErrorTitle")}
               description={connectionsQuery.error.message}
               onRetry={() => void connectionsQuery.refetch()}
             />
           ) : connections.length === 0 ? (
             <EmptyState
-              title="Nenhuma conexão de storage cadastrada"
-              description="Cadastre um diretório local ou bucket S3 compatível para habilitar o armazenamento de documentos."
-              actionLabel="Nova conexão"
+              title={t("admin.storage.emptyConnectionsTitle")}
+              description={t("admin.storage.emptyConnectionsDescription")}
+              actionLabel={t("admin.storage.actions.newConnection")}
               onAction={handleOpenCreateDialog}
             />
           ) : (
             <TableContainer>
-              <Table aria-label="Conexões de armazenamento">
+              <Table aria-label={t("admin.storage.tableAria")}>
                 <TableHead>
                   <TableRow>
-                    <TableCell>Conexão</TableCell>
-                    <TableCell>Tipo</TableCell>
-                    <TableCell>Destino e configuração</TableCell>
-                    <TableCell>Credenciais</TableCell>
-                    <TableCell>Status e saúde</TableCell>
-                    <TableCell align="right">Ações</TableCell>
+                    <TableCell>{t("admin.storage.colConnection")}</TableCell>
+                    <TableCell>{t("admin.storage.colType")}</TableCell>
+                    <TableCell>{t("admin.storage.colTarget")}</TableCell>
+                    <TableCell>{t("admin.storage.colCredentials")}</TableCell>
+                    <TableCell>{t("admin.storage.colStatusHealth")}</TableCell>
+                    <TableCell align="right">{t("admin.common.actions")}</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
                   {connections.map((connection) => {
-                    const badge = CONNECTION_STATUS_BADGE[connection.status];
+                    const badge = CONNECTION_STATUS_BADGE_CONFIG[connection.status];
                     const isTestingThis =
                       testMutation.isPending && testingConnectionId === connection.id;
                     return (
@@ -790,7 +779,7 @@ export function StorageSettingsPage() {
                             </Typography>
                             {connection.isDefault ? (
                               <Chip
-                                label="Padrão"
+                                label={t("admin.common.defaultBadge")}
                                 size="small"
                                 color="primary"
                                 icon={<StarOutlineOutlinedIcon />}
@@ -800,28 +789,28 @@ export function StorageSettingsPage() {
                         </TableCell>
                         <TableCell>
                           <Chip
-                            label={CONNECTION_KIND_LABELS[connection.kind]}
+                            label={t(CONNECTION_KIND_LABEL_KEYS[connection.kind])}
                             size="small"
                             variant="outlined"
                           />
                         </TableCell>
                         <TableCell>
                           <Typography variant="body2" color="text.secondary">
-                            {describeNonSecretTarget(connection)}
+                            {describeNonSecretTarget(connection, t)}
                           </Typography>
                         </TableCell>
                         <TableCell>
                           {connection.kind === "local" ? (
                             <Typography variant="body2" color="text.secondary">
-                              Não exigidas
+                              {t("admin.storage.credentialsNotRequired")}
                             </Typography>
                           ) : (
                             <Stack direction="row" spacing={0.75} alignItems="center">
                               <LockOutlinedIcon fontSize="small" color="action" />
                               <Typography variant="body2" color="text.secondary">
                                 {connection.hasCredentials
-                                  ? "•••••••• (criptografadas)"
-                                  : "Não informadas"}
+                                  ? t("admin.storage.credentialsEncrypted")
+                                  : t("admin.storage.credentialsMissing")}
                               </Typography>
                             </Stack>
                           )}
@@ -829,9 +818,9 @@ export function StorageSettingsPage() {
                         <TableCell>
                           <Stack spacing={0.5}>
                             <Stack direction="row" spacing={1} alignItems="center">
-                              <Chip label={badge.label} color={badge.color} size="small" />
+                              <Chip label={t(badge.labelKey)} color={badge.color} size="small" />
                               <Typography variant="caption" color="text.secondary">
-                                {formatDateTimePtBr(connection.lastHealthCheckAt)}
+                                {formatHealthTimestamp(connection.lastHealthCheckAt)}
                               </Typography>
                             </Stack>
                             {connection.lastHealthMessage ? (
@@ -850,7 +839,9 @@ export function StorageSettingsPage() {
                               disabled={isTestingThis}
                               onClick={() => void handleTestHealth(connection)}
                             >
-                              {isTestingThis ? "Testando..." : "Testar saúde"}
+                              {isTestingThis
+                                ? t("admin.storage.actions.testingHealth")
+                                : t("admin.storage.actions.testHealth")}
                             </Button>
                             <Button
                               size="small"
@@ -858,7 +849,7 @@ export function StorageSettingsPage() {
                               startIcon={<EditOutlinedIcon />}
                               onClick={() => handleOpenEditDialog(connection)}
                             >
-                              Editar
+                              {t("admin.common.edit")}
                             </Button>
                             {!connection.isDefault && connection.status === "ACTIVE" ? (
                               <Button
@@ -868,7 +859,7 @@ export function StorageSettingsPage() {
                                 disabled={setDefaultMutation.isPending}
                                 onClick={() => void handleSetDefault(connection)}
                               >
-                                Definir como padrão
+                                {t("admin.storage.actions.setDefault")}
                               </Button>
                             ) : null}
                             <Button
@@ -887,7 +878,9 @@ export function StorageSettingsPage() {
                                 })
                               }
                             >
-                              {connection.status === "ACTIVE" ? "Desativar" : "Ativar"}
+                              {connection.status === "ACTIVE"
+                                ? t("admin.common.deactivate")
+                                : t("admin.common.activate")}
                             </Button>
                           </Stack>
                         </TableCell>
@@ -906,8 +899,8 @@ export function StorageSettingsPage() {
         sx={{
           p: 3,
           borderRadius: 3,
-          borderColor: DOCUFLOW_COLOR_TOKENS.surface.outlineVariant,
-          backgroundColor: DOCUFLOW_COLOR_TOKENS.surface.containerLowest,
+          borderColor: PAPYRUS_COLOR_TOKENS.surface.outlineVariant,
+          backgroundColor: PAPYRUS_COLOR_TOKENS.surface.containerLowest,
         }}
       >
         <Stack spacing={2.5}>
@@ -915,11 +908,10 @@ export function StorageSettingsPage() {
             <RouteOutlinedIcon color="primary" />
             <Box>
               <Typography variant="h2" component="h2" fontWeight={600}>
-                Regras de roteamento por categoria
+                {t("admin.storage.routing.title")}
               </Typography>
               <Typography variant="body2" color="text.secondary">
-                Direcione novos uploads de uma categoria para uma conexão específica. Documentos
-                enviados anteriormente permanecem em suas conexões originais.
+                {t("admin.storage.routing.subtitle")}
               </Typography>
             </Box>
           </Stack>
@@ -930,14 +922,16 @@ export function StorageSettingsPage() {
                 <TextField
                   select
                   fullWidth
-                  label="Categoria de documento"
+                  label={t("admin.storage.routing.categoryLabel")}
                   value={selectedRuleCategoryId}
                   onChange={(event) => setSelectedRuleCategoryId(event.target.value)}
                   disabled={categories.length === 0 || upsertRuleMutation.isPending}
                 >
                   {categories.map((category) => (
                     <MenuItem key={category.id} value={category.id}>
-                      {category.isActive ? category.name : `${category.name} (Inativa)`}
+                      {category.isActive
+                        ? category.name
+                        : t("admin.storage.routing.inactiveSuffix", { name: category.name })}
                     </MenuItem>
                   ))}
                 </TextField>
@@ -946,7 +940,7 @@ export function StorageSettingsPage() {
                 <TextField
                   select
                   fullWidth
-                  label="Conexão de destino"
+                  label={t("admin.storage.routing.connectionLabel")}
                   value={selectedRuleConnectionId}
                   onChange={(event) => setSelectedRuleConnectionId(event.target.value)}
                   disabled={activeConnections.length === 0 || upsertRuleMutation.isPending}
@@ -954,8 +948,8 @@ export function StorageSettingsPage() {
                   {activeConnections.map((connection) => (
                     <MenuItem key={connection.id} value={connection.id}>
                       {connection.isDefault
-                        ? `${connection.name} (Padrão)`
-                        : `${connection.name} — ${CONNECTION_KIND_LABELS[connection.kind]}`}
+                        ? t("admin.storage.routing.defaultSuffix", { name: connection.name })
+                        : `${connection.name} — ${t(CONNECTION_KIND_LABEL_KEYS[connection.kind])}`}
                     </MenuItem>
                   ))}
                 </TextField>
@@ -971,7 +965,9 @@ export function StorageSettingsPage() {
                     upsertRuleMutation.isPending
                   }
                 >
-                  {upsertRuleMutation.isPending ? "Salvando..." : "Salvar regra"}
+                  {upsertRuleMutation.isPending
+                    ? t("admin.common.saving")
+                    : t("admin.storage.routing.saveRule")}
                 </Button>
               </Grid>
             </Grid>
@@ -980,27 +976,27 @@ export function StorageSettingsPage() {
           <Divider />
 
           {routingRulesQuery.isLoading ? (
-            <LoadingState message="Carregando regras de roteamento..." />
+            <LoadingState message={t("admin.storage.routing.loadingRules")} />
           ) : routingRulesQuery.isError ? (
             <ErrorState
-              title="Erro ao carregar regras"
+              title={t("admin.storage.routing.loadRulesErrorTitle")}
               description={routingRulesQuery.error.message}
               onRetry={() => void routingRulesQuery.refetch()}
             />
           ) : categoryRoutingRules.length === 0 ? (
             <EmptyState
-              title="Nenhuma regra específica por categoria"
-              description="Todas as categorias utilizam atualmente a conexão padrão da organização."
+              title={t("admin.storage.routing.emptyTitle")}
+              description={t("admin.storage.routing.emptyDescription")}
             />
           ) : (
             <TableContainer>
-              <Table aria-label="Regras de roteamento por categoria">
+              <Table aria-label={t("admin.storage.routing.tableAria")}>
                 <TableHead>
                   <TableRow>
-                    <TableCell>Categoria</TableCell>
-                    <TableCell>Conexão de destino</TableCell>
-                    <TableCell>Atualizada em</TableCell>
-                    <TableCell align="right">Ações</TableCell>
+                    <TableCell>{t("admin.storage.routing.colCategory")}</TableCell>
+                    <TableCell>{t("admin.storage.routing.colDestination")}</TableCell>
+                    <TableCell>{t("admin.common.updatedAt")}</TableCell>
+                    <TableCell align="right">{t("admin.common.actions")}</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -1018,13 +1014,13 @@ export function StorageSettingsPage() {
                         <TableCell>
                           <Typography variant="body2">
                             {connection
-                              ? `${connection.name} (${CONNECTION_KIND_LABELS[connection.kind]})`
+                              ? `${connection.name} (${t(CONNECTION_KIND_LABEL_KEYS[connection.kind])})`
                               : rule.storageConnectionId}
                           </Typography>
                         </TableCell>
                         <TableCell>
                           <Typography variant="body2" color="text.secondary">
-                            {formatDateTimePtBr(rule.updatedAt)}
+                            {formatDateTime(rule.updatedAt)}
                           </Typography>
                         </TableCell>
                         <TableCell align="right">
@@ -1041,7 +1037,7 @@ export function StorageSettingsPage() {
                               })
                             }
                           >
-                            Remover regra
+                            {t("admin.storage.routing.removeRule")}
                           </Button>
                         </TableCell>
                       </TableRow>
@@ -1064,8 +1060,8 @@ export function StorageSettingsPage() {
         <Box component="form" onSubmit={handleSubmitConnection} noValidate>
           <DialogTitle id={dialogTitleId}>
             {editingConnection
-              ? `Editar conexão: ${editingConnection.name}`
-              : "Nova conexão de storage"}
+              ? t("admin.storage.dialog.editTitle", { name: editingConnection.name })
+              : t("admin.storage.dialog.newTitle")}
           </DialogTitle>
           <DialogContent dividers>
             <Stack spacing={2.5} sx={{ pt: 0.5 }}>
@@ -1078,19 +1074,20 @@ export function StorageSettingsPage() {
                     setFormError(null);
                     setFormState((prev) => ({ ...prev, kind: nextKind }));
                   }}
-                  aria-label="Tipo de conexão de armazenamento"
+                  aria-label={t("admin.storage.dialog.kindTabsAria")}
                 >
-                  <Tab value="local" label="Armazenamento local" />
-                  <Tab value="s3" label="S3 compatível" />
+                  <Tab value="local" label={t("admin.storage.kind.local")} />
+                  <Tab value="s3" label={t("admin.storage.kind.s3")} />
                 </Tabs>
               ) : (
                 <Typography variant="body2" color="text.secondary">
-                  Tipo de provedor: <strong>{CONNECTION_KIND_LABELS[formState.kind]}</strong>
+                  {t("admin.storage.dialog.providerType")}{" "}
+                  <strong>{t(CONNECTION_KIND_LABEL_KEYS[formState.kind])}</strong>
                 </Typography>
               )}
 
               <TextField
-                label="Nome da conexão"
+                label={t("admin.storage.dialog.name")}
                 required
                 fullWidth
                 value={formState.name}
@@ -1104,11 +1101,11 @@ export function StorageSettingsPage() {
                 <Grid container spacing={2}>
                   <Grid size={{ xs: 12 }}>
                     <TextField
-                      label="Diretório raiz absoluto"
+                      label={t("admin.storage.dialog.folderPath")}
                       required
                       fullWidth
-                      placeholder="/var/lib/docuflow/storage"
-                      helperText="Caminho absoluto dedicado ao repositório local (nunca a raiz '/')."
+                      placeholder={t("admin.storage.dialog.folderPathPlaceholder")}
+                      helperText={t("admin.storage.dialog.folderPathHelper")}
                       value={formState.rootDirectory}
                       onChange={(event) =>
                         setFormState((prev) => ({ ...prev, rootDirectory: event.target.value }))
@@ -1118,7 +1115,7 @@ export function StorageSettingsPage() {
                   </Grid>
                   <Grid size={{ xs: 12, sm: 6 }}>
                     <TextField
-                      label="Tamanho máximo por objeto (bytes)"
+                      label={t("admin.storage.dialog.maxFileSizeBytes")}
                       type="number"
                       fullWidth
                       placeholder="104857600"
@@ -1134,7 +1131,7 @@ export function StorageSettingsPage() {
                   </Grid>
                   <Grid size={{ xs: 12, sm: 6 }}>
                     <TextField
-                      label="Espaço livre mínimo (bytes)"
+                      label={t("admin.storage.dialog.minFreeBytes")}
                       type="number"
                       fullWidth
                       placeholder="1073741824"
@@ -1151,10 +1148,10 @@ export function StorageSettingsPage() {
                   <Grid container spacing={2}>
                     <Grid size={{ xs: 12, sm: 6 }}>
                       <TextField
-                        label="Endpoint S3"
+                        label={t("admin.storage.dialog.endpoint")}
                         required
                         fullWidth
-                        placeholder="https://s3.exemplo.com"
+                        placeholder="https://s3.example.com"
                         value={formState.endpoint}
                         onChange={(event) =>
                           setFormState((prev) => ({ ...prev, endpoint: event.target.value }))
@@ -1164,7 +1161,7 @@ export function StorageSettingsPage() {
                     </Grid>
                     <Grid size={{ xs: 12, sm: 3 }}>
                       <TextField
-                        label="Região"
+                        label={t("admin.storage.dialog.region")}
                         required
                         fullWidth
                         placeholder="us-east-1"
@@ -1177,10 +1174,10 @@ export function StorageSettingsPage() {
                     </Grid>
                     <Grid size={{ xs: 12, sm: 3 }}>
                       <TextField
-                        label="Bucket"
+                        label={t("admin.storage.dialog.bucket")}
                         required
                         fullWidth
-                        placeholder="docuflow-docs"
+                        placeholder="papyrus-docs"
                         value={formState.bucket}
                         onChange={(event) =>
                           setFormState((prev) => ({ ...prev, bucket: event.target.value }))
@@ -1190,9 +1187,9 @@ export function StorageSettingsPage() {
                     </Grid>
                     <Grid size={{ xs: 12, sm: 4 }}>
                       <TextField
-                        label="Prefixo de chave (opcional)"
+                        label={t("admin.storage.dialog.keyPrefix")}
                         fullWidth
-                        placeholder="producao/"
+                        placeholder={t("admin.storage.dialog.keyPrefixPlaceholder")}
                         value={formState.keyPrefix}
                         onChange={(event) =>
                           setFormState((prev) => ({ ...prev, keyPrefix: event.target.value }))
@@ -1202,7 +1199,7 @@ export function StorageSettingsPage() {
                     </Grid>
                     <Grid size={{ xs: 12, sm: 4 }}>
                       <TextField
-                        label="Timeout de conexão (ms)"
+                        label={t("admin.storage.dialog.connectionTimeoutMs")}
                         type="number"
                         fullWidth
                         value={formState.connectionTimeoutMs}
@@ -1217,7 +1214,7 @@ export function StorageSettingsPage() {
                     </Grid>
                     <Grid size={{ xs: 12, sm: 4 }}>
                       <TextField
-                        label="Timeout de requisição (ms)"
+                        label={t("admin.storage.dialog.requestTimeoutMs")}
                         type="number"
                         fullWidth
                         value={formState.requestTimeoutMs}
@@ -1246,7 +1243,7 @@ export function StorageSettingsPage() {
                           disabled={isDialogSaving}
                         />
                       }
-                      label="Forçar path-style (MinIO)"
+                      label={t("admin.storage.dialog.forcePathStyle")}
                     />
                     <FormControlLabel
                       control={
@@ -1261,7 +1258,7 @@ export function StorageSettingsPage() {
                           disabled={isDialogSaving}
                         />
                       }
-                      label="Validar certificado TLS"
+                      label={t("admin.storage.dialog.verifyCertificate")}
                     />
                     <FormControlLabel
                       control={
@@ -1276,12 +1273,12 @@ export function StorageSettingsPage() {
                           disabled={isDialogSaving}
                         />
                       }
-                      label="Permitir HTTP sem TLS"
+                      label={t("admin.storage.dialog.allowUnencryptedHttp")}
                     />
                   </Stack>
 
                   <TextField
-                    label="Certificado CA PEM (opcional)"
+                    label={t("admin.storage.dialog.caCertificatePem")}
                     multiline
                     minRows={2}
                     fullWidth
@@ -1295,20 +1292,19 @@ export function StorageSettingsPage() {
                   <Divider />
 
                   <Typography variant="subtitle2" fontWeight={600}>
-                    Credenciais S3
+                    {t("admin.storage.dialog.credentialsTitle")}
                   </Typography>
 
                   {editingConnection?.hasCredentials ? (
                     <Alert severity="info">
-                      Credenciais atuais criptografadas e ocultas (••••••••). Preencha os campos
-                      abaixo somente se desejar rotacioná-las.
+                      {t("admin.storage.dialog.updateCredentialsNotice")}
                     </Alert>
                   ) : null}
 
                   <Grid container spacing={2}>
                     <Grid size={{ xs: 12, sm: 4 }}>
                       <TextField
-                        label="Access Key ID"
+                        label={t("admin.storage.dialog.accessKeyId")}
                         required={!editingConnection}
                         fullWidth
                         placeholder={editingConnection?.hasCredentials ? "••••••••" : ""}
@@ -1322,7 +1318,7 @@ export function StorageSettingsPage() {
                     </Grid>
                     <Grid size={{ xs: 12, sm: 4 }}>
                       <TextField
-                        label="Secret Access Key"
+                        label={t("admin.storage.dialog.secretAccessKey")}
                         type="password"
                         required={!editingConnection}
                         fullWidth
@@ -1340,7 +1336,7 @@ export function StorageSettingsPage() {
                     </Grid>
                     <Grid size={{ xs: 12, sm: 4 }}>
                       <TextField
-                        label="Session Token (opcional)"
+                        label={t("admin.storage.dialog.sessionToken")}
                         type="password"
                         fullWidth
                         placeholder={editingConnection?.hasCredentials ? "••••••••" : ""}
@@ -1367,21 +1363,21 @@ export function StorageSettingsPage() {
                       disabled={isDialogSaving}
                     />
                   }
-                  label="Definir como conexão padrão da organização"
+                  label={t("admin.storage.dialog.setDefaultSwitch")}
                 />
               ) : null}
             </Stack>
           </DialogContent>
           <DialogActions sx={{ px: 3, py: 2 }}>
             <Button onClick={handleCloseDialog} disabled={isDialogSaving} variant="text">
-              Cancelar
+              {t("admin.common.cancel")}
             </Button>
             <Button type="submit" disabled={isDialogSaving} variant="contained">
               {isDialogSaving
-                ? "Salvando..."
+                ? t("admin.common.saving")
                 : editingConnection
-                  ? "Salvar alterações"
-                  : "Cadastrar conexão"}
+                  ? t("admin.common.saveChanges")
+                  : t("admin.storage.dialog.createSubmit")}
             </Button>
           </DialogActions>
         </Box>
@@ -1390,14 +1386,24 @@ export function StorageSettingsPage() {
       <ConfirmDialog
         open={pendingStatusToggle !== null}
         title={
-          pendingStatusToggle?.action === "deactivate" ? "Desativar conexão" : "Ativar conexão"
+          pendingStatusToggle?.action === "deactivate"
+            ? t("admin.storage.confirmToggle.deactivateTitle")
+            : t("admin.storage.confirmToggle.activateTitle")
         }
         description={
           pendingStatusToggle?.action === "deactivate"
-            ? `Deseja desativar a conexão "${pendingStatusToggle.connection.name}"? Novos uploads deixarão de utilizá-la.`
-            : `Deseja reativar a conexão "${pendingStatusToggle?.connection.name ?? ""}"?`
+            ? t("admin.storage.confirmToggle.deactivateDescription", {
+                name: pendingStatusToggle.connection.name,
+              })
+            : t("admin.storage.confirmToggle.activateDescription", {
+                name: pendingStatusToggle?.connection.name ?? "",
+              })
         }
-        confirmLabel={pendingStatusToggle?.action === "deactivate" ? "Desativar" : "Ativar"}
+        confirmLabel={
+          pendingStatusToggle?.action === "deactivate"
+            ? t("admin.common.deactivate")
+            : t("admin.common.activate")
+        }
         confirmColor={pendingStatusToggle?.action === "deactivate" ? "warning" : "primary"}
         loading={toggleStatusMutation.isPending}
         onConfirm={() => void handleConfirmStatusToggle()}
@@ -1406,9 +1412,11 @@ export function StorageSettingsPage() {
 
       <ConfirmDialog
         open={pendingRuleRemoval !== null}
-        title="Remover regra por categoria"
-        description={`Remover a regra específica da categoria "${pendingRuleRemoval?.categoryName ?? ""}"? Novos uploads usarão a conexão padrão da organização.`}
-        confirmLabel="Remover regra"
+        title={t("admin.storage.confirmRemoveRule.title")}
+        description={t("admin.storage.confirmRemoveRule.description", {
+          categoryName: pendingRuleRemoval?.categoryName ?? "",
+        })}
+        confirmLabel={t("admin.storage.routing.removeRule")}
         confirmColor="error"
         loading={clearRuleMutation.isPending}
         onConfirm={() => void handleConfirmRuleRemoval()}

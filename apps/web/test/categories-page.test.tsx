@@ -1,5 +1,5 @@
 import "@testing-library/jest-dom/vitest";
-import { docuflowTheme } from "@docuflow/ui";
+import { UiLocaleProvider, papyrusTheme } from "@docuflow/ui";
 import { CssBaseline, ThemeProvider } from "@mui/material";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
@@ -7,6 +7,7 @@ import { MemoryRouter } from "react-router-dom";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { CategoriesPage } from "../src/features/admin/CategoriesPage.js";
 import { CategoryEditor } from "../src/features/admin/CategoryEditor.js";
+import { I18nProvider } from "../src/i18n/index.js";
 
 const ORG_ID = "550e8400-e29b-41d4-a716-446655440000";
 const CAT_1_ID = "550e8400-e29b-41d4-a716-446655440201";
@@ -49,14 +50,18 @@ function renderCategoriesPage() {
   });
 
   return render(
-    <ThemeProvider theme={docuflowTheme}>
-      <CssBaseline />
-      <QueryClientProvider client={queryClient}>
-        <MemoryRouter>
-          <CategoriesPage />
-        </MemoryRouter>
-      </QueryClientProvider>
-    </ThemeProvider>,
+    <I18nProvider initialLocale="en-US">
+      <UiLocaleProvider locale="en-US">
+        <ThemeProvider theme={papyrusTheme}>
+          <CssBaseline />
+          <QueryClientProvider client={queryClient}>
+            <MemoryRouter>
+              <CategoriesPage />
+            </MemoryRouter>
+          </QueryClientProvider>
+        </ThemeProvider>
+      </UiLocaleProvider>
+    </I18nProvider>,
   );
 }
 
@@ -107,8 +112,8 @@ describe("CategoriesPage & CategoryEditor (Step 14.05)", () => {
     renderCategoriesPage();
 
     expect(await screen.findByText("Contratos")).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Nova categoria" })).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Visualizar campos" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "New category" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "View fields" })).toBeInTheDocument();
   });
 
   it("creates a category and searches categories via server query parameters", async () => {
@@ -209,15 +214,15 @@ describe("CategoriesPage & CategoryEditor (Step 14.05)", () => {
 
     expect(await screen.findByText("Contratos")).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("button", { name: "Nova categoria" }));
+    fireEvent.click(screen.getByRole("button", { name: "New category" }));
     const dialog = await screen.findByRole("dialog");
-    fireEvent.change(within(dialog).getByLabelText(/Nome da categoria/i), {
+    fireEvent.change(within(dialog).getByLabelText(/Category name/i), {
       target: { value: "Laudos Técnicos" },
     });
-    fireEvent.change(within(dialog).getByLabelText(/Descrição da categoria/i), {
+    fireEvent.change(within(dialog).getByLabelText(/Category description/i), {
       target: { value: "Laudos de inspeção" },
     });
-    fireEvent.click(within(dialog).getByRole("button", { name: "Criar categoria" }));
+    fireEvent.click(within(dialog).getByRole("button", { name: "Create category" }));
 
     await waitFor(() => {
       expect(capturedCreateBody).toMatchObject({
@@ -226,16 +231,14 @@ describe("CategoriesPage & CategoryEditor (Step 14.05)", () => {
       });
     });
 
-    // Transitions editor into full edit mode with custom fields and storage policy
-    expect(
-      await within(dialog).findByText("Campos personalizados de metadados"),
-    ).toBeInTheDocument();
-    fireEvent.click(within(dialog).getByRole("button", { name: "Fechar" }));
+    // Transitions editor into full edit mode with custom fields and storage destination
+    expect(await within(dialog).findByText("Custom metadata fields")).toBeInTheDocument();
+    fireEvent.click(within(dialog).getByRole("button", { name: "Close" }));
     await waitFor(() => {
       expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     });
 
-    fireEvent.change(screen.getByLabelText("Buscar categoria"), {
+    fireEvent.change(screen.getByLabelText("Search category"), {
       target: { value: "Laudos" },
     });
     await waitFor(() => {
@@ -351,53 +354,57 @@ describe("CategoriesPage & CategoryEditor (Step 14.05)", () => {
       defaultOptions: { queries: { retry: false } },
     });
     render(
-      <ThemeProvider theme={docuflowTheme}>
-        <CssBaseline />
-        <QueryClientProvider client={queryClient}>
-          <MemoryRouter>
-            <CategoryEditor
-              open
-              category={{
-                id: CAT_1_ID,
-                organizationId: ORG_ID,
-                name: "Contratos",
-                description: null,
-                color: "#0F5C73",
-                icon: null,
-                isActive: true,
-                createdAt: "2026-01-01T10:00:00.000Z",
-                updatedAt: "2026-02-01T10:00:00.000Z",
-              }}
-              canEditCategory
-              canManageStoragePolicy={false}
-              onClose={vi.fn()}
-              onFeedback={vi.fn()}
-            />
-          </MemoryRouter>
-        </QueryClientProvider>
-      </ThemeProvider>,
+      <I18nProvider initialLocale="en-US">
+        <UiLocaleProvider locale="en-US">
+          <ThemeProvider theme={papyrusTheme}>
+            <CssBaseline />
+            <QueryClientProvider client={queryClient}>
+              <MemoryRouter>
+                <CategoryEditor
+                  open
+                  category={{
+                    id: CAT_1_ID,
+                    organizationId: ORG_ID,
+                    name: "Contratos",
+                    description: null,
+                    color: "#0F5C73",
+                    icon: null,
+                    isActive: true,
+                    createdAt: "2026-01-01T10:00:00.000Z",
+                    updatedAt: "2026-02-01T10:00:00.000Z",
+                  }}
+                  canEditCategory
+                  canManageStoragePolicy={false}
+                  onClose={vi.fn()}
+                  onFeedback={vi.fn()}
+                />
+              </MemoryRouter>
+            </QueryClientProvider>
+          </ThemeProvider>
+        </UiLocaleProvider>
+      </I18nProvider>,
     );
 
     const dialog = await screen.findByRole("dialog");
     expect(await within(dialog).findByText("CNPJ do Fornecedor")).toBeInTheDocument();
 
-    fireEvent.change(within(dialog).getByLabelText(/Rótulo do campo/i), {
+    fireEvent.change(within(dialog).getByLabelText(/Field label/i), {
       target: { value: "Regime Tributário" },
     });
-    fireEvent.mouseDown(within(dialog).getByLabelText("Tipo do campo"));
-    fireEvent.click(await screen.findByRole("option", { name: "Seleção única" }));
+    fireEvent.mouseDown(within(dialog).getByLabelText("Field type"));
+    fireEvent.click(await screen.findByRole("option", { name: "Single select" }));
 
-    fireEvent.change(within(dialog).getByLabelText("Nova opção de seleção"), {
+    fireEvent.change(within(dialog).getByLabelText("New selection option"), {
       target: { value: "Simples Nacional" },
     });
-    fireEvent.click(within(dialog).getByRole("button", { name: "Adicionar opção" }));
+    fireEvent.click(within(dialog).getByRole("button", { name: "Add option" }));
 
-    fireEvent.change(within(dialog).getByLabelText("Nova opção de seleção"), {
+    fireEvent.change(within(dialog).getByLabelText("New selection option"), {
       target: { value: "Lucro Real" },
     });
-    fireEvent.click(within(dialog).getByRole("button", { name: "Adicionar opção" }));
+    fireEvent.click(within(dialog).getByRole("button", { name: "Add option" }));
 
-    fireEvent.click(within(dialog).getByRole("button", { name: "Adicionar campo" }));
+    fireEvent.click(within(dialog).getByRole("button", { name: "Add field" }));
 
     await waitFor(() => {
       expect(capturedFieldCreate).toMatchObject({
@@ -504,7 +511,7 @@ describe("CategoriesPage & CategoryEditor (Step 14.05)", () => {
     renderCategoriesPage();
 
     expect(await screen.findByText("Contratos")).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "Configurar campos e storage" }));
+    fireEvent.click(screen.getByRole("button", { name: "Fields & storage" }));
 
     const dialog = await screen.findByRole("dialog");
     const cnpjLabel = await within(dialog).findByText("CNPJ do Fornecedor");
@@ -512,8 +519,8 @@ describe("CategoriesPage & CategoryEditor (Step 14.05)", () => {
     if (!cnpjRow) {
       throw new Error("Expected CNPJ field row");
     }
-    fireEvent.click(within(cnpjRow).getByRole("button", { name: "Remover" }));
-    fireEvent.click(await within(dialog).findByRole("button", { name: "Confirmar remoção" }));
+    fireEvent.click(within(cnpjRow).getByRole("button", { name: "Remove" }));
+    fireEvent.click(await within(dialog).findByRole("button", { name: "Confirm removal" }));
 
     await waitFor(() => {
       expect(capturedDeleteBody).toEqual({
@@ -630,13 +637,13 @@ describe("CategoriesPage & CategoryEditor (Step 14.05)", () => {
     renderCategoriesPage();
 
     expect(await screen.findByText("Contratos")).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "Configurar campos e storage" }));
+    fireEvent.click(screen.getByRole("button", { name: "Fields & storage" }));
 
     const dialog = await screen.findByRole("dialog");
-    const policySelect = await within(dialog).findByLabelText("Política de destino de storage");
+    const policySelect = await within(dialog).findByLabelText("Storage destination");
     fireEvent.mouseDown(policySelect);
     fireEvent.click(await screen.findByRole("option", { name: /S3 Contratos/i }));
-    fireEvent.click(within(dialog).getByRole("button", { name: "Aplicar política de storage" }));
+    fireEvent.click(within(dialog).getByRole("button", { name: "Save destination" }));
 
     await waitFor(() => {
       expect(capturedStorageRuleBody).toEqual({

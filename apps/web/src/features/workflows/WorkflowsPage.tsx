@@ -1,5 +1,5 @@
 import type { WorkflowAssigneeCatalog, WorkflowAssigneeTarget } from "@docuflow/contracts";
-import { DOCUFLOW_COLOR_TOKENS, EmptyState, ErrorState, LoadingState } from "@docuflow/ui";
+import { EmptyState, ErrorState, LoadingState, PAPYRUS_COLOR_TOKENS } from "@docuflow/ui";
 import AddOutlinedIcon from "@mui/icons-material/AddOutlined";
 import CloseOutlinedIcon from "@mui/icons-material/CloseOutlined";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
@@ -32,6 +32,7 @@ import {
 } from "@mui/material";
 import { useMemo, useState } from "react";
 import { useSessionQuery } from "../../app/session.js";
+import { type MessageKey, useI18n } from "../../i18n/index.js";
 import { WorkflowEditorDialog } from "./WorkflowEditorDialog.js";
 import {
   useCreateWorkflowDefinitionMutation,
@@ -47,24 +48,25 @@ const EMPTY_CATALOG: WorkflowAssigneeCatalog = { users: [], groups: [], roles: [
 function formatAssigneeLabel(
   assignee: WorkflowAssigneeTarget,
   catalog: WorkflowAssigneeCatalog,
+  t: (key: MessageKey) => string,
 ): { readonly kindLabel: string; readonly displayName: string } {
   if (assignee.type === "USER") {
     const user = catalog.users.find((item) => item.id === assignee.userId);
     return {
-      kindLabel: "Usuário",
+      kindLabel: t("workflows.assigneeType.USER"),
       displayName: user ? `${user.fullName} (${user.email})` : assignee.userId,
     };
   }
   if (assignee.type === "GROUP") {
     const group = catalog.groups.find((item) => item.id === assignee.groupId);
     return {
-      kindLabel: "Grupo",
+      kindLabel: t("workflows.assigneeType.GROUP"),
       displayName: group ? group.name : assignee.groupId,
     };
   }
   const role = catalog.roles.find((item) => item.id === assignee.roleId);
   return {
-    kindLabel: "Papel",
+    kindLabel: t("workflows.assigneeType.ROLE"),
     displayName: role ? role.name : assignee.roleId,
   };
 }
@@ -73,6 +75,7 @@ function formatAssigneeLabel(
  * Versioned sequential workflow definitions management page (`/workflows`).
  */
 export function WorkflowsPage() {
+  const { t, formatDateTime } = useI18n();
   const { data: session } = useSessionQuery();
 
   const canCreateWorkflow = Boolean(
@@ -145,14 +148,13 @@ export function WorkflowsPage() {
       setFeedback({
         severity: "success",
         message: updated.isActive
-          ? `Fluxo "${updated.name}" reativado com sucesso.`
-          : `Fluxo "${updated.name}" desativado. Processos em andamento não foram afetados.`,
+          ? t("workflows.page.feedback.reactivated", { name: updated.name })
+          : t("workflows.page.feedback.deactivated", { name: updated.name }),
       });
     } catch (error) {
       setFeedback({
         severity: "error",
-        message:
-          error instanceof Error ? error.message : "Não foi possível alterar o status do fluxo.",
+        message: error instanceof Error ? error.message : t("workflows.errors.toggleStatus"),
       });
     }
   };
@@ -167,11 +169,10 @@ export function WorkflowsPage() {
       >
         <Box>
           <Typography variant="h1" gutterBottom>
-            Fluxos de aprovação
+            {t("workflows.page.title")}
           </Typography>
           <Typography variant="body1" color="text.secondary">
-            Definições sequenciais versionadas de revisão e aprovação vinculadas à versão exata do
-            documento.
+            {t("workflows.page.subtitle")}
           </Typography>
         </Box>
 
@@ -183,7 +184,9 @@ export function WorkflowsPage() {
             disabled={definitionsQuery.isFetching}
             onClick={() => void definitionsQuery.refetch()}
           >
-            {definitionsQuery.isFetching ? "Atualizando..." : "Atualizar"}
+            {definitionsQuery.isFetching
+              ? t("workflows.page.refreshing")
+              : t("workflows.page.refresh")}
           </Button>
           {canCreateWorkflow ? (
             <Button
@@ -196,7 +199,7 @@ export function WorkflowsPage() {
                 setCreateOpen(true);
               }}
             >
-              Novo fluxo
+              {t("workflows.page.newWorkflow")}
             </Button>
           ) : null}
         </Stack>
@@ -211,7 +214,7 @@ export function WorkflowsPage() {
       <Paper
         sx={{
           p: 2,
-          bgcolor: DOCUFLOW_COLOR_TOKENS.surface.containerLowest,
+          bgcolor: PAPYRUS_COLOR_TOKENS.surface.containerLowest,
         }}
       >
         <Stack
@@ -221,8 +224,8 @@ export function WorkflowsPage() {
           justifyContent="space-between"
         >
           <TextField
-            label="Filtrar definições de fluxo"
-            placeholder="Nome ou descrição..."
+            label={t("workflows.page.filterLabel")}
+            placeholder={t("workflows.page.filterPlaceholder")}
             size="small"
             value={search}
             onChange={(event) => setSearch(event.target.value)}
@@ -235,13 +238,13 @@ export function WorkflowsPage() {
                 onChange={(event) => setIncludeInactive(event.target.checked)}
               />
             }
-            label="Exibir fluxos inativos"
+            label={t("workflows.page.includeInactive")}
           />
         </Stack>
       </Paper>
 
       {definitionsQuery.isLoading ? (
-        <LoadingState message="Carregando definições de fluxo de aprovação..." />
+        <LoadingState message={t("workflows.page.loading")} />
       ) : definitionsQuery.isError ? (
         <ErrorState
           description={definitionsQuery.error.message}
@@ -249,11 +252,11 @@ export function WorkflowsPage() {
         />
       ) : filteredDefinitions.length === 0 ? (
         <EmptyState
-          title="Nenhum fluxo de aprovação cadastrado"
-          description="Crie uma definição sequencial com etapas e aprovadores (usuário, grupo ou papel) para encaminhar documentos à revisão."
+          title={t("workflows.page.emptyTitle")}
+          description={t("workflows.page.emptyDescription")}
           {...(canCreateWorkflow
             ? {
-                actionLabel: "Novo fluxo",
+                actionLabel: t("workflows.page.newWorkflow"),
                 onAction: () => {
                   setEditorError(null);
                   setCreateOpen(true);
@@ -264,15 +267,15 @@ export function WorkflowsPage() {
       ) : (
         <TableContainer
           component={Paper}
-          sx={{ bgcolor: DOCUFLOW_COLOR_TOKENS.surface.containerLowest }}
+          sx={{ bgcolor: PAPYRUS_COLOR_TOKENS.surface.containerLowest }}
         >
-          <Table aria-label="Tabela de definições de fluxos de aprovação" size="small">
+          <Table aria-label={t("workflows.page.tableAriaLabel")} size="small">
             <TableHead>
               <TableRow>
-                <TableCell>Definição</TableCell>
-                <TableCell>Versão vigente</TableCell>
-                <TableCell>Status</TableCell>
-                <TableCell align="right">Ações</TableCell>
+                <TableCell>{t("workflows.page.columns.definition")}</TableCell>
+                <TableCell>{t("workflows.page.columns.currentVersion")}</TableCell>
+                <TableCell>{t("workflows.page.columns.status")}</TableCell>
+                <TableCell align="right">{t("workflows.page.columns.actions")}</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -294,7 +297,11 @@ export function WorkflowsPage() {
                   <TableCell>
                     <Chip
                       size="small"
-                      label={def.isActive ? "Ativo" : "Inativo"}
+                      label={
+                        def.isActive
+                          ? t("workflows.page.status.active")
+                          : t("workflows.page.status.inactive")
+                      }
                       color={def.isActive ? "success" : "default"}
                     />
                   </TableCell>
@@ -306,7 +313,7 @@ export function WorkflowsPage() {
                         startIcon={<HistoryOutlinedIcon fontSize="small" />}
                         onClick={() => setDetailDefinitionId(def.id)}
                       >
-                        Etapas e versões
+                        {t("workflows.page.actions.stepsAndVersions")}
                       </Button>
 
                       {canUpdateWorkflow && def.isActive ? (
@@ -319,7 +326,7 @@ export function WorkflowsPage() {
                             setVersionEditDefinitionId(def.id);
                           }}
                         >
-                          Nova versão
+                          {t("workflows.page.actions.newVersion")}
                         </Button>
                       ) : null}
 
@@ -332,7 +339,9 @@ export function WorkflowsPage() {
                           disabled={toggleStatusMutation.isPending}
                           onClick={() => void handleToggleStatus(def.id, !def.isActive)}
                         >
-                          {def.isActive ? "Desativar" : "Reativar"}
+                          {def.isActive
+                            ? t("workflows.page.actions.deactivate")
+                            : t("workflows.page.actions.reactivate")}
                         </Button>
                       ) : null}
                     </Stack>
@@ -362,10 +371,15 @@ export function WorkflowsPage() {
             setCreateOpen(false);
             setFeedback({
               severity: "success",
-              message: `Fluxo "${created.definition.name}" criado na versão v${created.version.versionNumber}.`,
+              message: t("workflows.page.feedback.created", {
+                name: created.definition.name,
+                version: created.version.versionNumber,
+              }),
             });
           } catch (error) {
-            setEditorError(error instanceof Error ? error.message : "Erro ao criar fluxo.");
+            setEditorError(
+              error instanceof Error ? error.message : t("workflows.errors.createDefinition"),
+            );
           }
         }}
         onSubmitNewVersion={async () => {}}
@@ -395,11 +409,14 @@ export function WorkflowsPage() {
             setVersionEditDefinitionId(null);
             setFeedback({
               severity: "success",
-              message: `Nova versão v${published.version.versionNumber} publicada para "${published.definition.name}".`,
+              message: t("workflows.page.feedback.published", {
+                version: published.version.versionNumber,
+                name: published.definition.name,
+              }),
             });
           } catch (error) {
             setEditorError(
-              error instanceof Error ? error.message : "Erro ao publicar nova versão do fluxo.",
+              error instanceof Error ? error.message : t("workflows.errors.publishVersion"),
             );
           }
         }}
@@ -410,14 +427,16 @@ export function WorkflowsPage() {
         onClose={() => setDetailDefinitionId(null)}
         maxWidth="md"
         fullWidth
-        aria-label="Detalhes das versões do fluxo"
+        aria-label={t("workflows.page.detailDialog.ariaLabel")}
       >
         <DialogTitle
           sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", pb: 1 }}
         >
-          <span>{detailQuery.data?.definition.name ?? "Detalhes do fluxo"}</span>
+          <span>
+            {detailQuery.data?.definition.name ?? t("workflows.page.detailDialog.fallbackTitle")}
+          </span>
           <IconButton
-            aria-label="Fechar detalhes do fluxo"
+            aria-label={t("workflows.page.detailDialog.closeAriaLabel")}
             onClick={() => setDetailDefinitionId(null)}
             size="small"
           >
@@ -426,7 +445,7 @@ export function WorkflowsPage() {
         </DialogTitle>
         <DialogContent dividers>
           {detailQuery.isLoading ? (
-            <LoadingState message="Carregando versões e etapas..." />
+            <LoadingState message={t("workflows.page.detailDialog.loading")} />
           ) : detailQuery.isError ? (
             <ErrorState
               description={detailQuery.error.message}
@@ -446,23 +465,35 @@ export function WorkflowsPage() {
                   <Paper
                     key={version.id}
                     variant="outlined"
-                    sx={{ p: 2, bgcolor: DOCUFLOW_COLOR_TOKENS.surface.containerLow }}
+                    sx={{ p: 2, bgcolor: PAPYRUS_COLOR_TOKENS.surface.containerLow }}
                   >
                     <Stack spacing={1.5}>
                       <Stack direction="row" alignItems="center" justifyContent="space-between">
                         <Stack direction="row" spacing={1} alignItems="center">
                           <Typography variant="subtitle2">
-                            Versão v{version.versionNumber}
+                            {t("workflows.page.detailDialog.versionTitle", {
+                              version: version.versionNumber,
+                            })}
                           </Typography>
                           {version.versionNumber ===
                           detailQuery.data.definition.latestVersionNumber ? (
-                            <Chip size="small" label="Vigente" color="primary" />
+                            <Chip
+                              size="small"
+                              label={t("workflows.page.detailDialog.currentBadge")}
+                              color="primary"
+                            />
                           ) : (
-                            <Chip size="small" label="Histórica" variant="outlined" />
+                            <Chip
+                              size="small"
+                              label={t("workflows.page.detailDialog.historicalBadge")}
+                              variant="outlined"
+                            />
                           )}
                         </Stack>
                         <Typography variant="caption" color="text.secondary">
-                          Criada em {new Date(version.createdAt).toLocaleString("pt-BR")}
+                          {t("workflows.page.detailDialog.createdOn", {
+                            date: formatDateTime(version.createdAt),
+                          })}
                         </Typography>
                       </Stack>
 
@@ -472,7 +503,7 @@ export function WorkflowsPage() {
                         {[...version.steps]
                           .sort((a, b) => a.stepOrder - b.stepOrder)
                           .map((step) => {
-                            const assigneeInfo = formatAssigneeLabel(step.assignee, catalog);
+                            const assigneeInfo = formatAssigneeLabel(step.assignee, catalog, t);
                             return (
                               <Box
                                 key={`${version.id}-${step.stepOrder}`}
@@ -492,7 +523,7 @@ export function WorkflowsPage() {
                                   <Typography variant="caption" color="text.secondary">
                                     {assigneeInfo.kindLabel}: {assigneeInfo.displayName}
                                     {step.commentRules?.requireOnApprove
-                                      ? " • Comentário obrigatório na aprovação"
+                                      ? t("workflows.page.detailDialog.commentRequiredOnApprove")
                                       : ""}
                                   </Typography>
                                 </Box>
@@ -501,8 +532,13 @@ export function WorkflowsPage() {
                                   variant="outlined"
                                   label={
                                     step.dueDays !== null
-                                      ? `Prazo: ${step.dueDays} ${step.dueDays === 1 ? "dia" : "dias"}`
-                                      : "Sem prazo definido"
+                                      ? t(
+                                          step.dueDays === 1
+                                            ? "workflows.page.detailDialog.dueDaysSingular"
+                                            : "workflows.page.detailDialog.dueDaysPlural",
+                                          { count: step.dueDays },
+                                        )
+                                      : t("workflows.page.detailDialog.noDueDate")
                                   }
                                 />
                               </Box>
@@ -516,7 +552,9 @@ export function WorkflowsPage() {
           ) : null}
         </DialogContent>
         <DialogActions sx={{ px: 3, py: 2 }}>
-          <Button onClick={() => setDetailDefinitionId(null)}>Fechar</Button>
+          <Button onClick={() => setDetailDefinitionId(null)}>
+            {t("workflows.page.detailDialog.close")}
+          </Button>
         </DialogActions>
       </Dialog>
     </Stack>

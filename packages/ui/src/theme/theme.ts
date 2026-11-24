@@ -1,5 +1,6 @@
-import { ptBR } from "@mui/material/locale";
+import { enUS, esES, ptBR } from "@mui/material/locale";
 import { type Theme, createTheme } from "@mui/material/styles";
+import { DEFAULT_PAPYRUS_LOCALE, type PapyrusLocale } from "../locale.js";
 import {
   PAPYRUS_COLOR_TOKENS,
   PAPYRUS_DENSITY_TOKENS,
@@ -8,12 +9,23 @@ import {
   PAPYRUS_TYPOGRAPHY_TOKENS,
 } from "./tokens.js";
 
+function resolveMuiLocale(locale: PapyrusLocale) {
+  switch (locale) {
+    case "pt-BR":
+      return ptBR;
+    case "es-ES":
+      return esES;
+    default:
+      return enUS;
+  }
+}
+
 /**
  * Cria o tema MUI do papyrus inspirado em Material Design 3.
  * `@mui/material` implementa os componentes; os tokens em `tokens.ts`
  * aplicam a paleta Junco & Papiro, superfícies tonais, densidade empresarial e foco acessível.
  */
-export function createPapyrusTheme(): Theme {
+export function createPapyrusTheme(locale: PapyrusLocale = DEFAULT_PAPYRUS_LOCALE): Theme {
   const focusVisibleRule = {
     outline: `${PAPYRUS_COLOR_TOKENS.states.focusRingWidth} solid ${PAPYRUS_COLOR_TOKENS.states.focusRingColor}`,
     outlineOffset: PAPYRUS_COLOR_TOKENS.states.focusRingOffset,
@@ -184,7 +196,7 @@ export function createPapyrusTheme(): Theme {
         },
       },
     },
-    ptBR,
+    resolveMuiLocale(locale),
   );
 }
 

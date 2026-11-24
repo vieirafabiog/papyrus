@@ -2,13 +2,14 @@ import {
   CONTRACTS_API_PREFIX,
   type CreateTagInput,
   type TagRecord,
-  apiErrorResponseSchema,
   createTagInputSchema,
   documentTagListResponseSchema,
   tagListResponseSchema,
   tagResponseSchema,
 } from "@docuflow/contracts";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { extractUserErrorMessage } from "../../i18n/api-errors.js";
+import { translate } from "../../i18n/index.js";
 
 const CSRF_COOKIE_NAME = "docuflow_csrf";
 const CSRF_HEADER_NAME = "x-csrf-token";
@@ -43,22 +44,6 @@ async function resolveCsrfToken(): Promise<string> {
   return json.data?.csrfToken ?? "";
 }
 
-async function extractApiErrorMessage(
-  response: Response,
-  fallbackMessage: string,
-): Promise<string> {
-  try {
-    const rawJson: unknown = await response.json();
-    const parsed = apiErrorResponseSchema.safeParse(rawJson);
-    if (parsed.success) {
-      return parsed.data.error.message;
-    }
-  } catch {
-    // Fallback to HTTP status message below.
-  }
-  return `${fallbackMessage} (${response.status}).`;
-}
-
 export const TAGS_QUERY_KEY = ["tags"] as const;
 
 export function documentTagsQueryKey(documentId: string) {
@@ -84,13 +69,13 @@ export async function fetchTags(params: {
   });
 
   if (!response.ok) {
-    throw new Error(await extractApiErrorMessage(response, "Falha ao carregar etiquetas"));
+    throw new Error(await extractUserErrorMessage(response, "tags.errors.listFailed"));
   }
 
   const rawJson: unknown = await response.json();
   const parsed = tagListResponseSchema.safeParse(rawJson);
   if (!parsed.success) {
-    throw new Error("Resposta inválida ao listar etiquetas.");
+    throw new Error(translate("common.errors.unexpectedResponse"));
   }
 
   return parsed.data.data;
@@ -112,13 +97,13 @@ export async function createTag(input: CreateTagInput): Promise<TagRecord> {
   });
 
   if (!response.ok) {
-    throw new Error(await extractApiErrorMessage(response, "Falha ao criar etiqueta"));
+    throw new Error(await extractUserErrorMessage(response, "tags.errors.createFailed"));
   }
 
   const rawJson: unknown = await response.json();
   const parsed = tagResponseSchema.safeParse(rawJson);
   if (!parsed.success) {
-    throw new Error("Resposta inválida ao criar etiqueta.");
+    throw new Error(translate("common.errors.unexpectedResponse"));
   }
   return parsed.data.data;
 }
@@ -131,15 +116,13 @@ export async function fetchDocumentTags(documentId: string): Promise<readonly Ta
   });
 
   if (!response.ok) {
-    throw new Error(
-      await extractApiErrorMessage(response, "Falha ao carregar etiquetas do documento"),
-    );
+    throw new Error(await extractUserErrorMessage(response, "tags.errors.loadDocumentTagsFailed"));
   }
 
   const rawJson: unknown = await response.json();
   const parsed = documentTagListResponseSchema.safeParse(rawJson);
   if (!parsed.success) {
-    throw new Error("Resposta inválida ao carregar etiquetas do documento.");
+    throw new Error(translate("common.errors.unexpectedResponse"));
   }
   return parsed.data.data;
 }
@@ -161,13 +144,13 @@ export async function attachDocumentTag(
   });
 
   if (!response.ok) {
-    throw new Error(await extractApiErrorMessage(response, "Falha ao associar etiqueta"));
+    throw new Error(await extractUserErrorMessage(response, "tags.errors.attachFailed"));
   }
 
   const rawJson: unknown = await response.json();
   const parsed = documentTagListResponseSchema.safeParse(rawJson);
   if (!parsed.success) {
-    throw new Error("Resposta inválida ao associar etiqueta.");
+    throw new Error(translate("common.errors.unexpectedResponse"));
   }
   return parsed.data.data;
 }
@@ -184,7 +167,7 @@ export async function detachDocumentTag(documentId: string, tagId: string): Prom
   });
 
   if (!response.ok) {
-    throw new Error(await extractApiErrorMessage(response, "Falha ao remover etiqueta"));
+    throw new Error(await extractUserErrorMessage(response, "tags.errors.detachFailed"));
   }
 }
 

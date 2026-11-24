@@ -2,11 +2,12 @@ import {
   CONTRACTS_API_PREFIX,
   type UpdateUploadLimitsRequestContract,
   type UploadLimitsViewContract,
-  apiErrorResponseSchema,
   updateUploadLimitsRequestSchema,
   uploadLimitsResponseSchema,
 } from "@docuflow/contracts";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { extractUserErrorMessage } from "../../i18n/api-errors.js";
+import { type MessageKey, translate } from "../../i18n/index.js";
 
 const CSRF_COOKIE_NAME = "docuflow_csrf";
 const CSRF_HEADER_NAME = "x-csrf-token";
@@ -55,21 +56,10 @@ async function resolveCsrfToken(): Promise<string> {
 
 async function parseErrorResponse(
   response: Response,
-  fallbackMessage: string,
+  fallbackKey: MessageKey,
 ): Promise<UploadLimitsFetchError> {
-  try {
-    const rawJson: unknown = await response.json();
-    const parsed = apiErrorResponseSchema.safeParse(rawJson);
-    if (parsed.success) {
-      return new UploadLimitsFetchError(response.status, parsed.data.error.message);
-    }
-  } catch {
-    // Non-JSON error body
-  }
-  return new UploadLimitsFetchError(
-    response.status,
-    `${fallbackMessage} (HTTP ${response.status}).`,
-  );
+  const message = await extractUserErrorMessage(response, fallbackKey);
+  return new UploadLimitsFetchError(response.status, message);
 }
 
 export async function fetchUploadLimits(): Promise<UploadLimitsViewContract | null> {
@@ -82,12 +72,12 @@ export async function fetchUploadLimits(): Promise<UploadLimitsViewContract | nu
     return null;
   }
   if (!response.ok) {
-    throw await parseErrorResponse(response, "Falha ao carregar limites de upload");
+    throw await parseErrorResponse(response, "admin.uploadLimits.errors.loadFailed");
   }
   const rawJson: unknown = await response.json();
   const parsed = uploadLimitsResponseSchema.safeParse(rawJson);
   if (!parsed.success) {
-    throw new UploadLimitsFetchError(500, "Resposta inválida recebida dos limites de upload.");
+    throw new UploadLimitsFetchError(500, translate("common.errors.unexpectedResponse"));
   }
   return parsed.data.data;
 }
@@ -109,12 +99,12 @@ export async function updateUploadLimits(
     body: JSON.stringify(validated),
   });
   if (!response.ok) {
-    throw await parseErrorResponse(response, "Falha ao atualizar limites de upload");
+    throw await parseErrorResponse(response, "admin.uploadLimits.errors.saveFailed");
   }
   const rawJson: unknown = await response.json();
   const parsed = uploadLimitsResponseSchema.safeParse(rawJson);
   if (!parsed.success) {
-    throw new UploadLimitsFetchError(500, "Resposta inválida ao atualizar limites de upload.");
+    throw new UploadLimitsFetchError(500, translate("common.errors.unexpectedResponse"));
   }
   return parsed.data.data;
 }

@@ -5,11 +5,11 @@ import type {
   AuthMeResponse,
 } from "@docuflow/contracts";
 import {
-  DOCUFLOW_COLOR_TOKENS,
   DataTable,
   type DataTableColumn,
   ErrorState,
   LoadingState,
+  PAPYRUS_COLOR_TOKENS,
 } from "@docuflow/ui";
 import ClearOutlinedIcon from "@mui/icons-material/ClearOutlined";
 import DownloadOutlinedIcon from "@mui/icons-material/DownloadOutlined";
@@ -40,6 +40,7 @@ import {
 } from "@mui/material";
 import { useMemo, useState } from "react";
 import { useSessionQuery } from "../../app/session.js";
+import { type MessageKey, useI18n } from "../../i18n/index.js";
 import {
   type AuditFiltersState,
   DEFAULT_AUDIT_FILTERS,
@@ -49,58 +50,60 @@ import {
   useAuditFacetsQuery,
 } from "./useAuditEvents.js";
 
-const RESULT_BADGE: Readonly<
-  Record<AuditResult, { readonly label: string; readonly color: "success" | "warning" | "error" }>
+const RESULT_BADGE_CONFIG: Readonly<
+  Record<
+    AuditResult,
+    { readonly labelKey: MessageKey; readonly color: "success" | "warning" | "error" }
+  >
 > = {
-  SUCCESS: { label: "Sucesso", color: "success" },
-  DENIED: { label: "Negado", color: "warning" },
-  FAILURE: { label: "Falha", color: "error" },
+  SUCCESS: { labelKey: "audit.result.SUCCESS", color: "success" },
+  DENIED: { labelKey: "audit.result.DENIED", color: "warning" },
+  FAILURE: { labelKey: "audit.result.FAILURE", color: "error" },
 };
 
-const ACTION_LABELS: Readonly<Record<string, string>> = {
-  AUTH_LOGIN_SUCCEEDED: "Login realizado",
-  AUTH_LOGIN_FAILED: "Falha no login",
-  AUTH_LOGOUT: "Sessão encerrada",
-  DOCUMENT_CREATED: "Documento criado",
-  DOCUMENT_VIEWED: "Documento visualizado",
-  DOCUMENT_UPDATED: "Metadados atualizados",
-  DOCUMENT_MOVED: "Documento movido",
-  DOCUMENT_ARCHIVED: "Documento arquivado",
-  DOCUMENT_TRASHED: "Enviado à lixeira",
-  DOCUMENT_VERSION_CREATED: "Nova versão enviada",
-  DOCUMENT_VERSION_RESTORED: "Versão restaurada",
-  DOCUMENT_DOWNLOAD_REQUESTED: "Download solicitado",
-  DOCUMENT_DOWNLOADED: "Download realizado",
-  DOCUMENT_DOWNLOAD_DENIED: "Download bloqueado",
-  DOCUMENT_DOWNLOAD_FAILED: "Falha no download",
-  DOCUMENT_PREVIEWED: "Pré-visualização exibida",
-  DOCUMENT_PREVIEW_DENIED: "Pré-visualização bloqueada",
-  PERMISSION_ASSIGNED: "Permissão atribuída",
-  PERMISSION_REVOKED: "Permissão revogada",
-  AUTHORIZATION_DENIED: "Acesso negado",
-  WORKFLOW_STARTED: "Fluxo iniciado",
-  WORKFLOW_TASK_CREATED: "Tarefa gerada",
-  WORKFLOW_TASK_DECIDED: "Decisão em tarefa",
-  WORKFLOW_TASK_CANCELLED: "Tarefa cancelada",
-  AUDIT_EXPORTED: "Auditoria exportada",
-  AUDIT_EXPORT_DENIED: "Exportação de auditoria negada",
+const ACTION_LABEL_KEYS: Readonly<Record<string, MessageKey>> = {
+  AUTH_LOGIN_SUCCEEDED: "audit.action.AUTH_LOGIN_SUCCEEDED",
+  AUTH_LOGIN_FAILED: "audit.action.AUTH_LOGIN_FAILED",
+  AUTH_LOGOUT: "audit.action.AUTH_LOGOUT",
+  DOCUMENT_CREATED: "audit.action.DOCUMENT_CREATED",
+  DOCUMENT_VIEWED: "audit.action.DOCUMENT_VIEWED",
+  DOCUMENT_UPDATED: "audit.action.DOCUMENT_UPDATED",
+  DOCUMENT_MOVED: "audit.action.DOCUMENT_MOVED",
+  DOCUMENT_ARCHIVED: "audit.action.DOCUMENT_ARCHIVED",
+  DOCUMENT_TRASHED: "audit.action.DOCUMENT_TRASHED",
+  DOCUMENT_VERSION_CREATED: "audit.action.DOCUMENT_VERSION_CREATED",
+  DOCUMENT_VERSION_RESTORED: "audit.action.DOCUMENT_VERSION_RESTORED",
+  DOCUMENT_DOWNLOAD_REQUESTED: "audit.action.DOCUMENT_DOWNLOAD_REQUESTED",
+  DOCUMENT_DOWNLOADED: "audit.action.DOCUMENT_DOWNLOADED",
+  DOCUMENT_DOWNLOAD_DENIED: "audit.action.DOCUMENT_DOWNLOAD_DENIED",
+  DOCUMENT_DOWNLOAD_FAILED: "audit.action.DOCUMENT_DOWNLOAD_FAILED",
+  DOCUMENT_PREVIEWED: "audit.action.DOCUMENT_PREVIEWED",
+  DOCUMENT_PREVIEW_DENIED: "audit.action.DOCUMENT_PREVIEW_DENIED",
+  PERMISSION_ASSIGNED: "audit.action.PERMISSION_ASSIGNED",
+  PERMISSION_REVOKED: "audit.action.PERMISSION_REVOKED",
+  AUTHORIZATION_DENIED: "audit.action.AUTHORIZATION_DENIED",
+  WORKFLOW_STARTED: "audit.action.WORKFLOW_STARTED",
+  WORKFLOW_TASK_CREATED: "audit.action.WORKFLOW_TASK_CREATED",
+  WORKFLOW_TASK_DECIDED: "audit.action.WORKFLOW_TASK_DECIDED",
+  WORKFLOW_TASK_CANCELLED: "audit.action.WORKFLOW_TASK_CANCELLED",
+  AUDIT_EXPORTED: "audit.action.AUDIT_EXPORTED",
+  AUDIT_EXPORT_DENIED: "audit.action.AUDIT_EXPORT_DENIED",
 };
 
-const RESOURCE_TYPE_LABELS: Readonly<Record<string, string>> = {
-  DOCUMENT: "Documento",
-  FOLDER: "Pasta",
-  CATEGORY: "Categoria",
-  WORKFLOW_INSTANCE: "Fluxo",
-  WORKFLOW_TASK: "Tarefa",
-  ROLE_SCOPE: "Permissão",
-  USER: "Usuário",
-  GROUP: "Grupo",
-  STORAGE_CONNECTION: "Armazenamento",
-  AUDIT: "Auditoria",
+const RESOURCE_TYPE_LABEL_KEYS: Readonly<Record<string, MessageKey>> = {
+  DOCUMENT: "audit.resourceType.DOCUMENT",
+  FOLDER: "audit.resourceType.FOLDER",
+  CATEGORY: "audit.resourceType.CATEGORY",
+  WORKFLOW_INSTANCE: "audit.resourceType.WORKFLOW_INSTANCE",
+  WORKFLOW_TASK: "audit.resourceType.WORKFLOW_TASK",
+  ROLE_SCOPE: "audit.resourceType.ROLE_SCOPE",
+  USER: "audit.resourceType.USER",
+  GROUP: "audit.resourceType.GROUP",
+  STORAGE_CONNECTION: "audit.resourceType.STORAGE_CONNECTION",
+  AUDIT: "audit.resourceType.AUDIT",
 };
 
 const SERVER_SORTABLE_FIELDS = new Set<string>(["occurredAt", "action", "resourceType", "result"]);
-const NUMBER_FORMATTER = new Intl.NumberFormat("pt-BR");
 
 export function hasAuditViewPermission(session: AuthMeResponse | null | undefined): boolean {
   if (!session) {
@@ -113,40 +116,12 @@ export function hasAuditViewPermission(session: AuthMeResponse | null | undefine
   return hasAdminRole || hasViewAuditPerm;
 }
 
-function formatDateTimePtBr(isoDateTime: string): string {
-  const parsed = new Date(isoDateTime);
-  if (Number.isNaN(parsed.getTime())) {
-    return isoDateTime;
-  }
-  return parsed.toLocaleString("pt-BR");
-}
-
-function formatActorLabel(event: AuditEventRecord): string {
-  if (event.actorName && event.actorEmail) {
-    return `${event.actorName} (${event.actorEmail})`;
-  }
-  if (event.actorName) {
-    return event.actorName;
-  }
-  if (event.actorUserId) {
-    return event.actorUserId;
-  }
-  return "Sistema";
-}
-
-function formatActionLabel(action: string): string {
-  return ACTION_LABELS[action] ?? action;
-}
-
-function formatResourceTypeLabel(resourceType: string): string {
-  return RESOURCE_TYPE_LABELS[resourceType] ?? resourceType;
-}
-
 /**
- * Authorized audit trail explorer with server-side filters (actor user, action,
- * resource type, result, and period), details drawer/dialog, and authorized CSV/JSON export.
+ * Authorized audit log explorer with server-side filters (actor user, action,
+ * resource type, result, and period), details dialog, and authorized CSV/JSON export.
  */
 export function AuditPage() {
+  const { t, formatDateTime, formatNumber } = useI18n();
   const sessionQuery = useSessionQuery();
   const canViewAudit = hasAuditViewPermission(sessionQuery.data);
 
@@ -177,6 +152,29 @@ export function AuditPage() {
     }
     return Array.from(merged).sort();
   }, [facetsQuery.data?.resourceTypes, filters.resourceType]);
+
+  const formatActorLabel = (event: AuditEventRecord): string => {
+    if (event.actorName && event.actorEmail) {
+      return `${event.actorName} (${event.actorEmail})`;
+    }
+    if (event.actorName) {
+      return event.actorName;
+    }
+    if (event.actorUserId) {
+      return event.actorUserId;
+    }
+    return t("audit.actor.system");
+  };
+
+  const formatActionLabel = (action: string): string => {
+    const key = ACTION_LABEL_KEYS[action];
+    return key ? t(key) : action;
+  };
+
+  const formatResourceTypeLabel = (resourceType: string): string => {
+    const key = RESOURCE_TYPE_LABEL_KEYS[resourceType];
+    return key ? t(key) : resourceType;
+  };
 
   const updateFilters = (patch: Partial<AuditFiltersState>): void => {
     setFilters((prev) => ({
@@ -210,15 +208,12 @@ export function AuditPage() {
       const fileName = await downloadAuthorizedAuditExport(filters, format);
       setExportFeedback({
         severity: "success",
-        message: `Exportação concluída (${fileName}).`,
+        message: t("audit.feedback.exported", { fileName }),
       });
     } catch (err) {
       setExportFeedback({
         severity: "error",
-        message:
-          err instanceof Error
-            ? err.message
-            : "Não foi possível concluir a exportação de auditoria.",
+        message: err instanceof Error ? err.message : t("audit.errors.exportFailed"),
       });
     } finally {
       setExportingFormat(null);
@@ -226,13 +221,13 @@ export function AuditPage() {
   };
 
   if (sessionQuery.isPending) {
-    return <LoadingState message="Verificando permissões de auditoria..." />;
+    return <LoadingState message={t("audit.loadingPermissions")} />;
   }
 
   if (sessionQuery.isError) {
     return (
       <ErrorState
-        title="Não foi possível validar suas permissões"
+        title={t("audit.sessionErrorTitle")}
         description={sessionQuery.error.message}
         onRetry={() => void sessionQuery.refetch()}
       />
@@ -244,12 +239,9 @@ export function AuditPage() {
       <Stack spacing={2}>
         <Stack direction="row" spacing={1} alignItems="center">
           <HistoryEduOutlinedIcon color="action" fontSize="small" />
-          <Typography variant="h1">Auditoria</Typography>
+          <Typography variant="h1">{t("audit.title")}</Typography>
         </Stack>
-        <ErrorState
-          title="Acesso não autorizado à trilha de auditoria"
-          description="Você não possui a permissão de visualização e exportação de auditoria configurada para esta organização."
-        />
+        <ErrorState title={t("audit.noAccessTitle")} description={t("audit.noAccessDescription")} />
       </Stack>
     );
   }
@@ -257,22 +249,23 @@ export function AuditPage() {
   const columns: readonly DataTableColumn<AuditEventRecord>[] = [
     {
       id: "occurredAt",
-      label: "Data e hora",
+      label: t("audit.table.occurredAt"),
       sortable: true,
       width: 185,
       render: (row) => (
         <Typography variant="body2" sx={{ fontVariantNumeric: "tabular-nums" }}>
-          {formatDateTimePtBr(row.occurredAt)}
+          {formatDateTime(row.occurredAt)}
         </Typography>
       ),
     },
     {
       id: "actor",
-      label: "Usuário",
+      label: t("audit.table.user"),
       render: (row) => (
         <Box>
           <Typography variant="body2" fontWeight={500}>
-            {row.actorName ?? (row.actorUserId ? row.actorUserId.slice(0, 8) : "Sistema")}
+            {row.actorName ??
+              (row.actorUserId ? row.actorUserId.slice(0, 8) : t("audit.actor.system"))}
           </Typography>
           {row.actorEmail ? (
             <Typography variant="caption" color="text.secondary">
@@ -284,22 +277,17 @@ export function AuditPage() {
     },
     {
       id: "action",
-      label: "Ação",
+      label: t("audit.table.action"),
       sortable: true,
       render: (row) => (
-        <Box>
-          <Typography variant="body2" fontWeight={500}>
-            {formatActionLabel(row.action)}
-          </Typography>
-          <Typography variant="caption" color="text.secondary" sx={{ fontFamily: "monospace" }}>
-            {row.action}
-          </Typography>
-        </Box>
+        <Typography variant="body2" fontWeight={500}>
+          {formatActionLabel(row.action)}
+        </Typography>
       ),
     },
     {
       id: "resourceType",
-      label: "Recurso",
+      label: t("audit.table.resource"),
       sortable: true,
       render: (row) => (
         <Box>
@@ -314,17 +302,17 @@ export function AuditPage() {
     },
     {
       id: "result",
-      label: "Resultado",
+      label: t("audit.table.result"),
       sortable: true,
       width: 120,
       render: (row) => {
-        const badge = RESULT_BADGE[row.result];
-        return <Chip size="small" label={badge.label} color={badge.color} />;
+        const badge = RESULT_BADGE_CONFIG[row.result];
+        return <Chip size="small" label={t(badge.labelKey)} color={badge.color} />;
       },
     },
     {
       id: "details",
-      label: "Detalhes",
+      label: t("audit.table.details"),
       align: "right",
       width: 130,
       render: (row) => (
@@ -337,7 +325,7 @@ export function AuditPage() {
             setSelectedEvent(row);
           }}
         >
-          Detalhes
+          {t("audit.actions.details")}
         </Button>
       ),
     },
@@ -356,10 +344,10 @@ export function AuditPage() {
         <Box>
           <Stack direction="row" spacing={1} alignItems="center">
             <HistoryEduOutlinedIcon color="primary" fontSize="small" />
-            <Typography variant="h1">Auditoria</Typography>
+            <Typography variant="h1">{t("audit.title")}</Typography>
           </Stack>
           <Typography variant="body2" color="text.secondary">
-            Trilha imutável de acessos, alterações documentais, permissões, fluxos e exportações.
+            {t("audit.subtitle")}
           </Typography>
         </Box>
 
@@ -371,7 +359,7 @@ export function AuditPage() {
             disabled={eventsQuery.isFetching}
             onClick={() => void eventsQuery.refetch()}
           >
-            Atualizar
+            {t("audit.actions.refresh")}
           </Button>
           <Button
             variant="outlined"
@@ -380,7 +368,9 @@ export function AuditPage() {
             disabled={exportingFormat !== null || invalidPeriod}
             onClick={() => void handleExport("csv")}
           >
-            {exportingFormat === "csv" ? "Exportando CSV..." : "Exportar CSV"}
+            {exportingFormat === "csv"
+              ? t("audit.actions.exportingCsv")
+              : t("audit.actions.exportCsv")}
           </Button>
           <Button
             variant="contained"
@@ -389,7 +379,9 @@ export function AuditPage() {
             disabled={exportingFormat !== null || invalidPeriod}
             onClick={() => void handleExport("json")}
           >
-            {exportingFormat === "json" ? "Exportando JSON..." : "Exportar JSON"}
+            {exportingFormat === "json"
+              ? t("audit.actions.exportingJson")
+              : t("audit.actions.exportJson")}
           </Button>
         </Stack>
       </Stack>
@@ -400,7 +392,7 @@ export function AuditPage() {
         </Alert>
       ) : null}
 
-      <Paper sx={{ p: 2, bgcolor: DOCUFLOW_COLOR_TOKENS.surface.containerLowest }}>
+      <Paper sx={{ p: 2, bgcolor: PAPYRUS_COLOR_TOKENS.surface.containerLowest }}>
         <Stack spacing={1.5}>
           <Stack
             direction={{ xs: "column", md: "row" }}
@@ -410,17 +402,17 @@ export function AuditPage() {
             useFlexGap
           >
             <FormControl size="small" sx={{ minWidth: 220 }}>
-              <InputLabel id="audit-filter-actor-label">Usuário</InputLabel>
+              <InputLabel id="audit-filter-actor-label">{t("audit.filters.user")}</InputLabel>
               <Select
                 labelId="audit-filter-actor-label"
                 id="audit-filter-actor"
                 value={filters.actorUserId}
-                label="Usuário"
+                label={t("audit.filters.user")}
                 onChange={(event) =>
                   updateFilters({ actorUserId: String(event.target.value), page: 1 })
                 }
               >
-                <MenuItem value="">Todos os usuários</MenuItem>
+                <MenuItem value="">{t("audit.filters.allUsers")}</MenuItem>
                 {(facetsQuery.data?.actors ?? []).map((actor) => (
                   <MenuItem key={actor.id} value={actor.id}>
                     {actor.fullName} ({actor.email})
@@ -430,15 +422,15 @@ export function AuditPage() {
             </FormControl>
 
             <FormControl size="small" sx={{ minWidth: 210 }}>
-              <InputLabel id="audit-filter-action-label">Ação</InputLabel>
+              <InputLabel id="audit-filter-action-label">{t("audit.filters.action")}</InputLabel>
               <Select
                 labelId="audit-filter-action-label"
                 id="audit-filter-action"
                 value={filters.action}
-                label="Ação"
+                label={t("audit.filters.action")}
                 onChange={(event) => updateFilters({ action: String(event.target.value), page: 1 })}
               >
-                <MenuItem value="">Todas as ações</MenuItem>
+                <MenuItem value="">{t("audit.filters.allActions")}</MenuItem>
                 {actionOptions.map((action) => (
                   <MenuItem key={action} value={action}>
                     {formatActionLabel(action)}
@@ -448,17 +440,19 @@ export function AuditPage() {
             </FormControl>
 
             <FormControl size="small" sx={{ minWidth: 180 }}>
-              <InputLabel id="audit-filter-resource-label">Recurso</InputLabel>
+              <InputLabel id="audit-filter-resource-label">
+                {t("audit.filters.resource")}
+              </InputLabel>
               <Select
                 labelId="audit-filter-resource-label"
                 id="audit-filter-resource"
                 value={filters.resourceType}
-                label="Recurso"
+                label={t("audit.filters.resource")}
                 onChange={(event) =>
                   updateFilters({ resourceType: String(event.target.value), page: 1 })
                 }
               >
-                <MenuItem value="">Todos os recursos</MenuItem>
+                <MenuItem value="">{t("audit.filters.allResources")}</MenuItem>
                 {resourceTypeOptions.map((resourceType) => (
                   <MenuItem key={resourceType} value={resourceType}>
                     {formatResourceTypeLabel(resourceType)}
@@ -468,12 +462,12 @@ export function AuditPage() {
             </FormControl>
 
             <FormControl size="small" sx={{ minWidth: 150 }}>
-              <InputLabel id="audit-filter-result-label">Resultado</InputLabel>
+              <InputLabel id="audit-filter-result-label">{t("audit.filters.result")}</InputLabel>
               <Select
                 labelId="audit-filter-result-label"
                 id="audit-filter-result"
                 value={filters.result}
-                label="Resultado"
+                label={t("audit.filters.result")}
                 onChange={(event) =>
                   updateFilters({
                     result: String(event.target.value) as AuditResult | "",
@@ -481,16 +475,16 @@ export function AuditPage() {
                   })
                 }
               >
-                <MenuItem value="">Todos</MenuItem>
-                <MenuItem value="SUCCESS">Sucesso</MenuItem>
-                <MenuItem value="DENIED">Negado</MenuItem>
-                <MenuItem value="FAILURE">Falha</MenuItem>
+                <MenuItem value="">{t("audit.filters.allResults")}</MenuItem>
+                <MenuItem value="SUCCESS">{t("audit.result.SUCCESS")}</MenuItem>
+                <MenuItem value="DENIED">{t("audit.result.DENIED")}</MenuItem>
+                <MenuItem value="FAILURE">{t("audit.result.FAILURE")}</MenuItem>
               </Select>
             </FormControl>
 
             <TextField
               id="audit-filter-from"
-              label="Data inicial"
+              label={t("audit.filters.fromDate")}
               type="date"
               size="small"
               value={filters.from}
@@ -502,7 +496,7 @@ export function AuditPage() {
 
             <TextField
               id="audit-filter-to"
-              label="Data final"
+              label={t("audit.filters.toDate")}
               type="date"
               size="small"
               value={filters.to}
@@ -519,32 +513,36 @@ export function AuditPage() {
                 startIcon={<ClearOutlinedIcon fontSize="small" />}
                 onClick={clearFilters}
               >
-                Limpar filtros
+                {t("audit.actions.clearFilters")}
               </Button>
             ) : null}
           </Stack>
 
           {invalidPeriod ? (
-            <Alert severity="error">
-              A data inicial do período não pode ser posterior à data final.
-            </Alert>
+            <Alert severity="error">{t("audit.filters.invalidPeriod")}</Alert>
           ) : null}
 
           {data ? (
             <Typography variant="caption" color="text.secondary">
-              {NUMBER_FORMATTER.format(data.pagination.totalItems)}{" "}
-              {data.pagination.totalItems === 1 ? "evento localizado" : "eventos localizados"}
+              {data.pagination.totalItems === 1
+                ? t("audit.count.singular", { count: formatNumber(data.pagination.totalItems) })
+                : t("audit.count.plural", { count: formatNumber(data.pagination.totalItems) })}
             </Typography>
           ) : null}
         </Stack>
       </Paper>
 
       <DataTable
-        ariaLabel="Lista de eventos de auditoria"
+        ariaLabel={t("audit.table.ariaLabel")}
         columns={columns}
         rows={data?.items ?? []}
         getRowId={(row) => row.id}
-        getRowLabel={(row) => `${formatActionLabel(row.action)} em ${row.occurredAt}`}
+        getRowLabel={(row) =>
+          t("audit.table.rowLabel", {
+            action: formatActionLabel(row.action),
+            occurredAt: formatDateTime(row.occurredAt),
+          })
+        }
         page={data?.pagination.page ?? filters.page}
         pageSize={data?.pagination.pageSize ?? filters.pageSize}
         totalItems={data?.pagination.totalItems ?? 0}
@@ -566,17 +564,15 @@ export function AuditPage() {
         errorMessage={eventsQuery.isError ? eventsQuery.error.message : null}
         onRetry={() => void eventsQuery.refetch()}
         emptyTitle={
-          hasActiveFilters
-            ? "Nenhum evento encontrado para os filtros aplicados"
-            : "Nenhum evento de auditoria registrado"
+          hasActiveFilters ? t("audit.table.emptyFilteredTitle") : t("audit.table.emptyTitle")
         }
         emptyDescription={
           hasActiveFilters
-            ? "Tente ampliar o período ou remover filtros para visualizar mais registros."
-            : "Os eventos de acesso, edição, download, permissões e fluxo aparecerão aqui."
+            ? t("audit.table.emptyFilteredDescription")
+            : t("audit.table.emptyDescription")
         }
         {...(hasActiveFilters
-          ? { emptyActionLabel: "Limpar filtros", onEmptyAction: clearFilters }
+          ? { emptyActionLabel: t("audit.actions.clearFilters"), onEmptyAction: clearFilters }
           : {})}
       />
 
@@ -587,41 +583,39 @@ export function AuditPage() {
         fullWidth
         aria-labelledby="audit-event-dialog-title"
       >
-        <DialogTitle id="audit-event-dialog-title">Detalhes do evento de auditoria</DialogTitle>
+        <DialogTitle id="audit-event-dialog-title">{t("audit.dialog.title")}</DialogTitle>
         <DialogContent dividers>
           {selectedEvent ? (
             <Stack spacing={2}>
-              <Table size="small" aria-label="Campos técnicos do evento de auditoria">
+              <Table size="small" aria-label={t("audit.dialog.tableAria")}>
                 <TableBody>
                   <TableRow>
                     <TableCell component="th" scope="row" sx={{ fontWeight: 600 }}>
-                      ID do evento
+                      {t("audit.dialog.eventId")}
                     </TableCell>
                     <TableCell sx={{ fontFamily: "monospace" }}>{selectedEvent.id}</TableCell>
                   </TableRow>
                   <TableRow>
                     <TableCell component="th" scope="row" sx={{ fontWeight: 600 }}>
-                      Data e hora
+                      {t("audit.dialog.occurredAt")}
                     </TableCell>
-                    <TableCell>{formatDateTimePtBr(selectedEvent.occurredAt)}</TableCell>
+                    <TableCell>{formatDateTime(selectedEvent.occurredAt)}</TableCell>
                   </TableRow>
                   <TableRow>
                     <TableCell component="th" scope="row" sx={{ fontWeight: 600 }}>
-                      Usuário
+                      {t("audit.dialog.user")}
                     </TableCell>
                     <TableCell>{formatActorLabel(selectedEvent)}</TableCell>
                   </TableRow>
                   <TableRow>
                     <TableCell component="th" scope="row" sx={{ fontWeight: 600 }}>
-                      Ação
+                      {t("audit.dialog.action")}
                     </TableCell>
-                    <TableCell>
-                      {formatActionLabel(selectedEvent.action)} ({selectedEvent.action})
-                    </TableCell>
+                    <TableCell>{formatActionLabel(selectedEvent.action)}</TableCell>
                   </TableRow>
                   <TableRow>
                     <TableCell component="th" scope="row" sx={{ fontWeight: 600 }}>
-                      Recurso
+                      {t("audit.dialog.resource")}
                     </TableCell>
                     <TableCell>
                       {formatResourceTypeLabel(selectedEvent.resourceType)}
@@ -630,13 +624,13 @@ export function AuditPage() {
                   </TableRow>
                   <TableRow>
                     <TableCell component="th" scope="row" sx={{ fontWeight: 600 }}>
-                      Resultado
+                      {t("audit.dialog.result")}
                     </TableCell>
-                    <TableCell>{RESULT_BADGE[selectedEvent.result].label}</TableCell>
+                    <TableCell>{t(RESULT_BADGE_CONFIG[selectedEvent.result].labelKey)}</TableCell>
                   </TableRow>
                   <TableRow>
                     <TableCell component="th" scope="row" sx={{ fontWeight: 600 }}>
-                      Request ID
+                      {t("audit.dialog.referenceId")}
                     </TableCell>
                     <TableCell sx={{ fontFamily: "monospace" }}>
                       {selectedEvent.requestId}
@@ -644,10 +638,10 @@ export function AuditPage() {
                   </TableRow>
                   <TableRow>
                     <TableCell component="th" scope="row" sx={{ fontWeight: 600 }}>
-                      Origem técnica (IP)
+                      {t("audit.dialog.ipAddress")}
                     </TableCell>
                     <TableCell sx={{ fontFamily: "monospace" }}>
-                      {selectedEvent.ipAddress ?? "Não informado"}
+                      {selectedEvent.ipAddress ?? t("audit.dialog.notProvided")}
                     </TableCell>
                   </TableRow>
                 </TableBody>
@@ -655,14 +649,14 @@ export function AuditPage() {
 
               <Box>
                 <Typography variant="subtitle2" gutterBottom>
-                  Metadados registrados
+                  {t("audit.dialog.additionalDetailsTitle")}
                 </Typography>
                 {Object.keys(selectedEvent.metadata).length === 0 ? (
                   <Typography variant="body2" color="text.secondary">
-                    Nenhum metadado adicional registrado neste evento.
+                    {t("audit.dialog.additionalDetailsEmpty")}
                   </Typography>
                 ) : (
-                  <Table size="small" aria-label="Metadados do evento de auditoria">
+                  <Table size="small" aria-label={t("audit.dialog.additionalDetailsAria")}>
                     <TableBody>
                       {Object.entries(selectedEvent.metadata).map(([key, value]) => (
                         <TableRow key={key}>
@@ -673,7 +667,7 @@ export function AuditPage() {
                           >
                             {key}
                           </TableCell>
-                          <TableCell>{value === null ? "null" : String(value)}</TableCell>
+                          <TableCell>{value === null ? "—" : String(value)}</TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
@@ -684,7 +678,7 @@ export function AuditPage() {
           ) : null}
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setSelectedEvent(null)}>Fechar</Button>
+          <Button onClick={() => setSelectedEvent(null)}>{t("admin.common.close")}</Button>
         </DialogActions>
       </Dialog>
     </Stack>

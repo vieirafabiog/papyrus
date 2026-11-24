@@ -1,10 +1,12 @@
 import { Box, Link, Toolbar } from "@mui/material";
 import { useState } from "react";
 import { Outlet } from "react-router-dom";
+import { useI18n } from "../i18n/index.js";
 import { AppHeader } from "./AppHeader.js";
 import { AppSidebar } from "./AppSidebar.js";
 
 export function AppShell() {
+  const { t } = useI18n();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [desktopCollapsed, setDesktopCollapsed] = useState(false);
 
@@ -27,7 +29,7 @@ export function AppShell() {
           },
         }}
       >
-        Pular para o conteúdo principal
+        {t("shell.skipToMain")}
       </Link>
 
       <AppHeader

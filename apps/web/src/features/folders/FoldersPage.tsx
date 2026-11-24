@@ -1,11 +1,11 @@
 import type { DocumentListItem, DocumentStatus, FolderRecord } from "@docuflow/contracts";
 import {
-  DOCUFLOW_COLOR_TOKENS,
   DataTable,
   type DataTableColumn,
   EmptyState,
   ErrorState,
   LoadingState,
+  PAPYRUS_COLOR_TOKENS,
 } from "@docuflow/ui";
 import ArchiveOutlinedIcon from "@mui/icons-material/ArchiveOutlined";
 import ArrowBackOutlinedIcon from "@mui/icons-material/ArrowBackOutlined";
@@ -37,6 +37,8 @@ import {
 } from "@mui/material";
 import { type FormEvent, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { containsTechnicalJargon } from "../../i18n/api-errors.js";
+import { useI18n } from "../../i18n/index.js";
 import { FolderBreadcrumbs } from "./FolderBreadcrumbs.js";
 import {
   FolderNavigationError,
@@ -47,34 +49,24 @@ import {
   useRenameFolderMutation,
 } from "./useFolderNavigation.js";
 
-const DOCUMENT_STATUS_LABELS: Readonly<
-  Record<
-    DocumentStatus,
-    { readonly label: string; readonly color: "default" | "info" | "success" | "warning" | "error" }
-  >
+const DOCUMENT_STATUS_COLOR: Readonly<
+  Record<DocumentStatus, "default" | "info" | "success" | "warning" | "error">
 > = {
-  DRAFT: { label: "Rascunho", color: "default" },
-  IN_REVIEW: { label: "Em revisão", color: "info" },
-  APPROVED: { label: "Aprovado", color: "success" },
-  REJECTED: { label: "Rejeitado", color: "error" },
-  ARCHIVED: { label: "Arquivado", color: "default" },
-  EXPIRED: { label: "Expirado", color: "warning" },
-  DELETED: { label: "Excluído", color: "error" },
+  DRAFT: "default",
+  IN_REVIEW: "info",
+  APPROVED: "success",
+  REJECTED: "error",
+  ARCHIVED: "default",
+  EXPIRED: "warning",
+  DELETED: "error",
 };
-
-function formatDateTimePtBr(isoDateTime: string): string {
-  const date = new Date(isoDateTime);
-  if (Number.isNaN(date.getTime())) {
-    return isoDateTime;
-  }
-  return date.toLocaleString("pt-BR");
-}
 
 /**
  * Authorized folder browser page displaying server-validated hierarchical
  * breadcrumbs, child folders, folder documents, and removed/archived handling.
  */
 export function FoldersPage() {
+  const { t, formatDateTime } = useI18n();
   const { folderId: rawFolderId } = useParams();
   const currentFolderId = rawFolderId && rawFolderId.trim().length > 0 ? rawFolderId : null;
   const navigate = useNavigate();
@@ -115,7 +107,7 @@ export function FoldersPage() {
   };
 
   if (navigationQuery.isLoading) {
-    return <LoadingState message="Verificando autorização e carregando pasta..." />;
+    return <LoadingState message={t("folders.loading")} />;
   }
 
   if (navigationQuery.isError) {
@@ -123,9 +115,9 @@ export function FoldersPage() {
     if (err instanceof FolderNavigationError && err.kind === "FORBIDDEN") {
       return (
         <Stack spacing={2}>
-          <Typography variant="h1">Pastas</Typography>
+          <Typography variant="h1">{t("folders.pageTitle")}</Typography>
           <Alert severity="warning" role="alert">
-            Acesso negado: {err.message}
+            {t("folders.accessDeniedPrefix", { message: err.message })}
           </Alert>
           <Box>
             <Button
@@ -133,7 +125,7 @@ export function FoldersPage() {
               startIcon={<ArrowBackOutlinedIcon />}
               onClick={() => navigateToFolder(null)}
             >
-              Voltar para a raiz
+              {t("folders.backToRoot")}
             </Button>
           </Box>
         </Stack>
@@ -143,11 +135,11 @@ export function FoldersPage() {
     if (err instanceof FolderNavigationError && err.kind === "NOT_FOUND") {
       return (
         <Stack spacing={2}>
-          <Typography variant="h1">Pastas</Typography>
+          <Typography variant="h1">{t("folders.pageTitle")}</Typography>
           <EmptyState
-            title="Pasta removida ou não encontrada"
-            description="A pasta solicitada foi removida, não existe nesta organização ou possui endereço inválido."
-            actionLabel="Voltar para a raiz"
+            title={t("folders.notFoundTitle")}
+            description={t("folders.notFoundDescription")}
+            actionLabel={t("folders.backToRoot")}
             onAction={() => navigateToFolder(null)}
           />
         </Stack>
@@ -156,7 +148,7 @@ export function FoldersPage() {
 
     return (
       <Stack spacing={2}>
-        <Typography variant="h1">Pastas</Typography>
+        <Typography variant="h1">{t("folders.pageTitle")}</Typography>
         <ErrorState description={err.message} onRetry={() => void navigationQuery.refetch()} />
       </Stack>
     );
@@ -184,7 +176,7 @@ export function FoldersPage() {
 
     const trimmed = createName.trim();
     if (trimmed.length === 0) {
-      setActionError("Informe o nome da nova pasta.");
+      setActionError(t("folders.validation.nameRequired"));
       return;
     }
 
@@ -194,9 +186,14 @@ export function FoldersPage() {
         parentId: currentFolder?.id ?? null,
       });
       setCreateOpen(false);
-      setActionSuccess(`Pasta "${created.name}" criada com sucesso.`);
+      setActionSuccess(t("folders.feedback.created", { name: created.name }));
     } catch (error) {
-      setActionError(error instanceof Error ? error.message : "Erro ao criar pasta.");
+      const rawMessage = error instanceof Error ? error.message.trim() : "";
+      setActionError(
+        rawMessage.length > 0 && !containsTechnicalJargon(rawMessage)
+          ? rawMessage
+          : t("folders.feedback.createError"),
+      );
     }
   };
 
@@ -220,7 +217,7 @@ export function FoldersPage() {
 
     const trimmed = renameValue.trim();
     if (trimmed.length === 0) {
-      setActionError("Informe o novo nome da pasta.");
+      setActionError(t("folders.validation.renameRequired"));
       return;
     }
 
@@ -230,9 +227,14 @@ export function FoldersPage() {
         name: trimmed,
       });
       setRenameOpen(false);
-      setActionSuccess(`Pasta renomeada para "${updated.name}".`);
+      setActionSuccess(t("folders.feedback.renamed", { name: updated.name }));
     } catch (error) {
-      setActionError(error instanceof Error ? error.message : "Erro ao renomear pasta.");
+      const rawMessage = error instanceof Error ? error.message.trim() : "";
+      setActionError(
+        rawMessage.length > 0 && !containsTechnicalJargon(rawMessage)
+          ? rawMessage
+          : t("folders.feedback.renameError"),
+      );
     }
   };
 
@@ -244,16 +246,21 @@ export function FoldersPage() {
     setActionSuccess(null);
     try {
       const archived = await archiveFolderMutation.mutateAsync({ folderId: currentFolder.id });
-      setActionSuccess(`Pasta "${archived.name}" arquivada.`);
+      setActionSuccess(t("folders.feedback.archived", { name: archived.name }));
     } catch (error) {
-      setActionError(error instanceof Error ? error.message : "Erro ao arquivar pasta.");
+      const rawMessage = error instanceof Error ? error.message.trim() : "";
+      setActionError(
+        rawMessage.length > 0 && !containsTechnicalJargon(rawMessage)
+          ? rawMessage
+          : t("folders.feedback.archiveError"),
+      );
     }
   };
 
   const docColumns: DataTableColumn<DocumentListItem>[] = [
     {
       id: "title",
-      label: "Título",
+      label: t("folders.columns.title"),
       render: (row) => (
         <Typography variant="body2" fontWeight={500}>
           {row.title}
@@ -262,20 +269,23 @@ export function FoldersPage() {
     },
     {
       id: "status",
-      label: "Status",
-      render: (row) => {
-        const badge = DOCUMENT_STATUS_LABELS[row.status];
-        return <Chip label={badge.label} color={badge.color} size="small" />;
-      },
+      label: t("folders.columns.status"),
+      render: (row) => (
+        <Chip
+          label={t(`documents.status.${row.status}`)}
+          color={DOCUMENT_STATUS_COLOR[row.status]}
+          size="small"
+        />
+      ),
     },
     {
       id: "updatedAt",
-      label: "Atualizado em",
-      render: (row) => formatDateTimePtBr(row.updatedAt),
+      label: t("folders.columns.updatedAt"),
+      render: (row) => formatDateTime(row.updatedAt),
     },
     {
       id: "actions",
-      label: "Ações",
+      label: t("folders.columns.actions"),
       align: "right",
       render: (row) => (
         <Button
@@ -287,7 +297,7 @@ export function FoldersPage() {
             void navigate(`/documents/${row.id}`);
           }}
         >
-          Abrir
+          {t("documents.common.open")}
         </Button>
       ),
     },
@@ -305,7 +315,9 @@ export function FoldersPage() {
         </ListItemIcon>
         <ListItemText primary={folder.name} secondary={folder.materializedPath} />
         <Chip
-          label={folder.status === "ARCHIVED" ? "Arquivada" : "Ativa"}
+          label={
+            folder.status === "ARCHIVED" ? t("folders.status.archived") : t("folders.status.active")
+          }
           size="small"
           variant="outlined"
         />
@@ -323,7 +335,7 @@ export function FoldersPage() {
       >
         <Box>
           <Typography variant="h1" gutterBottom>
-            {currentFolder ? currentFolder.name : "Pastas"}
+            {currentFolder ? currentFolder.name : t("folders.pageTitle")}
           </Typography>
           <FolderBreadcrumbs items={breadcrumbs} onNavigate={navigateToFolder} />
         </Box>
@@ -338,7 +350,7 @@ export function FoldersPage() {
                 disabled={isCurrentArchived || renameFolderMutation.isPending}
                 onClick={handleOpenRename}
               >
-                Renomear
+                {t("folders.renameButton")}
               </Button>
               <Button
                 variant="outlined"
@@ -348,7 +360,7 @@ export function FoldersPage() {
                 disabled={isCurrentArchived || archiveFolderMutation.isPending}
                 onClick={() => void handleArchiveCurrent()}
               >
-                Arquivar pasta
+                {t("folders.archiveButton")}
               </Button>
             </>
           ) : null}
@@ -359,7 +371,7 @@ export function FoldersPage() {
             disabled={isCurrentArchived}
             onClick={handleOpenCreate}
           >
-            Nova pasta
+            {t("folders.newFolderButton")}
           </Button>
         </Stack>
       </Stack>
@@ -374,7 +386,7 @@ export function FoldersPage() {
                 size="small"
                 onClick={() => navigateToFolder(currentFolder.parentId)}
               >
-                Subir nível
+                {t("folders.goUpButton")}
               </Button>
             ) : undefined
           }
@@ -395,7 +407,7 @@ export function FoldersPage() {
         </Alert>
       ) : null}
 
-      <Paper sx={{ p: 2, bgcolor: DOCUFLOW_COLOR_TOKENS.surface.containerLowest }}>
+      <Paper sx={{ p: 2, bgcolor: PAPYRUS_COLOR_TOKENS.surface.containerLowest }}>
         <Stack
           direction={{ xs: "column", sm: "row" }}
           spacing={2}
@@ -404,8 +416,8 @@ export function FoldersPage() {
         >
           <TextField
             size="small"
-            label="Filtrar subpastas"
-            placeholder="Digite o nome da pasta..."
+            label={t("folders.filterSubfoldersLabel")}
+            placeholder={t("folders.filterSubfoldersPlaceholder")}
             value={search}
             onChange={(event) => setSearch(event.target.value)}
             sx={{ minWidth: { sm: 280 } }}
@@ -417,20 +429,18 @@ export function FoldersPage() {
                 onChange={(event) => setShowArchived(event.target.checked)}
               />
             }
-            label="Mostrar pastas arquivadas"
+            label={t("folders.showArchivedSwitch")}
           />
         </Stack>
       </Paper>
 
-      <Paper sx={{ p: 2.5, bgcolor: DOCUFLOW_COLOR_TOKENS.surface.containerLowest }}>
+      <Paper sx={{ p: 2.5, bgcolor: PAPYRUS_COLOR_TOKENS.surface.containerLowest }}>
         <Typography variant="h3" component="h2" gutterBottom>
-          {currentFolder ? "Subpastas" : "Pastas na raiz"}
+          {currentFolder ? t("folders.subfoldersHeading") : t("folders.rootFoldersHeading")}
         </Typography>
         {subfolders.length === 0 ? (
           <Typography variant="body2" color="text.secondary">
-            {currentFolder
-              ? "Nenhuma subpasta autorizada neste nível."
-              : "Nenhuma pasta raiz autorizada encontrada."}
+            {currentFolder ? t("folders.noSubfolders") : t("folders.noRootFolders")}
           </Typography>
         ) : (
           <List dense disablePadding>
@@ -442,10 +452,10 @@ export function FoldersPage() {
       {currentFolder && documents ? (
         <Box>
           <Typography variant="h3" component="h2" gutterBottom>
-            Documentos em {currentFolder.name}
+            {t("folders.documentsInHeading", { name: currentFolder.name })}
           </Typography>
           <DataTable
-            ariaLabel={`Documentos em ${currentFolder.name}`}
+            ariaLabel={t("folders.documentsTableAria", { name: currentFolder.name })}
             columns={docColumns}
             rows={documents.items}
             getRowId={(row) => row.id}
@@ -459,8 +469,8 @@ export function FoldersPage() {
               setDocPage(1);
             }}
             onRowClick={(row) => void navigate(`/documents/${row.id}`)}
-            emptyTitle="Pasta sem documentos"
-            emptyDescription="Não há documentos autorizados diretamente nesta pasta."
+            emptyTitle={t("folders.emptyDocumentsTitle")}
+            emptyDescription={t("folders.emptyDocumentsDescription")}
           />
         </Box>
       ) : null}
@@ -468,22 +478,24 @@ export function FoldersPage() {
       <Dialog open={createOpen} onClose={() => setCreateOpen(false)} fullWidth maxWidth="xs">
         <form onSubmit={(event) => void handleCreateSubmit(event)}>
           <DialogTitle>
-            {currentFolder ? `Nova subpasta em ${currentFolder.name}` : "Nova pasta na raiz"}
+            {currentFolder
+              ? t("folders.createDialogTitleInFolder", { name: currentFolder.name })
+              : t("folders.createDialogTitleRoot")}
           </DialogTitle>
           <DialogContent>
             <TextField
               autoFocus
               margin="dense"
               fullWidth
-              label="Nome da pasta"
+              label={t("folders.folderNameLabel")}
               value={createName}
               onChange={(event) => setCreateName(event.target.value)}
             />
           </DialogContent>
           <DialogActions>
-            <Button onClick={() => setCreateOpen(false)}>Cancelar</Button>
+            <Button onClick={() => setCreateOpen(false)}>{t("documents.common.cancel")}</Button>
             <Button type="submit" variant="contained" disabled={createFolderMutation.isPending}>
-              {createFolderMutation.isPending ? "Criando..." : "Criar pasta"}
+              {createFolderMutation.isPending ? t("folders.creating") : t("folders.createSubmit")}
             </Button>
           </DialogActions>
         </form>
@@ -491,21 +503,21 @@ export function FoldersPage() {
 
       <Dialog open={renameOpen} onClose={() => setRenameOpen(false)} fullWidth maxWidth="xs">
         <form onSubmit={(event) => void handleRenameSubmit(event)}>
-          <DialogTitle>Renomear pasta</DialogTitle>
+          <DialogTitle>{t("folders.renameDialogTitle")}</DialogTitle>
           <DialogContent>
             <TextField
               autoFocus
               margin="dense"
               fullWidth
-              label="Novo nome da pasta"
+              label={t("folders.newFolderNameLabel")}
               value={renameValue}
               onChange={(event) => setRenameValue(event.target.value)}
             />
           </DialogContent>
           <DialogActions>
-            <Button onClick={() => setRenameOpen(false)}>Cancelar</Button>
+            <Button onClick={() => setRenameOpen(false)}>{t("documents.common.cancel")}</Button>
             <Button type="submit" variant="contained" disabled={renameFolderMutation.isPending}>
-              {renameFolderMutation.isPending ? "Salvando..." : "Salvar nome"}
+              {renameFolderMutation.isPending ? t("folders.saving") : t("folders.saveName")}
             </Button>
           </DialogActions>
         </form>

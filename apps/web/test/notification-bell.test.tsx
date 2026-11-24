@@ -1,11 +1,12 @@
 import "@testing-library/jest-dom/vitest";
-import { docuflowTheme } from "@docuflow/ui";
+import { UiLocaleProvider, papyrusTheme } from "@docuflow/ui";
 import { CssBaseline, ThemeProvider } from "@mui/material";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { NotificationBell } from "../src/components/NotificationBell.js";
+import { I18nProvider, resetUiLocaleForTests } from "../src/i18n/index.js";
 
 const USER_ID = "550e8400-e29b-41d4-a716-446655440001";
 const NOTIF_1_ID = "550e8400-e29b-41d4-a716-446655440011";
@@ -21,24 +22,29 @@ function renderNotificationBell() {
   });
 
   return render(
-    <ThemeProvider theme={docuflowTheme}>
-      <CssBaseline />
-      <QueryClientProvider client={queryClient}>
-        <MemoryRouter initialEntries={["/"]}>
-          <Routes>
-            <Route path="/" element={<NotificationBell />} />
-            <Route path="/tasks/:id" element={<h1>Detalhe da Tarefa</h1>} />
-            <Route path="/documents/:id" element={<h1>Detalhe do Documento</h1>} />
-          </Routes>
-        </MemoryRouter>
-      </QueryClientProvider>
-    </ThemeProvider>,
+    <I18nProvider initialLocale="en-US">
+      <UiLocaleProvider locale="en-US">
+        <ThemeProvider theme={papyrusTheme}>
+          <CssBaseline />
+          <QueryClientProvider client={queryClient}>
+            <MemoryRouter initialEntries={["/"]}>
+              <Routes>
+                <Route path="/" element={<NotificationBell />} />
+                <Route path="/tasks/:id" element={<h1>Task Details</h1>} />
+                <Route path="/documents/:id" element={<h1>Document Details</h1>} />
+              </Routes>
+            </MemoryRouter>
+          </QueryClientProvider>
+        </ThemeProvider>
+      </UiLocaleProvider>
+    </I18nProvider>,
   );
 }
 
 describe("NotificationBell", () => {
   afterEach(() => {
     cleanup();
+    resetUiLocaleForTests();
     vi.restoreAllMocks();
   });
 
@@ -108,28 +114,28 @@ describe("NotificationBell", () => {
 
     renderNotificationBell();
 
-    const trigger = await screen.findByRole("button", { name: "Notificações (1 não lidas)" });
+    const trigger = await screen.findByRole("button", { name: "Notifications (1 unread)" });
     fireEvent.click(trigger);
 
     expect(await screen.findByText("Nova tarefa: Revisão Jurídica")).toBeInTheDocument();
     expect(screen.getByText("Vencimento próximo: Laudo Técnico")).toBeInTheDocument();
 
     fireEvent.click(
-      screen.getByRole("button", { name: "Marcar como lida: Nova tarefa: Revisão Jurídica" }),
+      screen.getByRole("button", { name: "Mark as read: Nova tarefa: Revisão Jurídica" }),
     );
 
     await waitFor(() => {
-      expect(screen.getByRole("button", { name: "Não lidas (0)" })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Unread (0)" })).toBeInTheDocument();
     });
-    expect(screen.getByRole("button", { name: "Notificações", hidden: true })).toBeInTheDocument();
-    expect(screen.getAllByText("Lida")).toHaveLength(2);
+    expect(screen.getByRole("button", { name: "Notifications", hidden: true })).toBeInTheDocument();
+    expect(screen.getAllByText("Read")).toHaveLength(2);
 
-    const openButtons = screen.getAllByRole("button", { name: "Abrir" });
+    const openButtons = screen.getAllByRole("button", { name: "Open" });
     expect(openButtons.length).toBeGreaterThanOrEqual(1);
     const firstOpenButton = openButtons[0];
     if (firstOpenButton) {
       fireEvent.click(firstOpenButton);
     }
-    expect(await screen.findByRole("heading", { name: "Detalhe da Tarefa" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Task Details" })).toBeInTheDocument();
   });
 });

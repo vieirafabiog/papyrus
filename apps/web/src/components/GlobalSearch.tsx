@@ -4,7 +4,7 @@ import {
   type DocumentStatus,
   documentListResponseSchema,
 } from "@docuflow/contracts";
-import { DOCUFLOW_COLOR_TOKENS } from "@docuflow/ui";
+import { PAPYRUS_COLOR_TOKENS } from "@docuflow/ui";
 import ClearOutlinedIcon from "@mui/icons-material/ClearOutlined";
 import DescriptionOutlinedIcon from "@mui/icons-material/DescriptionOutlined";
 import SearchOutlinedIcon from "@mui/icons-material/SearchOutlined";
@@ -28,24 +28,31 @@ import {
 } from "@mui/material";
 import { type KeyboardEvent, useEffect, useId, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { extractUserErrorMessage } from "../i18n/api-errors.js";
+import { type MessageKey, translate, useI18n } from "../i18n/index.js";
 
 const DEFAULT_DEBOUNCE_MS = 300;
 const MIN_SEARCH_LENGTH = 2;
 
-const STATUS_LABELS: Readonly<
+const STATUS_META: Readonly<
   Record<
     DocumentStatus,
-    { readonly label: string; readonly color: "default" | "info" | "success" | "warning" | "error" }
+    {
+      readonly labelKey: MessageKey;
+      readonly color: "default" | "info" | "success" | "warning" | "error";
+    }
   >
 > = {
-  DRAFT: { label: "Rascunho", color: "default" },
-  IN_REVIEW: { label: "Em revisão", color: "info" },
-  APPROVED: { label: "Aprovado", color: "success" },
-  REJECTED: { label: "Rejeitado", color: "error" },
-  ARCHIVED: { label: "Arquivado", color: "default" },
-  EXPIRED: { label: "Expirado", color: "warning" },
-  DELETED: { label: "Excluído", color: "error" },
+  DRAFT: { labelKey: "search.status.DRAFT", color: "default" },
+  IN_REVIEW: { labelKey: "search.status.IN_REVIEW", color: "info" },
+  APPROVED: { labelKey: "search.status.APPROVED", color: "success" },
+  REJECTED: { labelKey: "search.status.REJECTED", color: "error" },
+  ARCHIVED: { labelKey: "search.status.ARCHIVED", color: "default" },
+  EXPIRED: { labelKey: "search.status.EXPIRED", color: "warning" },
+  DELETED: { labelKey: "search.status.DELETED", color: "error" },
 };
+
+class LocalizedSearchError extends Error {}
 
 export interface GlobalSearchProps {
   readonly debounceMs?: number | undefined;
@@ -57,11 +64,14 @@ export interface GlobalSearchProps {
  * empty/error states, keyboard navigation, and direct navigation to document details.
  */
 export function GlobalSearch({ debounceMs = DEFAULT_DEBOUNCE_MS, fetchFn }: GlobalSearchProps) {
+  const { t, locale, formatDate, formatNumber } = useI18n();
   const navigate = useNavigate();
   const inputId = useId();
   const listboxId = useId();
   const anchorRef = useRef<HTMLDivElement | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
+  const localeRef = useRef(locale);
+  localeRef.current = locale;
 
   const [queryText, setQueryText] = useState("");
   const [open, setOpen] = useState(false);
@@ -108,13 +118,18 @@ export function GlobalSearch({ debounceMs = DEFAULT_DEBOUNCE_MS, fetchFn }: Glob
         signal: controller.signal,
       })
         .then(async (response) => {
+          const activeLocale = localeRef.current;
           if (!response.ok) {
-            throw new Error(`Não foi possível concluir a busca (${response.status}).`);
+            throw new LocalizedSearchError(
+              await extractUserErrorMessage(response, "search.errorGeneric", activeLocale),
+            );
           }
           const rawJson: unknown = await response.json();
           const parsed = documentListResponseSchema.safeParse(rawJson);
           if (!parsed.success) {
-            throw new Error("Resposta inválida recebida da pesquisa de documentos.");
+            throw new LocalizedSearchError(
+              translate("common.errors.unexpectedResponse", undefined, activeLocale),
+            );
           }
           if (!controller.signal.aborted) {
             setResults(parsed.data.items);
@@ -132,11 +147,14 @@ export function GlobalSearch({ debounceMs = DEFAULT_DEBOUNCE_MS, fetchFn }: Glob
             return;
           }
           if (!controller.signal.aborted) {
+            const activeLocale = localeRef.current;
             setResults([]);
             setTotalItems(0);
             setHasSearchedTerm(trimmedQuery);
             setErrorMessage(
-              error instanceof Error ? error.message : "Erro ao pesquisar documentos.",
+              error instanceof LocalizedSearchError
+                ? error.message
+                : translate("search.errorGeneric", undefined, activeLocale),
             );
             setLoading(false);
           }
@@ -229,10 +247,10 @@ export function GlobalSearch({ debounceMs = DEFAULT_DEBOUNCE_MS, fetchFn }: Glob
               setOpen(false);
             }
           }}
-          placeholder="Buscar documentos por título ou arquivo..."
+          placeholder={t("search.placeholder")}
           slotProps={{
             htmlInput: {
-              "aria-label": "Busca global de documentos",
+              "aria-label": t("search.ariaLabel"),
               "aria-controls": showPopover ? listboxId : undefined,
               "aria-expanded": showPopover,
             },
@@ -247,7 +265,7 @@ export function GlobalSearch({ debounceMs = DEFAULT_DEBOUNCE_MS, fetchFn }: Glob
                   <InputAdornment position="end">
                     <IconButton
                       size="small"
-                      aria-label="Limpar busca"
+                      aria-label={t("search.clearAriaLabel")}
                       onClick={handleClear}
                       edge="end"
                     >
@@ -272,8 +290,8 @@ export function GlobalSearch({ debounceMs = DEFAULT_DEBOUNCE_MS, fetchFn }: Glob
             elevation={3}
             sx={{
               mt: 0.75,
-              border: `1px solid ${DOCUFLOW_COLOR_TOKENS.surface.outlineVariant}`,
-              bgcolor: DOCUFLOW_COLOR_TOKENS.surface.containerLowest,
+              border: `1px solid ${PAPYRUS_COLOR_TOKENS.surface.outlineVariant}`,
+              bgcolor: PAPYRUS_COLOR_TOKENS.surface.containerLowest,
               maxHeight: 360,
               overflowY: "auto",
             }}
@@ -281,14 +299,14 @@ export function GlobalSearch({ debounceMs = DEFAULT_DEBOUNCE_MS, fetchFn }: Glob
             {trimmedQuery.length < MIN_SEARCH_LENGTH ? (
               <Box sx={{ p: 2 }}>
                 <Typography variant="body2" color="text.secondary">
-                  Digite ao menos {MIN_SEARCH_LENGTH} caracteres para pesquisar documentos.
+                  {t("search.minChars", { count: MIN_SEARCH_LENGTH })}
                 </Typography>
               </Box>
             ) : loading ? (
               <Stack direction="row" spacing={1.5} alignItems="center" sx={{ p: 2 }}>
                 <CircularProgress size={18} />
                 <Typography variant="body2" color="text.secondary">
-                  Buscando documentos autorizados...
+                  {t("search.loading")}
                 </Typography>
               </Stack>
             ) : errorMessage ? (
@@ -300,16 +318,16 @@ export function GlobalSearch({ debounceMs = DEFAULT_DEBOUNCE_MS, fetchFn }: Glob
             ) : results.length === 0 && hasSearchedTerm !== null ? (
               <Box sx={{ p: 2 }}>
                 <Typography variant="body2" fontWeight={500}>
-                  Nenhum documento encontrado
+                  {t("search.emptyTitle")}
                 </Typography>
                 <Typography variant="caption" color="text.secondary">
-                  Nenhum resultado autorizado corresponde a "{hasSearchedTerm}".
+                  {t("search.emptyDescription", { query: hasSearchedTerm })}
                 </Typography>
               </Box>
             ) : (
-              <List id={listboxId} aria-label="Resultados da busca" dense disablePadding>
+              <List id={listboxId} aria-label={t("search.resultsAriaLabel")} dense disablePadding>
                 {results.map((doc, index) => {
-                  const statusInfo = STATUS_LABELS[doc.status];
+                  const statusMeta = STATUS_META[doc.status];
                   return (
                     <ListItemButton
                       key={doc.id}
@@ -330,9 +348,13 @@ export function GlobalSearch({ debounceMs = DEFAULT_DEBOUNCE_MS, fetchFn }: Glob
                         }
                         secondary={
                           <Stack direction="row" spacing={1} alignItems="center" sx={{ mt: 0.25 }}>
-                            <Chip label={statusInfo.label} color={statusInfo.color} size="small" />
+                            <Chip
+                              label={t(statusMeta.labelKey)}
+                              color={statusMeta.color}
+                              size="small"
+                            />
                             <Typography variant="caption" color="text.secondary">
-                              Atualizado em {new Date(doc.updatedAt).toLocaleDateString("pt-BR")}
+                              {t("search.updatedAt", { date: formatDate(doc.updatedAt) })}
                             </Typography>
                           </Stack>
                         }
@@ -345,11 +367,14 @@ export function GlobalSearch({ debounceMs = DEFAULT_DEBOUNCE_MS, fetchFn }: Glob
                     sx={{
                       px: 2,
                       py: 1,
-                      borderTop: `1px solid ${DOCUFLOW_COLOR_TOKENS.surface.outlineVariant}`,
+                      borderTop: `1px solid ${PAPYRUS_COLOR_TOKENS.surface.outlineVariant}`,
                     }}
                   >
                     <Typography variant="caption" color="text.secondary">
-                      Exibindo {results.length} de {totalItems} documentos autorizados.
+                      {t("search.showingCount", {
+                        shown: formatNumber(results.length),
+                        total: formatNumber(totalItems),
+                      })}
                     </Typography>
                   </Box>
                 ) : null}

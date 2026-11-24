@@ -5,7 +5,7 @@ import type {
   WorkflowDecisionType,
   WorkflowTaskStatus,
 } from "@docuflow/contracts";
-import { DOCUFLOW_COLOR_TOKENS, EmptyState, ErrorState, LoadingState } from "@docuflow/ui";
+import { EmptyState, ErrorState, LoadingState, PAPYRUS_COLOR_TOKENS } from "@docuflow/ui";
 import ArrowBackOutlinedIcon from "@mui/icons-material/ArrowBackOutlined";
 import CheckCircleOutlineOutlinedIcon from "@mui/icons-material/CheckCircleOutlineOutlined";
 import EditNoteOutlinedIcon from "@mui/icons-material/EditNoteOutlined";
@@ -31,6 +31,7 @@ import {
 } from "@mui/material";
 import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { type MessageKey, useI18n } from "../../i18n/index.js";
 import { DocumentFileAvailabilityPanel } from "../documents/FileProcessingStatus.js";
 import { resolveTaskDocumentTarget } from "./useTaskInbox.js";
 import {
@@ -43,96 +44,63 @@ import {
 const TASK_STATUS_BADGE: Readonly<
   Record<
     WorkflowTaskStatus,
-    { readonly label: string; readonly color: "default" | "info" | "success" | "warning" | "error" }
+    {
+      readonly key: MessageKey;
+      readonly color: "default" | "info" | "success" | "warning" | "error";
+    }
   >
 > = {
-  PENDING: { label: "Pendente", color: "info" },
-  APPROVED: { label: "Aprovada", color: "success" },
-  REJECTED: { label: "Rejeitada", color: "error" },
-  CHANGES_REQUESTED: { label: "Ajustes solicitados", color: "warning" },
-  CANCELLED: { label: "Cancelada", color: "default" },
-  EXPIRED: { label: "Expirada", color: "error" },
+  PENDING: { key: "workflows.taskStatus.PENDING", color: "info" },
+  APPROVED: { key: "workflows.taskStatus.APPROVED", color: "success" },
+  REJECTED: { key: "workflows.taskStatus.REJECTED", color: "error" },
+  CHANGES_REQUESTED: { key: "workflows.taskStatus.CHANGES_REQUESTED", color: "warning" },
+  CANCELLED: { key: "workflows.taskStatus.CANCELLED", color: "default" },
+  EXPIRED: { key: "workflows.taskStatus.EXPIRED", color: "error" },
 };
 
 const DOCUMENT_STATUS_BADGE: Readonly<
   Record<
     DocumentStatus,
-    { readonly label: string; readonly color: "default" | "info" | "success" | "warning" | "error" }
+    {
+      readonly key: MessageKey;
+      readonly color: "default" | "info" | "success" | "warning" | "error";
+    }
   >
 > = {
-  DRAFT: { label: "Rascunho", color: "default" },
-  IN_REVIEW: { label: "Em revisão", color: "info" },
-  APPROVED: { label: "Aprovado", color: "success" },
-  REJECTED: { label: "Rejeitado", color: "error" },
-  ARCHIVED: { label: "Arquivado", color: "default" },
-  EXPIRED: { label: "Expirado", color: "warning" },
-  DELETED: { label: "Excluído", color: "error" },
+  DRAFT: { key: "workflows.documentStatus.DRAFT", color: "default" },
+  IN_REVIEW: { key: "workflows.documentStatus.IN_REVIEW", color: "info" },
+  APPROVED: { key: "workflows.documentStatus.APPROVED", color: "success" },
+  REJECTED: { key: "workflows.documentStatus.REJECTED", color: "error" },
+  ARCHIVED: { key: "workflows.documentStatus.ARCHIVED", color: "default" },
+  EXPIRED: { key: "workflows.documentStatus.EXPIRED", color: "warning" },
+  DELETED: { key: "workflows.documentStatus.DELETED", color: "error" },
 };
 
-const DECISION_LABEL: Readonly<Record<WorkflowDecisionType, string>> = {
-  APPROVE: "Aprovação registrada",
-  REJECT: "Rejeição registrada",
-  REQUEST_CHANGES: "Solicitação de ajustes registrada",
+const DECISION_LABEL_KEY: Readonly<Record<WorkflowDecisionType, MessageKey>> = {
+  APPROVE: "tasks.review.decisionRecorded.APPROVE",
+  REJECT: "tasks.review.decisionRecorded.REJECT",
+  REQUEST_CHANGES: "tasks.review.decisionRecorded.REQUEST_CHANGES",
 };
 
-function formatIsoDatePtBr(isoDate: string | null): string {
-  if (!isoDate) {
-    return "Não informada";
-  }
-  const [year, month, day] = isoDate.split("-");
-  if (!year || !month || !day) {
+function parseIsoCalendarDate(isoDate: string): Date | string {
+  const [yearRaw, monthRaw, dayRaw] = isoDate.split("-");
+  const year = Number(yearRaw);
+  const month = Number(monthRaw);
+  const day = Number(dayRaw);
+  if (!Number.isInteger(year) || !Number.isInteger(month) || !Number.isInteger(day)) {
     return isoDate;
   }
-  return `${day}/${month}/${year}`;
-}
-
-function formatDateTimePtBr(isoDateTime: string | null, fallback = "Não informado"): string {
-  if (!isoDateTime) {
-    return fallback;
-  }
-  const parsed = new Date(isoDateTime);
-  if (Number.isNaN(parsed.getTime())) {
-    return isoDateTime;
-  }
-  return parsed.toLocaleString("pt-BR");
-}
-
-function formatMetadataValue(value: DocumentMetadataValue | undefined): string {
-  if (value === undefined || value === null) {
-    return "Não informado";
-  }
-  if (typeof value === "boolean") {
-    return value ? "Sim" : "Não";
-  }
-  if (Array.isArray(value)) {
-    return value.length > 0 ? value.join(", ") : "Nenhum item selecionado";
-  }
-  if (typeof value === "number") {
-    return String(value);
-  }
-  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
-    return formatIsoDatePtBr(value);
-  }
-  return value.trim().length > 0 ? value : "Não informado";
-}
-
-function formatFileSizePtBr(sizeBytes: number): string {
-  if (sizeBytes < 1024) {
-    return `${sizeBytes} B`;
-  }
-  if (sizeBytes < 1024 * 1024) {
-    return `${(sizeBytes / 1024).toFixed(1)} KB`;
-  }
-  return `${(sizeBytes / (1024 * 1024)).toFixed(2)} MB`;
+  return new Date(year, month - 1, day);
 }
 
 /**
- * Authorized workflow task review detail page displaying the immutable bound document
- * version, metadata, version/task history, and guarded approval actions in pt-BR.
+ * Authorized workflow task review detail page displaying the bound document
+ * version, metadata, version/task history, and guarded approval actions.
  */
 export function TaskReviewPage() {
   const { id = "" } = useParams();
   const navigate = useNavigate();
+  const { t, formatDate, formatDateTime, formatNumber, formatBytes } = useI18n();
 
   const [comment, setComment] = useState("");
   const [commentValidationError, setCommentValidationError] = useState<string | null>(null);
@@ -147,8 +115,34 @@ export function TaskReviewPage() {
   const versionsQuery = useTaskDocumentVersionsQuery(task?.documentId);
   const decisionMutation = useSubmitTaskDecisionMutation(id, task?.documentId);
 
+  const formatIsoDate = (isoDate: string | null): string => {
+    if (!isoDate) {
+      return t("tasks.review.notProvidedFem");
+    }
+    return formatDate(parseIsoCalendarDate(isoDate), t("tasks.review.notProvidedFem"));
+  };
+
+  const formatMetadataValue = (value: DocumentMetadataValue | undefined): string => {
+    if (value === undefined || value === null) {
+      return t("tasks.review.notProvided");
+    }
+    if (typeof value === "boolean") {
+      return value ? t("tasks.review.yes") : t("tasks.review.no");
+    }
+    if (Array.isArray(value)) {
+      return value.length > 0 ? value.join(", ") : t("tasks.review.noneSelected");
+    }
+    if (typeof value === "number") {
+      return formatNumber(value);
+    }
+    if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+      return formatIsoDate(value);
+    }
+    return value.trim().length > 0 ? value : t("tasks.review.notProvided");
+  };
+
   if (taskQuery.isLoading) {
-    return <LoadingState message="Carregando detalhes da tarefa..." />;
+    return <LoadingState message={t("tasks.review.loading")} />;
   }
 
   if (taskQuery.isError) {
@@ -156,7 +150,7 @@ export function TaskReviewPage() {
       return (
         <Stack spacing={2}>
           <Alert severity="warning" role="alert">
-            Acesso negado: {taskQuery.error.message}
+            {t("tasks.review.accessDenied", { message: taskQuery.error.message })}
           </Alert>
           <Box>
             <Button
@@ -164,7 +158,7 @@ export function TaskReviewPage() {
               startIcon={<ArrowBackOutlinedIcon />}
               onClick={() => void navigate("/tasks")}
             >
-              Voltar para Minhas tarefas
+              {t("tasks.review.backToInbox")}
             </Button>
           </Box>
         </Stack>
@@ -174,9 +168,9 @@ export function TaskReviewPage() {
     if (taskQuery.error.statusCode === 404) {
       return (
         <EmptyState
-          title="Tarefa não encontrada"
-          description="A tarefa solicitada não existe ou não está disponível no seu escopo de acesso."
-          actionLabel="Voltar para Minhas tarefas"
+          title={t("tasks.review.notFoundTitle")}
+          description={t("tasks.review.notFoundDescription")}
+          actionLabel={t("tasks.review.backToInbox")}
           onAction={() => void navigate("/tasks")}
         />
       );
@@ -184,7 +178,7 @@ export function TaskReviewPage() {
 
     return (
       <ErrorState
-        title="Não foi possível carregar a tarefa"
+        title={t("tasks.review.errorTitle")}
         description={taskQuery.error.message}
         onRetry={() => void taskQuery.refetch()}
       />
@@ -235,8 +229,8 @@ export function TaskReviewPage() {
     if (isCommentRequiredForAction(decision) && trimmedComment.length === 0) {
       setCommentValidationError(
         decision === "APPROVE"
-          ? "Esta etapa exige comentário para aprovar."
-          : "Informe um comentário justificando a rejeição ou solicitação de ajustes.",
+          ? t("tasks.review.validation.commentRequiredApprove")
+          : t("tasks.review.validation.commentRequiredRejectOrChanges"),
       );
       return;
     }
@@ -252,11 +246,7 @@ export function TaskReviewPage() {
       });
       setConfirmedDecision(result);
     } catch (error) {
-      setSubmitError(
-        error instanceof Error
-          ? error.message
-          : "Não foi possível confirmar a decisão desta tarefa.",
-      );
+      setSubmitError(error instanceof Error ? error.message : t("tasks.errors.submitDecision"));
     } finally {
       setPendingAction(null);
     }
@@ -281,18 +271,21 @@ export function TaskReviewPage() {
             onClick={() => void navigate("/tasks")}
             sx={{ alignSelf: "flex-start" }}
           >
-            Voltar para Minhas tarefas
+            {t("tasks.review.backToInbox")}
           </Button>
 
           <Stack direction="row" spacing={1.25} alignItems="center" flexWrap="wrap" useFlexGap>
             <Typography variant="h1">
-              {task.workflowDefinitionName} — Etapa {task.stepOrder}
+              {t("tasks.review.headerTitle", {
+                workflow: task.workflowDefinitionName,
+                order: task.stepOrder,
+              })}
             </Typography>
-            <Chip label={taskBadge.label} color={taskBadge.color} size="small" />
+            <Chip label={t(taskBadge.key)} color={taskBadge.color} size="small" />
             {task.isOverdue && isPendingTask ? (
               <Chip
                 icon={<WarningAmberOutlinedIcon fontSize="small" />}
-                label="Em atraso"
+                label={t("tasks.review.overdue")}
                 color="error"
                 size="small"
               />
@@ -300,8 +293,9 @@ export function TaskReviewPage() {
           </Stack>
 
           <Typography variant="body1" color="text.secondary">
-            {task.stepName} · Documento: <strong>{task.documentTitle}</strong> (Versão v
-            {task.documentVersionNumber})
+            {t("tasks.review.headerSubtitlePrefix", { stepName: task.stepName })}{" "}
+            <strong>{task.documentTitle}</strong>{" "}
+            {t("tasks.review.headerSubtitleVersion", { version: task.documentVersionNumber })}
           </Typography>
         </Stack>
 
@@ -312,11 +306,11 @@ export function TaskReviewPage() {
               endIcon={<OpenInNewOutlinedIcon fontSize="small" />}
               onClick={() => void navigate(documentTarget)}
             >
-              Abrir documento
+              {t("tasks.review.openDocument")}
             </Button>
           ) : (
             <Button variant="outlined" disabled>
-              Documento indisponível
+              {t("tasks.review.documentUnavailable")}
             </Button>
           )}
         </Box>
@@ -324,9 +318,15 @@ export function TaskReviewPage() {
 
       {hasNewerDocumentVersion && doc?.currentVersion ? (
         <Alert severity="warning" role="alert">
-          Atenção: este documento já possui uma versão vigente mais recente (v
-          {doc.currentVersion.versionNumber}). Esta decisão avalia exclusivamente a{" "}
-          <strong>versão v{task.documentVersionNumber}</strong> vinculada à tarefa.
+          {t("tasks.review.newerVersionWarningPrefix", {
+            version: doc.currentVersion.versionNumber,
+          })}{" "}
+          <strong>
+            {t("tasks.review.newerVersionWarningVersion", {
+              version: task.documentVersionNumber,
+            })}
+          </strong>{" "}
+          {t("tasks.review.newerVersionWarningSuffix")}
         </Alert>
       ) : null}
 
@@ -337,8 +337,8 @@ export function TaskReviewPage() {
               variant="outlined"
               sx={{
                 p: 2.5,
-                bgcolor: DOCUFLOW_COLOR_TOKENS.surface.containerLowest,
-                borderColor: DOCUFLOW_COLOR_TOKENS.surface.outlineVariant,
+                bgcolor: PAPYRUS_COLOR_TOKENS.surface.containerLowest,
+                borderColor: PAPYRUS_COLOR_TOKENS.surface.outlineVariant,
               }}
             >
               <Stack
@@ -351,11 +351,11 @@ export function TaskReviewPage() {
                 <Stack direction="row" spacing={1} alignItems="center">
                   <VerifiedOutlinedIcon color="primary" fontSize="small" />
                   <Typography variant="h6" component="h2">
-                    Versão exata vinculada à tarefa
+                    {t("tasks.review.boundVersionTitle")}
                   </Typography>
                 </Stack>
                 <Chip
-                  label={`Versão v${task.documentVersionNumber}`}
+                  label={t("tasks.review.versionChip", { version: task.documentVersionNumber })}
                   color="primary"
                   size="small"
                 />
@@ -364,11 +364,11 @@ export function TaskReviewPage() {
 
               {versionsQuery.isLoading ? (
                 <Typography variant="body2" color="text.secondary">
-                  Carregando dados da versão vinculada...
+                  {t("tasks.review.loadingVersion")}
                 </Typography>
               ) : versionsQuery.isError ? (
                 <ErrorState
-                  title="Falha ao carregar versão vinculada"
+                  title={t("tasks.review.versionErrorTitle")}
                   description={versionsQuery.error.message}
                   onRetry={() => void versionsQuery.refetch()}
                 />
@@ -380,15 +380,13 @@ export function TaskReviewPage() {
                       fileName={exactBoundVersion.fileObject.originalFileName}
                     />
                   ) : (
-                    <Alert severity="info">
-                      Esta versão não possui arquivo binário associado disponível para exibição.
-                    </Alert>
+                    <Alert severity="info">{t("tasks.review.noAttachedFile")}</Alert>
                   )}
 
                   <Grid container spacing={1.5}>
                     <Grid size={{ xs: 12, sm: 6 }}>
                       <Typography variant="caption" color="text.secondary">
-                        Autor da versão
+                        {t("tasks.review.versionAuthor")}
                       </Typography>
                       <Typography variant="body2" fontWeight={500}>
                         {exactBoundVersion.uploadedByUser.fullName}
@@ -396,17 +394,17 @@ export function TaskReviewPage() {
                     </Grid>
                     <Grid size={{ xs: 12, sm: 6 }}>
                       <Typography variant="caption" color="text.secondary">
-                        Registrada em
+                        {t("tasks.review.recordedAt")}
                       </Typography>
                       <Typography variant="body2">
-                        {formatDateTimePtBr(exactBoundVersion.createdAt)}
+                        {formatDateTime(exactBoundVersion.createdAt, t("tasks.review.notProvided"))}
                       </Typography>
                     </Grid>
                     {exactBoundVersion.fileObject ? (
                       <>
                         <Grid size={{ xs: 12, sm: 6 }}>
                           <Typography variant="caption" color="text.secondary">
-                            Tipo MIME detectado
+                            {t("tasks.review.fileType")}
                           </Typography>
                           <Typography variant="body2">
                             {exactBoundVersion.fileObject.detectedContentType}
@@ -414,15 +412,15 @@ export function TaskReviewPage() {
                         </Grid>
                         <Grid size={{ xs: 12, sm: 6 }}>
                           <Typography variant="caption" color="text.secondary">
-                            Tamanho do arquivo
+                            {t("tasks.review.fileSize")}
                           </Typography>
                           <Typography variant="body2">
-                            {formatFileSizePtBr(exactBoundVersion.fileObject.sizeBytes)}
+                            {formatBytes(exactBoundVersion.fileObject.sizeBytes)}
                           </Typography>
                         </Grid>
                         <Grid size={{ xs: 12 }}>
                           <Typography variant="caption" color="text.secondary">
-                            Checksum SHA-256
+                            {t("tasks.review.verificationCode")}
                           </Typography>
                           <Typography
                             variant="body2"
@@ -435,19 +433,16 @@ export function TaskReviewPage() {
                     ) : null}
                     <Grid size={{ xs: 12 }}>
                       <Typography variant="caption" color="text.secondary">
-                        Nota da versão
+                        {t("tasks.review.versionNote")}
                       </Typography>
                       <Typography variant="body2">
-                        {exactBoundVersion.changeNote ?? "Nenhuma observação informada."}
+                        {exactBoundVersion.changeNote ?? t("tasks.review.noVersionNote")}
                       </Typography>
                     </Grid>
                   </Grid>
                 </Stack>
               ) : (
-                <Alert severity="warning">
-                  A versão vinculada a esta tarefa ({task.documentVersionId}) não foi localizada no
-                  histórico autorizado.
-                </Alert>
+                <Alert severity="warning">{t("tasks.review.boundVersionMissing")}</Alert>
               )}
             </Paper>
 
@@ -455,8 +450,8 @@ export function TaskReviewPage() {
               variant="outlined"
               sx={{
                 p: 2.5,
-                bgcolor: DOCUFLOW_COLOR_TOKENS.surface.containerLowest,
-                borderColor: DOCUFLOW_COLOR_TOKENS.surface.outlineVariant,
+                bgcolor: PAPYRUS_COLOR_TOKENS.surface.containerLowest,
+                borderColor: PAPYRUS_COLOR_TOKENS.surface.outlineVariant,
               }}
             >
               <Stack
@@ -467,26 +462,26 @@ export function TaskReviewPage() {
                 mb={1}
               >
                 <Typography variant="h6" component="h2">
-                  Metadados do documento
+                  {t("tasks.review.metadataTitle")}
                 </Typography>
-                <Chip label={documentBadge.label} color={documentBadge.color} size="small" />
+                <Chip label={t(documentBadge.key)} color={documentBadge.color} size="small" />
               </Stack>
               <Divider sx={{ mb: 2 }} />
 
               {documentQuery.isLoading ? (
                 <Typography variant="body2" color="text.secondary">
-                  Carregando metadados do documento...
+                  {t("tasks.review.loadingMetadata")}
                 </Typography>
               ) : documentQuery.isError ? (
                 <Alert severity="warning" role="alert">
-                  Não foi possível carregar os metadados completos: {documentQuery.error.message}
+                  {t("tasks.review.metadataError", { message: documentQuery.error.message })}
                 </Alert>
               ) : doc ? (
                 <Stack spacing={2}>
                   <Grid container spacing={2}>
                     <Grid size={{ xs: 12, sm: 6 }}>
                       <Typography variant="caption" color="text.secondary">
-                        Categoria
+                        {t("tasks.review.categoryLabel")}
                       </Typography>
                       <Typography variant="body2" fontWeight={500}>
                         {doc.category.name}
@@ -494,15 +489,15 @@ export function TaskReviewPage() {
                     </Grid>
                     <Grid size={{ xs: 12, sm: 6 }}>
                       <Typography variant="caption" color="text.secondary">
-                        Pasta
+                        {t("tasks.review.folderLabel")}
                       </Typography>
                       <Typography variant="body2" fontWeight={500}>
-                        {doc.folder ? doc.folder.name : "Sem pasta (raiz)"}
+                        {doc.folder ? doc.folder.name : t("tasks.review.noFolder")}
                       </Typography>
                     </Grid>
                     <Grid size={{ xs: 12, sm: 6 }}>
                       <Typography variant="caption" color="text.secondary">
-                        Responsável
+                        {t("tasks.review.ownerLabel")}
                       </Typography>
                       <Typography variant="body2" fontWeight={500}>
                         {doc.owner.fullName}
@@ -510,11 +505,13 @@ export function TaskReviewPage() {
                     </Grid>
                     <Grid size={{ xs: 12, sm: 6 }}>
                       <Typography variant="caption" color="text.secondary">
-                        Emissão e vencimento
+                        {t("tasks.review.datesLabel")}
                       </Typography>
                       <Typography variant="body2">
-                        Emissão: {formatIsoDatePtBr(doc.issueDate)} · Vencimento:{" "}
-                        {formatIsoDatePtBr(doc.expirationDate)}
+                        {t("tasks.review.datesSummary", {
+                          issueDate: formatIsoDate(doc.issueDate),
+                          expirationDate: formatIsoDate(doc.expirationDate),
+                        })}
                       </Typography>
                     </Grid>
                   </Grid>
@@ -547,7 +544,7 @@ export function TaskReviewPage() {
                     </>
                   ) : (
                     <Typography variant="body2" color="text.secondary">
-                      Nenhum metadado personalizado preenchido para este documento.
+                      {t("tasks.review.noCustomMetadata")}
                     </Typography>
                   )}
 
@@ -570,21 +567,24 @@ export function TaskReviewPage() {
               variant="outlined"
               sx={{
                 p: 2.5,
-                bgcolor: DOCUFLOW_COLOR_TOKENS.surface.containerLowest,
-                borderColor: DOCUFLOW_COLOR_TOKENS.surface.outlineVariant,
+                bgcolor: PAPYRUS_COLOR_TOKENS.surface.containerLowest,
+                borderColor: PAPYRUS_COLOR_TOKENS.surface.outlineVariant,
               }}
             >
               <Typography variant="h6" component="h2" gutterBottom>
-                Decisão de revisão e aprovação
+                {t("tasks.review.decisionSectionTitle")}
               </Typography>
               <Divider sx={{ mb: 2 }} />
 
               {confirmedDecision ? (
                 <Alert severity="success" sx={{ mb: 2 }}>
                   {confirmedDecision.decision
-                    ? DECISION_LABEL[confirmedDecision.decision.decision]
-                    : "Decisão confirmada pela API"}
-                  {confirmedDecision.idempotentReplay ? " (confirmação idempotente)" : ""}.
+                    ? t(DECISION_LABEL_KEY[confirmedDecision.decision.decision])
+                    : t("tasks.review.decisionSaved")}
+                  {confirmedDecision.idempotentReplay
+                    ? t("tasks.review.alreadyRecordedSuffix")
+                    : ""}
+                  .
                 </Alert>
               ) : null}
 
@@ -598,7 +598,7 @@ export function TaskReviewPage() {
                 <Stack spacing={2}>
                   <TextField
                     id="task-decision-comment"
-                    label="Comentário da revisão"
+                    label={t("tasks.review.commentLabel")}
                     multiline
                     minRows={3}
                     maxRows={6}
@@ -615,8 +615,8 @@ export function TaskReviewPage() {
                     helperText={
                       commentValidationError ??
                       (task.commentRules.requireOnApprove
-                        ? "Comentário obrigatório para aprovar, rejeitar ou solicitar ajustes."
-                        : "Comentário obrigatório ao rejeitar ou solicitar ajustes (opcional ao aprovar).")
+                        ? t("tasks.review.commentRequiredOnApproveHelper")
+                        : t("tasks.review.commentOptionalOnApproveHelper"))
                     }
                     slotProps={{
                       htmlInput: {
@@ -635,8 +635,8 @@ export function TaskReviewPage() {
                       onClick={() => void handleSubmitDecision("APPROVE")}
                     >
                       {isSubmitting && pendingAction === "APPROVE"
-                        ? "Enviando aprovação..."
-                        : "Aprovar"}
+                        ? t("tasks.review.actions.approving")
+                        : t("tasks.review.actions.approve")}
                     </Button>
 
                     <Button
@@ -648,8 +648,8 @@ export function TaskReviewPage() {
                       onClick={() => void handleSubmitDecision("REQUEST_CHANGES")}
                     >
                       {isSubmitting && pendingAction === "REQUEST_CHANGES"
-                        ? "Enviando solicitação..."
-                        : "Solicitar ajustes"}
+                        ? t("tasks.review.actions.requestingChanges")
+                        : t("tasks.review.actions.requestChanges")}
                     </Button>
 
                     <Button
@@ -661,16 +661,20 @@ export function TaskReviewPage() {
                       onClick={() => void handleSubmitDecision("REJECT")}
                     >
                       {isSubmitting && pendingAction === "REJECT"
-                        ? "Enviando rejeição..."
-                        : "Rejeitar"}
+                        ? t("tasks.review.actions.rejecting")
+                        : t("tasks.review.actions.reject")}
                     </Button>
                   </Stack>
                 </Stack>
               ) : (
                 <Alert severity="info">
-                  Esta tarefa já foi concluída com o status <strong>{taskBadge.label}</strong>
-                  {task.decidedAt ? ` em ${formatDateTimePtBr(task.decidedAt)}` : ""}. Nenhuma nova
-                  decisão pode ser enviada.
+                  {t("tasks.review.completedPrefix")} <strong>{t(taskBadge.key)}</strong>
+                  {task.decidedAt
+                    ? ` ${t("tasks.review.completedAt", {
+                        date: formatDateTime(task.decidedAt),
+                      })}`
+                    : ""}
+                  {t("tasks.review.completedSuffix")}
                 </Alert>
               )}
             </Paper>
@@ -679,14 +683,14 @@ export function TaskReviewPage() {
               variant="outlined"
               sx={{
                 p: 2.5,
-                bgcolor: DOCUFLOW_COLOR_TOKENS.surface.containerLowest,
-                borderColor: DOCUFLOW_COLOR_TOKENS.surface.outlineVariant,
+                bgcolor: PAPYRUS_COLOR_TOKENS.surface.containerLowest,
+                borderColor: PAPYRUS_COLOR_TOKENS.surface.outlineVariant,
               }}
             >
               <Stack direction="row" spacing={1} alignItems="center" mb={1}>
                 <HistoryOutlinedIcon color="action" fontSize="small" />
                 <Typography variant="h6" component="h2">
-                  Histórico da tarefa e versões
+                  {t("tasks.review.historyTitle")}
                 </Typography>
               </Stack>
               <Divider sx={{ mb: 1.5 }} />
@@ -694,9 +698,15 @@ export function TaskReviewPage() {
               <List dense disablePadding>
                 <ListItem divider disableGutters>
                   <ListItemText
-                    primary={`Tarefa atribuída (${task.stepName})`}
-                    secondary={`Criada em ${formatDateTimePtBr(task.createdAt)}${
-                      task.dueAt ? ` · Prazo: ${formatDateTimePtBr(task.dueAt)}` : ""
+                    primary={t("tasks.review.historyAssigned", { stepName: task.stepName })}
+                    secondary={`${t("tasks.review.historyCreatedAt", {
+                      date: formatDateTime(task.createdAt, t("tasks.review.notProvided")),
+                    })}${
+                      task.dueAt
+                        ? t("tasks.review.historyDueAt", {
+                            date: formatDateTime(task.dueAt),
+                          })
+                        : ""
                     }`}
                   />
                 </ListItem>
@@ -704,10 +714,14 @@ export function TaskReviewPage() {
                 {task.decidedAt ? (
                   <ListItem divider disableGutters>
                     <ListItemText
-                      primary={`Estado final: ${taskBadge.label}`}
-                      secondary={`Confirmado em ${formatDateTimePtBr(task.decidedAt)}${
+                      primary={t("tasks.review.historyFinalState", { status: t(taskBadge.key) })}
+                      secondary={`${t("tasks.review.historyConfirmedAt", {
+                        date: formatDateTime(task.decidedAt),
+                      })}${
                         confirmedDecision?.decision?.comment
-                          ? ` · Comentário: "${confirmedDecision.decision.comment}"`
+                          ? t("tasks.review.historyComment", {
+                              comment: confirmedDecision.decision.comment,
+                            })
                           : ""
                       }`}
                     />
@@ -722,14 +736,18 @@ export function TaskReviewPage() {
                         primary={
                           <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
                             <Typography variant="body2" fontWeight={isBoundVersion ? 600 : 500}>
-                              Versão v{version.versionNumber}
+                              {t("tasks.review.versionChip", { version: version.versionNumber })}
                             </Typography>
                             {isBoundVersion ? (
-                              <Chip label="Avaliada nesta tarefa" color="primary" size="small" />
+                              <Chip
+                                label={t("tasks.review.historyEvaluatedBadge")}
+                                color="primary"
+                                size="small"
+                              />
                             ) : null}
                           </Stack>
                         }
-                        secondary={`${version.uploadedByUser.fullName} · ${formatDateTimePtBr(
+                        secondary={`${version.uploadedByUser.fullName} · ${formatDateTime(
                           version.createdAt,
                         )}${version.changeNote ? ` · ${version.changeNote}` : ""}`}
                       />

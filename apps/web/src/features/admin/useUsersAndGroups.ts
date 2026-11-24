@@ -8,7 +8,6 @@ import {
   type UpdateUserRequest,
   type UserSummary,
   addGroupMemberRequestSchema,
-  apiErrorResponseSchema,
   createGroupRequestSchema,
   createUserRequestSchema,
   groupListResponseSchema,
@@ -18,6 +17,8 @@ import {
   userResponseSchema,
 } from "@docuflow/contracts";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { extractUserErrorMessage } from "../../i18n/api-errors.js";
+import { type MessageKey, translate } from "../../i18n/index.js";
 
 const CSRF_COOKIE_NAME = "docuflow_csrf";
 const CSRF_HEADER_NAME = "x-csrf-token";
@@ -93,21 +94,10 @@ async function resolveCsrfToken(): Promise<string> {
 
 async function parseErrorResponse(
   response: Response,
-  fallbackMessage: string,
+  fallbackKey: MessageKey,
 ): Promise<AdminDirectoryFetchError> {
-  try {
-    const rawJson: unknown = await response.json();
-    const parsed = apiErrorResponseSchema.safeParse(rawJson);
-    if (parsed.success) {
-      return new AdminDirectoryFetchError(response.status, parsed.data.error.message);
-    }
-  } catch {
-    // Non-JSON error response
-  }
-  return new AdminDirectoryFetchError(
-    response.status,
-    `${fallbackMessage} (HTTP ${response.status}).`,
-  );
+  const message = await extractUserErrorMessage(response, fallbackKey);
+  return new AdminDirectoryFetchError(response.status, message);
 }
 
 export async function fetchAdminUsers(): Promise<readonly UserSummary[]> {
@@ -117,12 +107,12 @@ export async function fetchAdminUsers(): Promise<readonly UserSummary[]> {
     headers: { Accept: "application/json" },
   });
   if (!response.ok) {
-    throw await parseErrorResponse(response, "Falha ao carregar usuários");
+    throw await parseErrorResponse(response, "admin.users.errors.loadFailed");
   }
   const rawJson: unknown = await response.json();
   const parsed = userListResponseSchema.safeParse(rawJson);
   if (!parsed.success) {
-    throw new AdminDirectoryFetchError(500, "Resposta inválida recebida ao listar usuários.");
+    throw new AdminDirectoryFetchError(500, translate("common.errors.unexpectedResponse"));
   }
   return parsed.data.data;
 }
@@ -142,12 +132,12 @@ export async function createAdminUser(payload: CreateUserRequest): Promise<UserS
     body: JSON.stringify(validated),
   });
   if (!response.ok) {
-    throw await parseErrorResponse(response, "Falha ao criar usuário");
+    throw await parseErrorResponse(response, "admin.users.errors.createFailed");
   }
   const rawJson: unknown = await response.json();
   const parsed = userItemResponseSchema.safeParse(rawJson);
   if (!parsed.success) {
-    throw new AdminDirectoryFetchError(500, "Resposta inválida recebida ao criar usuário.");
+    throw new AdminDirectoryFetchError(500, translate("common.errors.unexpectedResponse"));
   }
   return parsed.data.data;
 }
@@ -170,12 +160,12 @@ export async function updateAdminUser(
     body: JSON.stringify(validated),
   });
   if (!response.ok) {
-    throw await parseErrorResponse(response, "Falha ao atualizar usuário");
+    throw await parseErrorResponse(response, "admin.users.errors.updateFailed");
   }
   const rawJson: unknown = await response.json();
   const parsed = userItemResponseSchema.safeParse(rawJson);
   if (!parsed.success) {
-    throw new AdminDirectoryFetchError(500, "Resposta inválida recebida ao atualizar usuário.");
+    throw new AdminDirectoryFetchError(500, translate("common.errors.unexpectedResponse"));
   }
   return parsed.data.data;
 }
@@ -195,15 +185,12 @@ export async function toggleAdminUserStatus(
     },
   });
   if (!response.ok) {
-    throw await parseErrorResponse(
-      response,
-      action === "deactivate" ? "Falha ao desativar usuário" : "Falha ao reativar usuário",
-    );
+    throw await parseErrorResponse(response, "admin.users.errors.toggleFailed");
   }
   const rawJson: unknown = await response.json();
   const parsed = userItemResponseSchema.safeParse(rawJson);
   if (!parsed.success) {
-    throw new AdminDirectoryFetchError(500, "Resposta inválida recebida ao alterar status.");
+    throw new AdminDirectoryFetchError(500, translate("common.errors.unexpectedResponse"));
   }
   return parsed.data.data;
 }
@@ -215,12 +202,12 @@ export async function fetchAdminGroups(): Promise<readonly GroupSummary[]> {
     headers: { Accept: "application/json" },
   });
   if (!response.ok) {
-    throw await parseErrorResponse(response, "Falha ao carregar grupos");
+    throw await parseErrorResponse(response, "admin.groups.errors.loadFailed");
   }
   const rawJson: unknown = await response.json();
   const parsed = groupListResponseSchema.safeParse(rawJson);
   if (!parsed.success) {
-    throw new AdminDirectoryFetchError(500, "Resposta inválida recebida ao listar grupos.");
+    throw new AdminDirectoryFetchError(500, translate("common.errors.unexpectedResponse"));
   }
   return parsed.data.data;
 }
@@ -240,12 +227,12 @@ export async function createAdminGroup(payload: CreateGroupRequest): Promise<Gro
     body: JSON.stringify(validated),
   });
   if (!response.ok) {
-    throw await parseErrorResponse(response, "Falha ao criar grupo");
+    throw await parseErrorResponse(response, "admin.groups.errors.createFailed");
   }
   const rawJson: unknown = await response.json();
   const parsed = groupItemResponseSchema.safeParse(rawJson);
   if (!parsed.success) {
-    throw new AdminDirectoryFetchError(500, "Resposta inválida recebida ao criar grupo.");
+    throw new AdminDirectoryFetchError(500, translate("common.errors.unexpectedResponse"));
   }
   return parsed.data.data;
 }
@@ -257,12 +244,12 @@ export async function fetchGroupMembers(groupId: string): Promise<readonly UserS
     headers: { Accept: "application/json" },
   });
   if (!response.ok) {
-    throw await parseErrorResponse(response, "Falha ao carregar membros do grupo");
+    throw await parseErrorResponse(response, "admin.groups.errors.loadMembersFailed");
   }
   const rawJson: unknown = await response.json();
   const parsed = groupMemberListResponseSchema.safeParse(rawJson);
   if (!parsed.success) {
-    throw new AdminDirectoryFetchError(500, "Resposta inválida recebida dos membros do grupo.");
+    throw new AdminDirectoryFetchError(500, translate("common.errors.unexpectedResponse"));
   }
   return parsed.data.data;
 }
@@ -285,7 +272,7 @@ export async function addGroupMember(
     body: JSON.stringify(validated),
   });
   if (!response.ok) {
-    throw await parseErrorResponse(response, "Falha ao associar membro ao grupo");
+    throw await parseErrorResponse(response, "admin.groups.errors.addMemberFailed");
   }
 }
 
@@ -304,7 +291,7 @@ export async function removeGroupMember(groupId: string, userId: string): Promis
     },
   );
   if (!response.ok) {
-    throw await parseErrorResponse(response, "Falha ao remover membro do grupo");
+    throw await parseErrorResponse(response, "admin.groups.errors.removeMemberFailed");
   }
 }
 

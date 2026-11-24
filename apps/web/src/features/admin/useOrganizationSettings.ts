@@ -2,11 +2,12 @@ import {
   CONTRACTS_API_PREFIX,
   type OrganizationSettingsViewContract,
   type UpdateOrganizationSettingsRequest,
-  apiErrorResponseSchema,
   organizationSettingsResponseSchema,
   updateOrganizationSettingsRequestSchema,
 } from "@docuflow/contracts";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { extractUserErrorMessage } from "../../i18n/api-errors.js";
+import { type MessageKey, translate } from "../../i18n/index.js";
 
 const CSRF_COOKIE_NAME = "docuflow_csrf";
 const CSRF_HEADER_NAME = "x-csrf-token";
@@ -57,21 +58,10 @@ async function resolveCsrfToken(): Promise<string> {
 
 async function parseErrorResponse(
   response: Response,
-  fallbackMessage: string,
+  fallbackKey: MessageKey,
 ): Promise<OrganizationSettingsFetchError> {
-  try {
-    const rawJson: unknown = await response.json();
-    const parsed = apiErrorResponseSchema.safeParse(rawJson);
-    if (parsed.success) {
-      return new OrganizationSettingsFetchError(response.status, parsed.data.error.message);
-    }
-  } catch {
-    // Non-JSON response fallback
-  }
-  return new OrganizationSettingsFetchError(
-    response.status,
-    `${fallbackMessage} (HTTP ${response.status}).`,
-  );
+  const message = await extractUserErrorMessage(response, fallbackKey);
+  return new OrganizationSettingsFetchError(response.status, message);
 }
 
 export async function fetchOrganizationSettings(): Promise<OrganizationSettingsViewContract> {
@@ -82,19 +72,13 @@ export async function fetchOrganizationSettings(): Promise<OrganizationSettingsV
   });
 
   if (!response.ok) {
-    throw await parseErrorResponse(
-      response,
-      "Não foi possível carregar as configurações da organização",
-    );
+    throw await parseErrorResponse(response, "admin.organization.errors.loadFailed");
   }
 
   const rawJson: unknown = await response.json();
   const parsed = organizationSettingsResponseSchema.safeParse(rawJson);
   if (!parsed.success) {
-    throw new OrganizationSettingsFetchError(
-      500,
-      "Resposta inválida recebida ao consultar organização.",
-    );
+    throw new OrganizationSettingsFetchError(500, translate("common.errors.unexpectedResponse"));
   }
 
   return parsed.data.data;
@@ -118,19 +102,13 @@ export async function updateOrganizationSettings(
   });
 
   if (!response.ok) {
-    throw await parseErrorResponse(
-      response,
-      "Não foi possível atualizar as configurações da organização",
-    );
+    throw await parseErrorResponse(response, "admin.organization.errors.saveFailed");
   }
 
   const rawJson: unknown = await response.json();
   const parsed = organizationSettingsResponseSchema.safeParse(rawJson);
   if (!parsed.success) {
-    throw new OrganizationSettingsFetchError(
-      500,
-      "Resposta inválida recebida ao salvar organização.",
-    );
+    throw new OrganizationSettingsFetchError(500, translate("common.errors.unexpectedResponse"));
   }
 
   return parsed.data.data;

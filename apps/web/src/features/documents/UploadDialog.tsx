@@ -4,7 +4,7 @@ import {
   type DocumentMetadataValue,
   categoryFieldListResponseSchema,
 } from "@docuflow/contracts";
-import { DOCUFLOW_COLOR_TOKENS } from "@docuflow/ui";
+import { PAPYRUS_COLOR_TOKENS } from "@docuflow/ui";
 import CancelOutlinedIcon from "@mui/icons-material/CancelOutlined";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
 import CloseOutlinedIcon from "@mui/icons-material/CloseOutlined";
@@ -55,6 +55,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { type UiLocale, translate, useI18n } from "../../i18n/index.js";
 import { buildFolderTreeOptions } from "../folders/folderTree.js";
 import {
   getFileProcessingDescriptor,
@@ -64,7 +65,6 @@ import {
   type BinaryUploadExecutor,
   type UploadMetadataFormValues,
   type UploadQueueItem,
-  formatBytesPtBr,
   useUploadDocuments,
 } from "./useUploadDocuments.js";
 
@@ -114,11 +114,13 @@ function validateUploadCategoryFields(params: {
   readonly textValues: Readonly<Record<string, string>>;
   readonly booleanValues: Readonly<Record<string, boolean>>;
   readonly multiValues: Readonly<Record<string, readonly string[]>>;
+  readonly locale: UiLocale;
 }): {
   readonly valid: boolean;
   readonly fieldErrors: Record<string, string>;
   readonly normalizedMetadata: Record<string, DocumentMetadataValue>;
 } {
+  const { locale } = params;
   const fieldErrors: Record<string, string> = {};
   const normalizedMetadata: Record<string, DocumentMetadataValue> = {};
 
@@ -128,7 +130,11 @@ function validateUploadCategoryFields(params: {
         const value = (params.textValues[field.key] ?? "").trim();
         if (value.length === 0) {
           if (field.required) {
-            fieldErrors[field.key] = "Campo obrigatório não informado.";
+            fieldErrors[field.key] = translate(
+              "documents.validation.requiredField",
+              undefined,
+              locale,
+            );
           } else {
             normalizedMetadata[field.key] = null;
           }
@@ -141,7 +147,11 @@ function validateUploadCategoryFields(params: {
         const raw = (params.textValues[field.key] ?? "").trim();
         if (raw.length === 0) {
           if (field.required) {
-            fieldErrors[field.key] = "Campo obrigatório não informado.";
+            fieldErrors[field.key] = translate(
+              "documents.validation.requiredField",
+              undefined,
+              locale,
+            );
           } else {
             normalizedMetadata[field.key] = null;
           }
@@ -150,7 +160,11 @@ function validateUploadCategoryFields(params: {
             raw.includes(",") && !raw.includes(".") ? raw.replace(",", ".") : raw;
           const num = Number(normalizedNumeric);
           if (!Number.isFinite(num)) {
-            fieldErrors[field.key] = "Deve ser um número válido.";
+            fieldErrors[field.key] = translate(
+              "documents.validation.invalidNumber",
+              undefined,
+              locale,
+            );
           } else {
             normalizedMetadata[field.key] = num;
           }
@@ -161,12 +175,16 @@ function validateUploadCategoryFields(params: {
         const raw = (params.textValues[field.key] ?? "").trim();
         if (raw.length === 0) {
           if (field.required) {
-            fieldErrors[field.key] = "Campo obrigatório não informado.";
+            fieldErrors[field.key] = translate(
+              "documents.validation.requiredField",
+              undefined,
+              locale,
+            );
           } else {
             normalizedMetadata[field.key] = null;
           }
         } else if (!isValidIsoDateString(raw)) {
-          fieldErrors[field.key] = "Informe uma data válida no formato AAAA-MM-DD.";
+          fieldErrors[field.key] = translate("documents.validation.invalidDate", undefined, locale);
         } else {
           normalizedMetadata[field.key] = raw;
         }
@@ -181,12 +199,20 @@ function validateUploadCategoryFields(params: {
         const allowed = field.options ?? [];
         if (raw.length === 0) {
           if (field.required) {
-            fieldErrors[field.key] = "Selecione uma opção obrigatória.";
+            fieldErrors[field.key] = translate(
+              "documents.validation.selectRequiredOption",
+              undefined,
+              locale,
+            );
           } else {
             normalizedMetadata[field.key] = null;
           }
         } else if (!allowed.includes(raw)) {
-          fieldErrors[field.key] = "Opção selecionada não é permitida.";
+          fieldErrors[field.key] = translate(
+            "documents.validation.optionNotAllowed",
+            undefined,
+            locale,
+          );
         } else {
           normalizedMetadata[field.key] = raw;
         }
@@ -196,9 +222,17 @@ function validateUploadCategoryFields(params: {
         const selected = params.multiValues[field.key] ?? [];
         const allowed = field.options ?? [];
         if (field.required && selected.length === 0) {
-          fieldErrors[field.key] = "Selecione ao menos uma opção.";
+          fieldErrors[field.key] = translate(
+            "documents.validation.selectAtLeastOneOption",
+            undefined,
+            locale,
+          );
         } else if (selected.some((item) => !allowed.includes(item))) {
-          fieldErrors[field.key] = "Contém opção não permitida.";
+          fieldErrors[field.key] = translate(
+            "documents.validation.containsDisallowedOption",
+            undefined,
+            locale,
+          );
         } else {
           normalizedMetadata[field.key] = [...selected];
         }
@@ -214,7 +248,10 @@ function validateUploadCategoryFields(params: {
   };
 }
 
-function getStatusChipProps(status: UploadQueueItem["status"]): {
+function getStatusChipProps(
+  status: UploadQueueItem["status"],
+  locale: UiLocale,
+): {
   readonly label: string;
   readonly color: "default" | "primary" | "info" | "success" | "warning" | "error";
   readonly icon: React.ReactElement;
@@ -222,30 +259,30 @@ function getStatusChipProps(status: UploadQueueItem["status"]): {
   switch (status) {
     case "READY":
       return {
-        label: "Pronto para envio",
+        label: translate("documents.upload.status.ready", undefined, locale),
         color: "default",
         icon: <InsertDriveFileOutlinedIcon fontSize="small" />,
       };
     case "CREATING_SESSION":
       return {
-        label: "Preparando envio",
+        label: translate("documents.upload.status.creatingSession", undefined, locale),
         color: "info",
         icon: <HourglassEmptyOutlinedIcon fontSize="small" />,
       };
     case "UPLOADING":
       return {
-        label: "Enviando",
+        label: translate("documents.upload.status.uploading", undefined, locale),
         color: "primary",
         icon: <CloudUploadOutlinedIcon fontSize="small" />,
       };
     case "FINALIZING":
       return {
-        label: "Confirmando envio",
+        label: translate("documents.upload.status.finalizing", undefined, locale),
         color: "info",
         icon: <HourglassEmptyOutlinedIcon fontSize="small" />,
       };
     case "QUARANTINED": {
-      const descriptor = getFileProcessingDescriptor("QUARANTINED");
+      const descriptor = getFileProcessingDescriptor("QUARANTINED", locale);
       return {
         label: descriptor.label,
         color: descriptor.chipColor,
@@ -253,7 +290,7 @@ function getStatusChipProps(status: UploadQueueItem["status"]): {
       };
     }
     case "AVAILABLE": {
-      const descriptor = getFileProcessingDescriptor("AVAILABLE");
+      const descriptor = getFileProcessingDescriptor("AVAILABLE", locale);
       return {
         label: descriptor.label,
         color: descriptor.chipColor,
@@ -261,7 +298,7 @@ function getStatusChipProps(status: UploadQueueItem["status"]): {
       };
     }
     case "REJECTED": {
-      const descriptor = getFileProcessingDescriptor("REJECTED");
+      const descriptor = getFileProcessingDescriptor("REJECTED", locale);
       return {
         label: descriptor.label,
         color: descriptor.chipColor,
@@ -270,13 +307,13 @@ function getStatusChipProps(status: UploadQueueItem["status"]): {
     }
     case "CANCELLED":
       return {
-        label: "Cancelado",
+        label: translate("documents.upload.status.cancelled", undefined, locale),
         color: "default",
         icon: <CancelOutlinedIcon fontSize="small" />,
       };
     case "ERROR":
       return {
-        label: "Falha no envio",
+        label: translate("documents.upload.status.error", undefined, locale),
         color: "error",
         icon: <ErrorOutlineIcon fontSize="small" />,
       };
@@ -297,6 +334,7 @@ export function UploadDialog({
   fetchFn,
   onUploadBatchFinished,
 }: UploadDialogProps) {
+  const { locale, t, formatBytes } = useI18n();
   const titleId = useId();
   const descriptionId = useId();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -329,7 +367,10 @@ export function UploadDialog({
     [categoryFields],
   );
 
-  const folderTreeOptions = useMemo(() => buildFolderTreeOptions(folders), [folders]);
+  const folderTreeOptions = useMemo(
+    () => buildFolderTreeOptions(folders, locale),
+    [folders, locale],
+  );
   const folderById = useMemo(
     () => new Map(folderTreeOptions.map((item) => [item.id, item])),
     [folderTreeOptions],
@@ -381,7 +422,7 @@ export function UploadDialog({
         if (!response.ok) {
           setCategoryFields([]);
           setCategoryFieldsError(
-            "Não foi possível carregar os campos personalizados da categoria.",
+            translate("documents.upload.categoryFieldsError", undefined, locale),
           );
           return;
         }
@@ -392,7 +433,9 @@ export function UploadDialog({
         const parsed = categoryFieldListResponseSchema.safeParse(rawJson);
         if (!parsed.success) {
           setCategoryFields([]);
-          setCategoryFieldsError("Resposta inválida ao carregar os campos da categoria.");
+          setCategoryFieldsError(
+            translate("documents.upload.categoryFieldsInvalid", undefined, locale),
+          );
           return;
         }
         setCategoryFields(parsed.data.data);
@@ -414,7 +457,7 @@ export function UploadDialog({
     return () => {
       controller.abort();
     };
-  }, [open, shouldLoadCategoryFields, categoryId, selectedCategory?.fields, fetchImpl]);
+  }, [open, shouldLoadCategoryFields, categoryId, selectedCategory?.fields, fetchImpl, locale]);
 
   const {
     items,
@@ -451,12 +494,12 @@ export function UploadDialog({
     setCategoryError(null);
 
     if (categories.length > 0 && categoryId.trim().length === 0) {
-      setCategoryError("Selecione uma categoria documental antes de enviar.");
+      setCategoryError(t("documents.upload.selectCategoryRequired"));
       return null;
     }
 
     if (loadingCategoryFields) {
-      setFormError("Aguarde o carregamento dos campos personalizados da categoria.");
+      setFormError(t("documents.upload.waitForCategoryFields"));
       return null;
     }
 
@@ -465,11 +508,12 @@ export function UploadDialog({
       textValues: customTextValues,
       booleanValues: customBooleanValues,
       multiValues: customMultiValues,
+      locale,
     });
 
     if (!customValidation.valid) {
       setCustomFieldErrors(customValidation.fieldErrors);
-      setFormError("Preencha corretamente os campos personalizados obrigatórios da categoria.");
+      setFormError(t("documents.upload.fixCustomFields"));
       return null;
     }
 
@@ -519,7 +563,7 @@ export function UploadDialog({
       return;
     }
     if (summary.ready === 0) {
-      setFormError("Selecione ao menos um arquivo válido para iniciar o envio.");
+      setFormError(t("documents.upload.selectValidFile"));
       return;
     }
     await startBatchUpload(validatedMetadata);
@@ -566,8 +610,12 @@ export function UploadDialog({
           pb: 1,
         }}
       >
-        <span>Enviar documentos</span>
-        <IconButton aria-label="Fechar janela de envio" onClick={handleDialogClose} size="small">
+        <span>{t("documents.upload.dialogTitle")}</span>
+        <IconButton
+          aria-label={t("documents.upload.closeAria")}
+          onClick={handleDialogClose}
+          size="small"
+        >
           <CloseOutlinedIcon fontSize="small" />
         </IconButton>
       </DialogTitle>
@@ -576,21 +624,22 @@ export function UploadDialog({
         <DialogContent dividers sx={{ pt: 2 }}>
           <Stack spacing={2.5}>
             <Typography id={descriptionId} variant="body2" color="text.secondary">
-              Selecione um ou mais arquivos (até {formatBytesPtBr(resolvedMaxFileBytes)} por item),
-              preencha os metadados iniciais e acompanhe o envio individualmente.
+              {t("documents.upload.description", {
+                maxSize: formatBytes(resolvedMaxFileBytes),
+              })}
             </Typography>
 
             <Paper
               variant="outlined"
               sx={{
                 p: 2,
-                bgcolor: DOCUFLOW_COLOR_TOKENS.surface.containerLow,
-                borderColor: DOCUFLOW_COLOR_TOKENS.surface.outlineVariant,
+                bgcolor: PAPYRUS_COLOR_TOKENS.surface.containerLow,
+                borderColor: PAPYRUS_COLOR_TOKENS.surface.outlineVariant,
               }}
             >
               <Stack spacing={2}>
                 <Typography variant="subtitle1" component="h2">
-                  Metadados iniciais
+                  {t("documents.upload.detailsHeading")}
                 </Typography>
 
                 <Box
@@ -601,21 +650,21 @@ export function UploadDialog({
                   }}
                 >
                   <TextField
-                    label="Título do documento"
+                    label={t("documents.form.titleLabel")}
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
                     disabled={summary.isUploading}
                     helperText={
                       items.length > 1
-                        ? "Opcional em lote: usado como prefixo ou mantém o nome de cada arquivo."
-                        : "Opcional: se vazio, utiliza o nome do arquivo selecionado."
+                        ? t("documents.upload.titleHelperBatch")
+                        : t("documents.upload.titleHelperSingle")
                     }
                     fullWidth
                   />
 
                   <TextField
                     select
-                    label="Categoria"
+                    label={t("documents.details.category")}
                     value={categoryId}
                     onChange={(e) => {
                       setCategoryId(e.target.value);
@@ -629,13 +678,24 @@ export function UploadDialog({
                     helperText={
                       categoryError ??
                       (categories.length === 0
-                        ? "Nenhuma categoria listada; será usada a rota padrão."
+                        ? t("documents.upload.noCategoriesHelper")
                         : undefined)
+                    }
+                    slotProps={
+                      categories.length === 0
+                        ? {
+                            inputLabel: { shrink: true },
+                            select: {
+                              displayEmpty: true,
+                              renderValue: () => t("documents.upload.defaultCategoryOption"),
+                            },
+                          }
+                        : undefined
                     }
                     fullWidth
                   >
                     {categories.length === 0 ? (
-                      <MenuItem value="">Rota padrão da organização</MenuItem>
+                      <MenuItem value="">{t("documents.upload.defaultCategoryOption")}</MenuItem>
                     ) : (
                       categories.map((cat) => (
                         <MenuItem key={cat.id} value={cat.id}>
@@ -647,7 +707,7 @@ export function UploadDialog({
 
                   <TextField
                     select
-                    label="Pasta de destino"
+                    label={t("documents.upload.destinationFolder")}
                     value={folderId}
                     onChange={(e) => setFolderId(e.target.value)}
                     disabled={summary.isUploading}
@@ -658,7 +718,7 @@ export function UploadDialog({
                         renderValue: (selected) => {
                           const value = typeof selected === "string" ? selected : "";
                           if (value.length === 0) {
-                            return "Raiz do acervo";
+                            return t("documents.common.libraryRoot");
                           }
                           return folderById.get(value)?.fullPath ?? "";
                         },
@@ -666,7 +726,7 @@ export function UploadDialog({
                     }}
                     fullWidth
                   >
-                    <MenuItem value="">Raiz do acervo</MenuItem>
+                    <MenuItem value="">{t("documents.common.libraryRoot")}</MenuItem>
                     {folderTreeOptions.map((folder) => (
                       <MenuItem
                         key={folder.id}
@@ -690,7 +750,7 @@ export function UploadDialog({
                   </TextField>
 
                   <TextField
-                    label="Data de vencimento"
+                    label={t("documents.upload.expirationDate")}
                     type="date"
                     value={expirationDate}
                     onChange={(e) => setExpirationDate(e.target.value)}
@@ -708,14 +768,14 @@ export function UploadDialog({
                     <Divider />
                     <Stack spacing={1.5}>
                       <Typography variant="subtitle2" component="h3">
-                        Campos personalizados da categoria
+                        {t("documents.upload.customFieldsHeading")}
                       </Typography>
 
                       {loadingCategoryFields ? (
                         <Stack direction="row" spacing={1} alignItems="center">
                           <CircularProgress size={16} />
                           <Typography variant="body2" color="text.secondary">
-                            Carregando campos da categoria...
+                            {t("documents.upload.loadingCategoryFields")}
                           </Typography>
                         </Stack>
                       ) : null}
@@ -860,7 +920,7 @@ export function UploadDialog({
                                       aria-describedby={errorMsg ? helperId : undefined}
                                     >
                                       <MenuItem value="">
-                                        <em>Selecione...</em>
+                                        <em>{t("documents.common.selectOption")}</em>
                                       </MenuItem>
                                       {(field.options ?? []).map((option) => (
                                         <MenuItem key={option} value={option}>
@@ -929,7 +989,7 @@ export function UploadDialog({
                 ) : null}
 
                 <TextField
-                  label="Observação da versão"
+                  label={t("documents.upload.versionNoteLabel")}
                   value={changeNote}
                   onChange={(e) => setChangeNote(e.target.value)}
                   disabled={summary.isUploading}
@@ -951,33 +1011,31 @@ export function UploadDialog({
                 textAlign: "center",
                 borderStyle: "dashed",
                 borderColor: isDragging
-                  ? DOCUFLOW_COLOR_TOKENS.primary.main
-                  : DOCUFLOW_COLOR_TOKENS.surface.outline,
+                  ? PAPYRUS_COLOR_TOKENS.primary.main
+                  : PAPYRUS_COLOR_TOKENS.surface.outline,
                 bgcolor: isDragging
-                  ? DOCUFLOW_COLOR_TOKENS.primary.container
-                  : DOCUFLOW_COLOR_TOKENS.surface.containerLowest,
+                  ? PAPYRUS_COLOR_TOKENS.primary.container
+                  : PAPYRUS_COLOR_TOKENS.surface.containerLowest,
               }}
             >
               <input
                 ref={fileInputRef}
                 type="file"
                 multiple
-                aria-label="Selecionar arquivos para envio"
+                aria-label={t("documents.upload.selectFilesAria")}
                 onChange={handleFileInputChange}
                 style={{ display: "none" }}
               />
               <Stack spacing={1} alignItems="center">
                 <CloudUploadOutlinedIcon color="primary" fontSize="large" />
-                <Typography variant="body1">
-                  Arraste e solte arquivos aqui ou selecione manualmente
-                </Typography>
+                <Typography variant="body1">{t("documents.upload.dropzonePrompt")}</Typography>
                 <Button
                   type="button"
                   variant="outlined"
                   onClick={() => fileInputRef.current?.click()}
                   disabled={summary.isUploading}
                 >
-                  Selecionar arquivos
+                  {t("documents.upload.selectFilesButton")}
                 </Button>
               </Stack>
             </Paper>
@@ -990,8 +1048,10 @@ export function UploadDialog({
 
             {showPartialBatchNotice ? (
               <Alert severity="warning" aria-live="polite">
-                {summary.succeeded} arquivo(s) enviado(s) e {summary.failed + summary.cancelled}{" "}
-                item(ns) não concluído(s). Revise ou tente novamente os itens pendentes.
+                {t("documents.upload.partialBatchNotice", {
+                  succeeded: summary.succeeded,
+                  incomplete: summary.failed + summary.cancelled,
+                })}
               </Alert>
             ) : null}
 
@@ -1005,18 +1065,18 @@ export function UploadDialog({
                   }}
                 >
                   <Typography variant="subtitle1" component="h2">
-                    Arquivos selecionados ({items.length})
+                    {t("documents.upload.selectedFilesHeading", { count: items.length })}
                   </Typography>
                   {!summary.isUploading ? (
                     <Button type="button" size="small" onClick={clearAll}>
-                      Limpar lista
+                      {t("documents.upload.clearList")}
                     </Button>
                   ) : null}
                 </Box>
 
-                <List disablePadding aria-label="Fila de arquivos para envio">
+                <List disablePadding aria-label={t("documents.upload.queueAriaLabel")}>
                   {items.map((item) => {
-                    const chip = getStatusChipProps(item.status);
+                    const chip = getStatusChipProps(item.status, locale);
                     const isActive =
                       item.status === "CREATING_SESSION" ||
                       item.status === "UPLOADING" ||
@@ -1044,9 +1104,11 @@ export function UploadDialog({
                               {item.file.name}
                             </Typography>
                             <Typography variant="caption" color="text.secondary">
-                              {formatBytesPtBr(item.file.size)}
+                              {formatBytes(item.file.size)}
                               {item.status === "UPLOADING"
-                                ? ` — ${item.progressPercent}% enviado`
+                                ? ` — ${t("documents.upload.percentUploaded", {
+                                    percent: item.progressPercent,
+                                  })}`
                                 : ""}
                             </Typography>
                           </Box>
@@ -1067,7 +1129,7 @@ export function UploadDialog({
                                 startIcon={<CancelOutlinedIcon fontSize="small" />}
                                 onClick={() => cancelItem(item.localId)}
                               >
-                                Cancelar {item.file.name}
+                                {t("documents.upload.cancelItem", { fileName: item.file.name })}
                               </Button>
                             ) : null}
 
@@ -1079,7 +1141,7 @@ export function UploadDialog({
                                 startIcon={<RefreshOutlinedIcon fontSize="small" />}
                                 onClick={() => void handleRetryItem(item.localId)}
                               >
-                                Tentar novamente {item.file.name}
+                                {t("documents.upload.retryItem", { fileName: item.file.name })}
                               </Button>
                             ) : null}
 
@@ -1087,7 +1149,9 @@ export function UploadDialog({
                               <IconButton
                                 type="button"
                                 size="small"
-                                aria-label={`Remover ${item.file.name}`}
+                                aria-label={t("documents.upload.removeItemAria", {
+                                  fileName: item.file.name,
+                                })}
                                 onClick={() => removeItem(item.localId)}
                               >
                                 <DeleteOutlineIcon fontSize="small" />
@@ -1100,14 +1164,16 @@ export function UploadDialog({
                           <LinearProgress
                             variant={item.status === "FINALIZING" ? "indeterminate" : "determinate"}
                             value={item.progressPercent}
-                            aria-label={`Progresso de envio de ${item.file.name}`}
+                            aria-label={t("documents.upload.progressAria", {
+                              fileName: item.file.name,
+                            })}
                           />
                         ) : null}
 
                         {item.errorMessage ? (
                           <Typography variant="caption" color="error" role="alert">
                             {item.status === "REJECTED"
-                              ? sanitizeUserFacingRejectionMessage(item.errorMessage)
+                              ? sanitizeUserFacingRejectionMessage(item.errorMessage, locale)
                               : item.errorMessage}
                           </Typography>
                         ) : null}
@@ -1123,12 +1189,14 @@ export function UploadDialog({
         <DialogActions sx={{ px: 3, py: 2, gap: 1 }}>
           {summary.isUploading ? (
             <Button type="button" color="warning" variant="outlined" onClick={cancelAll}>
-              Cancelar todos
+              {t("documents.upload.cancelAll")}
             </Button>
           ) : null}
 
           <Button type="button" onClick={handleDialogClose} color="inherit">
-            {summary.isUploading ? "Cancelar e fechar" : "Fechar"}
+            {summary.isUploading
+              ? t("documents.upload.cancelAndClose")
+              : t("documents.common.close")}
           </Button>
 
           <Button
@@ -1137,7 +1205,9 @@ export function UploadDialog({
             startIcon={<CloudUploadOutlinedIcon />}
             disabled={summary.isUploading || summary.ready === 0}
           >
-            {summary.isUploading ? "Enviando..." : `Iniciar envio (${summary.ready})`}
+            {summary.isUploading
+              ? t("documents.upload.uploadingButton")
+              : t("documents.upload.startUploadButton", { count: summary.ready })}
           </Button>
         </DialogActions>
       </Box>

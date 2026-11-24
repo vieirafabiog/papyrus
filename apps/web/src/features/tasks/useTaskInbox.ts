@@ -4,10 +4,11 @@ import {
   type TaskInboxListResponse,
   type TaskInboxQuery,
   type WorkflowTaskStatus,
-  apiErrorResponseSchema,
   taskInboxListResponseSchema,
 } from "@docuflow/contracts";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
+import { extractUserErrorMessage } from "../../i18n/api-errors.js";
+import { translate } from "../../i18n/index.js";
 
 export type TaskInboxSortField = NonNullable<TaskInboxQuery["sortBy"]>;
 export type TaskAssigneeFilterType = NonNullable<TaskInboxQuery["assigneeType"]>;
@@ -63,19 +64,6 @@ export function taskInboxListQueryKey(filters: TaskInboxFiltersState) {
 
 export const TASK_INBOX_COUNTS_QUERY_KEY = ["tasks", "inbox", "counts"] as const;
 
-async function parseTaskInboxErrorMessage(response: Response, fallback: string): Promise<string> {
-  try {
-    const raw: unknown = await response.json();
-    const parsed = apiErrorResponseSchema.safeParse(raw);
-    if (parsed.success) {
-      return parsed.data.error.message;
-    }
-  } catch {
-    // Fallback to HTTP status code when body is not JSON.
-  }
-  return `${fallback} (${response.status}).`;
-}
-
 async function fetchTasksEndpoint(
   params: URLSearchParams,
   signal?: AbortSignal,
@@ -88,15 +76,13 @@ async function fetchTasksEndpoint(
   });
 
   if (!response.ok) {
-    throw new Error(
-      await parseTaskInboxErrorMessage(response, "Não foi possível carregar suas tarefas"),
-    );
+    throw new Error(await extractUserErrorMessage(response, "tasks.errors.loadInbox"));
   }
 
   const rawJson: unknown = await response.json();
   const parsed = taskInboxListResponseSchema.safeParse(rawJson);
   if (!parsed.success) {
-    throw new Error("Resposta inválida recebida ao consultar a caixa de tarefas.");
+    throw new Error(translate("tasks.errors.invalidInboxResponse"));
   }
 
   return parsed.data;

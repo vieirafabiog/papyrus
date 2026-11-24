@@ -20,6 +20,7 @@ import { TagsPage } from "../features/tags/TagsPage.js";
 import { TaskInboxPage } from "../features/tasks/TaskInboxPage.js";
 import { TaskReviewPage } from "../features/tasks/TaskReviewPage.js";
 import { WorkflowsPage } from "../features/workflows/WorkflowsPage.js";
+import { useI18n } from "../i18n/index.js";
 import { AppShell } from "../layout/AppShell.js";
 import { RedirectIfAuthenticated, RequireAuth } from "./route-guards.js";
 
@@ -38,6 +39,16 @@ function PublicRouteView({ title, description }: PublicRouteViewProps) {
         {description}
       </Typography>
     </Box>
+  );
+}
+
+function ForgotPasswordRouteView() {
+  const { t } = useI18n();
+  return (
+    <PublicRouteView
+      title={t("auth.forgotPassword.title")}
+      description={t("auth.forgotPassword.description")}
+    />
   );
 }
 
@@ -65,15 +76,7 @@ export function AppRoutes() {
     <Routes>
       <Route element={<RedirectIfAuthenticated />}>
         <Route path="/login" element={<LoginPage />} />
-        <Route
-          path="/forgot-password"
-          element={
-            <PublicRouteView
-              title="Recuperação de senha"
-              description="Solicite um link seguro de redefinição ao administrador ou via e-mail configurado."
-            />
-          }
-        />
+        <Route path="/forgot-password" element={<ForgotPasswordRouteView />} />
         <Route
           path="/recuperar-senha"
           element={<LegacyRouteRedirect targetPrefix="/forgot-password" />}

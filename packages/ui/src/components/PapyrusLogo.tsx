@@ -1,4 +1,5 @@
 import { Box, Stack, Typography } from "@mui/material";
+import { useUiLocale } from "../locale.js";
 import { PAPYRUS_COLOR_TOKENS } from "../theme/tokens.js";
 
 export type PapyrusLogoVariant = "default" | "monochrome" | "inverse";
@@ -104,8 +105,10 @@ export function PapyrusLogo({
   size = "sm",
   variant = "default",
   showTagline = false,
-  tagline = "Gestão Eletrônica de Documentos",
+  tagline,
 }: PapyrusLogoProps) {
+  const { messages } = useUiLocale();
+  const resolvedTagline = tagline ?? messages.papyrusLogo.defaultTagline;
   const dimensions = SIZE_MAP[size];
   const wordmarkColor = variant === "inverse" ? "#FFFFFF" : PAPYRUS_COLOR_TOKENS.primary.main;
   const taglineColor =
@@ -138,7 +141,7 @@ export function PapyrusLogo({
               color: taglineColor,
             }}
           >
-            {tagline}
+            {resolvedTagline}
           </Typography>
         ) : null}
       </Box>

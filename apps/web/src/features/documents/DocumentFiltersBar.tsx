@@ -1,8 +1,9 @@
 import type { CategorySummaryRecord, DocumentStatus, FolderRecord } from "@docuflow/contracts";
-import { DOCUFLOW_COLOR_TOKENS, FilterBar, type FilterBarSelect } from "@docuflow/ui";
+import { FilterBar, type FilterBarSelect, PAPYRUS_COLOR_TOKENS } from "@docuflow/ui";
 import CloudUploadOutlinedIcon from "@mui/icons-material/CloudUploadOutlined";
 import DeleteSweepOutlinedIcon from "@mui/icons-material/DeleteSweepOutlined";
 import { Alert, Button, Paper, Stack, TextField, Typography } from "@mui/material";
+import { useI18n } from "../../i18n/index.js";
 import { buildFolderTreeOptions } from "../folders/folderTree.js";
 import {
   type DocumentListFiltersState,
@@ -10,16 +11,13 @@ import {
   isValidExpirationRange,
 } from "./useDocumentList.js";
 
-const DOCUMENT_STATUS_FILTER_OPTIONS: ReadonlyArray<{
-  readonly value: DocumentStatus;
-  readonly label: string;
-}> = [
-  { value: "DRAFT", label: "Rascunho" },
-  { value: "IN_REVIEW", label: "Em revisão" },
-  { value: "APPROVED", label: "Aprovado" },
-  { value: "REJECTED", label: "Rejeitado" },
-  { value: "ARCHIVED", label: "Arquivado" },
-  { value: "EXPIRED", label: "Expirado" },
+const DOCUMENT_STATUS_VALUES: readonly DocumentStatus[] = [
+  "DRAFT",
+  "IN_REVIEW",
+  "APPROVED",
+  "REJECTED",
+  "ARCHIVED",
+  "EXPIRED",
 ];
 
 export interface DocumentFiltersBarProps {
@@ -34,8 +32,8 @@ export interface DocumentFiltersBarProps {
 }
 
 /**
- * Document repository filter toolbar exposing search, category, folder, status,
- * owner, and expiration date range controls in pt-BR.
+ * Document library filter toolbar exposing search, category, folder, status,
+ * owner, and expiration date range controls.
  */
 export function DocumentFiltersBar({
   filters,
@@ -47,6 +45,8 @@ export function DocumentFiltersBar({
   onOpenUpload,
   onOpenTrash,
 }: DocumentFiltersBarProps) {
+  const { locale, t } = useI18n();
+
   const hasActiveFilters =
     filters.search.trim().length > 0 ||
     filters.categoryId.length > 0 ||
@@ -61,18 +61,18 @@ export function DocumentFiltersBar({
   const selectFilters: FilterBarSelect[] = [
     {
       id: "category",
-      label: "Categoria",
+      label: t("documents.filters.category"),
       value: filters.categoryId,
-      allOptionLabel: "Todas as categorias",
+      allOptionLabel: t("documents.filters.allCategories"),
       options: categories.map((cat) => ({ value: cat.id, label: cat.name })),
       onChange: (value) => onUpdateFilters({ categoryId: value, page: 1 }),
     },
     {
       id: "folder",
-      label: "Pasta",
+      label: t("documents.filters.folder"),
       value: filters.folderId,
-      allOptionLabel: "Todas as pastas",
-      options: buildFolderTreeOptions(folders).map((folder) => ({
+      allOptionLabel: t("documents.filters.allFolders"),
+      options: buildFolderTreeOptions(folders, locale).map((folder) => ({
         value: folder.id,
         label: folder.treeLabel,
       })),
@@ -80,10 +80,13 @@ export function DocumentFiltersBar({
     },
     {
       id: "status",
-      label: "Status",
+      label: t("documents.filters.status"),
       value: filters.status,
-      allOptionLabel: "Todos os status",
-      options: DOCUMENT_STATUS_FILTER_OPTIONS,
+      allOptionLabel: t("documents.filters.allStatuses"),
+      options: DOCUMENT_STATUS_VALUES.map((status) => ({
+        value: status,
+        label: t(`documents.status.${status}`),
+      })),
       onChange: (value) =>
         onUpdateFilters({
           status: value as DocumentStatus | "",
@@ -92,9 +95,9 @@ export function DocumentFiltersBar({
     },
     {
       id: "owner",
-      label: "Responsável",
+      label: t("documents.filters.owner"),
       value: filters.ownerUserId,
-      allOptionLabel: "Todos os responsáveis",
+      allOptionLabel: t("documents.filters.allOwners"),
       options: owners.map((owner) => ({ value: owner.id, label: owner.label })),
       onChange: (value) => onUpdateFilters({ ownerUserId: value, page: 1 }),
     },
@@ -105,8 +108,8 @@ export function DocumentFiltersBar({
       <FilterBar
         searchValue={filters.search}
         onSearchChange={(value) => onUpdateFilters({ search: value, page: 1 })}
-        searchLabel="Pesquisar documento"
-        searchPlaceholder="Título ou nome do arquivo..."
+        searchLabel={t("documents.filters.searchLabel")}
+        searchPlaceholder={t("documents.filters.searchPlaceholder")}
         filters={selectFilters}
         hasActiveFilters={hasActiveFilters}
         onClearFilters={onClearFilters}
@@ -118,7 +121,7 @@ export function DocumentFiltersBar({
                 startIcon={<DeleteSweepOutlinedIcon />}
                 onClick={onOpenTrash}
               >
-                Lixeira
+                {t("documents.filters.trashButton")}
               </Button>
             ) : null}
             <Button
@@ -126,7 +129,7 @@ export function DocumentFiltersBar({
               startIcon={<CloudUploadOutlinedIcon />}
               onClick={onOpenUpload}
             >
-              Enviar documentos
+              {t("documents.list.uploadAction")}
             </Button>
           </Stack>
         }
@@ -136,7 +139,7 @@ export function DocumentFiltersBar({
         sx={{
           px: 2,
           py: 1.5,
-          bgcolor: DOCUFLOW_COLOR_TOKENS.surface.containerLowest,
+          bgcolor: PAPYRUS_COLOR_TOKENS.surface.containerLowest,
         }}
       >
         <Stack
@@ -146,12 +149,12 @@ export function DocumentFiltersBar({
           flexWrap="wrap"
         >
           <Typography variant="body2" color="text.secondary" fontWeight={500}>
-            Vencimento:
+            {t("documents.filters.expirationLabel")}
           </Typography>
 
           <TextField
             type="date"
-            label="Vencimento a partir de"
+            label={t("documents.filters.expirationFrom")}
             size="small"
             value={filters.expirationFrom}
             onChange={(event) => onUpdateFilters({ expirationFrom: event.target.value, page: 1 })}
@@ -161,7 +164,7 @@ export function DocumentFiltersBar({
 
           <TextField
             type="date"
-            label="Vencimento até"
+            label={t("documents.filters.expirationTo")}
             size="small"
             value={filters.expirationTo}
             error={!isDateRangeValid}
@@ -173,7 +176,7 @@ export function DocumentFiltersBar({
 
         {!isDateRangeValid ? (
           <Alert severity="warning" role="alert" sx={{ mt: 1.5 }}>
-            A data final de vencimento deve ser maior ou igual à data inicial.
+            {t("documents.filters.invalidExpirationRange")}
           </Alert>
         ) : null}
       </Paper>

@@ -4,7 +4,7 @@ import type {
   ExpirationBucket,
   ExpirationState,
 } from "@docuflow/contracts";
-import { DOCUFLOW_COLOR_TOKENS, DataTable, type DataTableColumn } from "@docuflow/ui";
+import { DataTable, type DataTableColumn, PAPYRUS_COLOR_TOKENS } from "@docuflow/ui";
 import ClearOutlinedIcon from "@mui/icons-material/ClearOutlined";
 import EventAvailableOutlinedIcon from "@mui/icons-material/EventAvailableOutlined";
 import EventBusyOutlinedIcon from "@mui/icons-material/EventBusyOutlined";
@@ -32,6 +32,7 @@ import {
 } from "@mui/material";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { type MessageKey, useI18n } from "../../i18n/index.js";
 import {
   useDocumentListCategoriesQuery,
   useDocumentOwnersQuery,
@@ -43,65 +44,48 @@ import {
   useDocumentExpirationsQuery,
 } from "./useExpirations.js";
 
-const DOCUMENT_STATUS_LABEL: Readonly<Record<DocumentStatus, string>> = {
-  DRAFT: "Rascunho",
-  IN_REVIEW: "Em revisão",
-  APPROVED: "Aprovado",
-  REJECTED: "Rejeitado",
-  ARCHIVED: "Arquivado",
-  EXPIRED: "Expirado",
-  DELETED: "Excluído",
+const DOCUMENT_STATUS_KEY: Readonly<Record<DocumentStatus, MessageKey>> = {
+  DRAFT: "workflows.documentStatus.DRAFT",
+  IN_REVIEW: "workflows.documentStatus.IN_REVIEW",
+  APPROVED: "workflows.documentStatus.APPROVED",
+  REJECTED: "workflows.documentStatus.REJECTED",
+  ARCHIVED: "workflows.documentStatus.ARCHIVED",
+  EXPIRED: "workflows.documentStatus.EXPIRED",
+  DELETED: "workflows.documentStatus.DELETED",
 };
 
 const EXPIRATION_BADGE: Readonly<
   Record<
     ExpirationState,
-    { readonly label: string; readonly color: "error" | "warning" | "success" | "default" }
+    { readonly key: MessageKey; readonly color: "error" | "warning" | "success" | "default" }
   >
 > = {
-  EXPIRED: { label: "Vencido", color: "error" },
-  EXPIRING_SOON: { label: "Próximo do vencimento", color: "warning" },
-  UP_TO_DATE: { label: "Em dia", color: "success" },
-  NO_DATE: { label: "Sem data", color: "default" },
+  EXPIRED: { key: "expirations.page.badge.EXPIRED", color: "error" },
+  EXPIRING_SOON: { key: "expirations.page.badge.EXPIRING_SOON", color: "warning" },
+  UP_TO_DATE: { key: "expirations.page.badge.UP_TO_DATE", color: "success" },
+  NO_DATE: { key: "expirations.page.badge.NO_DATE", color: "default" },
 };
 
 const WINDOW_DAY_OPTIONS = [7, 15, 30, 60, 90] as const;
 const SERVER_SORTABLE_FIELDS = new Set<string>(["expirationDate", "title", "status", "updatedAt"]);
-const NUMBER_FORMATTER = new Intl.NumberFormat("pt-BR");
 
-function formatIsoDatePtBr(isoDate: string | null): string {
-  if (!isoDate) {
-    return "Sem data";
-  }
-  const [year, month, day] = isoDate.split("-");
-  if (!year || !month || !day) {
+function parseIsoCalendarDate(isoDate: string): Date | string {
+  const [yearRaw, monthRaw, dayRaw] = isoDate.split("-");
+  const year = Number(yearRaw);
+  const month = Number(monthRaw);
+  const day = Number(dayRaw);
+  if (!Number.isInteger(year) || !Number.isInteger(month) || !Number.isInteger(day)) {
     return isoDate;
   }
-  return `${day}/${month}/${year}`;
-}
-
-function formatExpirationDeltaLabel(item: DocumentExpirationItem): string {
-  if (item.daysUntilExpiration === null) {
-    return "Sem data definida";
-  }
-  if (item.daysUntilExpiration < 0) {
-    const overdueDays = Math.abs(item.daysUntilExpiration);
-    return overdueDays === 1 ? "Vencido há 1 dia" : `Vencido há ${overdueDays} dias`;
-  }
-  if (item.daysUntilExpiration === 0) {
-    return "Vence hoje";
-  }
-  if (item.daysUntilExpiration === 1) {
-    return "Vence em 1 dia";
-  }
-  return `Vence em ${item.daysUntilExpiration} dias`;
+  return new Date(year, month - 1, day);
 }
 
 /**
  * Authorized document expiration monitoring page filtering overdue, expiring-soon,
- * up-to-date, and undated documents in PostgreSQL according to the organization timezone.
+ * up-to-date, and undated documents according to the organization timezone.
  */
 export function ExpirationsPage() {
+  const { t, formatDate, formatNumber } = useI18n();
   const navigate = useNavigate();
   const [filters, setFilters] = useState<ExpirationsFiltersState>(DEFAULT_EXPIRATIONS_FILTERS);
 
@@ -121,6 +105,34 @@ export function ExpirationsPage() {
       ...DEFAULT_EXPIRATIONS_FILTERS,
       pageSize: prev.pageSize,
     }));
+  };
+
+  const formatIsoDate = (isoDate: string | null): string => {
+    if (!isoDate) {
+      return t("expirations.page.noDate");
+    }
+    return formatDate(parseIsoCalendarDate(isoDate), t("expirations.page.noDate"));
+  };
+
+  const formatExpirationDeltaLabel = (item: DocumentExpirationItem): string => {
+    if (item.daysUntilExpiration === null) {
+      return t("expirations.page.delta.noDate");
+    }
+    if (item.daysUntilExpiration < 0) {
+      const overdueDays = Math.abs(item.daysUntilExpiration);
+      return overdueDays === 1
+        ? t("expirations.page.delta.expiredSingular")
+        : t("expirations.page.delta.expiredPlural", { count: formatNumber(overdueDays) });
+    }
+    if (item.daysUntilExpiration === 0) {
+      return t("expirations.page.delta.expiresToday");
+    }
+    if (item.daysUntilExpiration === 1) {
+      return t("expirations.page.delta.expiresSingular");
+    }
+    return t("expirations.page.delta.expiresPlural", {
+      count: formatNumber(item.daysUntilExpiration),
+    });
   };
 
   const hasActiveFilters =
@@ -143,7 +155,7 @@ export function ExpirationsPage() {
   const columns: readonly DataTableColumn<DocumentExpirationItem>[] = [
     {
       id: "title",
-      label: "Documento",
+      label: t("expirations.page.columns.document"),
       sortable: true,
       render: (row) => (
         <Box>
@@ -158,21 +170,21 @@ export function ExpirationsPage() {
     },
     {
       id: "ownerName",
-      label: "Responsável",
+      label: t("expirations.page.columns.owner"),
       render: (row) => <Typography variant="body2">{row.ownerName ?? row.ownerUserId}</Typography>,
     },
     {
       id: "status",
-      label: "Status",
+      label: t("expirations.page.columns.status"),
       sortable: true,
       width: 140,
       render: (row) => (
-        <Chip size="small" variant="outlined" label={DOCUMENT_STATUS_LABEL[row.status]} />
+        <Chip size="small" variant="outlined" label={t(DOCUMENT_STATUS_KEY[row.status])} />
       ),
     },
     {
       id: "expirationDate",
-      label: "Data de vencimento",
+      label: t("expirations.page.columns.expirationDate"),
       sortable: true,
       width: 165,
       render: (row) => (
@@ -181,19 +193,19 @@ export function ExpirationsPage() {
           fontWeight={row.expirationState === "EXPIRED" ? 600 : 400}
           sx={{ fontVariantNumeric: "tabular-nums" }}
         >
-          {formatIsoDatePtBr(row.expirationDate)}
+          {formatIsoDate(row.expirationDate)}
         </Typography>
       ),
     },
     {
       id: "expirationSituation",
-      label: "Situação",
+      label: t("expirations.page.columns.situation"),
       width: 240,
       render: (row) => {
         const badge = EXPIRATION_BADGE[row.expirationState];
         return (
           <Stack spacing={0.5} alignItems="flex-start">
-            <Chip size="small" label={badge.label} color={badge.color} />
+            <Chip size="small" label={t(badge.key)} color={badge.color} />
             <Typography variant="caption" color="text.secondary">
               {formatExpirationDeltaLabel(row)}
             </Typography>
@@ -203,7 +215,7 @@ export function ExpirationsPage() {
     },
     {
       id: "actions",
-      label: "Ação",
+      label: t("expirations.page.columns.action"),
       align: "right",
       width: 145,
       render: (row) => (
@@ -216,7 +228,7 @@ export function ExpirationsPage() {
             navigate(`/documents/${encodeURIComponent(row.id)}`);
           }}
         >
-          Abrir
+          {t("expirations.page.actions.open")}
         </Button>
       ),
     },
@@ -233,10 +245,10 @@ export function ExpirationsPage() {
         <Box>
           <Stack direction="row" spacing={1} alignItems="center">
             <EventBusyOutlinedIcon color="primary" fontSize="small" />
-            <Typography variant="h1">Vencimentos</Typography>
+            <Typography variant="h1">{t("expirations.page.title")}</Typography>
           </Stack>
           <Typography variant="body2" color="text.secondary">
-            Acompanhamento de documentos vencidos, próximos do vencimento e sem data definida.
+            {t("expirations.page.subtitle")}
           </Typography>
         </Box>
 
@@ -246,7 +258,10 @@ export function ExpirationsPage() {
               size="small"
               variant="outlined"
               icon={<PublicOutlinedIcon fontSize="small" />}
-              label={`Fuso: ${data.timezone} • Data base: ${formatIsoDatePtBr(data.referenceDate)}`}
+              label={t("expirations.page.timezoneChip", {
+                timezone: data.timezone,
+                date: formatIsoDate(data.referenceDate),
+              })}
             />
           ) : null}
           <Button
@@ -256,12 +271,12 @@ export function ExpirationsPage() {
             disabled={expirationsQuery.isFetching}
             onClick={() => void expirationsQuery.refetch()}
           >
-            Atualizar
+            {t("expirations.page.refresh")}
           </Button>
         </Stack>
       </Stack>
 
-      <Paper sx={{ bgcolor: DOCUFLOW_COLOR_TOKENS.surface.containerLowest }}>
+      <Paper sx={{ bgcolor: PAPYRUS_COLOR_TOKENS.surface.containerLowest }}>
         <Tabs
           value={filters.bucket}
           onChange={(_event, nextValue: ExpirationBucket) =>
@@ -269,35 +284,45 @@ export function ExpirationsPage() {
           }
           variant="scrollable"
           scrollButtons="auto"
-          aria-label="Filtros por situação de vencimento"
+          aria-label={t("expirations.page.tabsAriaLabel")}
           sx={{ px: 2, borderBottom: 1, borderColor: "divider" }}
         >
           <Tab
             value="ALL"
             label={
-              totalTracked !== null ? `Todos (${NUMBER_FORMATTER.format(totalTracked)})` : "Todos"
+              totalTracked !== null
+                ? t("expirations.page.tabs.allWithCount", { count: formatNumber(totalTracked) })
+                : t("expirations.page.tabs.all")
             }
           />
           <Tab
             value="EXPIRED"
             label={
-              summary ? `Vencidos (${NUMBER_FORMATTER.format(summary.expiredCount)})` : "Vencidos"
+              summary
+                ? t("expirations.page.tabs.expiredWithCount", {
+                    count: formatNumber(summary.expiredCount),
+                  })
+                : t("expirations.page.tabs.expired")
             }
           />
           <Tab
             value="EXPIRING_SOON"
             label={
               summary
-                ? `Próximos (${NUMBER_FORMATTER.format(summary.expiringSoonCount)})`
-                : "Próximos"
+                ? t("expirations.page.tabs.soonWithCount", {
+                    count: formatNumber(summary.expiringSoonCount),
+                  })
+                : t("expirations.page.tabs.soon")
             }
           />
           <Tab
             value="NO_DATE"
             label={
               summary
-                ? `Sem data (${NUMBER_FORMATTER.format(summary.noExpirationCount)})`
-                : "Sem data"
+                ? t("expirations.page.tabs.noDateWithCount", {
+                    count: formatNumber(summary.noExpirationCount),
+                  })
+                : t("expirations.page.tabs.noDate")
             }
           />
           <Tab
@@ -305,7 +330,11 @@ export function ExpirationsPage() {
             icon={<EventAvailableOutlinedIcon fontSize="small" />}
             iconPosition="start"
             label={
-              summary ? `Em dia (${NUMBER_FORMATTER.format(summary.upToDateCount)})` : "Em dia"
+              summary
+                ? t("expirations.page.tabs.upToDateWithCount", {
+                    count: formatNumber(summary.upToDateCount),
+                  })
+                : t("expirations.page.tabs.upToDate")
             }
           />
         </Tabs>
@@ -321,8 +350,8 @@ export function ExpirationsPage() {
             <TextField
               id="expirations-search"
               size="small"
-              label="Buscar documento"
-              placeholder="Título ou nome do arquivo"
+              label={t("expirations.page.filters.searchLabel")}
+              placeholder={t("expirations.page.filters.searchPlaceholder")}
               value={filters.search}
               onChange={(event) => updateFilters({ search: event.target.value, page: 1 })}
               sx={{ minWidth: { xs: "100%", sm: 240 } }}
@@ -338,12 +367,14 @@ export function ExpirationsPage() {
             />
 
             <FormControl size="small" sx={{ minWidth: 165 }}>
-              <InputLabel id="expirations-window-label">Janela de alerta</InputLabel>
+              <InputLabel id="expirations-window-label">
+                {t("expirations.page.filters.windowLabel")}
+              </InputLabel>
               <Select
                 labelId="expirations-window-label"
                 id="expirations-window"
                 value={String(filters.windowDays)}
-                label="Janela de alerta"
+                label={t("expirations.page.filters.windowLabel")}
                 onChange={(event) => {
                   const days = Number.parseInt(String(event.target.value), 10);
                   if (!Number.isNaN(days) && days > 0) {
@@ -353,24 +384,26 @@ export function ExpirationsPage() {
               >
                 {WINDOW_DAY_OPTIONS.map((days) => (
                   <MenuItem key={days} value={String(days)}>
-                    Próximos {days} dias
+                    {t("expirations.page.filters.windowOption", { days })}
                   </MenuItem>
                 ))}
               </Select>
             </FormControl>
 
             <FormControl size="small" sx={{ minWidth: 190 }}>
-              <InputLabel id="expirations-category-label">Categoria</InputLabel>
+              <InputLabel id="expirations-category-label">
+                {t("expirations.page.filters.categoryLabel")}
+              </InputLabel>
               <Select
                 labelId="expirations-category-label"
                 id="expirations-category"
                 value={filters.categoryId}
-                label="Categoria"
+                label={t("expirations.page.filters.categoryLabel")}
                 onChange={(event) =>
                   updateFilters({ categoryId: String(event.target.value), page: 1 })
                 }
               >
-                <MenuItem value="">Todas as categorias</MenuItem>
+                <MenuItem value="">{t("expirations.page.filters.allCategories")}</MenuItem>
                 {(categoriesQuery.data ?? []).map((category) => (
                   <MenuItem key={category.id} value={category.id}>
                     {category.name}
@@ -380,17 +413,19 @@ export function ExpirationsPage() {
             </FormControl>
 
             <FormControl size="small" sx={{ minWidth: 190 }}>
-              <InputLabel id="expirations-owner-label">Responsável</InputLabel>
+              <InputLabel id="expirations-owner-label">
+                {t("expirations.page.filters.ownerLabel")}
+              </InputLabel>
               <Select
                 labelId="expirations-owner-label"
                 id="expirations-owner"
                 value={filters.ownerUserId}
-                label="Responsável"
+                label={t("expirations.page.filters.ownerLabel")}
                 onChange={(event) =>
                   updateFilters({ ownerUserId: String(event.target.value), page: 1 })
                 }
               >
-                <MenuItem value="">Todos os responsáveis</MenuItem>
+                <MenuItem value="">{t("expirations.page.filters.allOwners")}</MenuItem>
                 {(ownersQuery.data ?? []).map((owner) => (
                   <MenuItem key={owner.id} value={owner.id}>
                     {owner.label}
@@ -408,7 +443,7 @@ export function ExpirationsPage() {
                   }
                 />
               }
-              label="Incluir arquivados"
+              label={t("expirations.page.filters.includeArchived")}
             />
 
             {hasActiveFilters ? (
@@ -418,7 +453,7 @@ export function ExpirationsPage() {
                 startIcon={<ClearOutlinedIcon fontSize="small" />}
                 onClick={clearFilters}
               >
-                Limpar filtros
+                {t("expirations.page.filters.clear")}
               </Button>
             ) : null}
           </Stack>
@@ -426,7 +461,7 @@ export function ExpirationsPage() {
       </Paper>
 
       <DataTable
-        ariaLabel="Lista de documentos por vencimento"
+        ariaLabel={t("expirations.page.tableAriaLabel")}
         columns={columns}
         rows={data?.items ?? []}
         getRowId={(row) => row.id}
@@ -453,16 +488,16 @@ export function ExpirationsPage() {
         onRetry={() => void expirationsQuery.refetch()}
         emptyTitle={
           hasActiveFilters
-            ? "Nenhum documento encontrado para esta situação de vencimento"
-            : "Nenhum documento cadastrado para monitoramento"
+            ? t("expirations.page.emptyFilteredTitle")
+            : t("expirations.page.emptyDefaultTitle")
         }
         emptyDescription={
           hasActiveFilters
-            ? "Ajuste a janela de dias, categoria ou filtros aplicados."
-            : "Os documentos cadastrados aparecerão aqui com suas datas de vencimento."
+            ? t("expirations.page.emptyFilteredDescription")
+            : t("expirations.page.emptyDefaultDescription")
         }
         {...(hasActiveFilters
-          ? { emptyActionLabel: "Limpar filtros", onEmptyAction: clearFilters }
+          ? { emptyActionLabel: t("expirations.page.filters.clear"), onEmptyAction: clearFilters }
           : {})}
       />
     </Stack>

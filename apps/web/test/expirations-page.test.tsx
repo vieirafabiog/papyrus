@@ -1,11 +1,12 @@
 import "@testing-library/jest-dom/vitest";
-import { docuflowTheme } from "@docuflow/ui";
+import { UiLocaleProvider, createPapyrusTheme } from "@docuflow/ui";
 import { CssBaseline, ThemeProvider } from "@mui/material";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { ExpirationsPage } from "../src/features/expirations/ExpirationsPage.js";
+import { I18nProvider, type UiLocale } from "../src/i18n/index.js";
 
 const ORG_ID = "550e8400-e29b-41d4-a716-446655440000";
 const CAT_1_ID = "550e8400-e29b-41d4-a716-446655440011";
@@ -13,7 +14,7 @@ const OWNER_1_ID = "550e8400-e29b-41d4-a716-446655440021";
 const DOC_1_ID = "550e8400-e29b-41d4-a716-446655440031";
 const DOC_2_ID = "550e8400-e29b-41d4-a716-446655440032";
 
-function renderExpirationsPage() {
+function renderExpirationsPage(locale: UiLocale = "en-US") {
   const queryClient = new QueryClient({
     defaultOptions: {
       queries: { retry: false },
@@ -21,17 +22,21 @@ function renderExpirationsPage() {
   });
 
   return render(
-    <ThemeProvider theme={docuflowTheme}>
-      <CssBaseline />
-      <QueryClientProvider client={queryClient}>
-        <MemoryRouter initialEntries={["/expirations"]}>
-          <Routes>
-            <Route path="/expirations" element={<ExpirationsPage />} />
-            <Route path="/documents/:id" element={<h1>Detalhe do Documento</h1>} />
-          </Routes>
-        </MemoryRouter>
-      </QueryClientProvider>
-    </ThemeProvider>,
+    <I18nProvider initialLocale={locale}>
+      <UiLocaleProvider locale={locale}>
+        <ThemeProvider theme={createPapyrusTheme(locale)}>
+          <CssBaseline />
+          <QueryClientProvider client={queryClient}>
+            <MemoryRouter initialEntries={["/expirations"]}>
+              <Routes>
+                <Route path="/expirations" element={<ExpirationsPage />} />
+                <Route path="/documents/:id" element={<h1>Document Details</h1>} />
+              </Routes>
+            </MemoryRouter>
+          </QueryClientProvider>
+        </ThemeProvider>
+      </UiLocaleProvider>
+    </I18nProvider>,
   );
 }
 
@@ -161,11 +166,11 @@ describe("ExpirationsPage (Step 13.04)", () => {
 
     expect(await screen.findByText("Alvará Municipal")).toBeInTheDocument();
     expect(screen.getByText(/America\/Sao_Paulo/i)).toBeInTheDocument();
-    expect(screen.getByText("Vencido há 6 dias")).toBeInTheDocument();
-    expect(screen.getByText("Sem data definida")).toBeInTheDocument();
+    expect(screen.getByText("Expired 6 days ago")).toBeInTheDocument();
+    expect(screen.getByText("No date set")).toBeInTheDocument();
 
     // Switch bucket tab to EXPIRED
-    fireEvent.click(screen.getByRole("tab", { name: /Vencidos \(1\)/i }));
+    fireEvent.click(screen.getByRole("tab", { name: /Expired \(1\)/i }));
     await waitFor(() => {
       expect(
         requestedUrls.some(
@@ -175,7 +180,7 @@ describe("ExpirationsPage (Step 13.04)", () => {
     });
 
     // Switch bucket tab to NO_DATE
-    fireEvent.click(screen.getByRole("tab", { name: /Sem data \(1\)/i }));
+    fireEvent.click(screen.getByRole("tab", { name: /No date \(1\)/i }));
     await waitFor(() => {
       expect(
         requestedUrls.some(
@@ -185,9 +190,9 @@ describe("ExpirationsPage (Step 13.04)", () => {
     });
 
     // Change alert window to 60 days
-    fireEvent.mouseDown(screen.getByLabelText("Janela de alerta"));
+    fireEvent.mouseDown(screen.getByLabelText("Alert window"));
     const windowListbox = await screen.findByRole("listbox");
-    fireEvent.click(within(windowListbox).getByText("Próximos 60 dias"));
+    fireEvent.click(within(windowListbox).getByText("Next 60 days"));
     await waitFor(() => {
       expect(
         requestedUrls.some(
@@ -197,14 +202,12 @@ describe("ExpirationsPage (Step 13.04)", () => {
     });
 
     // Navigate to document detail
-    const openButtons = screen.getAllByRole("button", { name: "Abrir" });
+    const openButtons = screen.getAllByRole("button", { name: "Open" });
     const firstOpenButton = openButtons[0];
     expect(firstOpenButton).toBeDefined();
     if (firstOpenButton) {
       fireEvent.click(firstOpenButton);
     }
-    expect(
-      await screen.findByRole("heading", { name: "Detalhe do Documento" }),
-    ).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Document Details" })).toBeInTheDocument();
   });
 });

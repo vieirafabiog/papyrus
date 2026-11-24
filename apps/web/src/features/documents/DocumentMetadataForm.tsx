@@ -23,6 +23,8 @@ import {
   Typography,
 } from "@mui/material";
 import { type FormEvent, useMemo, useState } from "react";
+import { containsTechnicalJargon } from "../../i18n/api-errors.js";
+import { type UiLocale, getCurrentUiLocale, translate, useI18n } from "../../i18n/index.js";
 import {
   DocumentDetailFetchError,
   useUpdateDocumentMetadataMutation,
@@ -89,7 +91,7 @@ function isValidIsoDateString(value: string): boolean {
 }
 
 /**
- * Validates core fields and dynamic category fields client-side before API submission.
+ * Validates core fields and dynamic category fields client-side before submission.
  */
 export function validateDocumentMetadataForm(params: {
   readonly title: string;
@@ -99,24 +101,30 @@ export function validateDocumentMetadataForm(params: {
   readonly textValues: Readonly<Record<string, string>>;
   readonly booleanValues: Readonly<Record<string, boolean>>;
   readonly multiValues: Readonly<Record<string, readonly string[]>>;
+  readonly locale?: UiLocale | undefined;
 }): ClientValidationResult {
+  const locale = params.locale ?? getCurrentUiLocale();
   const fieldErrors: Record<string, string> = {};
   const normalizedMetadata: Record<string, DocumentMetadataValue> = {};
 
   const trimmedTitle = params.title.trim();
   if (trimmedTitle.length === 0) {
-    fieldErrors.title = "O título do documento é obrigatório.";
+    fieldErrors.title = translate("documents.validation.titleRequired", undefined, locale);
   } else if (trimmedTitle.length > 255) {
-    fieldErrors.title = "O título deve ter no máximo 255 caracteres.";
+    fieldErrors.title = translate("documents.validation.titleMaxLength", undefined, locale);
   }
 
   const trimmedIssue = params.issueDate.trim();
   const trimmedExpiration = params.expirationDate.trim();
   if (trimmedIssue.length > 0 && !isValidIsoDateString(trimmedIssue)) {
-    fieldErrors.issueDate = "Informe uma data de emissão válida (AAAA-MM-DD).";
+    fieldErrors.issueDate = translate("documents.validation.invalidIssueDate", undefined, locale);
   }
   if (trimmedExpiration.length > 0 && !isValidIsoDateString(trimmedExpiration)) {
-    fieldErrors.expirationDate = "Informe uma data de vencimento válida (AAAA-MM-DD).";
+    fieldErrors.expirationDate = translate(
+      "documents.validation.invalidExpirationDate",
+      undefined,
+      locale,
+    );
   }
   if (
     trimmedIssue.length > 0 &&
@@ -125,7 +133,11 @@ export function validateDocumentMetadataForm(params: {
     isValidIsoDateString(trimmedExpiration) &&
     trimmedExpiration < trimmedIssue
   ) {
-    fieldErrors.expirationDate = "A data de vencimento não pode ser anterior à data de emissão.";
+    fieldErrors.expirationDate = translate(
+      "documents.validation.expirationBeforeIssue",
+      undefined,
+      locale,
+    );
   }
 
   for (const field of params.fields) {
@@ -134,7 +146,11 @@ export function validateDocumentMetadataForm(params: {
         const value = (params.textValues[field.key] ?? "").trim();
         if (value.length === 0) {
           if (field.required) {
-            fieldErrors[field.key] = "Campo obrigatório não informado.";
+            fieldErrors[field.key] = translate(
+              "documents.validation.requiredField",
+              undefined,
+              locale,
+            );
           } else {
             normalizedMetadata[field.key] = null;
           }
@@ -147,14 +163,22 @@ export function validateDocumentMetadataForm(params: {
         const raw = (params.textValues[field.key] ?? "").trim();
         if (raw.length === 0) {
           if (field.required) {
-            fieldErrors[field.key] = "Campo obrigatório não informado.";
+            fieldErrors[field.key] = translate(
+              "documents.validation.requiredField",
+              undefined,
+              locale,
+            );
           } else {
             normalizedMetadata[field.key] = null;
           }
         } else {
           const num = Number(raw);
           if (!Number.isFinite(num)) {
-            fieldErrors[field.key] = "Deve ser um número válido.";
+            fieldErrors[field.key] = translate(
+              "documents.validation.invalidNumber",
+              undefined,
+              locale,
+            );
           } else {
             normalizedMetadata[field.key] = num;
           }
@@ -165,12 +189,16 @@ export function validateDocumentMetadataForm(params: {
         const raw = (params.textValues[field.key] ?? "").trim();
         if (raw.length === 0) {
           if (field.required) {
-            fieldErrors[field.key] = "Campo obrigatório não informado.";
+            fieldErrors[field.key] = translate(
+              "documents.validation.requiredField",
+              undefined,
+              locale,
+            );
           } else {
             normalizedMetadata[field.key] = null;
           }
         } else if (!isValidIsoDateString(raw)) {
-          fieldErrors[field.key] = "Informe uma data válida no formato AAAA-MM-DD.";
+          fieldErrors[field.key] = translate("documents.validation.invalidDate", undefined, locale);
         } else {
           normalizedMetadata[field.key] = raw;
         }
@@ -185,12 +213,20 @@ export function validateDocumentMetadataForm(params: {
         const allowed = field.options ?? [];
         if (raw.length === 0) {
           if (field.required) {
-            fieldErrors[field.key] = "Selecione uma opção obrigatória.";
+            fieldErrors[field.key] = translate(
+              "documents.validation.selectRequiredOption",
+              undefined,
+              locale,
+            );
           } else {
             normalizedMetadata[field.key] = null;
           }
         } else if (!allowed.includes(raw)) {
-          fieldErrors[field.key] = "Opção selecionada não é permitida.";
+          fieldErrors[field.key] = translate(
+            "documents.validation.optionNotAllowed",
+            undefined,
+            locale,
+          );
         } else {
           normalizedMetadata[field.key] = raw;
         }
@@ -200,9 +236,17 @@ export function validateDocumentMetadataForm(params: {
         const selected = params.multiValues[field.key] ?? [];
         const allowed = field.options ?? [];
         if (field.required && selected.length === 0) {
-          fieldErrors[field.key] = "Selecione ao menos uma opção.";
+          fieldErrors[field.key] = translate(
+            "documents.validation.selectAtLeastOneOption",
+            undefined,
+            locale,
+          );
         } else if (selected.some((item) => !allowed.includes(item))) {
-          fieldErrors[field.key] = "Contém opção não permitida.";
+          fieldErrors[field.key] = translate(
+            "documents.validation.containsDisallowedOption",
+            undefined,
+            locale,
+          );
         } else {
           normalizedMetadata[field.key] = [...selected];
         }
@@ -219,10 +263,11 @@ export function validateDocumentMetadataForm(params: {
 }
 
 /**
- * Dynamic category-driven metadata editor with both client-side and server-side
+ * Dynamic category-driven document details editor with both client-side and server-side
  * field error mapping rendered adjacent to each field.
  */
 export function DocumentMetadataForm({ document, onSaved, onCancel }: DocumentMetadataFormProps) {
+  const { locale, t } = useI18n();
   const initial = useMemo(() => buildInitialFieldState(document), [document]);
   const sortedFields = useMemo(
     () => [...document.category.fields].sort((a, b) => a.sortOrder - b.sortOrder),
@@ -263,11 +308,12 @@ export function DocumentMetadataForm({ document, onSaved, onCancel }: DocumentMe
       textValues,
       booleanValues,
       multiValues,
+      locale,
     });
 
     if (!validation.valid) {
       setFieldErrors(validation.fieldErrors);
-      setFormBannerError("Corrija os campos destacados antes de salvar.");
+      setFormBannerError(t("documents.form.fixHighlightedFields"));
       return;
     }
 
@@ -289,8 +335,11 @@ export function DocumentMetadataForm({ document, onSaved, onCancel }: DocumentMe
         setFormBannerError(error.message);
         return;
       }
+      const rawMessage = error instanceof Error ? error.message : "";
       setFormBannerError(
-        error instanceof Error ? error.message : "Não foi possível salvar os metadados.",
+        rawMessage.length > 0 && !containsTechnicalJargon(rawMessage)
+          ? rawMessage
+          : t("documents.form.saveFailed"),
       );
     }
   };
@@ -300,7 +349,7 @@ export function DocumentMetadataForm({ document, onSaved, onCancel }: DocumentMe
       component="form"
       noValidate
       onSubmit={(event) => void handleSubmit(event)}
-      aria-label="Editor de metadados do documento"
+      aria-label={t("documents.form.ariaLabel")}
     >
       <Stack spacing={2.5}>
         {formBannerError ? (
@@ -314,7 +363,7 @@ export function DocumentMetadataForm({ document, onSaved, onCancel }: DocumentMe
             <TextField
               fullWidth
               required
-              label="Título do documento"
+              label={t("documents.form.titleLabel")}
               value={title}
               onChange={(event) => {
                 setTitle(event.target.value);
@@ -331,7 +380,7 @@ export function DocumentMetadataForm({ document, onSaved, onCancel }: DocumentMe
             <TextField
               fullWidth
               type="date"
-              label="Data de emissão"
+              label={t("documents.form.issueDateLabel")}
               value={issueDate}
               onChange={(event) => {
                 setIssueDate(event.target.value);
@@ -348,7 +397,7 @@ export function DocumentMetadataForm({ document, onSaved, onCancel }: DocumentMe
             <TextField
               fullWidth
               type="date"
-              label="Data de vencimento"
+              label={t("documents.form.expirationDateLabel")}
               value={expirationDate}
               onChange={(event) => {
                 setExpirationDate(event.target.value);
@@ -473,7 +522,7 @@ export function DocumentMetadataForm({ document, onSaved, onCancel }: DocumentMe
                         aria-describedby={errorMsg ? helperId : undefined}
                       >
                         <MenuItem value="">
-                          <em>Selecione...</em>
+                          <em>{t("documents.common.selectOption")}</em>
                         </MenuItem>
                         {(field.options ?? []).map((option) => (
                           <MenuItem key={option} value={option}>
@@ -527,7 +576,7 @@ export function DocumentMetadataForm({ document, onSaved, onCancel }: DocumentMe
 
         {sortedFields.length === 0 ? (
           <Typography variant="body2" color="text.secondary">
-            Esta categoria não possui campos personalizados adicionais além dos dados básicos acima.
+            {t("documents.form.noAdditionalFields")}
           </Typography>
         ) : null}
 
@@ -539,7 +588,7 @@ export function DocumentMetadataForm({ document, onSaved, onCancel }: DocumentMe
               onClick={onCancel}
               disabled={updateMutation.isPending}
             >
-              Cancelar
+              {t("documents.common.cancel")}
             </Button>
           ) : null}
           <Button
@@ -548,7 +597,7 @@ export function DocumentMetadataForm({ document, onSaved, onCancel }: DocumentMe
             startIcon={<SaveOutlinedIcon />}
             disabled={updateMutation.isPending}
           >
-            Salvar metadados
+            {t("documents.form.saveDetails")}
           </Button>
         </Stack>
       </Stack>

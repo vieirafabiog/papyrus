@@ -1,3 +1,5 @@
+import { type UiLocale, getCurrentUiLocale } from "../../i18n/index.js";
+
 export interface FolderTreeInput {
   readonly id: string;
   readonly name: string;
@@ -13,8 +15,8 @@ export interface FolderTreeOption {
   readonly treeLabel: string;
 }
 
-function compareByNamePtBr(a: FolderTreeInput, b: FolderTreeInput): number {
-  return a.name.localeCompare(b.name, "pt-BR", { sensitivity: "base" });
+function compareByName(a: FolderTreeInput, b: FolderTreeInput, locale: UiLocale): number {
+  return a.name.localeCompare(b.name, locale, { sensitivity: "base" });
 }
 
 /**
@@ -24,6 +26,7 @@ function compareByNamePtBr(a: FolderTreeInput, b: FolderTreeInput): number {
  */
 export function buildFolderTreeOptions(
   folders: readonly FolderTreeInput[],
+  locale: UiLocale = getCurrentUiLocale(),
 ): readonly FolderTreeOption[] {
   if (folders.length === 0) {
     return [];
@@ -47,7 +50,7 @@ export function buildFolderTreeOptions(
   }
 
   for (const siblings of childrenByParent.values()) {
-    siblings.sort(compareByNamePtBr);
+    siblings.sort((a, b) => compareByName(a, b, locale));
   }
 
   const ordered: FolderTreeOption[] = [];
@@ -84,7 +87,9 @@ export function buildFolderTreeOptions(
   }
 
   // Fallback for any disconnected cycle nodes so no authorized folder is ever dropped.
-  const remaining = folders.filter((folder) => !visited.has(folder.id)).sort(compareByNamePtBr);
+  const remaining = folders
+    .filter((folder) => !visited.has(folder.id))
+    .sort((a, b) => compareByName(a, b, locale));
   for (const orphan of remaining) {
     visit(orphan, 0, []);
   }

@@ -1,5 +1,5 @@
 import type { FileObjectStatus } from "@docuflow/contracts";
-import { DOCUFLOW_COLOR_TOKENS } from "@docuflow/ui";
+import { PAPYRUS_COLOR_TOKENS } from "@docuflow/ui";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
 import DownloadOutlinedIcon from "@mui/icons-material/DownloadOutlined";
 import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
@@ -9,8 +9,21 @@ import UploadFileOutlinedIcon from "@mui/icons-material/UploadFileOutlined";
 import VisibilityOutlinedIcon from "@mui/icons-material/VisibilityOutlined";
 import { Alert, Box, Button, Chip, Paper, Stack, Typography } from "@mui/material";
 import type { ReactNode } from "react";
+import {
+  type MessageKey,
+  type UiLocale,
+  getCurrentUiLocale,
+  translate,
+  useI18n,
+} from "../../i18n/index.js";
 
-export type FileProcessingFeedbackLabel = "Em análise" | "Disponível" | "Rejeitado";
+export type FileProcessingFeedbackLabel =
+  | "Under review"
+  | "Available"
+  | "Rejected"
+  | "Em análise"
+  | "Disponível"
+  | "Rejeitado";
 
 export interface FileProcessingDescriptor {
   readonly label: FileProcessingFeedbackLabel;
@@ -20,9 +33,6 @@ export interface FileProcessingDescriptor {
   readonly canDownload: boolean;
   readonly defaultMessage: string;
 }
-
-const DEFAULT_SAFE_REJECTION_MESSAGE =
-  "O arquivo foi rejeitado na verificação de segurança ou integridade. Envie uma nova versão válida.";
 
 const TECHNICAL_LEAK_PATTERNS: readonly RegExp[] = [
   /https?:\/\//i,
@@ -34,89 +44,110 @@ const TECHNICAL_LEAK_PATTERNS: readonly RegExp[] = [
   /[<>]/,
 ];
 
-const FILE_STATUS_DESCRIPTORS: Readonly<Record<FileObjectStatus, FileProcessingDescriptor>> = {
+interface FileStatusMetadata {
+  readonly labelKey: MessageKey;
+  readonly chipColor: "warning" | "success" | "error";
+  readonly alertSeverity: "info" | "success" | "error";
+  readonly canPreview: boolean;
+  readonly canDownload: boolean;
+  readonly defaultMessageKey: MessageKey;
+}
+
+const FILE_STATUS_METADATA: Readonly<Record<FileObjectStatus, FileStatusMetadata>> = {
   UPLOADING: {
-    label: "Em análise",
+    labelKey: "documents.fileStatus.underReview",
     chipColor: "warning",
     alertSeverity: "info",
     canPreview: false,
     canDownload: false,
-    defaultMessage:
-      "O envio do arquivo ainda está em andamento. A visualização permanece bloqueada até a conclusão das verificações.",
+    defaultMessageKey: "documents.fileStatus.uploadingMessage",
   },
   QUARANTINED: {
-    label: "Em análise",
+    labelKey: "documents.fileStatus.underReview",
     chipColor: "warning",
     alertSeverity: "info",
     canPreview: false,
     canDownload: false,
-    defaultMessage:
-      "Este arquivo está em análise de integridade e segurança. A visualização e o download serão liberados somente após a aprovação.",
+    defaultMessageKey: "documents.fileStatus.quarantinedMessage",
   },
   AVAILABLE: {
-    label: "Disponível",
+    labelKey: "documents.fileStatus.available",
     chipColor: "success",
     alertSeverity: "success",
     canPreview: true,
     canDownload: true,
-    defaultMessage: "Arquivo verificado e disponível para visualização e download.",
+    defaultMessageKey: "documents.fileStatus.availableMessage",
   },
   REJECTED: {
-    label: "Rejeitado",
+    labelKey: "documents.fileStatus.rejected",
     chipColor: "error",
     alertSeverity: "error",
     canPreview: false,
     canDownload: false,
-    defaultMessage: DEFAULT_SAFE_REJECTION_MESSAGE,
+    defaultMessageKey: "documents.fileStatus.rejectedMessage",
   },
   MISSING: {
-    label: "Rejeitado",
+    labelKey: "documents.fileStatus.rejected",
     chipColor: "error",
     alertSeverity: "error",
     canPreview: false,
     canDownload: false,
-    defaultMessage:
-      "O arquivo não está disponível para acesso. Envie uma nova versão para restaurar o conteúdo.",
+    defaultMessageKey: "documents.fileStatus.missingMessage",
   },
   DELETE_PENDING: {
-    label: "Rejeitado",
+    labelKey: "documents.fileStatus.rejected",
     chipColor: "error",
     alertSeverity: "error",
     canPreview: false,
     canDownload: false,
-    defaultMessage: "Esta versão está indisponível e em remoção programada.",
+    defaultMessageKey: "documents.fileStatus.deletePendingMessage",
   },
 };
 
 export function canPreviewFileObject(status: FileObjectStatus): boolean {
-  return FILE_STATUS_DESCRIPTORS[status].canPreview;
+  return FILE_STATUS_METADATA[status].canPreview;
 }
 
 export function canDownloadFileObject(status: FileObjectStatus): boolean {
-  return FILE_STATUS_DESCRIPTORS[status].canDownload;
+  return FILE_STATUS_METADATA[status].canDownload;
 }
 
-export function getFileProcessingDescriptor(status: FileObjectStatus): FileProcessingDescriptor {
-  return FILE_STATUS_DESCRIPTORS[status];
+export function getFileProcessingDescriptor(
+  status: FileObjectStatus,
+  locale: UiLocale = getCurrentUiLocale(),
+): FileProcessingDescriptor {
+  const meta = FILE_STATUS_METADATA[status];
+  return {
+    label: translate(meta.labelKey, undefined, locale) as FileProcessingFeedbackLabel,
+    chipColor: meta.chipColor,
+    alertSeverity: meta.alertSeverity,
+    canPreview: meta.canPreview,
+    canDownload: meta.canDownload,
+    defaultMessage: translate(meta.defaultMessageKey, undefined, locale),
+  };
 }
 
 /**
  * Ensures any rejection reason shown in the UI never exposes scanner signatures, object keys,
  * signed URLs, hashes, magic bytes, or technical diagnostics to the end user.
  */
-export function sanitizeUserFacingRejectionMessage(rawReason: string | null | undefined): string {
+export function sanitizeUserFacingRejectionMessage(
+  rawReason: string | null | undefined,
+  locale: UiLocale = getCurrentUiLocale(),
+): string {
+  const defaultSafeMessage = translate("documents.fileStatus.rejectedMessage", undefined, locale);
   if (!rawReason) {
-    return DEFAULT_SAFE_REJECTION_MESSAGE;
+    return defaultSafeMessage;
   }
 
   const trimmed = rawReason.trim();
   if (trimmed.length === 0 || trimmed.length > 180) {
-    return DEFAULT_SAFE_REJECTION_MESSAGE;
+    return defaultSafeMessage;
   }
 
   for (const pattern of TECHNICAL_LEAK_PATTERNS) {
     if (pattern.test(trimmed)) {
-      return DEFAULT_SAFE_REJECTION_MESSAGE;
+      return defaultSafeMessage;
     }
   }
 
@@ -124,11 +155,10 @@ export function sanitizeUserFacingRejectionMessage(rawReason: string | null | un
 }
 
 function resolveStatusIcon(status: FileObjectStatus): React.ReactElement {
-  const descriptor = FILE_STATUS_DESCRIPTORS[status];
-  if (descriptor.label === "Disponível") {
+  if (status === "AVAILABLE") {
     return <CheckCircleOutlineIcon fontSize="small" />;
   }
-  if (descriptor.label === "Rejeitado") {
+  if (status === "REJECTED" || status === "MISSING" || status === "DELETE_PENDING") {
     return <ErrorOutlineIcon fontSize="small" />;
   }
   return <HourglassEmptyOutlinedIcon fontSize="small" />;
@@ -137,13 +167,17 @@ function resolveStatusIcon(status: FileObjectStatus): React.ReactElement {
 export interface FileProcessingStatusBadgeProps {
   readonly status: FileObjectStatus;
   readonly size?: "small" | "medium" | undefined;
+  readonly locale?: UiLocale | undefined;
 }
 
 export function FileProcessingStatusBadge({
   status,
   size = "small",
+  locale,
 }: FileProcessingStatusBadgeProps) {
-  const descriptor = getFileProcessingDescriptor(status);
+  const i18n = useI18n();
+  const effectiveLocale = locale ?? i18n.locale;
+  const descriptor = getFileProcessingDescriptor(status, effectiveLocale);
 
   return (
     <Chip
@@ -151,7 +185,11 @@ export function FileProcessingStatusBadge({
       color={descriptor.chipColor}
       icon={resolveStatusIcon(status)}
       label={descriptor.label}
-      aria-label={`Estado do arquivo: ${descriptor.label}`}
+      aria-label={translate(
+        "documents.fileStatus.ariaLabel",
+        { status: descriptor.label },
+        effectiveLocale,
+      )}
     />
   );
 }
@@ -160,6 +198,7 @@ export interface DocumentFileAvailabilityPanelProps {
   readonly fileStatus: FileObjectStatus;
   readonly fileName?: string | undefined;
   readonly rejectionReason?: string | null | undefined;
+  readonly locale?: UiLocale | undefined;
   readonly onPreview?: (() => void) | undefined;
   readonly onDownload?: (() => void) | undefined;
   readonly onUploadNewVersion?: (() => void) | undefined;
@@ -167,23 +206,28 @@ export interface DocumentFileAvailabilityPanelProps {
 }
 
 /**
- * Renders safe quarantine/rejection feedback in Portuguese and strictly gates preview content
+ * Renders safe quarantine/rejection feedback and strictly gates preview content
  * and download actions until `fileStatus === "AVAILABLE"`.
  */
 export function DocumentFileAvailabilityPanel({
   fileStatus,
   fileName,
   rejectionReason,
+  locale,
   onPreview,
   onDownload,
   onUploadNewVersion,
   children,
 }: DocumentFileAvailabilityPanelProps) {
-  const descriptor = getFileProcessingDescriptor(fileStatus);
+  const i18n = useI18n();
+  const effectiveLocale = locale ?? i18n.locale;
+  const descriptor = getFileProcessingDescriptor(fileStatus, effectiveLocale);
   const safeAlertMessage =
     fileStatus === "REJECTED"
-      ? sanitizeUserFacingRejectionMessage(rejectionReason)
+      ? sanitizeUserFacingRejectionMessage(rejectionReason, effectiveLocale)
       : descriptor.defaultMessage;
+  const isRejectedState =
+    fileStatus === "REJECTED" || fileStatus === "MISSING" || fileStatus === "DELETE_PENDING";
 
   return (
     <Stack spacing={2}>
@@ -197,7 +241,7 @@ export function DocumentFileAvailabilityPanel({
         }}
       >
         <Stack direction="row" spacing={1.5} alignItems="center">
-          <FileProcessingStatusBadge status={fileStatus} />
+          <FileProcessingStatusBadge status={fileStatus} locale={effectiveLocale} />
           {fileName ? (
             <Typography variant="body2" color="text.secondary">
               {fileName}
@@ -214,7 +258,7 @@ export function DocumentFileAvailabilityPanel({
               startIcon={<VisibilityOutlinedIcon />}
               onClick={onPreview}
             >
-              Visualizar arquivo
+              {translate("documents.fileStatus.previewFile", undefined, effectiveLocale)}
             </Button>
           ) : null}
 
@@ -226,7 +270,7 @@ export function DocumentFileAvailabilityPanel({
               startIcon={<DownloadOutlinedIcon />}
               onClick={onDownload}
             >
-              Baixar arquivo
+              {translate("documents.fileStatus.downloadFile", undefined, effectiveLocale)}
             </Button>
           ) : null}
 
@@ -238,7 +282,7 @@ export function DocumentFileAvailabilityPanel({
               startIcon={<UploadFileOutlinedIcon />}
               onClick={onUploadNewVersion}
             >
-              Enviar nova versão
+              {translate("documents.fileStatus.uploadNewVersion", undefined, effectiveLocale)}
             </Button>
           ) : null}
         </Stack>
@@ -258,19 +302,31 @@ export function DocumentFileAvailabilityPanel({
           sx={{
             p: 3,
             textAlign: "center",
-            bgcolor: DOCUFLOW_COLOR_TOKENS.surface.containerLow,
-            borderColor: DOCUFLOW_COLOR_TOKENS.surface.outlineVariant,
+            bgcolor: PAPYRUS_COLOR_TOKENS.surface.containerLow,
+            borderColor: PAPYRUS_COLOR_TOKENS.surface.outlineVariant,
           }}
         >
           <Stack spacing={1} alignItems="center">
             <LockOutlinedIcon color="action" fontSize="medium" />
             <Typography variant="subtitle1" component="p">
-              Pré-visualização bloqueada
+              {translate(
+                "documents.fileStatus.previewUnavailableTitle",
+                undefined,
+                effectiveLocale,
+              )}
             </Typography>
             <Typography variant="body2" color="text.secondary">
-              {descriptor.label === "Rejeitado"
-                ? "O conteúdo não pode ser exibido porque o arquivo foi rejeitado."
-                : "A pré-visualização será habilitada automaticamente quando a análise for concluída."}
+              {isRejectedState
+                ? translate(
+                    "documents.fileStatus.previewBlockedRejected",
+                    undefined,
+                    effectiveLocale,
+                  )
+                : translate(
+                    "documents.fileStatus.previewBlockedPending",
+                    undefined,
+                    effectiveLocale,
+                  )}
             </Typography>
           </Stack>
         </Paper>

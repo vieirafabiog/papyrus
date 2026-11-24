@@ -5,6 +5,7 @@ import {
   createApiResponseSchema,
 } from "@docuflow/contracts";
 import { useQuery } from "@tanstack/react-query";
+import { translate } from "../i18n/index.js";
 
 const authMeEnvelopeSchema = createApiResponseSchema(authMeResponseSchema);
 
@@ -24,13 +25,13 @@ export async function fetchCurrentSession(): Promise<AuthMeResponse | null> {
   }
 
   if (!response.ok) {
-    throw new Error(`Falha ao consultar sessão (${response.status}).`);
+    throw new Error(translate("auth.session.checkError"));
   }
 
   const rawJson: unknown = await response.json();
   const parsed = authMeEnvelopeSchema.safeParse(rawJson);
   if (!parsed.success) {
-    throw new Error("Resposta de sessão inválida recebida da API.");
+    throw new Error(translate("auth.session.invalidResponse"));
   }
 
   return parsed.data.data;

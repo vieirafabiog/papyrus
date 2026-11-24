@@ -3,7 +3,7 @@ import {
   type DocumentDetail,
   apiErrorResponseSchema,
 } from "@docuflow/contracts";
-import { DOCUFLOW_COLOR_TOKENS, ErrorState, LoadingState } from "@docuflow/ui";
+import { ErrorState, LoadingState, PAPYRUS_COLOR_TOKENS } from "@docuflow/ui";
 import DownloadOutlinedIcon from "@mui/icons-material/DownloadOutlined";
 import ImageOutlinedIcon from "@mui/icons-material/ImageOutlined";
 import InsertDriveFileOutlinedIcon from "@mui/icons-material/InsertDriveFileOutlined";
@@ -12,6 +12,8 @@ import PictureAsPdfOutlinedIcon from "@mui/icons-material/PictureAsPdfOutlined";
 import RefreshOutlinedIcon from "@mui/icons-material/RefreshOutlined";
 import { Alert, Box, Button, Divider, Paper, Stack, Typography } from "@mui/material";
 import { useEffect, useState } from "react";
+import { containsTechnicalJargon, getLocalizedApiErrorMessage } from "../../i18n/api-errors.js";
+import { type UiLocale, getCurrentUiLocale, translate, useI18n } from "../../i18n/index.js";
 import { requestVersionDownloadTarget } from "./useDocumentDetails.js";
 
 export const DEFAULT_MAX_IMAGE_PREVIEW_BYTES = 15 * 1024 * 1024;
@@ -31,36 +33,44 @@ export interface DocumentPreviewPanelProps {
   readonly onDownload?: (() => Promise<void> | void) | undefined;
 }
 
-function formatFileSizePtBr(sizeBytes: number): string {
-  if (sizeBytes < 1024) {
-    return `${sizeBytes} B`;
-  }
-  if (sizeBytes < 1024 * 1024) {
-    return `${(sizeBytes / 1024).toFixed(1)} KB`;
-  }
-  return `${(sizeBytes / (1024 * 1024)).toFixed(2)} MB`;
-}
-
-async function extractPreviewErrorMessage(response: Response): Promise<string> {
+async function extractPreviewErrorMessage(
+  response: Response,
+  locale: UiLocale = getCurrentUiLocale(),
+): Promise<string> {
   try {
     const raw: unknown = await response.json();
     const parsed = apiErrorResponseSchema.safeParse(raw);
     if (parsed.success) {
-      return parsed.data.error.message;
+      if (parsed.data.error.code === "FORBIDDEN" || response.status === 403) {
+        return translate("documents.preview.forbidden", undefined, locale);
+      }
+      if (response.status === 409) {
+        return translate("documents.preview.pendingSecurity", undefined, locale);
+      }
+      if (response.status === 413) {
+        return translate("documents.preview.imageTooLargeError", undefined, locale);
+      }
+      return getLocalizedApiErrorMessage(
+        parsed.data.error.code,
+        response.status,
+        parsed.data.error.message,
+        locale,
+      );
     }
   } catch {
-    // Fallback to HTTP status message.
+    // Non-JSON response falls through to localized status messages below.
   }
+
   if (response.status === 403) {
-    return "Você não possui permissão para pré-visualizar este documento.";
+    return translate("documents.preview.forbidden", undefined, locale);
   }
   if (response.status === 409) {
-    return "Pré-visualização indisponível até a conclusão da análise de segurança do arquivo.";
+    return translate("documents.preview.pendingSecurity", undefined, locale);
   }
   if (response.status === 413) {
-    return "A imagem excede o tamanho máximo suportado para pré-visualização no navegador.";
+    return translate("documents.preview.imageTooLargeError", undefined, locale);
   }
-  return `Não foi possível carregar a pré-visualização do documento (${response.status}).`;
+  return translate("documents.preview.loadFailed", undefined, locale);
 }
 
 /**
@@ -74,6 +84,7 @@ export function DocumentPreviewPanel({
   fetchFn,
   onDownload,
 }: DocumentPreviewPanelProps) {
+  const { locale, t, formatBytes } = useI18n();
   const fileObject = document.currentVersion?.fileObject ?? null;
   const detectedMime = fileObject?.detectedContentType.toLowerCase() ?? "";
   const isAvailable = fileObject?.status === "AVAILABLE";
@@ -122,7 +133,7 @@ export function DocumentPreviewPanel({
     })
       .then(async (response) => {
         if (!response.ok) {
-          throw new Error(await extractPreviewErrorMessage(response));
+          throw new Error(await extractPreviewErrorMessage(response, locale));
         }
 
         const blob = await response.blob();
@@ -130,7 +141,7 @@ export function DocumentPreviewPanel({
           return;
         }
         if (typeof URL.createObjectURL !== "function") {
-          throw new Error("Seu navegador não suporta pré-visualização inline via Blob URL.");
+          throw new Error(translate("documents.preview.browserUnsupported", undefined, locale));
         }
 
         activeObjectUrl = URL.createObjectURL(blob);
@@ -146,10 +157,11 @@ export function DocumentPreviewPanel({
           return;
         }
         setBlobUrl(null);
+        const rawMessage = error instanceof Error ? error.message.trim() : "";
         setErrorMessage(
-          error instanceof Error
-            ? error.message
-            : "Erro ao carregar a pré-visualização do arquivo.",
+          rawMessage.length > 0 && !containsTechnicalJargon(rawMessage)
+            ? rawMessage
+            : translate("documents.preview.loadFailed", undefined, locale),
         );
         setLoading(false);
       });
@@ -161,7 +173,7 @@ export function DocumentPreviewPanel({
         URL.revokeObjectURL(activeObjectUrl);
       }
     };
-  }, [canFetchPreview, isPdf, document.id, versionId, reloadToken, fetchImpl]);
+  }, [canFetchPreview, isPdf, document.id, versionId, reloadToken, fetchImpl, locale]);
 
   if (!fileObject) {
     return null;
@@ -183,10 +195,11 @@ export function DocumentPreviewPanel({
         }
       }
     } catch (error) {
+      const rawMessage = error instanceof Error ? error.message.trim() : "";
       setDownloadError(
-        error instanceof Error
-          ? error.message
-          : "Não foi possível iniciar o download autorizado do arquivo.",
+        rawMessage.length > 0 && !containsTechnicalJargon(rawMessage)
+          ? rawMessage
+          : t("documents.preview.downloadFailed"),
       );
     } finally {
       setDownloading(false);
@@ -215,8 +228,8 @@ export function DocumentPreviewPanel({
         }}
       >
         <Typography variant="body2" color="text.secondary">
-          Arquivo: <strong>{fileObject.originalFileName}</strong> (
-          {formatFileSizePtBr(fileObject.sizeBytes)} — {fileObject.detectedContentType})
+          {t("documents.preview.fileInfoPrefix")} <strong>{fileObject.originalFileName}</strong> (
+          {formatBytes(fileObject.sizeBytes)} — {fileObject.detectedContentType})
         </Typography>
 
         {document.permissions.canDownload ? (
@@ -227,11 +240,13 @@ export function DocumentPreviewPanel({
             disabled={downloading}
             onClick={() => void handleFallbackDownload()}
           >
-            {downloading ? "Preparando download..." : "Baixar arquivo"}
+            {downloading
+              ? t("documents.preview.preparingDownload")
+              : t("documents.fileStatus.downloadFile")}
           </Button>
         ) : (
           <Typography variant="caption" color="text.secondary">
-            Você possui permissão apenas de leitura para este documento.
+            {t("documents.preview.readOnlyNotice")}
           </Typography>
         )}
       </Box>
@@ -251,8 +266,8 @@ export function DocumentPreviewPanel({
       variant="outlined"
       sx={{
         p: 2.5,
-        bgcolor: DOCUFLOW_COLOR_TOKENS.surface.containerLowest,
-        borderColor: DOCUFLOW_COLOR_TOKENS.surface.outlineVariant,
+        bgcolor: PAPYRUS_COLOR_TOKENS.surface.containerLowest,
+        borderColor: PAPYRUS_COLOR_TOKENS.surface.outlineVariant,
       }}
     >
       <Stack spacing={2}>
@@ -269,10 +284,10 @@ export function DocumentPreviewPanel({
             {headerIcon}
             <Box>
               <Typography variant="h6" component="h2">
-                Pré-visualização do documento
+                {t("documents.preview.title")}
               </Typography>
               <Typography variant="caption" color="text.secondary">
-                Entrega privada autenticada com bloqueio de cache público.
+                {t("documents.preview.subtitle")}
               </Typography>
             </Box>
           </Stack>
@@ -286,7 +301,7 @@ export function DocumentPreviewPanel({
                 disabled={loading}
                 onClick={() => setReloadToken((prev) => prev + 1)}
               >
-                Atualizar visualização
+                {t("documents.preview.refresh")}
               </Button>
               {blobUrl ? (
                 <Button
@@ -295,7 +310,7 @@ export function DocumentPreviewPanel({
                   endIcon={<OpenInNewOutlinedIcon />}
                   onClick={() => window.open(blobUrl, "_blank", "noopener,noreferrer")}
                 >
-                  Abrir em nova guia
+                  {t("documents.preview.openInNewTab")}
                 </Button>
               ) : null}
             </Stack>
@@ -305,29 +320,31 @@ export function DocumentPreviewPanel({
         <Divider />
 
         {!isAvailable ? (
-          <Alert severity="info">
-            Pré-visualização indisponível até que a análise de segurança do arquivo seja concluída
-            com status disponível.
-          </Alert>
+          <Alert severity="info">{t("documents.preview.pendingSecurity")}</Alert>
         ) : isOversizedImage ? (
           renderDownloadOffer(
-            `Esta imagem (${formatFileSizePtBr(fileObject.sizeBytes)}) ultrapassa o limite máximo de ${formatFileSizePtBr(maxImageBytes)} para pré-visualização inline.`,
+            t("documents.preview.oversizedImage", {
+              size: formatBytes(fileObject.sizeBytes),
+              maxSize: formatBytes(maxImageBytes),
+            }),
           )
         ) : !isPdf && !isAllowedImage ? (
           renderDownloadOffer(
-            `Pré-visualização inline não disponível para o formato "${fileObject.detectedContentType}". Utilize o download autorizado para consultar o conteúdo.`,
+            t("documents.preview.unsupportedFormat", {
+              fileType: fileObject.detectedContentType,
+            }),
           )
         ) : loading ? (
           <LoadingState
             message={
-              isPdf
-                ? "Carregando pré-visualização segura do PDF..."
-                : "Carregando pré-visualização segura da imagem..."
+              isPdf ? t("documents.preview.loadingPdf") : t("documents.preview.loadingImage")
             }
           />
         ) : errorMessage ? (
           <ErrorState
-            title={isPdf ? "Não foi possível carregar o PDF" : "Não foi possível carregar a imagem"}
+            title={
+              isPdf ? t("documents.preview.pdfErrorTitle") : t("documents.preview.imageErrorTitle")
+            }
             description={errorMessage}
             onRetry={() => setReloadToken((prev) => prev + 1)}
           />
@@ -335,14 +352,16 @@ export function DocumentPreviewPanel({
           isPdf ? (
             <Box
               component="iframe"
-              title={`Pré-visualização do PDF: ${fileObject.originalFileName}`}
+              title={t("documents.preview.pdfFrameTitle", {
+                fileName: fileObject.originalFileName,
+              })}
               src={blobUrl}
               sx={{
                 width: "100%",
                 height: 520,
-                border: `1px solid ${DOCUFLOW_COLOR_TOKENS.surface.outlineVariant}`,
+                border: `1px solid ${PAPYRUS_COLOR_TOKENS.surface.outlineVariant}`,
                 borderRadius: 1,
-                bgcolor: DOCUFLOW_COLOR_TOKENS.surface.containerLow,
+                bgcolor: PAPYRUS_COLOR_TOKENS.surface.containerLow,
               }}
             />
           ) : (
@@ -352,15 +371,17 @@ export function DocumentPreviewPanel({
                 justifyContent: "center",
                 alignItems: "center",
                 p: 2,
-                border: `1px solid ${DOCUFLOW_COLOR_TOKENS.surface.outlineVariant}`,
+                border: `1px solid ${PAPYRUS_COLOR_TOKENS.surface.outlineVariant}`,
                 borderRadius: 1,
-                bgcolor: DOCUFLOW_COLOR_TOKENS.surface.containerLow,
+                bgcolor: PAPYRUS_COLOR_TOKENS.surface.containerLow,
               }}
             >
               <Box
                 component="img"
                 src={blobUrl}
-                alt={`Pré-visualização da imagem: ${fileObject.originalFileName}`}
+                alt={t("documents.preview.imageAlt", {
+                  fileName: fileObject.originalFileName,
+                })}
                 sx={{
                   maxWidth: "100%",
                   maxHeight: 520,

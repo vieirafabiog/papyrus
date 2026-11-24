@@ -1,5 +1,5 @@
 import "@testing-library/jest-dom/vitest";
-import { docuflowTheme } from "@docuflow/ui";
+import { papyrusTheme } from "@docuflow/ui";
 import { CssBaseline, ThemeProvider } from "@mui/material";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
@@ -20,14 +20,14 @@ function renderTrashPage() {
   });
 
   return render(
-    <ThemeProvider theme={docuflowTheme}>
+    <ThemeProvider theme={papyrusTheme}>
       <CssBaseline />
       <QueryClientProvider client={queryClient}>
         <MemoryRouter initialEntries={["/trash"]}>
           <Routes>
             <Route path="/trash" element={<TrashDocumentsPage />} />
-            <Route path="/documents" element={<h1>Lista de Documentos</h1>} />
-            <Route path="/documents/:id" element={<h1>Detalhe do Documento</h1>} />
+            <Route path="/documents" element={<h1>Documents List</h1>} />
+            <Route path="/documents/:id" element={<h1>Document Details</h1>} />
           </Routes>
         </MemoryRouter>
       </QueryClientProvider>
@@ -35,7 +35,7 @@ function renderTrashPage() {
   );
 }
 
-describe("TrashDocumentsPage (Step 13.07)", () => {
+describe("TrashDocumentsPage", () => {
   afterEach(() => {
     cleanup();
     vi.restoreAllMocks();
@@ -157,16 +157,16 @@ describe("TrashDocumentsPage (Step 13.07)", () => {
     });
 
     expect(screen.getByText("Relatório Expirado")).toBeInTheDocument();
-    expect(screen.getByText("Disponível")).toBeInTheDocument();
-    expect(screen.getByText("Prazo expirado")).toBeInTheDocument();
+    expect(screen.getByText("Available")).toBeInTheDocument();
+    expect(screen.getByText("Deadline expired")).toBeInTheDocument();
 
     const expiredRestoreBtn = screen.getByRole("button", {
-      name: "Restaurar Relatório Expirado",
+      name: "Restore Relatório Expirado",
     });
     expect(expiredRestoreBtn).toBeDisabled();
 
     const activeRestoreBtn = screen.getByRole("button", {
-      name: "Restaurar Manual Operacional",
+      name: "Restore Manual Operacional",
     });
     expect(activeRestoreBtn).not.toBeDisabled();
     fireEvent.click(activeRestoreBtn);
@@ -175,16 +175,16 @@ describe("TrashDocumentsPage (Step 13.07)", () => {
       expect(screen.getByRole("dialog")).toBeInTheDocument();
     });
 
-    const reasonInput = screen.getByLabelText("Motivo da restauração (opcional)");
+    const reasonInput = screen.getByLabelText("Restore reason (optional)");
     fireEvent.change(reasonInput, { target: { value: "Recuperação operacional" } });
 
-    const confirmBtn = screen.getByRole("button", { name: "Confirmar restauração" });
+    const confirmBtn = screen.getByRole("button", { name: "Confirm restore" });
     fireEvent.click(confirmBtn);
 
     await waitFor(() => {
       expect(
         screen.getByText(
-          'Documento "Manual Operacional" restaurado com sucesso como Rascunho, mantendo versões e permissões.',
+          'Document "Manual Operacional" restored as Draft, preserving versions and permissions.',
         ),
       ).toBeInTheDocument();
     });
