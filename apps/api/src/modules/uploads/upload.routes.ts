@@ -10,6 +10,7 @@ import {
   CONTRACTS_API_PREFIX,
   type SignedUploadTargetResponseContract,
   type UploadContentResponseContract,
+  type UploadModeContract,
   type UploadSessionRecordContract,
   createSignedUploadTargetRequestSchema,
   createUploadSessionRequestSchema,
@@ -328,6 +329,27 @@ export async function registerUploadRoutes(
     done(null, payload);
   });
 
+  const resolveSessionUploadMode = async (
+    storageConnectionId: string,
+  ): Promise<UploadModeContract | undefined> => {
+    if (!uploadStorageDeps) {
+      return undefined;
+    }
+    try {
+      const connection = await uploadStorageDeps.connections.findById(storageConnectionId);
+      if (!connection) {
+        return undefined;
+      }
+      const provider = await uploadStorageDeps.storageRegistry.resolveProvider(connection);
+      return hasStorageCapability(provider, "signedUpload") &&
+        resolveUploadMode(provider, true) === "SIGNED_UPLOAD"
+        ? "SIGNED_UPLOAD"
+        : "API_STREAM";
+    } catch {
+      return undefined;
+    }
+  };
+
   app.post(`${CONTRACTS_API_PREFIX}/uploads/sessions`, async (request, reply) => {
     const ctx = await guard.requireSubject(request, reply);
     if (!ctx) {
@@ -396,9 +418,11 @@ export async function registerUploadRoutes(
         expiresInSeconds: data.expiresInSeconds,
       });
 
+      const uploadMode = await resolveSessionUploadMode(result.session.storageConnectionId);
       const responseData: UploadSessionRecordContract = {
         ...result.session,
         objectKey: result.fileObject.objectKey,
+        ...(uploadMode ? { uploadMode } : {}),
       };
 
       return reply.status(result.idempotentReplay ? 200 : 201).send({
@@ -464,9 +488,11 @@ export async function registerUploadRoutes(
         });
       }
 
+      const uploadMode = await resolveSessionUploadMode(session.storageConnectionId);
       const responseData: UploadSessionRecordContract = {
         ...session,
         objectKey: fileObject.objectKey,
+        ...(uploadMode ? { uploadMode } : {}),
       };
       return reply.status(200).send({ data: responseData });
     },

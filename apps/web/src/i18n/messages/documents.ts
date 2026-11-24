@@ -227,6 +227,9 @@ export const documentsEn = {
     "Optional: if left blank, the selected file name will be used.",
   "documents.upload.noCategoriesHelper":
     "No categories available; the default category will be used.",
+  "documents.upload.noCategoriesBlockingAlert":
+    "Create at least one document category before uploading new documents.",
+  "documents.upload.goToCategories": "Go to categories",
   "documents.upload.defaultCategoryOption": "Default category",
   "documents.upload.destinationFolder": "Destination folder",
   "documents.upload.expirationDate": "Expiration date",
@@ -660,6 +663,9 @@ export const documentsPt: Readonly<Record<DocumentsMessageKey, string>> = {
     "Opcional: se vazio, utiliza o nome do arquivo selecionado.",
   "documents.upload.noCategoriesHelper":
     "Nenhuma categoria disponível; será usada a categoria padrão.",
+  "documents.upload.noCategoriesBlockingAlert":
+    "Crie ao menos uma categoria de documentos antes de enviar novos documentos.",
+  "documents.upload.goToCategories": "Ir para categorias",
   "documents.upload.defaultCategoryOption": "Categoria padrão",
   "documents.upload.destinationFolder": "Pasta de destino",
   "documents.upload.expirationDate": "Data de vencimento",

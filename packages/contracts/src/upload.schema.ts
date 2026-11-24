@@ -246,6 +246,9 @@ export const createUploadSessionRequestSchema = z.object({
 });
 export type CreateUploadSessionRequestContract = z.infer<typeof createUploadSessionRequestSchema>;
 
+export const uploadModeSchema = z.enum(["API_STREAM", "SIGNED_UPLOAD"]);
+export type UploadModeContract = z.infer<typeof uploadModeSchema>;
+
 export const uploadSessionRecordSchema = z.object({
   id: uuidSchema,
   organizationId: uuidSchema,
@@ -257,6 +260,7 @@ export const uploadSessionRecordSchema = z.object({
   declaredContentType: z.string().min(1).max(255),
   idempotencyKey: z.string().min(1).max(128),
   status: uploadSessionStatusSchema,
+  uploadMode: uploadModeSchema.optional(),
   expiresAt: isoDateTimeSchema,
   finalizedAt: isoDateTimeSchema.nullable(),
   createdAt: isoDateTimeSchema,

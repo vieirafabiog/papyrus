@@ -315,6 +315,8 @@ export {
   uploadLimitsResponseSchema,
   type UploadLimitsViewContract,
   uploadLimitsViewSchema,
+  type UploadModeContract,
+  uploadModeSchema,
   type UploadSessionRecordContract,
   uploadSessionRecordSchema,
   type UploadSessionStatusContract,

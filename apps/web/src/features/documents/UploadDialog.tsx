@@ -55,6 +55,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { Link as RouterLink, useInRouterContext } from "react-router-dom";
 import { type UiLocale, translate, useI18n } from "../../i18n/index.js";
 import { buildFolderTreeOptions } from "../folders/folderTree.js";
 import {
@@ -337,8 +338,11 @@ export function UploadDialog({
   const { locale, t, formatBytes } = useI18n();
   const titleId = useId();
   const descriptionId = useId();
+  const inRouterContext = useInRouterContext();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const fetchImpl = fetchFn ?? globalThis.fetch;
+  const missingRequiredCategory =
+    Boolean(createDocumentOnFinalize) && !documentId && categories.length === 0;
 
   const [isDragging, setIsDragging] = useState(false);
   const [title, setTitle] = useState("");
@@ -493,6 +497,11 @@ export function UploadDialog({
     setFormError(null);
     setCategoryError(null);
 
+    if (missingRequiredCategory) {
+      setCategoryError(t("documents.upload.noCategoriesBlockingAlert"));
+      return null;
+    }
+
     if (categories.length > 0 && categoryId.trim().length === 0) {
       setCategoryError(t("documents.upload.selectCategoryRequired"));
       return null;
@@ -628,6 +637,37 @@ export function UploadDialog({
                 maxSize: formatBytes(resolvedMaxFileBytes),
               })}
             </Typography>
+
+            {missingRequiredCategory ? (
+              <Alert
+                severity="warning"
+                action={
+                  inRouterContext ? (
+                    <Button
+                      component={RouterLink}
+                      to="/categories"
+                      color="inherit"
+                      size="small"
+                      onClick={handleDialogClose}
+                    >
+                      {t("documents.upload.goToCategories")}
+                    </Button>
+                  ) : (
+                    <Button
+                      component="a"
+                      href="/categories"
+                      color="inherit"
+                      size="small"
+                      onClick={handleDialogClose}
+                    >
+                      {t("documents.upload.goToCategories")}
+                    </Button>
+                  )
+                }
+              >
+                {t("documents.upload.noCategoriesBlockingAlert")}
+              </Alert>
+            ) : null}
 
             <Paper
               variant="outlined"
@@ -1203,7 +1243,7 @@ export function UploadDialog({
             type="submit"
             variant="contained"
             startIcon={<CloudUploadOutlinedIcon />}
-            disabled={summary.isUploading || summary.ready === 0}
+            disabled={summary.isUploading || summary.ready === 0 || missingRequiredCategory}
           >
             {summary.isUploading
               ? t("documents.upload.uploadingButton")

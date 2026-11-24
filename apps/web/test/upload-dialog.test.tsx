@@ -432,4 +432,107 @@ describe("UploadDialog and useUploadDocuments", () => {
     }
     expect(folderSelect).toHaveTextContent("Arquivos pessoais / Teste de Subpasta");
   });
+
+  it("streams directly without requesting /signed-target when session returns uploadMode API_STREAM", async () => {
+    const requestedUrls: string[] = [];
+    const mockFetch: typeof fetch = vi.fn(async (input) => {
+      const url = typeof input === "string" ? input : input.toString();
+      requestedUrls.push(url);
+      if (url.endsWith("/auth/csrf-token")) {
+        return new Response(JSON.stringify({ data: { csrfToken: "csrf-stream" } }), {
+          status: 200,
+        });
+      }
+      if (url.endsWith("/uploads/sessions")) {
+        return new Response(
+          JSON.stringify({
+            data: {
+              id: SAMPLE_UUID_1,
+              organizationId: SAMPLE_UUID_1,
+              userId: SAMPLE_UUID_2,
+              storageConnectionId: SAMPLE_UUID_3,
+              fileObjectId: SAMPLE_UUID_3,
+              objectKey: "org/1/documents/d/versions/v/obj",
+              declaredSizeBytes: 11,
+              declaredContentType: "application/pdf",
+              idempotencyKey: "idem-stream",
+              status: "PENDING",
+              uploadMode: "API_STREAM",
+              expiresAt: "2026-11-21T14:00:00.000Z",
+              finalizedAt: null,
+              createdAt: "2026-11-21T12:00:00.000Z",
+              updatedAt: "2026-11-21T12:00:00.000Z",
+            },
+          }),
+          { status: 201 },
+        );
+      }
+      if (url.endsWith("/finalize")) {
+        return new Response(
+          JSON.stringify({
+            data: {
+              id: SAMPLE_UUID_1,
+              status: "FINALIZED",
+              fileObjectStatus: "QUARANTINED",
+            },
+          }),
+          { status: 200 },
+        );
+      }
+      return new Response(null, { status: 404 });
+    });
+
+    const uploadedUrls: string[] = [];
+    renderDialog({
+      defaultCategoryId: SAMPLE_UUID_1,
+      fetchFn: mockFetch,
+      binaryUploader: async (req) => {
+        uploadedUrls.push(req.url);
+        return {
+          status: 200,
+          responseText: JSON.stringify({
+            data: {
+              sessionId: SAMPLE_UUID_1,
+              fileObjectId: SAMPLE_UUID_3,
+              storageConnectionId: SAMPLE_UUID_3,
+              status: "UPLOADED",
+              fileObjectStatus: "UPLOADING",
+              bytesReceived: 11,
+              expectedBytes: 11,
+              progressPercent: 100,
+              checksumSha256: "a".repeat(64),
+            },
+          }),
+        };
+      },
+    });
+
+    const input = screen.getByLabelText("Select files to upload") as HTMLInputElement;
+    fireEvent.change(input, {
+      target: { files: [new File(["%PDF-1.7-ok"], "local.pdf", { type: "application/pdf" })] },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Start upload (1)" }));
+
+    expect(await screen.findByText("Under review")).toBeInTheDocument();
+    expect(requestedUrls.some((url) => url.endsWith("/signed-target"))).toBe(false);
+    expect(uploadedUrls).toEqual([
+      `${CONTRACTS_API_PREFIX}/uploads/sessions/${SAMPLE_UUID_1}/content`,
+    ]);
+  });
+
+  it("blocks new document upload with actionable warning when no categories exist", () => {
+    renderDialog({ categories: [], createDocumentOnFinalize: true });
+
+    expect(
+      screen.getByText("Create at least one document category before uploading new documents."),
+    ).toBeInTheDocument();
+    const goToCategories = screen.getByRole("link", { name: "Go to categories" });
+    expect(goToCategories).toHaveAttribute("href", "/categories");
+
+    const input = screen.getByLabelText("Select files to upload") as HTMLInputElement;
+    fireEvent.change(input, {
+      target: { files: [new File(["%PDF-1.7-ok"], "blocked.pdf", { type: "application/pdf" })] },
+    });
+    expect(screen.getByRole("button", { name: "Start upload (1)" })).toBeDisabled();
+  });
 });

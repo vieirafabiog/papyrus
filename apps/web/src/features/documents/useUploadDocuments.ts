@@ -450,26 +450,12 @@ export function useUploadDocuments(options: UseUploadDocumentsOptions = {}) {
         }
 
         const sessionId = parsedSession.data.data.id;
+        const sessionUploadMode = parsedSession.data.data.uploadMode;
         updateItem(item.localId, (prev) => ({
           ...prev,
           sessionId,
           status: "UPLOADING",
         }));
-
-        const signedHeaders: Record<string, string> = { Accept: "application/json" };
-        if (csrfToken) {
-          signedHeaders[CSRF_HEADER_NAME] = csrfToken;
-        }
-
-        const targetRes = await fetchImpl(
-          `${CONTRACTS_API_PREFIX}/uploads/sessions/${sessionId}/signed-target`,
-          {
-            method: "POST",
-            credentials: "include",
-            headers: signedHeaders,
-            signal: controller.signal,
-          },
-        );
 
         const handleProgress = (loaded: number, total: number): void => {
           const safeTotal = total > 0 ? total : item.file.size;
@@ -481,25 +467,7 @@ export function useUploadDocuments(options: UseUploadDocumentsOptions = {}) {
           }));
         };
 
-        if (targetRes.ok) {
-          const parsedTarget = signedTargetEnvelopeSchema.safeParse(await targetRes.json());
-          if (!parsedTarget.success) {
-            throw new Error(translate("common.errors.unexpectedResponse"));
-          }
-          const target = parsedTarget.data.data.target;
-          const putRes = await binaryUploader({
-            url: target.url,
-            method: target.method,
-            headers: target.headers,
-            body: item.file,
-            withCredentials: false,
-            signal: controller.signal,
-            onProgress: handleProgress,
-          });
-          if (putRes.status < 200 || putRes.status >= 300) {
-            throw new Error(translate("documents.upload.transferFailed"));
-          }
-        } else if (targetRes.status === 409) {
+        const uploadViaStreaming = async (): Promise<void> => {
           const streamHeaders: Record<string, string> = {
             "content-type": declaredContentType,
           };
@@ -527,12 +495,53 @@ export function useUploadDocuments(options: UseUploadDocumentsOptions = {}) {
           if (!parsedStream.success) {
             throw new Error(translate("common.errors.unexpectedResponse"));
           }
+        };
+
+        if (sessionUploadMode === "API_STREAM") {
+          await uploadViaStreaming();
         } else {
-          const message = await extractUserErrorMessage(
-            targetRes,
-            "documents.upload.prepareTargetFailed",
+          const signedHeaders: Record<string, string> = { Accept: "application/json" };
+          if (csrfToken) {
+            signedHeaders[CSRF_HEADER_NAME] = csrfToken;
+          }
+
+          const targetRes = await fetchImpl(
+            `${CONTRACTS_API_PREFIX}/uploads/sessions/${sessionId}/signed-target`,
+            {
+              method: "POST",
+              credentials: "include",
+              headers: signedHeaders,
+              signal: controller.signal,
+            },
           );
-          throw new Error(message);
+
+          if (targetRes.ok) {
+            const parsedTarget = signedTargetEnvelopeSchema.safeParse(await targetRes.json());
+            if (!parsedTarget.success) {
+              throw new Error(translate("common.errors.unexpectedResponse"));
+            }
+            const target = parsedTarget.data.data.target;
+            const putRes = await binaryUploader({
+              url: target.url,
+              method: target.method,
+              headers: target.headers,
+              body: item.file,
+              withCredentials: false,
+              signal: controller.signal,
+              onProgress: handleProgress,
+            });
+            if (putRes.status < 200 || putRes.status >= 300) {
+              throw new Error(translate("documents.upload.transferFailed"));
+            }
+          } else if (targetRes.status === 409) {
+            await uploadViaStreaming();
+          } else {
+            const message = await extractUserErrorMessage(
+              targetRes,
+              "documents.upload.prepareTargetFailed",
+            );
+            throw new Error(message);
+          }
         }
 
         updateItem(item.localId, (prev) => ({
