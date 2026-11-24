@@ -1,5 +1,6 @@
 import http, { type Server } from "node:http";
 import { pathToFileURL } from "node:url";
+import { type StandaloneWorkerJobs, createStandaloneWorkerJobs } from "./bootstrap.js";
 
 export interface WorkerHealth {
   status: "starting" | "running" | "stopping" | "stopped";
@@ -270,7 +271,18 @@ export async function createWorkerHealthServer(params: {
 
 async function runMain(): Promise<void> {
   const logger = createDefaultLogger();
-  const runtime = createWorkerRuntime(logger);
+  const jobs: StandaloneWorkerJobs = createStandaloneWorkerJobs(logger, process.env);
+
+  const runtime = createWorkerRuntime({
+    logger,
+    checkDatabase: () => jobs.checkDatabase(),
+    dependencies: [
+      {
+        name: "antivirus",
+        check: () => jobs.checkAntivirus(),
+      },
+    ],
+  });
 
   let healthServer: WorkerHealthServer | null = null;
   const rawHealthPort = process.env.WORKER_HEALTH_PORT?.trim();
@@ -285,8 +297,14 @@ async function runMain(): Promise<void> {
     }
   }
 
+  let isShuttingDown = false;
   const shutdown = async (signal: string): Promise<void> => {
+    if (isShuttingDown) {
+      return;
+    }
+    isShuttingDown = true;
     try {
+      await jobs.stop();
       if (healthServer) {
         await healthServer.close();
       }
@@ -308,6 +326,7 @@ async function runMain(): Promise<void> {
   });
 
   await runtime.start();
+  jobs.start();
 }
 
 const isEntrypoint =

@@ -1,6 +1,6 @@
 services:
   clamav:
-    image: clamav/clamav-debian:1.4.2
+    image: clamav/clamav-debian:1.4
     profiles:
       - clamav
       - lab-storage

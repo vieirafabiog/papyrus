@@ -70,7 +70,9 @@ ENV DOCUFLOW_VERSION="${DOCUFLOW_VERSION}"
 WORKDIR /app
 
 # Strip package managers and dev-only tooling from the production runtime image
-RUN rm -rf /usr/local/lib/node_modules /usr/local/bin/npm /usr/local/bin/npx /usr/local/bin/corepack /opt/yarn*
+RUN rm -rf /usr/local/lib/node_modules /usr/local/bin/npm /usr/local/bin/npx /usr/local/bin/corepack /opt/yarn* \
+  && mkdir -p /var/lib/docuflow/storage \
+  && chown -R node:node /var/lib/docuflow/storage
 
 COPY --from=prod-deps --chown=node:node /app /app
 

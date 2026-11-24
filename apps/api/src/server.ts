@@ -1,23 +1,8 @@
-import { buildApp } from "./app.js";
-
-const DEFAULT_PORT = 3000;
-const DEFAULT_HOST = "0.0.0.0";
-
-function parsePort(rawPort: string | undefined): number {
-  if (!rawPort) {
-    return DEFAULT_PORT;
-  }
-  const parsed = Number.parseInt(rawPort, 10);
-  if (Number.isNaN(parsed) || parsed <= 0 || parsed > 65535) {
-    throw new Error(`Invalid PORT value: ${rawPort}`);
-  }
-  return parsed;
-}
+import { createStandaloneApiRuntime } from "./bootstrap.js";
 
 async function start(): Promise<void> {
-  const app = buildApp({ logger: true });
-  const port = parsePort(process.env.PORT);
-  const host = process.env.HOST ?? DEFAULT_HOST;
+  const runtime = createStandaloneApiRuntime(process.env);
+  const { app, host, port } = runtime;
 
   let isShuttingDown = false;
 
@@ -28,7 +13,7 @@ async function start(): Promise<void> {
     isShuttingDown = true;
     app.log.info({ signal }, "Shutting down API server gracefully");
     try {
-      await app.close();
+      await runtime.close();
       process.exit(0);
     } catch (error) {
       app.log.error({ err: error }, "Error during graceful shutdown");
@@ -47,6 +32,7 @@ async function start(): Promise<void> {
     await app.listen({ port, host });
   } catch (error) {
     app.log.error({ err: error }, "Failed to start API server");
+    await runtime.dbClient.close().catch(() => {});
     process.exit(1);
   }
 }

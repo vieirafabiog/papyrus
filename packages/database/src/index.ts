@@ -23,6 +23,23 @@ export {
 } from "./migrations/safe-migrator.js";
 
 export { createAuditRepository } from "./repositories/audit-repository.js";
+export {
+  createAuthLookupRepository,
+  createSessionStoreRepository,
+  createSystemBootstrapRepository,
+  type DatabaseAuthCredentialRecord,
+  type DatabaseAuthUserLookup,
+  type DatabaseAuthUserProfile,
+  type DatabaseAuthUserSummary,
+  type DatabaseSessionRecord,
+  type DatabaseSessionRecordInput,
+  type DatabaseSessionStore,
+  type SystemBootstrapInput,
+  type SystemBootstrapRepository,
+  type SystemBootstrapRepositoryOptions,
+  type SystemBootstrapResult,
+  type SystemRoleSeedDefinition,
+} from "./repositories/auth-session-repository.js";
 export { createPermissionScopeRepository } from "./repositories/permission-repository.js";
 export {
   type AuthorizationRepository,
