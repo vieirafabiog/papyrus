@@ -1057,7 +1057,7 @@ docuflow/
   - **Ação:** Documentar papéis, escopos, herança, sessões, proteção de credenciais, scanner, retenção, auditoria, exposição de rede e responsabilidades do administrador.
   - **Verificação:** Verificar que cada controle descrito existe e está coberto por teste ou identificar explicitamente limitações.
 
-- [ ] **Step 17.03 — Finalizar guia de backup e restauração**
+- [x] **Step 17.03 — Finalizar guia de backup e restauração**
   - **Arquivo:** `docs/backup-restore.md`
   - **Ação:** Descrever backup coerente do banco, arquivos e segredos necessários, periodicidade recomendada como parâmetro operacional, retenção e teste de restore.
   - **Verificação:** Repetir o procedimento em máquina/ambiente limpo.
