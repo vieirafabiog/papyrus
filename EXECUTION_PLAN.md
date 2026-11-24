@@ -1052,7 +1052,7 @@ docuflow/
   - **Ação:** Documentar filesystem, S3 compatível, endpoint, bucket, TLS, permissões mínimas, credenciais, health check, seleção por categoria e limitações conhecidas.
   - **Verificação:** Conferir guia em instalação local e MinIO.
 
-- [ ] **Step 17.02 — Finalizar guia de segurança e permissões**
+- [x] **Step 17.02 — Finalizar guia de segurança e permissões**
   - **Arquivo:** `docs/security.md`
   - **Ação:** Documentar papéis, escopos, herança, sessões, proteção de credenciais, scanner, retenção, auditoria, exposição de rede e responsabilidades do administrador.
   - **Verificação:** Verificar que cada controle descrito existe e está coberto por teste ou identificar explicitamente limitações.
