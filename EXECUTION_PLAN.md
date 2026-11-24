@@ -1047,7 +1047,7 @@ docuflow/
 
 # PHASE 17 — DOCUMENTAÇÃO FINAL E RELEASE SELF-HOSTED 1.0
 
-- [ ] **Step 17.01 — Finalizar guia de conectores de storage**
+- [x] **Step 17.01 — Finalizar guia de conectores de storage**
   - **Arquivo:** `docs/storage-connectors.md`
   - **Ação:** Documentar filesystem, S3 compatível, endpoint, bucket, TLS, permissões mínimas, credenciais, health check, seleção por categoria e limitações conhecidas.
   - **Verificação:** Conferir guia em instalação local e MinIO.
