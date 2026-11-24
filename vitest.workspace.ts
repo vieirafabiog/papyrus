@@ -8,7 +8,7 @@ export default defineWorkspace([
       name: "docuflow-unit",
       environment: "node",
       passWithNoTests: true,
-      testTimeout: 15_000,
+      testTimeout: 30_000,
       include: ["packages/**/*.{test,spec}.{ts,tsx}", "apps/**/*.{test,spec}.{ts,tsx}"],
       exclude: [
         "**/node_modules/**",

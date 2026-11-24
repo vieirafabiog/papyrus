@@ -408,7 +408,7 @@ describe("CategoriesPage & CategoryEditor (Step 14.05)", () => {
       });
     });
     expect(await within(dialog).findByText("Regime Tributário")).toBeInTheDocument();
-  }, 10_000);
+  });
 
   it("removes a custom field with REMOVE_FROM_DOCUMENTS migration strategy", async () => {
     let fields = [

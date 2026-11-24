@@ -15,6 +15,20 @@ jobs:
   verify:
     name: Lint, Typecheck, Test and Build
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16.8-alpine3.21
+        env:
+          POSTGRES_USER: docuflow
+          POSTGRES_PASSWORD: docuflow_ci_password
+          POSTGRES_DB: docuflow_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U docuflow -d docuflow_ci"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -37,11 +51,13 @@ jobs:
       - name: Lint
         run: pnpm lint
 
+      - name: Build
+        run: pnpm build
+
       - name: Typecheck
         run: pnpm typecheck
 
       - name: Test
+        env:
+          DATABASE_URL: postgresql://docuflow:docuflow_ci_password@127.0.0.1:5432/docuflow_ci
         run: pnpm test
-
-      - name: Build
-        run: pnpm build

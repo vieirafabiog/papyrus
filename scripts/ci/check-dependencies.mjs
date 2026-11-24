@@ -34,6 +34,13 @@ const DOCUMENTED_PROD_EXCEPTIONS = new Map([
 ]);
 
 function resolvePnpmInvoker() {
+  const npmExecPath = process.env.npm_execpath;
+  if (npmExecPath?.toLowerCase().includes("pnpm")) {
+    if (/\.(c|m)?js$/i.test(npmExecPath)) {
+      return { bin: process.execPath, prefixArgs: [npmExecPath] };
+    }
+    return { bin: npmExecPath, prefixArgs: [] };
+  }
   const direct = spawnSync("pnpm", ["--version"], { stdio: "ignore" });
   if (direct.status === 0) {
     return { bin: "pnpm", prefixArgs: [] };
