@@ -3,6 +3,7 @@ import { DOCUFLOW_COLOR_TOKENS, FilterBar, type FilterBarSelect } from "@docuflo
 import CloudUploadOutlinedIcon from "@mui/icons-material/CloudUploadOutlined";
 import DeleteSweepOutlinedIcon from "@mui/icons-material/DeleteSweepOutlined";
 import { Alert, Button, Paper, Stack, TextField, Typography } from "@mui/material";
+import { buildFolderTreeOptions } from "../folders/folderTree.js";
 import {
   type DocumentListFiltersState,
   type OwnerFilterOption,
@@ -71,7 +72,10 @@ export function DocumentFiltersBar({
       label: "Pasta",
       value: filters.folderId,
       allOptionLabel: "Todas as pastas",
-      options: folders.map((folder) => ({ value: folder.id, label: folder.name })),
+      options: buildFolderTreeOptions(folders).map((folder) => ({
+        value: folder.id,
+        label: folder.treeLabel,
+      })),
       onChange: (value) => onUpdateFilters({ folderId: value, page: 1 }),
     },
     {

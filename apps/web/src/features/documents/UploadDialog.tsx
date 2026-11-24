@@ -11,9 +11,11 @@ import CloseOutlinedIcon from "@mui/icons-material/CloseOutlined";
 import CloudUploadOutlinedIcon from "@mui/icons-material/CloudUploadOutlined";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
+import FolderOutlinedIcon from "@mui/icons-material/FolderOutlined";
 import HourglassEmptyOutlinedIcon from "@mui/icons-material/HourglassEmptyOutlined";
 import InsertDriveFileOutlinedIcon from "@mui/icons-material/InsertDriveFileOutlined";
 import RefreshOutlinedIcon from "@mui/icons-material/RefreshOutlined";
+import SubdirectoryArrowRightOutlinedIcon from "@mui/icons-material/SubdirectoryArrowRightOutlined";
 import {
   Alert,
   Box,
@@ -53,6 +55,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { buildFolderTreeOptions } from "../folders/folderTree.js";
 import {
   getFileProcessingDescriptor,
   sanitizeUserFacingRejectionMessage,
@@ -74,6 +77,7 @@ export interface UploadCategoryOption {
 export interface UploadFolderOption {
   readonly id: string;
   readonly name: string;
+  readonly parentId?: string | null | undefined;
 }
 
 export interface UploadDialogProps {
@@ -323,6 +327,12 @@ export function UploadDialog({
   const sortedCategoryFields = useMemo(
     () => [...categoryFields].sort((a, b) => a.sortOrder - b.sortOrder),
     [categoryFields],
+  );
+
+  const folderTreeOptions = useMemo(() => buildFolderTreeOptions(folders), [folders]);
+  const folderById = useMemo(
+    () => new Map(folderTreeOptions.map((item) => [item.id, item])),
+    [folderTreeOptions],
   );
 
   const shouldLoadCategoryFields = Boolean(createDocumentOnFinalize) && !documentId;
@@ -641,12 +651,40 @@ export function UploadDialog({
                     value={folderId}
                     onChange={(e) => setFolderId(e.target.value)}
                     disabled={summary.isUploading}
+                    slotProps={{
+                      inputLabel: { shrink: true },
+                      select: {
+                        displayEmpty: true,
+                        renderValue: (selected) => {
+                          const value = typeof selected === "string" ? selected : "";
+                          if (value.length === 0) {
+                            return "Raiz do acervo";
+                          }
+                          return folderById.get(value)?.fullPath ?? "";
+                        },
+                      },
+                    }}
                     fullWidth
                   >
                     <MenuItem value="">Raiz do acervo</MenuItem>
-                    {folders.map((folder) => (
-                      <MenuItem key={folder.id} value={folder.id}>
-                        {folder.name}
+                    {folderTreeOptions.map((folder) => (
+                      <MenuItem
+                        key={folder.id}
+                        value={folder.id}
+                        data-depth={folder.depth}
+                        sx={{ pl: 2 + folder.depth * 2.5 }}
+                      >
+                        <Stack direction="row" spacing={0.75} alignItems="center">
+                          {folder.depth > 0 ? (
+                            <SubdirectoryArrowRightOutlinedIcon
+                              fontSize="small"
+                              color="action"
+                              aria-hidden
+                            />
+                          ) : null}
+                          <FolderOutlinedIcon fontSize="small" color="action" aria-hidden />
+                          <span>{folder.name}</span>
+                        </Stack>
                       </MenuItem>
                     ))}
                   </TextField>

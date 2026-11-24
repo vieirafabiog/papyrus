@@ -400,4 +400,32 @@ describe("UploadDialog and useUploadDocuments", () => {
       valor_do_ctrb: 1250.5,
     });
   });
+
+  it("renders destination folders as a nested tree and displays full path when a subfolder is selected", async () => {
+    renderDialog({
+      folders: [
+        { id: SAMPLE_UUID_3, name: "Teste de Subpasta", parentId: SAMPLE_UUID_2 },
+        { id: SAMPLE_UUID_2, name: "Arquivos pessoais", parentId: null },
+      ],
+    });
+
+    const folderSelect = screen.getByLabelText("Pasta de destino");
+    fireEvent.mouseDown(folderSelect);
+
+    const options = await screen.findAllByRole("option");
+    expect(options.map((opt) => opt.textContent)).toEqual([
+      "Raiz do acervo",
+      "Arquivos pessoais",
+      "Teste de Subpasta",
+    ]);
+    expect(options[1]).toHaveAttribute("data-depth", "0");
+    expect(options[2]).toHaveAttribute("data-depth", "1");
+
+    const subfolderOption = options[2];
+    expect(subfolderOption).toBeDefined();
+    if (subfolderOption) {
+      fireEvent.click(subfolderOption);
+    }
+    expect(folderSelect).toHaveTextContent("Arquivos pessoais / Teste de Subpasta");
+  });
 });

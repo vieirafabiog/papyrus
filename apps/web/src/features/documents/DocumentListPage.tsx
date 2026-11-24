@@ -5,6 +5,7 @@ import { Box, Button, Chip, Stack, Typography } from "@mui/material";
 import { useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import { buildFolderTreeOptions } from "../folders/folderTree.js";
 import { DocumentFiltersBar } from "./DocumentFiltersBar.js";
 import { UploadDialog } from "./UploadDialog.js";
 import {
@@ -89,8 +90,8 @@ export function DocumentListPage() {
     () => new Map(categories.map((category) => [category.id, category.name])),
     [categories],
   );
-  const folderNameById = useMemo(
-    () => new Map(folders.map((folder) => [folder.id, folder.name])),
+  const folderPathById = useMemo(
+    () => new Map(buildFolderTreeOptions(folders).map((folder) => [folder.id, folder.fullPath])),
     [folders],
   );
 
@@ -145,7 +146,7 @@ export function DocumentListPage() {
       render: (row) =>
         row.folderId === null
           ? "Sem pasta (raiz)"
-          : (folderNameById.get(row.folderId) ?? "Pasta restrita"),
+          : (folderPathById.get(row.folderId) ?? "Pasta restrita"),
     },
     {
       id: "status",
@@ -242,7 +243,11 @@ export function DocumentListPage() {
       <UploadDialog
         open={uploadOpen}
         categories={categories.map((cat) => ({ id: cat.id, name: cat.name }))}
-        folders={folders.map((folder) => ({ id: folder.id, name: folder.name }))}
+        folders={folders.map((folder) => ({
+          id: folder.id,
+          name: folder.name,
+          parentId: folder.parentId,
+        }))}
         createDocumentOnFinalize
         onUploadBatchFinished={() => {
           void queryClient.invalidateQueries({ queryKey: ["documents", "search"] });

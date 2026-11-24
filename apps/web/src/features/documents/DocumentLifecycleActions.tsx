@@ -1,7 +1,9 @@
 import type { DocumentDetail, RestoreTrashedDocumentTargetStatus } from "@docuflow/contracts";
 import ArchiveOutlinedIcon from "@mui/icons-material/ArchiveOutlined";
 import DriveFileMoveOutlinedIcon from "@mui/icons-material/DriveFileMoveOutlined";
+import FolderOutlinedIcon from "@mui/icons-material/FolderOutlined";
 import RestoreFromTrashOutlinedIcon from "@mui/icons-material/RestoreFromTrashOutlined";
+import SubdirectoryArrowRightOutlinedIcon from "@mui/icons-material/SubdirectoryArrowRightOutlined";
 import {
   Alert,
   Button,
@@ -14,7 +16,8 @@ import {
   Stack,
   TextField,
 } from "@mui/material";
-import { useId, useState } from "react";
+import { useId, useMemo, useState } from "react";
+import { buildFolderTreeOptions } from "../folders/folderTree.js";
 import {
   useArchiveDocumentMutation,
   useAvailableFoldersQuery,
@@ -62,6 +65,15 @@ export function DocumentLifecycleActions({
   const moveMutation = useMoveDocumentMutation(document.id);
   const archiveMutation = useArchiveDocumentMutation(document.id);
   const restoreMutation = useRestoreTrashedDocumentMutation(document.id);
+
+  const folderTreeOptions = useMemo(
+    () => buildFolderTreeOptions(foldersQuery.data ?? []),
+    [foldersQuery.data],
+  );
+  const folderById = useMemo(
+    () => new Map(folderTreeOptions.map((item) => [item.id, item])),
+    [folderTreeOptions],
+  );
 
   if (document.status === "DELETED") {
     if (!document.permissions.canDelete) {
@@ -220,7 +232,7 @@ export function DocumentLifecycleActions({
       const folderName =
         targetFolderId === null
           ? "Sem pasta (raiz)"
-          : (foldersQuery.data?.find((f) => f.id === targetFolderId)?.name ?? "pasta selecionada");
+          : (folderById.get(targetFolderId)?.fullPath ?? "pasta selecionada");
       onActionFeedback?.({
         severity: "success",
         message: `Documento movido para "${folderName}".`,
@@ -263,8 +275,6 @@ export function DocumentLifecycleActions({
       );
     }
   };
-
-  const folderOptions = foldersQuery.data ?? [];
 
   return (
     <>
@@ -322,13 +332,41 @@ export function DocumentLifecycleActions({
               label="Pasta de destino"
               value={foldersQuery.isLoading ? "" : selectedFolderId}
               onChange={(event) => setSelectedFolderId(event.target.value)}
+              slotProps={{
+                inputLabel: { shrink: true },
+                select: {
+                  displayEmpty: true,
+                  renderValue: (selected) => {
+                    const value = typeof selected === "string" ? selected : "";
+                    if (value.length === 0) {
+                      return "Sem pasta (raiz)";
+                    }
+                    return folderById.get(value)?.fullPath ?? "";
+                  },
+                },
+              }}
               fullWidth
               disabled={moveMutation.isPending || foldersQuery.isLoading}
             >
               <MenuItem value="">Sem pasta (raiz)</MenuItem>
-              {folderOptions.map((folder) => (
-                <MenuItem key={folder.id} value={folder.id}>
-                  {folder.name}
+              {folderTreeOptions.map((folder) => (
+                <MenuItem
+                  key={folder.id}
+                  value={folder.id}
+                  data-depth={folder.depth}
+                  sx={{ pl: 2 + folder.depth * 2.5 }}
+                >
+                  <Stack direction="row" spacing={0.75} alignItems="center">
+                    {folder.depth > 0 ? (
+                      <SubdirectoryArrowRightOutlinedIcon
+                        fontSize="small"
+                        color="action"
+                        aria-hidden
+                      />
+                    ) : null}
+                    <FolderOutlinedIcon fontSize="small" color="action" aria-hidden />
+                    <span>{folder.name}</span>
+                  </Stack>
                 </MenuItem>
               ))}
             </TextField>
