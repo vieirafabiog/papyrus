@@ -1077,7 +1077,7 @@ docuflow/
   - **Ação:** Executar todos os critérios do `project.md` H.2/H.3, incluindo local, S3, permissões, fluxo, auditoria e restore.
   - **Verificação:** Todos os itens obrigatórios comprovados; itens não implementados devem permanecer explicitamente fora do escopo.
 
-- [ ] **Step 17.07 — Publicar release candidate e registrar limitações**
+- [x] **Step 17.07 — Publicar release candidate e registrar limitações**
   - **Arquivos:** `CHANGELOG.md`, `docs/known-limitations.md`
   - **Ação:** Preparar release candidate, documentar limitações conhecidas e instruções de atualização. Não anunciar SaaS multi-tenant, OCR, assinatura eletrônica ou conectores não entregues.
   - **Verificação:** Instalação nova e upgrade a partir da versão anterior suportada concluídos com sucesso.

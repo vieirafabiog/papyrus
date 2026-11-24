@@ -37,3 +37,7 @@ As migrations SQL do Drizzle em `packages/database/drizzle` (`0000_initial.sql` 
   4. Executar migrations dentro do container `api` com advisory lock (`docker compose --env-file .env -f infra/compose/docker-compose.yml run --rm --no-deps api sh /app/scripts/maintenance/migrate-entrypoint.sh`).
   5. Subir os serviços atualizados (`up -d api worker web`) e validar `GET /api/v1/health/ready`, login e download de documento existente.
 - **Rollback:** caso a release não tenha alterado schema, retorne `DOCUFLOW_IMAGE_TAG` para a versão anterior e suba `api worker web`; caso tenha executado migrations, restaure o backup pré-atualização via `scripts/restore/restore-system.sh --confirm-restore` antes de voltar as imagens anteriores.
+
+### Limitações Conhecidas e Aceitação
+- **Sem versão anterior publicada:** `1.0.0-rc.1` é a primeira release candidate pública do DocuFlow Self-Hosted (instalações novas partem das migrations `0000`–`0003`, e atualizações de pré-builds com migrations anteriores aplicam incrementalmente o restante via advisory lock).
+- Consulte [docs/known-limitations.md](./docs/known-limitations.md) para a lista completa de limitações conhecidas (incluindo composição pendente de bootstrap completo em `server.ts`/`worker.ts` e escopo estritamente self-hosted de organização única sem OCR, OIDC/LDAP, Azure/GCS ou assinatura eletrônica) e [docs/release-checklist.md](./docs/release-checklist.md) para as evidências de aceitação do MVP.
