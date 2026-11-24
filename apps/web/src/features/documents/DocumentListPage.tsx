@@ -180,7 +180,7 @@ export function DocumentListPage() {
           endIcon={<OpenInNewOutlinedIcon fontSize="small" />}
           onClick={(event) => {
             event.stopPropagation();
-            void navigate(`/documentos/${row.id}`);
+            void navigate(`/documents/${row.id}`);
           }}
           aria-label={`Abrir ${row.title}`}
         >
@@ -213,7 +213,7 @@ export function DocumentListPage() {
         onUpdateFilters={updateFilters}
         onClearFilters={clearFilters}
         onOpenUpload={() => setUploadOpen(true)}
-        onOpenTrash={() => void navigate("/lixeira")}
+        onOpenTrash={() => void navigate("/trash")}
       />
 
       <DataTable
@@ -230,7 +230,7 @@ export function DocumentListPage() {
         sortBy={filters.sortBy}
         sortDirection={filters.sortDirection}
         onSortChange={handleSortChange}
-        onRowClick={(row) => void navigate(`/documentos/${row.id}`)}
+        onRowClick={(row) => void navigate(`/documents/${row.id}`)}
         loading={documentsQuery.isLoading}
         errorMessage={documentsQuery.isError ? documentsQuery.error.message : null}
         onRetry={() => void documentsQuery.refetch()}

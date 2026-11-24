@@ -166,10 +166,10 @@ function resolveNotificationTarget(item: NotificationItem): string | null {
     return null;
   }
   if (item.resourceType === "WORKFLOW_TASK") {
-    return `/tarefas/${encodeURIComponent(item.resourceId)}`;
+    return `/tasks/${encodeURIComponent(item.resourceId)}`;
   }
   if (item.resourceType === "DOCUMENT") {
-    return `/documentos/${encodeURIComponent(item.resourceId)}`;
+    return `/documents/${encodeURIComponent(item.resourceId)}`;
   }
   return null;
 }

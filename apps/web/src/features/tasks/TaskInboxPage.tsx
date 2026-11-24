@@ -244,7 +244,7 @@ export function TaskInboxPage() {
               variant="outlined"
               onClick={(event) => {
                 event.stopPropagation();
-                void navigate(`/tarefas/${encodeURIComponent(row.id)}`);
+                void navigate(`/tasks/${encodeURIComponent(row.id)}`);
               }}
               aria-label={`Revisar tarefa ${row.workflowDefinitionName} — ${row.documentTitle}`}
             >

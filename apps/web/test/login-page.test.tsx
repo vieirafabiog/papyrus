@@ -22,7 +22,7 @@ function renderLoginPage() {
           <Routes>
             <Route path="/login" element={<LoginPage />} />
             <Route path="/" element={<h1>Painel inicial</h1>} />
-            <Route path="/recuperar-senha" element={<h1>Recuperação</h1>} />
+            <Route path="/forgot-password" element={<h1>Recuperação</h1>} />
           </Routes>
         </MemoryRouter>
       </QueryClientProvider>

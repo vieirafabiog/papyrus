@@ -27,7 +27,7 @@ function DocumentRouteProbe() {
   );
 }
 
-function renderTaskInboxPage(initialPath = "/tarefas") {
+function renderTaskInboxPage(initialPath = "/tasks") {
   const queryClient = new QueryClient({
     defaultOptions: {
       queries: { retry: false },
@@ -40,8 +40,8 @@ function renderTaskInboxPage(initialPath = "/tarefas") {
       <QueryClientProvider client={queryClient}>
         <MemoryRouter initialEntries={[initialPath]}>
           <Routes>
-            <Route path="/tarefas" element={<TaskInboxPage />} />
-            <Route path="/documentos/:id" element={<DocumentRouteProbe />} />
+            <Route path="/tasks" element={<TaskInboxPage />} />
+            <Route path="/documents/:id" element={<DocumentRouteProbe />} />
           </Routes>
         </MemoryRouter>
       </QueryClientProvider>
@@ -246,7 +246,7 @@ describe("TaskInboxPage (Minhas tarefas)", () => {
       await screen.findByRole("heading", { name: "Detalhe do Documento" }),
     ).toBeInTheDocument();
     expect(screen.getByTestId("doc-location")).toHaveTextContent(
-      `/documentos/${DOC_1_ID}?versionId=${VER_1_ID}&taskId=${TASK_1_ID}`,
+      `/documents/${DOC_1_ID}?versionId=${VER_1_ID}&taskId=${TASK_1_ID}`,
     );
   });
 

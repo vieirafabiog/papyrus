@@ -270,12 +270,7 @@ export function SystemStatusPage() {
               </Box>
             </Stack>
 
-            <Button
-              component={RouterLink}
-              to="/admin/armazenamento"
-              size="small"
-              variant="outlined"
-            >
+            <Button component={RouterLink} to="/admin/storage" size="small" variant="outlined">
               Gerenciar conexões
             </Button>
           </Stack>

@@ -162,7 +162,7 @@ export function TaskReviewPage() {
             <Button
               variant="outlined"
               startIcon={<ArrowBackOutlinedIcon />}
-              onClick={() => void navigate("/tarefas")}
+              onClick={() => void navigate("/tasks")}
             >
               Voltar para Minhas tarefas
             </Button>
@@ -177,7 +177,7 @@ export function TaskReviewPage() {
           title="Tarefa não encontrada"
           description="A tarefa solicitada não existe ou não está disponível no seu escopo de acesso."
           actionLabel="Voltar para Minhas tarefas"
-          onAction={() => void navigate("/tarefas")}
+          onAction={() => void navigate("/tasks")}
         />
       );
     }
@@ -278,7 +278,7 @@ export function TaskReviewPage() {
             variant="text"
             size="small"
             startIcon={<ArrowBackOutlinedIcon />}
-            onClick={() => void navigate("/tarefas")}
+            onClick={() => void navigate("/tasks")}
             sx={{ alignSelf: "flex-start" }}
           >
             Voltar para Minhas tarefas

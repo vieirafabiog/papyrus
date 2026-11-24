@@ -124,7 +124,7 @@ export function DocumentDetailsPage() {
             <Button
               variant="outlined"
               startIcon={<ArrowBackOutlinedIcon />}
-              onClick={() => void navigate("/documentos")}
+              onClick={() => void navigate("/documents")}
             >
               Voltar para documentos
             </Button>
@@ -139,7 +139,7 @@ export function DocumentDetailsPage() {
           title="Documento não encontrado"
           description="O registro solicitado não existe ou não está mais disponível nesta organização."
           actionLabel="Voltar para documentos"
-          onAction={() => void navigate("/documentos")}
+          onAction={() => void navigate("/documents")}
         />
       );
     }
@@ -179,7 +179,7 @@ export function DocumentDetailsPage() {
             variant="text"
             size="small"
             startIcon={<ArrowBackOutlinedIcon />}
-            onClick={() => void navigate("/documentos")}
+            onClick={() => void navigate("/documents")}
             sx={{ alignSelf: "flex-start" }}
           >
             Voltar para documentos
@@ -289,7 +289,7 @@ export function DocumentDetailsPage() {
                         variant="text"
                         size="small"
                         sx={{ justifyContent: "flex-start", px: 0, textTransform: "none" }}
-                        onClick={() => void navigate(`/pastas/${doc.folder?.id}`)}
+                        onClick={() => void navigate(`/folders/${doc.folder?.id}`)}
                       >
                         {doc.folder.name}
                       </Button>

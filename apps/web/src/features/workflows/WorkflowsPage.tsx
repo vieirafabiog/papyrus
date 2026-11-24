@@ -70,7 +70,7 @@ function formatAssigneeLabel(
 }
 
 /**
- * Versioned sequential workflow definitions management page (`/fluxos`).
+ * Versioned sequential workflow definitions management page (`/workflows`).
  */
 export function WorkflowsPage() {
   const { data: session } = useSessionQuery();

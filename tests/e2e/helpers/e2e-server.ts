@@ -190,7 +190,7 @@ async function serveWebAsset(req: IncomingMessage, res: ServerResponse): Promise
         targetFile = candidate;
       }
     } catch {
-      // Fallback SPA para index.html em rotas do cliente (/login, /documentos, etc.)
+      // Fallback SPA para index.html em rotas do cliente (/login, /documents, etc.)
     }
   }
 

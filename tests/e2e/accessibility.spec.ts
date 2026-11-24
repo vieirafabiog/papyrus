@@ -427,9 +427,9 @@ test.describe("Acessibilidade WCAG 2.2 AA dos fluxos críticos", () => {
 
     await expect(page).not.toHaveURL(/\/login$/);
 
-    // 2. Fluxo de Lista de documentos: labels, contraste, foco no campo de busca e navegação para /documentos
+    // 2. Fluxo de Lista de documentos: labels, contraste, foco no campo de busca e navegação para /documents
     await page.getByRole("link", { name: "Documentos" }).first().click();
-    await expect(page).toHaveURL(/\/documentos$/);
+    await expect(page).toHaveURL(/\/documents$/);
     await expect(page.getByRole("heading", { name: "Documentos" })).toBeVisible();
     await auditViewAccessibility(page, "Lista de documentos");
 
@@ -473,7 +473,7 @@ test.describe("Acessibilidade WCAG 2.2 AA dos fluxos críticos", () => {
     await assertKeyboardFocusVisible(page, openDocButton, "Abrir documento");
     await openDocButton.click();
 
-    await expect(page).toHaveURL(/\/documentos\/[0-9a-f-]+$/);
+    await expect(page).toHaveURL(/\/documents\/[0-9a-f-]+$/);
     await expect(page.getByRole("heading", { name: documentTitle })).toBeVisible();
     await expect(page.getByText("Disponível").first()).toBeVisible();
     await auditViewAccessibility(page, "Detalhe do documento");
@@ -488,7 +488,7 @@ test.describe("Acessibilidade WCAG 2.2 AA dos fluxos críticos", () => {
     await startWorkflowDialog.getByRole("button", { name: "Confirmar envio" }).click();
     await expect(page.getByText("Em revisão")).toBeVisible();
 
-    // 5. Fluxo de Tarefas: login do revisor, fila de tarefas (/tarefas) e tela de revisão (/tarefas/:id)
+    // 5. Fluxo de Tarefas: login do revisor, fila de tarefas (/tasks) e tela de revisão (/tasks/:id)
     const reviewerContext = await browser.newContext({ locale: "pt-BR" });
     const reviewerPage = await reviewerContext.newPage();
 
@@ -500,7 +500,7 @@ test.describe("Acessibilidade WCAG 2.2 AA dos fluxos críticos", () => {
     await expect(reviewerPage).not.toHaveURL(/\/login$/);
 
     await reviewerPage.getByRole("link", { name: "Minhas tarefas" }).first().click();
-    await expect(reviewerPage).toHaveURL(/\/tarefas$/);
+    await expect(reviewerPage).toHaveURL(/\/tasks$/);
     await expect(reviewerPage.getByRole("heading", { name: "Minhas tarefas" })).toBeVisible();
     await auditViewAccessibility(reviewerPage, "Lista de tarefas");
 
@@ -510,7 +510,7 @@ test.describe("Acessibilidade WCAG 2.2 AA dos fluxos críticos", () => {
     await assertKeyboardFocusVisible(reviewerPage, reviewTaskButton, "Botão Revisar tarefa");
     await reviewTaskButton.click();
 
-    await expect(reviewerPage).toHaveURL(/\/tarefas\/[0-9a-f-]+$/);
+    await expect(reviewerPage).toHaveURL(/\/tasks\/[0-9a-f-]+$/);
     await expect(reviewerPage.getByLabel("Comentário da revisão")).toBeVisible();
     await auditViewAccessibility(reviewerPage, "Detalhe da tarefa");
 
@@ -521,7 +521,7 @@ test.describe("Acessibilidade WCAG 2.2 AA dos fluxos críticos", () => {
     await expect(reviewerPage.getByText(/Aprovação registrada/i)).toBeVisible();
     await reviewerContext.close();
 
-    // 6. Fluxo de Administração: usuários (/admin/usuarios), armazenamento (/admin/armazenamento) e categorias (/categorias)
+    // 6. Fluxo de Administração: usuários (/admin/users), armazenamento (/admin/storage) e categorias (/categories)
     await page.getByRole("link", { name: "Usuários e grupos" }).first().click();
     await expect(page).toHaveURL(/\/admin\/usuarios$/);
     await expect(page.getByRole("heading", { name: /Usuários/i })).toBeVisible();
@@ -540,7 +540,7 @@ test.describe("Acessibilidade WCAG 2.2 AA dos fluxos críticos", () => {
     }
 
     await page.getByRole("link", { name: "Categorias e campos" }).first().click();
-    await expect(page).toHaveURL(/\/categorias$/);
+    await expect(page).toHaveURL(/\/categories$/);
     await expect(page.getByRole("heading", { name: /Categorias/i })).toBeVisible();
     await expect(page.getByText(env.categoryName)).toBeVisible();
     await auditViewAccessibility(page, "Administração - Categorias");

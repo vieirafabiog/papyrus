@@ -154,7 +154,7 @@ export function resolveTaskDocumentTarget(task: TaskInboxItem): string | null {
     versionId: task.documentVersionId,
     taskId: task.id,
   });
-  return `/documentos/${encodeURIComponent(task.documentId)}?${params.toString()}`;
+  return `/documents/${encodeURIComponent(task.documentId)}?${params.toString()}`;
 }
 
 export function useTaskInboxQuery(filters: TaskInboxFiltersState) {

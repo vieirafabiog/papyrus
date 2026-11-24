@@ -27,8 +27,8 @@ function renderNotificationBell() {
         <MemoryRouter initialEntries={["/"]}>
           <Routes>
             <Route path="/" element={<NotificationBell />} />
-            <Route path="/tarefas/:id" element={<h1>Detalhe da Tarefa</h1>} />
-            <Route path="/documentos/:id" element={<h1>Detalhe do Documento</h1>} />
+            <Route path="/tasks/:id" element={<h1>Detalhe da Tarefa</h1>} />
+            <Route path="/documents/:id" element={<h1>Detalhe do Documento</h1>} />
           </Routes>
         </MemoryRouter>
       </QueryClientProvider>

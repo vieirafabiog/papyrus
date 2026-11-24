@@ -117,7 +117,7 @@ export function DashboardPage() {
             >
               {isFetching ? "Atualizando..." : "Atualizar"}
             </Button>
-            <Button variant="contained" size="small" onClick={() => navigate("/documentos")}>
+            <Button variant="contained" size="small" onClick={() => navigate("/documents")}>
               Ver documentos
             </Button>
           </Stack>
@@ -133,7 +133,7 @@ export function DashboardPage() {
           title="Nenhum resumo disponível no momento"
           description="Os indicadores serão exibidos assim que houver documentos ou atividades autorizadas no seu escopo."
           actionLabel="Ir para documentos"
-          onAction={() => navigate("/documentos")}
+          onAction={() => navigate("/documents")}
         />
       ) : data ? (
         <Stack spacing={3}>
@@ -189,7 +189,7 @@ export function DashboardPage() {
                     const targetId = item.resourceId;
                     return (
                       <ListItem key={item.id} divider disablePadding>
-                        <ListItemButton onClick={() => navigate(`/documentos/${targetId}`)}>
+                        <ListItemButton onClick={() => navigate(`/documents/${targetId}`)}>
                           <ListItemText primary={titleLabel} secondary={occurredLabel} />
                         </ListItemButton>
                       </ListItem>

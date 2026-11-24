@@ -180,7 +180,7 @@ export function TrashDocumentsPage() {
             endIcon={<OpenInNewOutlinedIcon fontSize="small" />}
             onClick={(event) => {
               event.stopPropagation();
-              void navigate(`/documentos/${row.id}`);
+              void navigate(`/documents/${row.id}`);
             }}
             aria-label={`Abrir ${row.title}`}
           >
@@ -233,7 +233,7 @@ export function TrashDocumentsPage() {
               configurado, preservando histórico de versões e permissões.
             </Typography>
           </Box>
-          <Button variant="outlined" onClick={() => void navigate("/documentos")}>
+          <Button variant="outlined" onClick={() => void navigate("/documents")}>
             Voltar aos documentos
           </Button>
         </Stack>
@@ -278,7 +278,7 @@ export function TrashDocumentsPage() {
         sortBy={sortBy}
         sortDirection={sortDirection}
         onSortChange={handleSortChange}
-        onRowClick={(row) => void navigate(`/documentos/${row.id}`)}
+        onRowClick={(row) => void navigate(`/documents/${row.id}`)}
         loading={trashQuery.isLoading}
         errorMessage={trashQuery.isError ? trashQuery.error.message : null}
         onRetry={() => void trashQuery.refetch()}

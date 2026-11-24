@@ -30,10 +30,10 @@ function renderDetailsPage() {
     <ThemeProvider theme={docuflowTheme}>
       <CssBaseline />
       <QueryClientProvider client={queryClient}>
-        <MemoryRouter initialEntries={[`/documentos/${DOC_ID}`]}>
+        <MemoryRouter initialEntries={[`/documents/${DOC_ID}`]}>
           <Routes>
-            <Route path="/documentos/:id" element={<DocumentDetailsPage />} />
-            <Route path="/documentos" element={<h1>Lista de documentos</h1>} />
+            <Route path="/documents/:id" element={<DocumentDetailsPage />} />
+            <Route path="/documents" element={<h1>Lista de documentos</h1>} />
           </Routes>
         </MemoryRouter>
       </QueryClientProvider>

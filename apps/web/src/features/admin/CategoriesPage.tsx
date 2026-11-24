@@ -38,7 +38,7 @@ function formatDatePtBr(isoString: string): string {
 }
 
 /**
- * Category and custom metadata management page wired at /categorias.
+ * Category and custom metadata management page wired at /categories.
  */
 export function CategoriesPage() {
   const sessionQuery = useSessionQuery();

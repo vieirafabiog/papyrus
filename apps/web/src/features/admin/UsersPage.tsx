@@ -365,7 +365,7 @@ export function UsersPage() {
             value="users"
             onChange={(_event, nextTab: string) => {
               if (nextTab === "groups") {
-                void navigate("/admin/grupos");
+                void navigate("/admin/groups");
               }
             }}
             aria-label="Seções de usuários e grupos"

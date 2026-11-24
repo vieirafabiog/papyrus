@@ -108,10 +108,10 @@ export function FoldersPage() {
     setActionSuccess(null);
     setDocPage(1);
     if (targetFolderId === null) {
-      void navigate("/pastas");
+      void navigate("/folders");
       return;
     }
-    void navigate(`/pastas/${targetFolderId}`);
+    void navigate(`/folders/${targetFolderId}`);
   };
 
   if (navigationQuery.isLoading) {
@@ -284,7 +284,7 @@ export function FoldersPage() {
           endIcon={<OpenInNewOutlinedIcon fontSize="small" />}
           onClick={(event) => {
             event.stopPropagation();
-            void navigate(`/documentos/${row.id}`);
+            void navigate(`/documents/${row.id}`);
           }}
         >
           Abrir
@@ -458,7 +458,7 @@ export function FoldersPage() {
               setDocPageSize(nextSize);
               setDocPage(1);
             }}
-            onRowClick={(row) => void navigate(`/documentos/${row.id}`)}
+            onRowClick={(row) => void navigate(`/documents/${row.id}`)}
             emptyTitle="Pasta sem documentos"
             emptyDescription="Não há documentos autorizados diretamente nesta pasta."
           />

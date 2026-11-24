@@ -21,7 +21,7 @@ function renderGlobalSearch(props?: {
         <GlobalSearch debounceMs={props?.debounceMs ?? 20} fetchFn={props?.fetchFn} />
         <Routes>
           <Route path="/" element={<div>Início</div>} />
-          <Route path="/documentos/:id" element={<h1>Detalhe do Documento Destino</h1>} />
+          <Route path="/documents/:id" element={<h1>Detalhe do Documento Destino</h1>} />
         </Routes>
       </MemoryRouter>
     </ThemeProvider>,

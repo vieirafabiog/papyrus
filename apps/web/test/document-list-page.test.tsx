@@ -14,7 +14,7 @@ const CAT_1_ID = "550e8400-e29b-41d4-a716-446655440011";
 const FOLDER_1_ID = "550e8400-e29b-41d4-a716-446655440021";
 const OWNER_1_ID = "550e8400-e29b-41d4-a716-446655440031";
 
-function renderDocumentListPage(initialPath = "/documentos") {
+function renderDocumentListPage(initialPath = "/documents") {
   const queryClient = new QueryClient({
     defaultOptions: {
       queries: { retry: false },
@@ -27,8 +27,8 @@ function renderDocumentListPage(initialPath = "/documentos") {
       <QueryClientProvider client={queryClient}>
         <MemoryRouter initialEntries={[initialPath]}>
           <Routes>
-            <Route path="/documentos" element={<DocumentListPage />} />
-            <Route path="/documentos/:id" element={<h1>Detalhe do Documento</h1>} />
+            <Route path="/documents" element={<DocumentListPage />} />
+            <Route path="/documents/:id" element={<h1>Detalhe do Documento</h1>} />
           </Routes>
         </MemoryRouter>
       </QueryClientProvider>

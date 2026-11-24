@@ -35,11 +35,11 @@ function renderTaskReviewPage(taskId = TASK_ID) {
     <ThemeProvider theme={docuflowTheme}>
       <CssBaseline />
       <QueryClientProvider client={queryClient}>
-        <MemoryRouter initialEntries={[`/tarefas/${taskId}`]}>
+        <MemoryRouter initialEntries={[`/tasks/${taskId}`]}>
           <Routes>
-            <Route path="/tarefas" element={<h1>Lista de Tarefas</h1>} />
-            <Route path="/tarefas/:id" element={<TaskReviewPage />} />
-            <Route path="/documentos/:id" element={<h1>Detalhe do Documento</h1>} />
+            <Route path="/tasks" element={<h1>Lista de Tarefas</h1>} />
+            <Route path="/tasks/:id" element={<TaskReviewPage />} />
+            <Route path="/documents/:id" element={<h1>Detalhe do Documento</h1>} />
           </Routes>
         </MemoryRouter>
       </QueryClientProvider>

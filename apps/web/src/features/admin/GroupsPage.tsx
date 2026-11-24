@@ -300,7 +300,7 @@ export function GroupsPage() {
             value="groups"
             onChange={(_event, nextTab: string) => {
               if (nextTab === "users") {
-                void navigate("/admin/usuarios");
+                void navigate("/admin/users");
               }
             }}
             aria-label="Seções de usuários e grupos"

@@ -213,7 +213,7 @@ export function ExpirationsPage() {
           endIcon={<OpenInNewOutlinedIcon fontSize="small" />}
           onClick={(event) => {
             event.stopPropagation();
-            navigate(`/documentos/${encodeURIComponent(row.id)}`);
+            navigate(`/documents/${encodeURIComponent(row.id)}`);
           }}
         >
           Abrir
@@ -447,7 +447,7 @@ export function ExpirationsPage() {
             });
           }
         }}
-        onRowClick={(row) => navigate(`/documentos/${encodeURIComponent(row.id)}`)}
+        onRowClick={(row) => navigate(`/documents/${encodeURIComponent(row.id)}`)}
         loading={expirationsQuery.isPending}
         errorMessage={expirationsQuery.isError ? expirationsQuery.error.message : null}
         onRetry={() => void expirationsQuery.refetch()}

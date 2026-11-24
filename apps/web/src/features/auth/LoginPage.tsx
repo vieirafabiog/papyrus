@@ -265,7 +265,7 @@ export function LoginPage() {
               />
 
               <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
-                <Link component={RouterLink} to="/recuperar-senha" variant="body2">
+                <Link component={RouterLink} to="/forgot-password" variant="body2">
                   Esqueci minha senha
                 </Link>
               </Box>

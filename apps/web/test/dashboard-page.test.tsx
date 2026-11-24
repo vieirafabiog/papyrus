@@ -21,8 +21,8 @@ function renderDashboard() {
         <MemoryRouter initialEntries={["/"]}>
           <Routes>
             <Route path="/" element={<DashboardPage />} />
-            <Route path="/documentos" element={<h1>Lista de documentos</h1>} />
-            <Route path="/documentos/:id" element={<h1>Detalhe do documento</h1>} />
+            <Route path="/documents" element={<h1>Lista de documentos</h1>} />
+            <Route path="/documents/:id" element={<h1>Detalhe do documento</h1>} />
           </Routes>
         </MemoryRouter>
       </QueryClientProvider>

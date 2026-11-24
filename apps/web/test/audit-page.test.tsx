@@ -25,9 +25,9 @@ function renderAuditPage() {
     <ThemeProvider theme={docuflowTheme}>
       <CssBaseline />
       <QueryClientProvider client={queryClient}>
-        <MemoryRouter initialEntries={["/admin/auditoria"]}>
+        <MemoryRouter initialEntries={["/admin/audit"]}>
           <Routes>
-            <Route path="/admin/auditoria" element={<AuditPage />} />
+            <Route path="/admin/audit" element={<AuditPage />} />
           </Routes>
         </MemoryRouter>
       </QueryClientProvider>

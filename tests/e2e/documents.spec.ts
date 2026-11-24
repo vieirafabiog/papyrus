@@ -66,7 +66,7 @@ test.describe("Gestão documental E2E", () => {
 
     // 2. Navegação para acervo e envio de documento v1
     await page.getByRole("link", { name: "Documentos" }).first().click();
-    await expect(page).toHaveURL(/\/documentos$/);
+    await expect(page).toHaveURL(/\/documents$/);
     await expect(page.getByRole("heading", { name: "Documentos" })).toBeVisible();
 
     await page.getByRole("button", { name: "Enviar documentos" }).first().click();
@@ -96,7 +96,7 @@ test.describe("Gestão documental E2E", () => {
     await expect(docRow).toBeVisible();
 
     await page.getByRole("button", { name: `Abrir ${documentTitle}` }).click();
-    await expect(page).toHaveURL(/\/documentos\/[0-9a-f-]+$/);
+    await expect(page).toHaveURL(/\/documents\/[0-9a-f-]+$/);
     await expect(page.getByRole("heading", { name: documentTitle })).toBeVisible();
 
     // 4. Aguardar processamento assíncrono pelo worker até liberação em Disponível

@@ -61,7 +61,7 @@ test.describe("Fluxo de revisão e aprovação E2E", () => {
     await expect(page).not.toHaveURL(/\/login$/);
 
     await page.getByRole("link", { name: "Documentos" }).first().click();
-    await expect(page).toHaveURL(/\/documentos$/);
+    await expect(page).toHaveURL(/\/documents$/);
 
     await page.getByRole("button", { name: "Enviar documentos" }).first().click();
     const uploadDialog = page.getByRole("dialog", { name: "Enviar documentos" });
@@ -82,7 +82,7 @@ test.describe("Fluxo de revisão e aprovação E2E", () => {
 
     await page.getByLabel("Pesquisar documento").fill(documentTitle);
     await page.getByRole("button", { name: `Abrir ${documentTitle}` }).click();
-    await expect(page).toHaveURL(/\/documentos\/[0-9a-f-]+$/);
+    await expect(page).toHaveURL(/\/documents\/[0-9a-f-]+$/);
     const documentUrl = page.url();
 
     await expect(page.getByText("Disponível").first()).toBeVisible();
@@ -116,14 +116,14 @@ test.describe("Fluxo de revisão e aprovação E2E", () => {
     await expect(reviewerPage).not.toHaveURL(/\/login$/);
 
     await reviewerPage.getByRole("link", { name: "Minhas tarefas" }).first().click();
-    await expect(reviewerPage).toHaveURL(/\/tarefas$/);
+    await expect(reviewerPage).toHaveURL(/\/tasks$/);
 
     const reviewerRowV1 = reviewerPage.locator("tr", { hasText: documentTitle });
     await expect(reviewerRowV1).toBeVisible();
     await expect(reviewerRowV1.getByText("Versão v1")).toBeVisible();
     await reviewerRowV1.getByRole("button", { name: /Revisar/i }).click();
 
-    await expect(reviewerPage).toHaveURL(/\/tarefas\/[0-9a-f-]+$/);
+    await expect(reviewerPage).toHaveURL(/\/tasks\/[0-9a-f-]+$/);
     await expect(reviewerPage.getByText("Versão v1").first()).toBeVisible();
     await reviewerPage.getByLabel("Comentário da revisão").fill(adjustmentComment);
     await reviewerPage.getByRole("button", { name: "Solicitar ajustes" }).click();
@@ -163,7 +163,7 @@ test.describe("Fluxo de revisão e aprovação E2E", () => {
 
     // 6. Revisor aprova Etapa 1 vinculada à v2
     await reviewerPage.getByRole("link", { name: "Minhas tarefas" }).first().click();
-    await expect(reviewerPage).toHaveURL(/\/tarefas$/);
+    await expect(reviewerPage).toHaveURL(/\/tasks$/);
     await reviewerPage.getByRole("button", { name: "Atualizar" }).click();
 
     const reviewerRowV2 = reviewerPage
@@ -181,7 +181,7 @@ test.describe("Fluxo de revisão e aprovação E2E", () => {
 
     // 7. Aprovador final executa Etapa 2 (v2) e confirma aprovação final do documento
     await page.getByRole("link", { name: "Minhas tarefas" }).first().click();
-    await expect(page).toHaveURL(/\/tarefas$/);
+    await expect(page).toHaveURL(/\/tasks$/);
 
     const finalTaskRow = page
       .locator("tr", { hasText: "Etapa 2: Aprovação Final" })
@@ -189,7 +189,7 @@ test.describe("Fluxo de revisão e aprovação E2E", () => {
     await expect(finalTaskRow).toBeVisible();
     await finalTaskRow.getByRole("button", { name: /Revisar/i }).click();
 
-    await expect(page).toHaveURL(/\/tarefas\/[0-9a-f-]+$/);
+    await expect(page).toHaveURL(/\/tasks\/[0-9a-f-]+$/);
     await page.getByLabel("Comentário da revisão").fill(step2ApprovalComment);
     await page.getByRole("button", { name: "Aprovar" }).click();
     await expect(page.getByText(/Aprovação registrada/i)).toBeVisible();

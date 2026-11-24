@@ -157,7 +157,7 @@ export function GlobalSearch({ debounceMs = DEFAULT_DEBOUNCE_MS, fetchFn }: Glob
   const handleSelectDocument = (documentId: string): void => {
     setOpen(false);
     setActiveIndex(-1);
-    void navigate(`/documentos/${documentId}`);
+    void navigate(`/documents/${documentId}`);
   };
 
   const handleClear = (): void => {

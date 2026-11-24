@@ -43,43 +43,43 @@ interface NavItem {
 
 const PRIMARY_NAV_ITEMS: readonly NavItem[] = [
   { label: "Visão geral", to: "/", icon: <DashboardOutlinedIcon fontSize="small" /> },
-  { label: "Documentos", to: "/documentos", icon: <DescriptionOutlinedIcon fontSize="small" /> },
-  { label: "Lixeira", to: "/lixeira", icon: <DeleteOutlineOutlinedIcon fontSize="small" /> },
-  { label: "Pastas", to: "/pastas", icon: <FolderOutlinedIcon fontSize="small" /> },
+  { label: "Documentos", to: "/documents", icon: <DescriptionOutlinedIcon fontSize="small" /> },
+  { label: "Lixeira", to: "/trash", icon: <DeleteOutlineOutlinedIcon fontSize="small" /> },
+  { label: "Pastas", to: "/folders", icon: <FolderOutlinedIcon fontSize="small" /> },
   {
     label: "Categorias e campos",
-    to: "/categorias",
+    to: "/categories",
     icon: <CategoryOutlinedIcon fontSize="small" />,
   },
   {
     label: "Etiquetas",
-    to: "/etiquetas",
+    to: "/tags",
     icon: <LabelOutlinedIcon fontSize="small" />,
   },
-  { label: "Fluxos de aprovação", to: "/fluxos", icon: <RuleOutlinedIcon fontSize="small" /> },
-  { label: "Minhas tarefas", to: "/tarefas", icon: <TaskAltOutlinedIcon fontSize="small" /> },
+  { label: "Fluxos de aprovação", to: "/workflows", icon: <RuleOutlinedIcon fontSize="small" /> },
+  { label: "Minhas tarefas", to: "/tasks", icon: <TaskAltOutlinedIcon fontSize="small" /> },
   {
     label: "Vencimentos",
-    to: "/vencimentos",
+    to: "/expirations",
     icon: <EventAvailableOutlinedIcon fontSize="small" />,
   },
-  { label: "Relatórios", to: "/relatorios", icon: <AssessmentOutlinedIcon fontSize="small" /> },
+  { label: "Relatórios", to: "/reports", icon: <AssessmentOutlinedIcon fontSize="small" /> },
 ];
 
 const ADMIN_NAV_ITEMS: readonly NavItem[] = [
   {
     label: "Usuários e grupos",
-    to: "/admin/usuarios",
+    to: "/admin/users",
     icon: <GroupOutlinedIcon fontSize="small" />,
   },
   {
     label: "Papéis e permissões",
-    to: "/admin/permissoes",
+    to: "/admin/permissions",
     icon: <SecurityOutlinedIcon fontSize="small" />,
   },
   {
     label: "Armazenamento",
-    to: "/admin/armazenamento",
+    to: "/admin/storage",
     icon: <StorageOutlinedIcon fontSize="small" />,
   },
   {
@@ -89,12 +89,12 @@ const ADMIN_NAV_ITEMS: readonly NavItem[] = [
   },
   {
     label: "Auditoria",
-    to: "/admin/auditoria",
+    to: "/admin/audit",
     icon: <HistoryEduOutlinedIcon fontSize="small" />,
   },
   {
     label: "Configurações",
-    to: "/admin/configuracoes",
+    to: "/admin/settings",
     icon: <SettingsOutlinedIcon fontSize="small" />,
   },
 ];

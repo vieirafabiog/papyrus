@@ -116,7 +116,7 @@ function MetricSummaryCard({
 }
 
 /**
- * Consolidated repository reporting page (`/relatorios`) powered by server-side
+ * Consolidated repository reporting page (`/reports`) powered by server-side
  * PostgreSQL aggregations scoped strictly to the user's authorized documents.
  */
 export function ReportsPage() {
@@ -268,7 +268,7 @@ export function ReportsPage() {
           title="Nenhum documento encontrado para relatório"
           description="Envie documentos ao repositório para visualizar a distribuição por categoria, status, vencimentos e uso de armazenamento."
           actionLabel="Ir para documentos"
-          onAction={() => void navigate("/documentos")}
+          onAction={() => void navigate("/documents")}
         />
       ) : (
         <Stack spacing={2.5}>
@@ -315,7 +315,7 @@ export function ReportsPage() {
               <Typography variant="h3" component="h2">
                 Situação de vencimentos (janela de {report.expirations.windowDays} dias)
               </Typography>
-              <Button size="small" variant="text" onClick={() => void navigate("/vencimentos")}>
+              <Button size="small" variant="text" onClick={() => void navigate("/expirations")}>
                 Abrir painel de vencimentos
               </Button>
             </Stack>

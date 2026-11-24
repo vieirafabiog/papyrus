@@ -24,7 +24,7 @@ function jsonResponse(body: unknown, status = 200): Response {
   });
 }
 
-function renderFoldersPage(initialPath = "/pastas") {
+function renderFoldersPage(initialPath = "/folders") {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false } },
   });
@@ -35,9 +35,9 @@ function renderFoldersPage(initialPath = "/pastas") {
       <QueryClientProvider client={queryClient}>
         <MemoryRouter initialEntries={[initialPath]}>
           <Routes>
-            <Route path="/pastas" element={<FoldersPage />} />
-            <Route path="/pastas/:folderId" element={<FoldersPage />} />
-            <Route path="/documentos/:id" element={<h1>Detalhe do documento</h1>} />
+            <Route path="/folders" element={<FoldersPage />} />
+            <Route path="/folders/:folderId" element={<FoldersPage />} />
+            <Route path="/documents/:id" element={<h1>Detalhe do documento</h1>} />
           </Routes>
         </MemoryRouter>
       </QueryClientProvider>
@@ -151,7 +151,7 @@ describe("FoldersPage — hierarchical breadcrumbs, navigation authorization and
       );
     });
 
-    renderFoldersPage("/pastas");
+    renderFoldersPage("/folders");
 
     expect(await screen.findByText("Jurídico")).toBeInTheDocument();
     fireEvent.click(screen.getByText("Jurídico"));
@@ -235,12 +235,12 @@ describe("FoldersPage — hierarchical breadcrumbs, navigation authorization and
     });
 
     // Subfolder authorized while parent is 403 -> shows restricted ancestor marker without leaking parent name
-    const firstRender = renderFoldersPage(`/pastas/${CHILD_FOLDER_ID}`);
+    const firstRender = renderFoldersPage(`/folders/${CHILD_FOLDER_ID}`);
     expect(await screen.findByText("Pasta superior restrita")).toBeInTheDocument();
     firstRender.unmount();
 
     // Direct access to forbidden folder -> 403 warning with escape back to root
-    renderFoldersPage(`/pastas/${FORBIDDEN_FOLDER_ID}`);
+    renderFoldersPage(`/folders/${FORBIDDEN_FOLDER_ID}`);
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "Acesso negado: Você não possui permissão para acessar esta pasta.",
     );
@@ -298,13 +298,13 @@ describe("FoldersPage — hierarchical breadcrumbs, navigation authorization and
       return jsonResponse({}, 404);
     });
 
-    const removedView = renderFoldersPage(`/pastas/${REMOVED_FOLDER_ID}`);
+    const removedView = renderFoldersPage(`/folders/${REMOVED_FOLDER_ID}`);
     expect(
       await screen.findByRole("heading", { name: "Pasta removida ou não encontrada" }),
     ).toBeInTheDocument();
     removedView.unmount();
 
-    renderFoldersPage(`/pastas/${ARCHIVED_FOLDER_ID}`);
+    renderFoldersPage(`/folders/${ARCHIVED_FOLDER_ID}`);
     expect(
       await screen.findByText(
         "Esta pasta está arquivada. Não é possível criar novas subpastas ou enviar novos documentos nela.",

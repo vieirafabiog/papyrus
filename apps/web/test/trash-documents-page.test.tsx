@@ -23,11 +23,11 @@ function renderTrashPage() {
     <ThemeProvider theme={docuflowTheme}>
       <CssBaseline />
       <QueryClientProvider client={queryClient}>
-        <MemoryRouter initialEntries={["/lixeira"]}>
+        <MemoryRouter initialEntries={["/trash"]}>
           <Routes>
-            <Route path="/lixeira" element={<TrashDocumentsPage />} />
-            <Route path="/documentos" element={<h1>Lista de Documentos</h1>} />
-            <Route path="/documentos/:id" element={<h1>Detalhe do Documento</h1>} />
+            <Route path="/trash" element={<TrashDocumentsPage />} />
+            <Route path="/documents" element={<h1>Lista de Documentos</h1>} />
+            <Route path="/documents/:id" element={<h1>Detalhe do Documento</h1>} />
           </Routes>
         </MemoryRouter>
       </QueryClientProvider>

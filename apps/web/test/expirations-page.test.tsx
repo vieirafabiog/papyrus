@@ -24,10 +24,10 @@ function renderExpirationsPage() {
     <ThemeProvider theme={docuflowTheme}>
       <CssBaseline />
       <QueryClientProvider client={queryClient}>
-        <MemoryRouter initialEntries={["/vencimentos"]}>
+        <MemoryRouter initialEntries={["/expirations"]}>
           <Routes>
-            <Route path="/vencimentos" element={<ExpirationsPage />} />
-            <Route path="/documentos/:id" element={<h1>Detalhe do Documento</h1>} />
+            <Route path="/expirations" element={<ExpirationsPage />} />
+            <Route path="/documents/:id" element={<h1>Detalhe do Documento</h1>} />
           </Routes>
         </MemoryRouter>
       </QueryClientProvider>
