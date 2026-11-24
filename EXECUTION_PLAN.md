@@ -1062,7 +1062,7 @@ docuflow/
   - **Ação:** Descrever backup coerente do banco, arquivos e segredos necessários, periodicidade recomendada como parâmetro operacional, retenção e teste de restore.
   - **Verificação:** Repetir o procedimento em máquina/ambiente limpo.
 
-- [ ] **Step 17.04 — Finalizar manual de usuário inicial**
+- [x] **Step 17.04 — Finalizar manual de usuário inicial**
   - **Arquivo:** `docs/user-guide.md`
   - **Ação:** Documentar login, pastas, categorias, envio, metadados, versões, busca, aprovação, vencimentos e lixeira com capturas atualizadas.
   - **Verificação:** Percorrer todos os fluxos do manual na versão candidata.
