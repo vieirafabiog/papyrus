@@ -18,10 +18,33 @@ import {
 import { MIN_UPLOAD_MAX_BYTES, type UploadLimitsViewContract } from "@papyrus/contracts";
 import { ErrorState, LoadingState, PAPYRUS_COLOR_TOKENS } from "@papyrus/ui";
 import { type FormEvent, useEffect, useMemo, useState } from "react";
-import { useI18n } from "../../i18n/index.js";
+import { type MessageKey, useI18n } from "../../i18n/index.js";
 import { useUpdateUploadLimitsMutation, useUploadLimitsQuery } from "./useUploadLimitsSettings.js";
 
 const BYTES_PER_MIB = 1024 * 1024;
+
+const FORMAT_LABEL_KEYS: Readonly<Record<string, MessageKey>> = {
+  ".pdf": "admin.uploadLimits.formats.pdf",
+  ".png": "admin.uploadLimits.formats.png",
+  ".jpg": "admin.uploadLimits.formats.jpg",
+  ".jpeg": "admin.uploadLimits.formats.jpeg",
+  ".webp": "admin.uploadLimits.formats.webp",
+  ".gif": "admin.uploadLimits.formats.gif",
+  ".tif": "admin.uploadLimits.formats.tif",
+  ".tiff": "admin.uploadLimits.formats.tiff",
+  ".bmp": "admin.uploadLimits.formats.bmp",
+  ".txt": "admin.uploadLimits.formats.txt",
+  ".log": "admin.uploadLimits.formats.log",
+  ".md": "admin.uploadLimits.formats.md",
+  ".csv": "admin.uploadLimits.formats.csv",
+  ".json": "admin.uploadLimits.formats.json",
+  ".docx": "admin.uploadLimits.formats.docx",
+  ".xlsx": "admin.uploadLimits.formats.xlsx",
+  ".pptx": "admin.uploadLimits.formats.pptx",
+  ".doc": "admin.uploadLimits.formats.doc",
+  ".xls": "admin.uploadLimits.formats.xls",
+  ".ppt": "admin.uploadLimits.formats.ppt",
+};
 
 interface UploadLimitsFormState {
   readonly maxFileSizeMbInput: string;
@@ -279,10 +302,11 @@ export function UploadLimitsSettingsSection() {
           <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
             {data.supportedCatalog.map((entry) => {
               const selected = form.allowedExtensions.includes(entry.extension);
+              const labelKey = FORMAT_LABEL_KEYS[entry.extension.toLowerCase()];
               return (
                 <Chip
                   key={entry.extension}
-                  label={entry.label}
+                  label={labelKey ? t(labelKey) : entry.label}
                   color={selected ? "primary" : "default"}
                   variant={selected ? "filled" : "outlined"}
                   clickable={data.canEdit && !updateMutation.isPending}

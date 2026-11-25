@@ -8,7 +8,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { UploadLimitsSettingsSection } from "../src/features/admin/UploadLimitsSettingsSection.js";
 import { I18nProvider } from "../src/i18n/index.js";
 
-function renderSection() {
+function renderSection(locale: "en-US" | "pt-BR" = "en-US") {
   const queryClient = new QueryClient({
     defaultOptions: {
       queries: { retry: false },
@@ -16,8 +16,8 @@ function renderSection() {
   });
 
   return render(
-    <I18nProvider initialLocale="en-US">
-      <UiLocaleProvider locale="en-US">
+    <I18nProvider initialLocale={locale}>
+      <UiLocaleProvider locale={locale}>
         <ThemeProvider theme={papyrusTheme}>
           <CssBaseline />
           <QueryClientProvider client={queryClient}>
@@ -107,7 +107,9 @@ describe("UploadLimitsSettingsSection (Step 14.06)", () => {
     fireEvent.change(screen.getByLabelText("Maximum file size (MB)"), {
       target: { value: "10" },
     });
-    fireEvent.click(screen.getByText("Imagem PNG (.png)"));
+    expect(screen.getByText("PDF document (.pdf)")).toBeInTheDocument();
+    expect(screen.getByText("Legacy Word (.doc)")).toBeInTheDocument();
+    fireEvent.click(screen.getByText("PNG image (.png)"));
     fireEvent.click(screen.getByText("Microsoft Word (.docx)"));
     fireEvent.click(screen.getByRole("button", { name: "Save upload limits" }));
 
@@ -120,5 +122,41 @@ describe("UploadLimitsSettingsSection (Step 14.06)", () => {
     });
 
     expect(await screen.findByText("File upload limits updated.")).toBeInTheDocument();
+  });
+
+  it("renders Portuguese format chip labels when locale is pt-BR", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          data: {
+            configured: {
+              maxFileSizeBytes: 50 * 1024 * 1024,
+              allowedExtensions: [".pdf", ".csv"],
+              enforceDeclaredExtensionMatch: true,
+            },
+            effective: {
+              maxFileSizeBytes: 50 * 1024 * 1024,
+              allowedExtensions: [".pdf", ".csv"],
+              allowedMimeTypes: ["application/pdf", "text/csv"],
+              enforceDeclaredExtensionMatch: true,
+              systemMaxUploadBytes: 50 * 1024 * 1024,
+              proxyMaxBodyBytes: 60 * 1024 * 1024,
+              effectiveMaxWithProxyBytes: 50 * 1024 * 1024,
+            },
+            supportedCatalog: [...SAFE_UPLOAD_FORMAT_CATALOG],
+            canEdit: true,
+            updatedAt: "2026-04-01T10:00:00.000Z",
+          },
+        }),
+        { status: 200, headers: { "Content-Type": "application/json" } },
+      ),
+    );
+
+    renderSection("pt-BR");
+
+    expect(await screen.findByText("Limites de envio de arquivos")).toBeInTheDocument();
+    expect(screen.getByText("Documento PDF (.pdf)")).toBeInTheDocument();
+    expect(screen.getByText("Planilha CSV (.csv)")).toBeInTheDocument();
+    expect(screen.getByText("Word legado (.doc)")).toBeInTheDocument();
   });
 });
