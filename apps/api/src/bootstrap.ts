@@ -548,6 +548,7 @@ export function createStandaloneApiRuntime(
       archiveDocumentService,
       trashDocumentService,
       restoreDocumentService,
+      tagService,
       documentTrashRepository,
       documentVersionRepository,
       uploadRepository,

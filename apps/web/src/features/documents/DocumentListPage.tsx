@@ -7,6 +7,7 @@ import { useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useI18n } from "../../i18n/index.js";
 import { buildFolderTreeOptions } from "../folders/folderTree.js";
+import { DocumentBulkActionBar } from "./DocumentBulkActionBar.js";
 import { DocumentFiltersBar } from "./DocumentFiltersBar.js";
 import { UploadDialog } from "./UploadDialog.js";
 import {
@@ -70,6 +71,7 @@ export function DocumentListPage() {
   const queryClient = useQueryClient();
   const [searchParams] = useSearchParams();
   const [uploadOpen, setUploadOpen] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
   const [filters, setFilters] = useState<DocumentListFiltersState>(() => ({
     ...DEFAULT_DOCUMENT_LIST_FILTERS,
@@ -224,12 +226,20 @@ export function DocumentListPage() {
         onOpenTrash={() => void navigate("/trash")}
       />
 
+      <DocumentBulkActionBar
+        selectedIds={selectedIds}
+        folders={folders}
+        onClearSelection={() => setSelectedIds([])}
+      />
+
       <DataTable
         ariaLabel={t("documents.list.tableAriaLabel")}
         columns={columns}
         rows={rows}
         getRowId={(row) => row.id}
         getRowLabel={(row) => row.title}
+        selectedIds={selectedIds}
+        onSelectionChange={setSelectedIds}
         page={filters.page}
         pageSize={filters.pageSize}
         totalItems={totalItems}

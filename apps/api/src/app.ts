@@ -54,6 +54,7 @@ import { registerAuthRoutes } from "./modules/auth/auth.routes.js";
 import type { AuthService } from "./modules/auth/auth.service.js";
 import { registerCategoryRoutes } from "./modules/categories/categories.routes.js";
 import { registerDashboardRoutes } from "./modules/dashboard/dashboard.routes.js";
+import { registerDocumentBulkActionRoutes } from "./modules/documents/bulk-actions.routes.js";
 import { registerDocumentRoutes } from "./modules/documents/documents.routes.js";
 import { registerDocumentDownloadRoutes } from "./modules/documents/download.routes.js";
 import { registerDocumentExpirationRoutes } from "./modules/documents/expirations.routes.js";
@@ -117,6 +118,7 @@ export interface AppOptions {
         readonly archiveDocumentService?: ArchiveDocumentService | undefined;
         readonly trashDocumentService?: TrashDocumentService | undefined;
         readonly restoreDocumentService?: RestoreDocumentService | undefined;
+        readonly tagService?: TagService | undefined;
         readonly documentTrashRepository?: DocumentTrashRepository | undefined;
         readonly trashNow?: (() => Date) | undefined;
         readonly documentVersionRepository?: DocumentVersionRepositoryPort | undefined;
@@ -384,6 +386,18 @@ export function buildApp(options: AppOptions = {}): FastifyInstance {
           restoreDocumentService: documentDeps.restoreDocumentService,
           documentTrashRepository: documentDeps.documentTrashRepository,
           trashNow: documentDeps.trashNow,
+        });
+        await registerDocumentBulkActionRoutes(instance, {
+          guard,
+          moveDocumentService: documentDeps.moveDocumentService,
+          archiveDocumentService: documentDeps.archiveDocumentService,
+          trashDocumentService: documentDeps.trashDocumentService,
+          tagService: documentDeps.tagService,
+          documentVersionRepository: documentDeps.documentVersionRepository,
+          uploadRepository: documentDeps.uploadRepository,
+          storageConnections: documentDeps.storageConnections,
+          storageRegistry: documentDeps.storageRegistry,
+          auditRepository: documentDeps.auditRepository,
         });
       });
     }

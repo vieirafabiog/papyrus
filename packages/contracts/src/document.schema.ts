@@ -686,3 +686,70 @@ export const trashDocumentsListResponseSchema = createPaginatedResponseSchema(
   trashDocumentListItemSchema,
 );
 export type TrashDocumentsListResponse = z.infer<typeof trashDocumentsListResponseSchema>;
+
+export const MAX_BULK_DOCUMENT_ITEMS = 50;
+
+export const bulkDocumentActionTypeSchema = z.enum(["MOVE", "ARCHIVE", "TRASH", "ATTACH_TAG"]);
+export type BulkDocumentActionType = z.infer<typeof bulkDocumentActionTypeSchema>;
+
+const bulkDocumentIdsSchema = z
+  .array(uuidSchema)
+  .min(1, "Selecione ao menos um documento.")
+  .max(
+    MAX_BULK_DOCUMENT_ITEMS,
+    `Selecione no máximo ${MAX_BULK_DOCUMENT_ITEMS} documentos por operação.`,
+  );
+
+export const bulkDocumentActionRequestSchema = z.discriminatedUnion("action", [
+  z.object({
+    action: z.literal("MOVE"),
+    documentIds: bulkDocumentIdsSchema,
+    targetFolderId: uuidSchema.nullable(),
+  }),
+  z.object({
+    action: z.literal("ARCHIVE"),
+    documentIds: bulkDocumentIdsSchema,
+    reason: z.string().trim().max(500).nullable().optional(),
+  }),
+  z.object({
+    action: z.literal("TRASH"),
+    documentIds: bulkDocumentIdsSchema,
+    reason: z.string().trim().max(500).nullable().optional(),
+  }),
+  z.object({
+    action: z.literal("ATTACH_TAG"),
+    documentIds: bulkDocumentIdsSchema,
+    tagId: uuidSchema,
+  }),
+]);
+export type BulkDocumentActionRequest = z.infer<typeof bulkDocumentActionRequestSchema>;
+
+export const bulkDocumentActionItemStatusSchema = z.enum(["SUCCEEDED", "FAILED"]);
+export type BulkDocumentActionItemStatus = z.infer<typeof bulkDocumentActionItemStatusSchema>;
+
+export const bulkDocumentActionItemResultSchema = z.object({
+  documentId: uuidSchema,
+  status: bulkDocumentActionItemStatusSchema,
+  errorCode: z.string().optional(),
+  message: z.string().optional(),
+});
+export type BulkDocumentActionItemResult = z.infer<typeof bulkDocumentActionItemResultSchema>;
+
+export const bulkDocumentActionSummarySchema = z.object({
+  action: bulkDocumentActionTypeSchema,
+  totalRequested: z.number().int().min(1),
+  succeededCount: z.number().int().min(0),
+  failedCount: z.number().int().min(0),
+  results: z.array(bulkDocumentActionItemResultSchema),
+});
+export type BulkDocumentActionSummary = z.infer<typeof bulkDocumentActionSummarySchema>;
+
+export const bulkDocumentActionResponseSchema = createApiResponseSchema(
+  bulkDocumentActionSummarySchema,
+);
+export type BulkDocumentActionResponse = z.infer<typeof bulkDocumentActionResponseSchema>;
+
+export const bulkDocumentDownloadRequestSchema = z.object({
+  documentIds: bulkDocumentIdsSchema,
+});
+export type BulkDocumentDownloadRequest = z.infer<typeof bulkDocumentDownloadRequestSchema>;

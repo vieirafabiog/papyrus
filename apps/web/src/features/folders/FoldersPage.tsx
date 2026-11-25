@@ -39,6 +39,7 @@ import { type FormEvent, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { containsTechnicalJargon } from "../../i18n/api-errors.js";
 import { useI18n } from "../../i18n/index.js";
+import { DocumentBulkActionBar } from "../documents/DocumentBulkActionBar.js";
 import { FolderBreadcrumbs } from "./FolderBreadcrumbs.js";
 import {
   FolderNavigationError,
@@ -80,6 +81,7 @@ export function FoldersPage() {
   const [createName, setCreateName] = useState("");
   const [renameOpen, setRenameOpen] = useState(false);
   const [renameValue, setRenameValue] = useState("");
+  const [selectedDocIds, setSelectedDocIds] = useState<string[]>([]);
   const [actionError, setActionError] = useState<string | null>(null);
   const [actionSuccess, setActionSuccess] = useState<string | null>(null);
 
@@ -98,6 +100,7 @@ export function FoldersPage() {
   const navigateToFolder = (targetFolderId: string | null): void => {
     setActionError(null);
     setActionSuccess(null);
+    setSelectedDocIds([]);
     setDocPage(1);
     if (targetFolderId === null) {
       void navigate("/folders");
@@ -450,12 +453,16 @@ export function FoldersPage() {
       </Paper>
 
       {documents ? (
-        <Box>
-          <Typography variant="h3" component="h2" gutterBottom>
+        <Stack spacing={1.5}>
+          <Typography variant="h3" component="h2">
             {currentFolder
               ? t("folders.documentsInHeading", { name: currentFolder.name })
               : t("folders.rootDocumentsHeading")}
           </Typography>
+          <DocumentBulkActionBar
+            selectedIds={selectedDocIds}
+            onClearSelection={() => setSelectedDocIds([])}
+          />
           <DataTable
             ariaLabel={
               currentFolder
@@ -466,6 +473,8 @@ export function FoldersPage() {
             rows={documents.items}
             getRowId={(row) => row.id}
             getRowLabel={(row) => row.title}
+            selectedIds={selectedDocIds}
+            onSelectionChange={setSelectedDocIds}
             page={docPage}
             pageSize={docPageSize}
             totalItems={documents.pagination.totalItems}
@@ -486,7 +495,7 @@ export function FoldersPage() {
                 : t("folders.emptyRootDocumentsDescription")
             }
           />
-        </Box>
+        </Stack>
       ) : null}
 
       <Dialog open={createOpen} onClose={() => setCreateOpen(false)} fullWidth maxWidth="xs">

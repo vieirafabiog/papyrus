@@ -251,6 +251,47 @@ export const documentsEn = {
   "documents.preview.tiff.parseError":
     "Unable to decode this TIFF image for in-page preview. Please download the file to view it.",
 
+  "documents.bulk.toolbarAriaLabel": "Bulk document actions",
+  "documents.bulk.selectedCount": "{count} selected",
+  "documents.bulk.clearSelection": "Clear selection",
+  "documents.bulk.limitWarning": "Select at most {max} documents per bulk operation.",
+  "documents.bulk.actions.move": "Move folder",
+  "documents.bulk.actions.tag": "Apply tag",
+  "documents.bulk.actions.archive": "Archive",
+  "documents.bulk.actions.trash": "Move to trash",
+  "documents.bulk.actions.downloadZip": "Download ZIP",
+  "documents.bulk.actions.downloadingZip": "Preparing ZIP...",
+  "documents.bulk.moveDialog.title": "Move selected documents",
+  "documents.bulk.moveDialog.description":
+    "Choose the destination folder for the {count} selected document(s).",
+  "documents.bulk.tagDialog.title": "Apply tag to selected documents",
+  "documents.bulk.tagDialog.description":
+    "Select an existing tag or create a new one to attach to the {count} selected document(s).",
+  "documents.bulk.tagDialog.confirm": "Apply tag",
+  "documents.bulk.tagDialog.applying": "Applying...",
+  "documents.bulk.archiveDialog.title": "Archive selected documents",
+  "documents.bulk.archiveDialog.description":
+    "The {count} selected document(s) will be archived and remain read-only while archived.",
+  "documents.bulk.trashDialog.title": "Move selected documents to trash",
+  "documents.bulk.trashDialog.description":
+    "The {count} selected document(s) will be moved to trash, respecting active retention holds and permissions.",
+  "documents.bulk.trashDialog.reasonLabel": "Reason (optional)",
+  "documents.bulk.trashDialog.trashing": "Moving to trash...",
+  "documents.bulk.trashDialog.confirm": "Confirm move to trash",
+  "documents.bulk.feedback.MOVE.allSucceeded": "{count} document(s) moved successfully.",
+  "documents.bulk.feedback.ARCHIVE.allSucceeded": "{count} document(s) archived successfully.",
+  "documents.bulk.feedback.TRASH.allSucceeded": "{count} document(s) moved to trash.",
+  "documents.bulk.feedback.ATTACH_TAG.allSucceeded": "Tag applied to {count} document(s).",
+  "documents.bulk.feedback.DOWNLOAD_ZIP.started":
+    "ZIP download started for {count} selected document(s).",
+  "documents.bulk.feedback.partial":
+    "{succeeded} document(s) processed and {failed} could not be updated: {reason}",
+  "documents.bulk.feedback.allFailed":
+    "Unable to process the {failed} selected document(s): {reason}",
+  "documents.bulk.errors.actionFailed": "Unable to complete the bulk action.",
+  "documents.bulk.errors.downloadFailed": "Unable to generate the ZIP download.",
+  "documents.bulk.errors.partialItemFallback": "insufficient permissions or conflicting state.",
+
   "documents.trash.title": "Document trash",
   "documents.trash.subtitle":
     "Deleted documents can be recovered during the configured grace period, keeping their version history and permissions.",
@@ -758,6 +799,47 @@ export const documentsPt: Readonly<Record<DocumentsMessageKey, string>> = {
   "documents.preview.tiff.pageIndicator": "Página {current} de {total}",
   "documents.preview.tiff.parseError":
     "Não foi possível decodificar esta imagem TIFF para pré-visualização. Baixe o arquivo para visualizar.",
+
+  "documents.bulk.toolbarAriaLabel": "Ações em lote para documentos",
+  "documents.bulk.selectedCount": "{count} selecionado(s)",
+  "documents.bulk.clearSelection": "Limpar seleção",
+  "documents.bulk.limitWarning": "Selecione no máximo {max} documentos por operação em lote.",
+  "documents.bulk.actions.move": "Mover pasta",
+  "documents.bulk.actions.tag": "Aplicar etiqueta",
+  "documents.bulk.actions.archive": "Arquivar",
+  "documents.bulk.actions.trash": "Enviar à lixeira",
+  "documents.bulk.actions.downloadZip": "Baixar ZIP",
+  "documents.bulk.actions.downloadingZip": "Gerando ZIP...",
+  "documents.bulk.moveDialog.title": "Mover documentos selecionados",
+  "documents.bulk.moveDialog.description":
+    "Escolha a pasta de destino para os {count} documento(s) selecionado(s).",
+  "documents.bulk.tagDialog.title": "Aplicar etiqueta aos documentos",
+  "documents.bulk.tagDialog.description":
+    "Selecione uma etiqueta existente ou crie uma nova para vincular aos {count} documento(s) selecionado(s).",
+  "documents.bulk.tagDialog.confirm": "Aplicar etiqueta",
+  "documents.bulk.tagDialog.applying": "Aplicando...",
+  "documents.bulk.archiveDialog.title": "Arquivar documentos selecionados",
+  "documents.bulk.archiveDialog.description":
+    "Os {count} documento(s) selecionado(s) serão arquivados e permanecerão disponíveis apenas para consulta.",
+  "documents.bulk.trashDialog.title": "Enviar documentos para a lixeira",
+  "documents.bulk.trashDialog.description":
+    "Os {count} documento(s) selecionado(s) serão enviados à lixeira, respeitando bloqueios de retenção e permissões.",
+  "documents.bulk.trashDialog.reasonLabel": "Motivo (opcional)",
+  "documents.bulk.trashDialog.trashing": "Enviando à lixeira...",
+  "documents.bulk.trashDialog.confirm": "Confirmar envio à lixeira",
+  "documents.bulk.feedback.MOVE.allSucceeded": "{count} documento(s) movido(s) com sucesso.",
+  "documents.bulk.feedback.ARCHIVE.allSucceeded": "{count} documento(s) arquivado(s) com sucesso.",
+  "documents.bulk.feedback.TRASH.allSucceeded": "{count} documento(s) enviado(s) à lixeira.",
+  "documents.bulk.feedback.ATTACH_TAG.allSucceeded": "Etiqueta aplicada a {count} documento(s).",
+  "documents.bulk.feedback.DOWNLOAD_ZIP.started":
+    "Download do arquivo ZIP iniciado para {count} documento(s) selecionado(s).",
+  "documents.bulk.feedback.partial":
+    "{succeeded} documento(s) processado(s) e {failed} não puderam ser atualizados: {reason}",
+  "documents.bulk.feedback.allFailed":
+    "Não foi possível processar os {failed} documento(s) selecionado(s): {reason}",
+  "documents.bulk.errors.actionFailed": "Não foi possível concluir a ação em lote.",
+  "documents.bulk.errors.downloadFailed": "Não foi possível gerar o arquivo ZIP para download.",
+  "documents.bulk.errors.partialItemFallback": "permissões insuficientes ou estado incompatível.",
 
   "documents.trash.title": "Lixeira de documentos",
   "documents.trash.subtitle":

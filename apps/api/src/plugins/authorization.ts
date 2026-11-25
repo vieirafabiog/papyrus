@@ -299,11 +299,27 @@ async function recordAuthorizationDenied(
   });
 }
 
+export type DocumentAccessCheckResult =
+  | { readonly allowed: true; readonly document: DocumentEntity }
+  | {
+      readonly allowed: false;
+      readonly statusCode: 403 | 404;
+      readonly code: "FORBIDDEN" | "NOT_FOUND";
+      readonly message: string;
+    };
+
 export interface DocumentAuthorizationGuard {
   requireSubject(
     request: FastifyRequest,
     reply: FastifyReply,
   ): Promise<AuthenticatedAuthorizationContext | null>;
+  inspectCreateScope(
+    ctx: AuthenticatedAuthorizationContext,
+    categoryId: string,
+    folderId: string | null,
+    requestId: string,
+    ipAddress?: string | undefined,
+  ): Promise<boolean>;
   authorizeCreateScope(
     ctx: AuthenticatedAuthorizationContext,
     categoryId: string,
@@ -320,6 +336,13 @@ export interface DocumentAuthorizationGuard {
     requestId: string,
     ipAddress?: string | undefined,
   ): Promise<boolean>;
+  inspectDocument(
+    ctx: AuthenticatedAuthorizationContext,
+    documentId: string,
+    action: AccessAction,
+    requestId: string,
+    ipAddress?: string | undefined,
+  ): Promise<DocumentAccessCheckResult>;
   authorizeDocument(
     ctx: AuthenticatedAuthorizationContext,
     documentId: string,
@@ -340,12 +363,11 @@ export function createDocumentAuthorizationGuard(deps: {
     ? createAuditWriter({ repository: deps.auditRepository })
     : null;
 
-  const authorizeScopeAction = async (
+  const inspectScopeAction = async (
     ctx: AuthenticatedAuthorizationContext,
     action: AccessAction,
     categoryId: string | null,
     folderId: string | null,
-    reply: FastifyReply,
     requestId: string,
     ipAddress?: string | undefined,
   ): Promise<boolean> => {
@@ -401,6 +423,29 @@ export function createDocumentAuthorizationGuard(deps: {
         requiredAction: action,
         reason: "SCOPE_CREATE_OR_UPLOAD_DENIED",
       });
+      return false;
+    }
+    return true;
+  };
+
+  const authorizeScopeAction = async (
+    ctx: AuthenticatedAuthorizationContext,
+    action: AccessAction,
+    categoryId: string | null,
+    folderId: string | null,
+    reply: FastifyReply,
+    requestId: string,
+    ipAddress?: string | undefined,
+  ): Promise<boolean> => {
+    const allowed = await inspectScopeAction(
+      ctx,
+      action,
+      categoryId,
+      folderId,
+      requestId,
+      ipAddress,
+    );
+    if (!allowed) {
       void reply.status(403).send({
         error: {
           code: "FORBIDDEN",
@@ -416,12 +461,99 @@ export function createDocumentAuthorizationGuard(deps: {
     return true;
   };
 
+  const inspectDocument = async (
+    ctx: AuthenticatedAuthorizationContext,
+    documentId: string,
+    action: AccessAction,
+    requestId: string,
+    ipAddress?: string | undefined,
+  ): Promise<DocumentAccessCheckResult> => {
+    const doc = await deps.documentRepository.findById(documentId);
+    if (!doc || doc.organizationId !== ctx.me.user.organizationId) {
+      const globalDecision = evaluateAuthorization(
+        ctx.subject,
+        { action, resource: "DOCUMENT", scope: { type: "GLOBAL" } },
+        ctx.rolePermissions,
+      );
+      if (!globalDecision.allowed) {
+        await recordAuthorizationDenied(auditWriter, {
+          organizationId: ctx.me.user.organizationId,
+          actorUserId: ctx.me.user.id,
+          requestId,
+          ipAddress,
+          resourceType: "DOCUMENT",
+          resourceId: null,
+          requiredAction: action,
+          reason: "MISSING_OR_DENIED_SCOPE",
+        });
+        return {
+          allowed: false,
+          statusCode: 403,
+          code: "FORBIDDEN",
+          message: "Você não possui permissão para acessar este documento.",
+        };
+      }
+      return {
+        allowed: false,
+        statusCode: 404,
+        code: "NOT_FOUND",
+        message: "Documento não encontrado.",
+      };
+    }
+
+    const folderAncestorIds = await deps.authzRepository.loadFolderAncestorIds(
+      ctx.me.user.organizationId,
+      doc.folderId,
+    );
+    const decision = evaluateDocumentAuthorization(
+      ctx.subject,
+      action,
+      {
+        documentId: doc.id,
+        categoryId: doc.categoryId,
+        folderAncestorIds,
+      },
+      ctx.rolePermissions,
+    );
+
+    if (!decision.allowed) {
+      await recordAuthorizationDenied(auditWriter, {
+        organizationId: ctx.me.user.organizationId,
+        actorUserId: ctx.me.user.id,
+        requestId,
+        ipAddress,
+        resourceType: "DOCUMENT",
+        resourceId: doc.id,
+        requiredAction: action,
+        reason: decision.reason,
+      });
+      return {
+        allowed: false,
+        statusCode: 403,
+        code: "FORBIDDEN",
+        message: "Você não possui permissão para acessar este documento.",
+      };
+    }
+
+    return { allowed: true, document: doc };
+  };
+
   return {
     requireSubject(
       request: FastifyRequest,
       reply: FastifyReply,
     ): Promise<AuthenticatedAuthorizationContext | null> {
       return resolveAuthenticatedSubject(request, reply, deps.authService, deps.authzRepository);
+    },
+
+    async inspectCreateScope(
+      ctx: AuthenticatedAuthorizationContext,
+      categoryId: string,
+      folderId: string | null,
+      requestId: string,
+      ipAddress?: string | undefined,
+    ): Promise<boolean> {
+      return inspectScopeAction(ctx, "CREATE", categoryId, folderId, requestId, ipAddress);
     },
 
     async authorizeCreateScope(
@@ -446,6 +578,8 @@ export function createDocumentAuthorizationGuard(deps: {
       return authorizeScopeAction(ctx, "UPLOAD", categoryId, folderId, reply, requestId, ipAddress);
     },
 
+    inspectDocument,
+
     async authorizeDocument(
       ctx: AuthenticatedAuthorizationContext,
       documentId: string,
@@ -454,80 +588,18 @@ export function createDocumentAuthorizationGuard(deps: {
       requestId: string,
       ipAddress?: string | undefined,
     ): Promise<DocumentEntity | null> {
-      const doc = await deps.documentRepository.findById(documentId);
-      if (!doc || doc.organizationId !== ctx.me.user.organizationId) {
-        const globalDecision = evaluateAuthorization(
-          ctx.subject,
-          { action, resource: "DOCUMENT", scope: { type: "GLOBAL" } },
-          ctx.rolePermissions,
-        );
-        if (!globalDecision.allowed) {
-          await recordAuthorizationDenied(auditWriter, {
-            organizationId: ctx.me.user.organizationId,
-            actorUserId: ctx.me.user.id,
-            requestId,
-            ipAddress,
-            resourceType: "DOCUMENT",
-            resourceId: null,
-            requiredAction: action,
-            reason: "MISSING_OR_DENIED_SCOPE",
-          });
-          void reply.status(403).send({
-            error: {
-              code: "FORBIDDEN",
-              message: "Você não possui permissão para acessar este documento.",
-              requestId,
-            },
-          });
-          return null;
-        }
-        void reply.status(404).send({
+      const outcome = await inspectDocument(ctx, documentId, action, requestId, ipAddress);
+      if (!outcome.allowed) {
+        void reply.status(outcome.statusCode).send({
           error: {
-            code: "NOT_FOUND",
-            message: "Documento não encontrado.",
+            code: outcome.code,
+            message: outcome.message,
             requestId,
           },
         });
         return null;
       }
-
-      const folderAncestorIds = await deps.authzRepository.loadFolderAncestorIds(
-        ctx.me.user.organizationId,
-        doc.folderId,
-      );
-      const decision = evaluateDocumentAuthorization(
-        ctx.subject,
-        action,
-        {
-          documentId: doc.id,
-          categoryId: doc.categoryId,
-          folderAncestorIds,
-        },
-        ctx.rolePermissions,
-      );
-
-      if (!decision.allowed) {
-        await recordAuthorizationDenied(auditWriter, {
-          organizationId: ctx.me.user.organizationId,
-          actorUserId: ctx.me.user.id,
-          requestId,
-          ipAddress,
-          resourceType: "DOCUMENT",
-          resourceId: doc.id,
-          requiredAction: action,
-          reason: decision.reason,
-        });
-        void reply.status(403).send({
-          error: {
-            code: "FORBIDDEN",
-            message: "Você não possui permissão para acessar este documento.",
-            requestId,
-          },
-        });
-        return null;
-      }
-
-      return doc;
+      return outcome.document;
     },
   };
 }
