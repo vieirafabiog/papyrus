@@ -30,6 +30,7 @@ export const commonEn = {
 
   // Shell & navigation
   "shell.skipToMain": "Skip to main content",
+  "shell.routeLoading": "Loading page...",
   "shell.header.openMenu": "Open navigation menu",
   "shell.header.expandSidebar": "Expand sidebar",
   "shell.header.collapseSidebar": "Collapse sidebar",
@@ -224,6 +225,7 @@ export const commonPt: Readonly<Record<CommonMessageKey, string>> = {
 
   // Shell & navigation
   "shell.skipToMain": "Pular para o conteúdo principal",
+  "shell.routeLoading": "Carregando página...",
   "shell.header.openMenu": "Abrir menu de navegação",
   "shell.header.expandSidebar": "Expandir barra lateral",
   "shell.header.collapseSidebar": "Recolher barra lateral",

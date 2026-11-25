@@ -3,8 +3,10 @@ import { CssBaseline, ThemeProvider } from "@mui/material";
 import { UiLocaleProvider, papyrusTheme } from "@papyrus/ui";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { type JSX, Suspense, lazy } from "react";
 import { MemoryRouter, useLocation } from "react-router-dom";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { RouteLoadingFallback } from "../src/app/RouteLoadingFallback.js";
 import { AppRoutes } from "../src/app/router.js";
 import { I18nProvider, resetUiLocaleForTests } from "../src/i18n/index.js";
 
@@ -102,28 +104,35 @@ describe("Web main routing and session guards", () => {
 
   it("redirects authenticated users away from /login to private dashboard route", async () => {
     const validUuid = "550e8400-e29b-41d4-a716-446655440000";
-    vi.spyOn(globalThis, "fetch").mockResolvedValue(
-      new Response(
-        JSON.stringify({
-          data: {
-            user: {
-              id: validUuid,
-              organizationId: validUuid,
-              email: "usuario@papyrus.invalid",
-              fullName: "Usuário Teste",
-              status: "ACTIVE",
-              createdAt: "2026-11-20T10:00:00Z",
-              updatedAt: "2026-11-20T10:00:00Z",
+    vi.spyOn(globalThis, "fetch").mockImplementation(async (input) => {
+      const url = typeof input === "string" ? input : input.toString();
+      if (url.endsWith("/auth/me")) {
+        return new Response(
+          JSON.stringify({
+            data: {
+              user: {
+                id: validUuid,
+                organizationId: validUuid,
+                email: "usuario@papyrus.invalid",
+                fullName: "Usuário Teste",
+                status: "ACTIVE",
+                createdAt: "2026-11-20T10:00:00Z",
+                updatedAt: "2026-11-20T10:00:00Z",
+              },
+              groups: [],
+              roles: [],
+              permissions: [],
+              sessionExpiresAt: "2026-11-21T10:00:00Z",
             },
-            groups: [],
-            roles: [],
-            permissions: [],
-            sessionExpiresAt: "2026-11-21T10:00:00Z",
-          },
-        }),
-        { status: 200, headers: { "Content-Type": "application/json" } },
-      ),
-    );
+          }),
+          { status: 200, headers: { "Content-Type": "application/json" } },
+        );
+      }
+      return new Response(JSON.stringify({ data: {} }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    });
 
     renderAt("/login");
 
@@ -149,5 +158,34 @@ describe("Web main routing and session guards", () => {
       expect(fetchSpy).toHaveBeenCalledTimes(2);
     });
     expect(await screen.findByRole("heading", { name: "Sign in to papyrus" })).toBeInTheDocument();
+  });
+
+  it("renders accessible loading spinner in RouteLoadingFallback while lazy route chunks load", async () => {
+    let resolveChunk: ((mod: { default: () => JSX.Element }) => void) | undefined;
+    const LazyStub = lazy(
+      () =>
+        new Promise<{ default: () => JSX.Element }>((resolve) => {
+          resolveChunk = resolve;
+        }),
+    );
+
+    render(
+      <I18nProvider initialLocale="en-US">
+        <UiLocaleProvider locale="en-US">
+          <ThemeProvider theme={papyrusTheme}>
+            <CssBaseline />
+            <Suspense fallback={<RouteLoadingFallback />}>
+              <LazyStub />
+            </Suspense>
+          </ThemeProvider>
+        </UiLocaleProvider>
+      </I18nProvider>,
+    );
+
+    expect(screen.getByRole("progressbar", { name: "Loading page..." })).toBeInTheDocument();
+    expect(screen.getByText("Loading page...")).toBeInTheDocument();
+
+    resolveChunk?.({ default: () => <h1>Loaded route chunk</h1> });
+    expect(await screen.findByRole("heading", { name: "Loaded route chunk" })).toBeInTheDocument();
   });
 });

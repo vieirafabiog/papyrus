@@ -1,6 +1,7 @@
 import { Box, Link, Toolbar } from "@mui/material";
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { Outlet } from "react-router-dom";
+import { RouteLoadingFallback } from "../app/RouteLoadingFallback.js";
 import { useI18n } from "../i18n/index.js";
 import { AppHeader } from "./AppHeader.js";
 import { AppSidebar } from "./AppSidebar.js";
@@ -57,7 +58,9 @@ export function AppShell() {
       >
         <Toolbar />
         <Box sx={{ flex: 1, p: { xs: 2, md: 3 } }}>
-          <Outlet />
+          <Suspense fallback={<RouteLoadingFallback />}>
+            <Outlet />
+          </Suspense>
         </Box>
       </Box>
     </Box>
