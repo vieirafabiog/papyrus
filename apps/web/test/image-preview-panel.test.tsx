@@ -206,8 +206,8 @@ describe("DocumentPreviewPanel — images and fallback formats", () => {
         <CssBaseline />
         <DocumentPreviewPanel
           document={createDocument({
-            contentType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-            fileName: "minuta.docx",
+            contentType: "application/zip",
+            fileName: "bundle.zip",
             canDownload: false,
           })}
           fetchFn={fetchMock}

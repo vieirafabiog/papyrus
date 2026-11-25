@@ -12,9 +12,10 @@ const MAX_DISPLAY_LINES = 5000;
 
 export interface TextPreviewViewerProps {
   readonly content: string;
+  readonly expanded?: boolean | undefined;
 }
 
-export function TextPreviewViewer({ content }: TextPreviewViewerProps) {
+export function TextPreviewViewer({ content, expanded = false }: TextPreviewViewerProps) {
   const { t } = useI18n();
   const [searchQuery, setSearchQuery] = useState("");
   const [wrapLines, setWrapLines] = useState(true);
@@ -127,7 +128,7 @@ export function TextPreviewViewer({ content }: TextPreviewViewerProps) {
           component="section"
           aria-label={t("documents.preview.title")}
           sx={{
-            maxHeight: 520,
+            maxHeight: expanded ? "calc(100vh - 200px)" : 520,
             overflow: "auto",
             border: `1px solid ${PAPYRUS_COLOR_TOKENS.surface.outlineVariant}`,
             borderRadius: 1,

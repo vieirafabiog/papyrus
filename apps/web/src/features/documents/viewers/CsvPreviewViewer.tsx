@@ -193,9 +193,10 @@ export function parseCsvContent(
 
 export interface CsvPreviewViewerProps {
   readonly content: string;
+  readonly expanded?: boolean | undefined;
 }
 
-export function CsvPreviewViewer({ content }: CsvPreviewViewerProps) {
+export function CsvPreviewViewer({ content, expanded = false }: CsvPreviewViewerProps) {
   const { t } = useI18n();
   const [viewMode, setViewMode] = useState<"table" | "source">("table");
   const [searchQuery, setSearchQuery] = useState("");
@@ -339,7 +340,7 @@ export function CsvPreviewViewer({ content }: CsvPreviewViewerProps) {
         ) : (
           <TableContainer
             sx={{
-              maxHeight: 520,
+              maxHeight: expanded ? "calc(100vh - 200px)" : 520,
               border: `1px solid ${PAPYRUS_COLOR_TOKENS.surface.outlineVariant}`,
               borderRadius: 1,
               bgcolor: PAPYRUS_COLOR_TOKENS.surface.containerLowest,
@@ -412,7 +413,7 @@ export function CsvPreviewViewer({ content }: CsvPreviewViewerProps) {
           sx={{
             m: 0,
             p: 2,
-            maxHeight: 520,
+            maxHeight: expanded ? "calc(100vh - 200px)" : 520,
             overflow: "auto",
             border: `1px solid ${PAPYRUS_COLOR_TOKENS.surface.outlineVariant}`,
             borderRadius: 1,

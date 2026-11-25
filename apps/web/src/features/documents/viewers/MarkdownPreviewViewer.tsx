@@ -332,9 +332,10 @@ const HEADING_VARIANTS = ["h4", "h5", "h6", "subtitle1", "subtitle2", "subtitle2
 
 export interface MarkdownPreviewViewerProps {
   readonly content: string;
+  readonly expanded?: boolean | undefined;
 }
 
-export function MarkdownPreviewViewer({ content }: MarkdownPreviewViewerProps) {
+export function MarkdownPreviewViewer({ content, expanded = false }: MarkdownPreviewViewerProps) {
   const { t } = useI18n();
   const [viewMode, setViewMode] = useState<"rendered" | "source">("rendered");
   const [copied, setCopied] = useState(false);
@@ -406,7 +407,7 @@ export function MarkdownPreviewViewer({ content }: MarkdownPreviewViewerProps) {
           aria-label={t("documents.preview.title")}
           sx={{
             p: 3,
-            maxHeight: 560,
+            maxHeight: expanded ? "calc(100vh - 200px)" : 560,
             overflow: "auto",
             border: `1px solid ${PAPYRUS_COLOR_TOKENS.surface.outlineVariant}`,
             borderRadius: 1,
@@ -553,7 +554,7 @@ export function MarkdownPreviewViewer({ content }: MarkdownPreviewViewerProps) {
           sx={{
             m: 0,
             p: 2,
-            maxHeight: 560,
+            maxHeight: expanded ? "calc(100vh - 200px)" : 560,
             overflow: "auto",
             border: `1px solid ${PAPYRUS_COLOR_TOKENS.surface.outlineVariant}`,
             borderRadius: 1,

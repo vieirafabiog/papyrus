@@ -1,42 +1,71 @@
 import ArticleOutlinedIcon from "@mui/icons-material/ArticleOutlined";
+import CloseOutlinedIcon from "@mui/icons-material/CloseOutlined";
 import DataObjectOutlinedIcon from "@mui/icons-material/DataObjectOutlined";
 import DescriptionOutlinedIcon from "@mui/icons-material/DescriptionOutlined";
 import DownloadOutlinedIcon from "@mui/icons-material/DownloadOutlined";
 import ImageOutlinedIcon from "@mui/icons-material/ImageOutlined";
 import InsertDriveFileOutlinedIcon from "@mui/icons-material/InsertDriveFileOutlined";
+import OpenInFullOutlinedIcon from "@mui/icons-material/OpenInFullOutlined";
 import OpenInNewOutlinedIcon from "@mui/icons-material/OpenInNewOutlined";
 import PictureAsPdfOutlinedIcon from "@mui/icons-material/PictureAsPdfOutlined";
 import RefreshOutlinedIcon from "@mui/icons-material/RefreshOutlined";
 import TableChartOutlinedIcon from "@mui/icons-material/TableChartOutlined";
-import { Alert, Box, Button, Divider, Paper, Stack, Typography } from "@mui/material";
+import {
+  Alert,
+  AppBar,
+  Box,
+  Button,
+  Chip,
+  Dialog,
+  Divider,
+  IconButton,
+  Paper,
+  Stack,
+  Toolbar,
+  Typography,
+} from "@mui/material";
 import {
   CONTRACTS_API_PREFIX,
   type DocumentDetail,
   apiErrorResponseSchema,
 } from "@papyrus/contracts";
 import { ErrorState, LoadingState, PAPYRUS_COLOR_TOKENS } from "@papyrus/ui";
-import { useEffect, useState } from "react";
+import { Suspense, lazy, useEffect, useState } from "react";
 import { containsTechnicalJargon, getLocalizedApiErrorMessage } from "../../i18n/api-errors.js";
 import { type UiLocale, getCurrentUiLocale, translate, useI18n } from "../../i18n/index.js";
 import { requestVersionDownloadTarget } from "./useDocumentDetails.js";
 import { CsvPreviewViewer } from "./viewers/CsvPreviewViewer.js";
+import { ImagePreviewViewer } from "./viewers/ImagePreviewViewer.js";
 import { JsonPreviewViewer } from "./viewers/JsonPreviewViewer.js";
 import { MarkdownPreviewViewer } from "./viewers/MarkdownPreviewViewer.js";
 import { TextPreviewViewer } from "./viewers/TextPreviewViewer.js";
 import {
   ALLOWED_IMAGE_PREVIEW_MIME_TYPES,
+  ALLOWED_OFFICE_PDF_PREVIEW_MIME_TYPES,
+  ALLOWED_SPREADSHEET_PREVIEW_MIME_TYPES,
   ALLOWED_TEXT_PREVIEW_MIME_TYPES,
   DEFAULT_MAX_IMAGE_PREVIEW_BYTES,
+  DEFAULT_MAX_OFFICE_PREVIEW_BYTES,
+  DEFAULT_MAX_SPREADSHEET_PREVIEW_BYTES,
   DEFAULT_MAX_TEXT_PREVIEW_BYTES,
   type DocumentPreviewKind,
+  isBinaryBufferPreviewKind,
+  isPdfPreviewKind,
   isTextPreviewKind,
   resolveDocumentPreviewKind,
 } from "./viewers/preview-formats.js";
 
+const LazyXlsxPreviewViewer = lazy(() => import("./viewers/XlsxPreviewViewer.js"));
+const LazyTiffPreviewViewer = lazy(() => import("./viewers/TiffPreviewViewer.js"));
+
 export {
   ALLOWED_IMAGE_PREVIEW_MIME_TYPES,
+  ALLOWED_OFFICE_PDF_PREVIEW_MIME_TYPES,
+  ALLOWED_SPREADSHEET_PREVIEW_MIME_TYPES,
   ALLOWED_TEXT_PREVIEW_MIME_TYPES,
   DEFAULT_MAX_IMAGE_PREVIEW_BYTES,
+  DEFAULT_MAX_OFFICE_PREVIEW_BYTES,
+  DEFAULT_MAX_SPREADSHEET_PREVIEW_BYTES,
   DEFAULT_MAX_TEXT_PREVIEW_BYTES,
   resolveDocumentPreviewKind,
   type DocumentPreviewKind,
@@ -47,6 +76,8 @@ export interface DocumentPreviewPanelProps {
   readonly versionId?: string | undefined;
   readonly maxImageBytes?: number | undefined;
   readonly maxTextBytes?: number | undefined;
+  readonly maxSpreadsheetBytes?: number | undefined;
+  readonly maxOfficeBytes?: number | undefined;
   readonly fetchFn?: typeof fetch | undefined;
   readonly onDownload?: (() => Promise<void> | void) | undefined;
 }
@@ -57,7 +88,7 @@ async function extractPreviewErrorMessage(
   locale: UiLocale = getCurrentUiLocale(),
 ): Promise<string> {
   const tooLargeKey =
-    previewKind === "image"
+    previewKind === "image" || previewKind === "tiff"
       ? "documents.preview.imageTooLargeError"
       : "documents.preview.fileTooLargeError";
 
@@ -73,6 +104,12 @@ async function extractPreviewErrorMessage(
       }
       if (response.status === 413) {
         return translate(tooLargeKey, undefined, locale);
+      }
+      if (parsed.data.error.code === "PREVIEW_CONVERTER_UNAVAILABLE") {
+        return translate("documents.preview.officeConverterUnavailable", undefined, locale);
+      }
+      if (parsed.data.error.code === "PREVIEW_CONVERSION_FAILED") {
+        return translate("documents.preview.officeConversionFailed", undefined, locale);
       }
       return getLocalizedApiErrorMessage(
         parsed.data.error.code,
@@ -98,15 +135,18 @@ async function extractPreviewErrorMessage(
 }
 
 /**
- * Unified authorized preview viewer supporting PDFs, safe raster images (PNG, JPEG, WebP,
- * GIF, BMP), CSV tables, formatted JSON, plain text/logs, and safe Markdown rendering,
- * offering authorized download fallback for oversized or unsupported formats.
+ * Unified authorized preview viewer supporting PDFs, Word/PowerPoint (converted to read-only PDF),
+ * raster images with zoom/rotation (PNG, JPEG, WebP, GIF, BMP, multi-page TIFF), native read-only
+ * Excel spreadsheets (.xlsx), CSV tables, formatted JSON, plain text/logs, and safe Markdown,
+ * with a universal fullscreen expand modal across all formats.
  */
 export function DocumentPreviewPanel({
   document,
   versionId,
   maxImageBytes = DEFAULT_MAX_IMAGE_PREVIEW_BYTES,
   maxTextBytes = DEFAULT_MAX_TEXT_PREVIEW_BYTES,
+  maxSpreadsheetBytes = DEFAULT_MAX_SPREADSHEET_PREVIEW_BYTES,
+  maxOfficeBytes = DEFAULT_MAX_OFFICE_PREVIEW_BYTES,
   fetchFn,
   onDownload,
 }: DocumentPreviewPanelProps) {
@@ -118,16 +158,29 @@ export function DocumentPreviewPanel({
     ? resolveDocumentPreviewKind(detectedMime, fileObject.originalFileName)
     : "unsupported";
 
-  const isPdf = previewKind === "pdf";
+  const isPdfLike = isPdfPreviewKind(previewKind);
   const isImage = previewKind === "image";
+  const isTiff = previewKind === "tiff";
+  const isXlsx = previewKind === "xlsx";
   const isTextLike = isTextPreviewKind(previewKind);
-  const isOversizedImage = Boolean(fileObject && isImage && fileObject.sizeBytes > maxImageBytes);
+  const isBinaryBuffer = isBinaryBufferPreviewKind(previewKind);
+
+  const isOversizedImage = Boolean(
+    fileObject && (isImage || isTiff) && fileObject.sizeBytes > maxImageBytes,
+  );
   const isOversizedText = Boolean(fileObject && isTextLike && fileObject.sizeBytes > maxTextBytes);
+  const isOversizedSpreadsheet = Boolean(
+    fileObject && isXlsx && fileObject.sizeBytes > maxSpreadsheetBytes,
+  );
+  const isOversizedOffice = Boolean(
+    fileObject && previewKind === "office-pdf" && fileObject.sizeBytes > maxOfficeBytes,
+  );
+
+  const isOversized =
+    isOversizedImage || isOversizedText || isOversizedSpreadsheet || isOversizedOffice;
 
   const canFetchPreview = Boolean(
-    fileObject &&
-      isAvailable &&
-      (isPdf || (isImage && !isOversizedImage) || (isTextLike && !isOversizedText)),
+    fileObject && isAvailable && previewKind !== "unsupported" && !isOversized,
   );
 
   const [reloadToken, setReloadToken] = useState(0);
@@ -135,6 +188,8 @@ export function DocumentPreviewPanel({
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [blobUrl, setBlobUrl] = useState<string | null>(null);
   const [textContent, setTextContent] = useState<string | null>(null);
+  const [binaryBuffer, setBinaryBuffer] = useState<ArrayBuffer | null>(null);
+  const [expanded, setExpanded] = useState(false);
   const [downloading, setDownloading] = useState(false);
   const [downloadError, setDownloadError] = useState<string | null>(null);
 
@@ -146,6 +201,7 @@ export function DocumentPreviewPanel({
       setErrorMessage(null);
       setBlobUrl(null);
       setTextContent(null);
+      setBinaryBuffer(null);
       return;
     }
 
@@ -157,8 +213,9 @@ export function DocumentPreviewPanel({
     setErrorMessage(null);
     setBlobUrl(null);
     setTextContent(null);
+    setBinaryBuffer(null);
 
-    const endpoint = isPdf ? "preview" : "content";
+    const endpoint = isPdfLike ? "preview" : "content";
     const querySuffix = versionId ? `?versionId=${encodeURIComponent(versionId)}` : "";
     const url = `${CONTRACTS_API_PREFIX}/documents/${document.id}/${endpoint}${querySuffix}`;
 
@@ -178,6 +235,16 @@ export function DocumentPreviewPanel({
             return;
           }
           setTextContent(decoded);
+          setLoading(false);
+          return;
+        }
+
+        if (isBinaryBuffer) {
+          const arrayBuffer = await response.arrayBuffer();
+          if (cancelled) {
+            return;
+          }
+          setBinaryBuffer(arrayBuffer);
           setLoading(false);
           return;
         }
@@ -204,6 +271,7 @@ export function DocumentPreviewPanel({
         }
         setBlobUrl(null);
         setTextContent(null);
+        setBinaryBuffer(null);
         const rawMessage = error instanceof Error ? error.message.trim() : "";
         setErrorMessage(
           rawMessage.length > 0 && !containsTechnicalJargon(rawMessage)
@@ -222,8 +290,9 @@ export function DocumentPreviewPanel({
     };
   }, [
     canFetchPreview,
-    isPdf,
+    isPdfLike,
     isTextLike,
+    isBinaryBuffer,
     previewKind,
     document.id,
     versionId,
@@ -310,77 +379,277 @@ export function DocumentPreviewPanel({
     </Stack>
   );
 
-  const headerIcon =
-    previewKind === "pdf" ? (
-      <PictureAsPdfOutlinedIcon color="primary" fontSize="small" />
-    ) : previewKind === "image" ? (
-      <ImageOutlinedIcon color="primary" fontSize="small" />
-    ) : previewKind === "csv" ? (
-      <TableChartOutlinedIcon color="primary" fontSize="small" />
-    ) : previewKind === "json" ? (
-      <DataObjectOutlinedIcon color="primary" fontSize="small" />
-    ) : previewKind === "markdown" ? (
-      <ArticleOutlinedIcon color="primary" fontSize="small" />
-    ) : previewKind === "text" ? (
-      <DescriptionOutlinedIcon color="primary" fontSize="small" />
-    ) : (
-      <InsertDriveFileOutlinedIcon color="primary" fontSize="small" />
-    );
+  const headerIcon = isPdfLike ? (
+    <PictureAsPdfOutlinedIcon color="primary" fontSize="small" />
+  ) : isImage || isTiff ? (
+    <ImageOutlinedIcon color="primary" fontSize="small" />
+  ) : previewKind === "csv" || isXlsx ? (
+    <TableChartOutlinedIcon color="primary" fontSize="small" />
+  ) : previewKind === "json" ? (
+    <DataObjectOutlinedIcon color="primary" fontSize="small" />
+  ) : previewKind === "markdown" ? (
+    <ArticleOutlinedIcon color="primary" fontSize="small" />
+  ) : previewKind === "text" ? (
+    <DescriptionOutlinedIcon color="primary" fontSize="small" />
+  ) : (
+    <InsertDriveFileOutlinedIcon color="primary" fontSize="small" />
+  );
 
-  const loadingMessage = isPdf
-    ? t("documents.preview.loadingPdf")
-    : isImage
-      ? t("documents.preview.loadingImage")
-      : t("documents.preview.loadingText");
+  const loadingMessage =
+    previewKind === "office-pdf"
+      ? t("documents.preview.convertingOfficePdf")
+      : isPdfLike
+        ? t("documents.preview.loadingPdf")
+        : isImage || isTiff
+          ? t("documents.preview.loadingImage")
+          : isXlsx
+            ? t("documents.preview.loadingSpreadsheet")
+            : t("documents.preview.loadingText");
 
-  const errorTitle = isPdf
+  const errorTitle = isPdfLike
     ? t("documents.preview.pdfErrorTitle")
-    : isImage
+    : isImage || isTiff
       ? t("documents.preview.imageErrorTitle")
       : t("documents.preview.textErrorTitle");
 
+  const hasLoadedPreview = Boolean(
+    !loading &&
+      !errorMessage &&
+      ((isTextLike && textContent !== null) ||
+        (isBinaryBuffer && binaryBuffer !== null) ||
+        blobUrl !== null),
+  );
+
+  const renderViewerBody = (isExpanded: boolean) => {
+    if (isTextLike && textContent !== null) {
+      if (previewKind === "csv") {
+        return <CsvPreviewViewer content={textContent} expanded={isExpanded} />;
+      }
+      if (previewKind === "json") {
+        return <JsonPreviewViewer content={textContent} expanded={isExpanded} />;
+      }
+      if (previewKind === "markdown") {
+        return <MarkdownPreviewViewer content={textContent} expanded={isExpanded} />;
+      }
+      return <TextPreviewViewer content={textContent} expanded={isExpanded} />;
+    }
+
+    if (isXlsx && binaryBuffer !== null) {
+      return (
+        <Suspense fallback={<LoadingState message={t("documents.preview.loadingSpreadsheet")} />}>
+          <LazyXlsxPreviewViewer buffer={binaryBuffer} expanded={isExpanded} />
+        </Suspense>
+      );
+    }
+
+    if (isTiff && binaryBuffer !== null) {
+      return (
+        <Suspense fallback={<LoadingState message={t("documents.preview.loadingImage")} />}>
+          <LazyTiffPreviewViewer
+            buffer={binaryBuffer}
+            fileName={fileObject.originalFileName}
+            expanded={isExpanded}
+          />
+        </Suspense>
+      );
+    }
+
+    if (blobUrl) {
+      if (isPdfLike) {
+        return (
+          <Box
+            component="iframe"
+            title={t("documents.preview.pdfFrameTitle", {
+              fileName: fileObject.originalFileName,
+            })}
+            src={blobUrl}
+            sx={{
+              width: "100%",
+              height: isExpanded ? "calc(100vh - 108px)" : 560,
+              border: `1px solid ${PAPYRUS_COLOR_TOKENS.surface.outlineVariant}`,
+              borderRadius: 1,
+              bgcolor: PAPYRUS_COLOR_TOKENS.surface.containerLow,
+            }}
+          />
+        );
+      }
+
+      return (
+        <ImagePreviewViewer
+          src={blobUrl}
+          alt={t("documents.preview.imageAlt", {
+            fileName: fileObject.originalFileName,
+          })}
+          expanded={isExpanded}
+        />
+      );
+    }
+
+    return null;
+  };
+
   return (
-    <Paper
-      variant="outlined"
-      sx={{
-        p: 2.5,
-        bgcolor: PAPYRUS_COLOR_TOKENS.surface.containerLowest,
-        borderColor: PAPYRUS_COLOR_TOKENS.surface.outlineVariant,
-      }}
-    >
-      <Stack spacing={2}>
-        <Box
+    <>
+      <Paper
+        variant="outlined"
+        sx={{
+          p: 2.5,
+          bgcolor: PAPYRUS_COLOR_TOKENS.surface.containerLowest,
+          borderColor: PAPYRUS_COLOR_TOKENS.surface.outlineVariant,
+        }}
+      >
+        <Stack spacing={2}>
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: 1.5,
+              flexWrap: "wrap",
+            }}
+          >
+            <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
+              {headerIcon}
+              <Box>
+                <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
+                  <Typography variant="h6" component="h2">
+                    {t("documents.preview.title")}
+                  </Typography>
+                  {previewKind === "office-pdf" ? (
+                    <Chip
+                      size="small"
+                      variant="outlined"
+                      label={t("documents.preview.convertedPdfBadge")}
+                    />
+                  ) : null}
+                </Stack>
+                <Typography variant="caption" color="text.secondary">
+                  {t("documents.preview.subtitle")}
+                </Typography>
+              </Box>
+            </Stack>
+
+            {canFetchPreview ? (
+              <Stack direction="row" spacing={1} flexWrap="wrap">
+                <Button
+                  size="small"
+                  variant="outlined"
+                  startIcon={<RefreshOutlinedIcon />}
+                  disabled={loading}
+                  onClick={() => setReloadToken((prev) => prev + 1)}
+                >
+                  {t("documents.preview.refresh")}
+                </Button>
+                {hasLoadedPreview ? (
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    startIcon={<OpenInFullOutlinedIcon />}
+                    onClick={() => setExpanded(true)}
+                  >
+                    {t("documents.preview.expand")}
+                  </Button>
+                ) : null}
+                {blobUrl ? (
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    endIcon={<OpenInNewOutlinedIcon />}
+                    onClick={() => window.open(blobUrl, "_blank", "noopener,noreferrer")}
+                  >
+                    {t("documents.preview.openInNewTab")}
+                  </Button>
+                ) : null}
+              </Stack>
+            ) : null}
+          </Box>
+
+          <Divider />
+
+          {!isAvailable ? (
+            <Alert severity="info">{t("documents.preview.pendingSecurity")}</Alert>
+          ) : isOversizedImage ? (
+            renderDownloadOffer(
+              t("documents.preview.oversizedImage", {
+                size: formatBytes(fileObject.sizeBytes),
+                maxSize: formatBytes(maxImageBytes),
+              }),
+            )
+          ) : isOversizedText ? (
+            renderDownloadOffer(
+              t("documents.preview.oversizedFile", {
+                size: formatBytes(fileObject.sizeBytes),
+                maxSize: formatBytes(maxTextBytes),
+              }),
+            )
+          ) : isOversizedSpreadsheet ? (
+            renderDownloadOffer(
+              t("documents.preview.oversizedFile", {
+                size: formatBytes(fileObject.sizeBytes),
+                maxSize: formatBytes(maxSpreadsheetBytes),
+              }),
+            )
+          ) : isOversizedOffice ? (
+            renderDownloadOffer(
+              t("documents.preview.oversizedFile", {
+                size: formatBytes(fileObject.sizeBytes),
+                maxSize: formatBytes(maxOfficeBytes),
+              }),
+            )
+          ) : previewKind === "unsupported" ? (
+            renderDownloadOffer(
+              t("documents.preview.unsupportedFormat", {
+                fileType: fileObject.detectedContentType,
+              }),
+            )
+          ) : loading ? (
+            <LoadingState message={loadingMessage} />
+          ) : errorMessage ? (
+            <ErrorState
+              title={errorTitle}
+              description={errorMessage}
+              onRetry={() => setReloadToken((prev) => prev + 1)}
+            />
+          ) : (
+            renderViewerBody(false)
+          )}
+        </Stack>
+      </Paper>
+
+      <Dialog
+        fullScreen
+        open={expanded && hasLoadedPreview}
+        onClose={() => setExpanded(false)}
+        aria-labelledby="papyrus-preview-expanded-title"
+      >
+        <AppBar
+          position="sticky"
+          color="default"
+          elevation={0}
           sx={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            gap: 1.5,
-            flexWrap: "wrap",
+            bgcolor: PAPYRUS_COLOR_TOKENS.surface.containerLowest,
+            borderBottom: `1px solid ${PAPYRUS_COLOR_TOKENS.surface.outlineVariant}`,
           }}
         >
-          <Stack direction="row" spacing={1} alignItems="center">
-            {headerIcon}
-            <Box>
-              <Typography variant="h6" component="h2">
-                {t("documents.preview.title")}
-              </Typography>
-              <Typography variant="caption" color="text.secondary">
-                {t("documents.preview.subtitle")}
-              </Typography>
-            </Box>
-          </Stack>
+          <Toolbar sx={{ gap: 1.5, justifyContent: "space-between" }}>
+            <Stack direction="row" spacing={1.25} alignItems="center" sx={{ minWidth: 0 }}>
+              {headerIcon}
+              <Box sx={{ minWidth: 0 }}>
+                <Typography
+                  id="papyrus-preview-expanded-title"
+                  variant="subtitle1"
+                  fontWeight={600}
+                  noWrap
+                >
+                  {document.title}
+                </Typography>
+                <Typography variant="caption" color="text.secondary" noWrap display="block">
+                  {fileObject.originalFileName} · {formatBytes(fileObject.sizeBytes)}
+                </Typography>
+              </Box>
+            </Stack>
 
-          {canFetchPreview ? (
-            <Stack direction="row" spacing={1}>
-              <Button
-                size="small"
-                variant="outlined"
-                startIcon={<RefreshOutlinedIcon />}
-                disabled={loading}
-                onClick={() => setReloadToken((prev) => prev + 1)}
-              >
-                {t("documents.preview.refresh")}
-              </Button>
+            <Stack direction="row" spacing={1} alignItems="center">
               {blobUrl ? (
                 <Button
                   size="small"
@@ -391,97 +660,28 @@ export function DocumentPreviewPanel({
                   {t("documents.preview.openInNewTab")}
                 </Button>
               ) : null}
+              <IconButton
+                edge="end"
+                aria-label={t("documents.preview.closeExpanded")}
+                onClick={() => setExpanded(false)}
+              >
+                <CloseOutlinedIcon />
+              </IconButton>
             </Stack>
-          ) : null}
+          </Toolbar>
+        </AppBar>
+
+        <Box
+          sx={{
+            p: 2.5,
+            flex: 1,
+            bgcolor: PAPYRUS_COLOR_TOKENS.surface.background,
+            overflow: "auto",
+          }}
+        >
+          {renderViewerBody(true)}
         </Box>
-
-        <Divider />
-
-        {!isAvailable ? (
-          <Alert severity="info">{t("documents.preview.pendingSecurity")}</Alert>
-        ) : isOversizedImage ? (
-          renderDownloadOffer(
-            t("documents.preview.oversizedImage", {
-              size: formatBytes(fileObject.sizeBytes),
-              maxSize: formatBytes(maxImageBytes),
-            }),
-          )
-        ) : isOversizedText ? (
-          renderDownloadOffer(
-            t("documents.preview.oversizedFile", {
-              size: formatBytes(fileObject.sizeBytes),
-              maxSize: formatBytes(maxTextBytes),
-            }),
-          )
-        ) : previewKind === "unsupported" ? (
-          renderDownloadOffer(
-            t("documents.preview.unsupportedFormat", {
-              fileType: fileObject.detectedContentType,
-            }),
-          )
-        ) : loading ? (
-          <LoadingState message={loadingMessage} />
-        ) : errorMessage ? (
-          <ErrorState
-            title={errorTitle}
-            description={errorMessage}
-            onRetry={() => setReloadToken((prev) => prev + 1)}
-          />
-        ) : isTextLike && textContent !== null ? (
-          previewKind === "csv" ? (
-            <CsvPreviewViewer content={textContent} />
-          ) : previewKind === "json" ? (
-            <JsonPreviewViewer content={textContent} />
-          ) : previewKind === "markdown" ? (
-            <MarkdownPreviewViewer content={textContent} />
-          ) : (
-            <TextPreviewViewer content={textContent} />
-          )
-        ) : blobUrl ? (
-          isPdf ? (
-            <Box
-              component="iframe"
-              title={t("documents.preview.pdfFrameTitle", {
-                fileName: fileObject.originalFileName,
-              })}
-              src={blobUrl}
-              sx={{
-                width: "100%",
-                height: 520,
-                border: `1px solid ${PAPYRUS_COLOR_TOKENS.surface.outlineVariant}`,
-                borderRadius: 1,
-                bgcolor: PAPYRUS_COLOR_TOKENS.surface.containerLow,
-              }}
-            />
-          ) : (
-            <Box
-              sx={{
-                display: "flex",
-                justifyContent: "center",
-                alignItems: "center",
-                p: 2,
-                border: `1px solid ${PAPYRUS_COLOR_TOKENS.surface.outlineVariant}`,
-                borderRadius: 1,
-                bgcolor: PAPYRUS_COLOR_TOKENS.surface.containerLow,
-              }}
-            >
-              <Box
-                component="img"
-                src={blobUrl}
-                alt={t("documents.preview.imageAlt", {
-                  fileName: fileObject.originalFileName,
-                })}
-                sx={{
-                  maxWidth: "100%",
-                  maxHeight: 520,
-                  objectFit: "contain",
-                  display: "block",
-                }}
-              />
-            </Box>
-          )
-        ) : null}
-      </Stack>
-    </Paper>
+      </Dialog>
+    </>
   );
 }

@@ -22,6 +22,7 @@ const MAX_DISPLAY_LINES = 5000;
 
 export interface JsonPreviewViewerProps {
   readonly content: string;
+  readonly expanded?: boolean | undefined;
 }
 
 type JsonSummary =
@@ -30,7 +31,7 @@ type JsonSummary =
   | { readonly valid: true; readonly rootKind: "primitive" }
   | { readonly valid: false };
 
-export function JsonPreviewViewer({ content }: JsonPreviewViewerProps) {
+export function JsonPreviewViewer({ content, expanded = false }: JsonPreviewViewerProps) {
   const { t } = useI18n();
   const [mode, setMode] = useState<"formatted" | "compact" | "raw">("formatted");
   const [searchQuery, setSearchQuery] = useState("");
@@ -224,7 +225,7 @@ export function JsonPreviewViewer({ content }: JsonPreviewViewerProps) {
           component="section"
           aria-label={t("documents.preview.title")}
           sx={{
-            maxHeight: 520,
+            maxHeight: expanded ? "calc(100vh - 200px)" : 520,
             overflow: "auto",
             border: `1px solid ${PAPYRUS_COLOR_TOKENS.surface.outlineVariant}`,
             borderRadius: 1,

@@ -1,3 +1,4 @@
+import type { Readable } from "node:stream";
 import { CONTRACTS_API_PREFIX, uuidSchema } from "@papyrus/contracts";
 import {
   type AuditRepositoryPort,
@@ -18,10 +19,16 @@ import {
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { z } from "zod";
 import type { DocumentAuthorizationGuard } from "../../plugins/authorization.js";
+import {
+  OfficePreviewConversionError,
+  type OfficePreviewConverterPort,
+} from "./office-preview-converter.js";
 
 const DEFAULT_PREVIEW_SIGNED_TTL_SECONDS = 60;
 export const DEFAULT_MAX_IMAGE_PREVIEW_BYTES = 15 * 1024 * 1024;
 export const DEFAULT_MAX_TEXT_PREVIEW_BYTES = 5 * 1024 * 1024;
+export const DEFAULT_MAX_SPREADSHEET_PREVIEW_BYTES = 10 * 1024 * 1024;
+export const DEFAULT_MAX_OFFICE_PREVIEW_BYTES = 25 * 1024 * 1024;
 
 export const ALLOWED_PREVIEW_IMAGE_MIME_TYPES = new Set<string>([
   "image/png",
@@ -29,6 +36,7 @@ export const ALLOWED_PREVIEW_IMAGE_MIME_TYPES = new Set<string>([
   "image/webp",
   "image/gif",
   "image/bmp",
+  "image/tiff",
 ]);
 
 export const ALLOWED_PREVIEW_TEXT_MIME_TYPES = new Set<string>([
@@ -36,6 +44,15 @@ export const ALLOWED_PREVIEW_TEXT_MIME_TYPES = new Set<string>([
   "text/markdown",
   "text/csv",
   "application/json",
+]);
+
+export const ALLOWED_PREVIEW_SPREADSHEET_MIME_TYPES = new Set<string>([
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+]);
+
+export const ALLOWED_PREVIEW_OFFICE_PDF_MIME_TYPES = new Set<string>([
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "application/vnd.openxmlformats-officedocument.presentationml.presentation",
 ]);
 
 const previewQuerySchema = z.object({
@@ -50,8 +67,11 @@ export interface DocumentPreviewRoutesDependencies {
   readonly storageConnections: StorageConnectionRepositoryPort;
   readonly storageRegistry: StorageProviderRegistry;
   readonly auditRepository: AuditRepositoryPort;
+  readonly officePreviewConverter?: OfficePreviewConverterPort | undefined;
   readonly maxImagePreviewBytes?: number | undefined;
   readonly maxTextPreviewBytes?: number | undefined;
+  readonly maxSpreadsheetPreviewBytes?: number | undefined;
+  readonly maxOfficePreviewBytes?: number | undefined;
 }
 
 function sanitizeInlineFileName(rawName: string, fallbackExtension = "bin"): string {
@@ -72,13 +92,45 @@ function isSupportedContentPreviewMime(mimeType: string): boolean {
   return (
     normalized === "application/pdf" ||
     ALLOWED_PREVIEW_IMAGE_MIME_TYPES.has(normalized) ||
-    ALLOWED_PREVIEW_TEXT_MIME_TYPES.has(normalized)
+    ALLOWED_PREVIEW_TEXT_MIME_TYPES.has(normalized) ||
+    ALLOWED_PREVIEW_SPREADSHEET_MIME_TYPES.has(normalized)
   );
 }
 
+export function isOfficePdfPreviewable(detectedMime: string, originalFileName: string): boolean {
+  const normalizedMime = detectedMime.toLowerCase();
+  if (ALLOWED_PREVIEW_OFFICE_PDF_MIME_TYPES.has(normalizedMime)) {
+    return true;
+  }
+  if (normalizedMime === "application/x-ole-storage") {
+    const lowerName = originalFileName.trim().toLowerCase();
+    return lowerName.endsWith(".doc") || lowerName.endsWith(".ppt");
+  }
+  return false;
+}
+
+async function readStreamToBufferBounded(stream: Readable, maxBytes: number): Promise<Buffer> {
+  const chunks: Buffer[] = [];
+  let total = 0;
+  for await (const chunk of stream) {
+    const buf = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk as Uint8Array);
+    total += buf.length;
+    if (total > maxBytes) {
+      stream.destroy();
+      throw new OfficePreviewConversionError(
+        "CONVERSION_FAILED",
+        "O arquivo excede o tamanho máximo suportado para conversão de pré-visualização.",
+      );
+    }
+    chunks.push(buf);
+  }
+  return Buffer.concat(chunks, total);
+}
+
 /**
- * Registers authorized PDF preview (`GET /api/v1/documents/:id/preview`) and safe inline content
- * preview (`GET /api/v1/documents/:id/content`) endpoints with READ scope checks, quarantine gates,
+ * Registers authorized PDF preview (`GET /api/v1/documents/:id/preview`, including Word/PowerPoint
+ * conversion to PDF via isolated converter) and safe inline content preview
+ * (`GET /api/v1/documents/:id/content`) endpoints with READ scope checks, quarantine gates,
  * private no-store caching, and restrictive CSP headers.
  */
 export async function registerDocumentPreviewRoutes(
@@ -92,9 +144,13 @@ export async function registerDocumentPreviewRoutes(
     storageConnections,
     storageRegistry,
     auditRepository,
+    officePreviewConverter,
   } = deps;
   const maxImagePreviewBytes = deps.maxImagePreviewBytes ?? DEFAULT_MAX_IMAGE_PREVIEW_BYTES;
   const maxTextPreviewBytes = deps.maxTextPreviewBytes ?? DEFAULT_MAX_TEXT_PREVIEW_BYTES;
+  const maxSpreadsheetPreviewBytes =
+    deps.maxSpreadsheetPreviewBytes ?? DEFAULT_MAX_SPREADSHEET_PREVIEW_BYTES;
+  const maxOfficePreviewBytes = deps.maxOfficePreviewBytes ?? DEFAULT_MAX_OFFICE_PREVIEW_BYTES;
   const auditWriter = createAuditWriter({ repository: auditRepository });
 
   const authorizeAndLoadPreviewSubject = async (
@@ -335,7 +391,10 @@ export async function registerDocumentPreviewRoutes(
         },
       });
 
-      const isTextLike = ALLOWED_PREVIEW_TEXT_MIME_TYPES.has(contentType.toLowerCase());
+      const normalizedContentType = contentType.toLowerCase();
+      const isTextLike = ALLOWED_PREVIEW_TEXT_MIME_TYPES.has(normalizedContentType);
+      const isSpreadsheet = ALLOWED_PREVIEW_SPREADSHEET_MIME_TYPES.has(normalizedContentType);
+      const strictNoFrame = isTextLike || isSpreadsheet;
       reply.header("Content-Type", isTextLike ? `${contentType}; charset=utf-8` : contentType);
       reply.header("Content-Disposition", `inline; filename="${inlineFileName}"`);
       if (downloaded.metadata.contentLength > 0) {
@@ -343,11 +402,11 @@ export async function registerDocumentPreviewRoutes(
       }
       reply.header(
         "Content-Security-Policy",
-        isTextLike
+        strictNoFrame
           ? "default-src 'none'; frame-ancestors 'none'"
           : "default-src 'none'; img-src 'self'; object-src 'self'; frame-ancestors 'self'",
       );
-      reply.header("X-Frame-Options", isTextLike ? "DENY" : "SAMEORIGIN");
+      reply.header("X-Frame-Options", strictNoFrame ? "DENY" : "SAMEORIGIN");
 
       return reply.status(200).send(downloaded.body);
     } catch (error) {
@@ -372,23 +431,144 @@ export async function registerDocumentPreviewRoutes(
         return reply;
       }
 
-      if (subject.fileObject.detectedContentType.toLowerCase() !== "application/pdf") {
+      const detectedMime = subject.fileObject.detectedContentType.toLowerCase();
+      if (detectedMime === "application/pdf") {
+        return deliverPreviewResponse(
+          request,
+          reply,
+          subject,
+          "application/pdf",
+          sanitizeInlinePdfFileName(subject.fileObject.originalFileName),
+        );
+      }
+
+      if (!isOfficePdfPreviewable(detectedMime, subject.fileObject.originalFileName)) {
         return reply.status(415).send({
           error: {
             code: "UNSUPPORTED_MEDIA_TYPE",
-            message: "A pré-visualização de PDF suporta apenas arquivos application/pdf.",
+            message:
+              "A pré-visualização em PDF suporta apenas arquivos PDF, Word (.docx/.doc) e PowerPoint (.pptx/.ppt).",
             requestId: request.id,
           },
         });
       }
 
-      return deliverPreviewResponse(
-        request,
-        reply,
-        subject,
-        "application/pdf",
-        sanitizeInlinePdfFileName(subject.fileObject.originalFileName),
-      );
+      if (!officePreviewConverter) {
+        return reply.status(503).send({
+          error: {
+            code: "PREVIEW_CONVERTER_UNAVAILABLE",
+            message:
+              "O conversor de visualização para Word e PowerPoint não está habilitado neste ambiente. Realize o download autorizado.",
+            requestId: request.id,
+          },
+        });
+      }
+
+      if (subject.fileObject.sizeBytes > maxOfficePreviewBytes) {
+        return reply.status(413).send({
+          error: {
+            code: "UPLOAD_TOO_LARGE",
+            message:
+              "O arquivo Office excede o limite de tamanho para conversão de pré-visualização. Realize o download autorizado.",
+            requestId: request.id,
+          },
+        });
+      }
+
+      const { organizationId, actorUserId, documentId, versionId, fileObject } = subject;
+      const connection = await storageConnections.findById(fileObject.storageConnectionId);
+      if (
+        !connection ||
+        connection.organizationId !== organizationId ||
+        connection.status !== "ACTIVE"
+      ) {
+        return reply.status(503).send({
+          error: {
+            code: "STORAGE_UNAVAILABLE",
+            message: "Conexão de armazenamento indisponível para pré-visualização.",
+            requestId: request.id,
+          },
+        });
+      }
+
+      try {
+        const provider = await storageRegistry.resolveProvider(connection);
+        const downloaded = await provider.getObject({ value: fileObject.objectKey });
+        const sourceBuffer = await readStreamToBufferBounded(
+          downloaded.body,
+          maxOfficePreviewBytes,
+        );
+        const pdfBuffer = await officePreviewConverter.convertToPdf({
+          buffer: sourceBuffer,
+          originalFileName: fileObject.originalFileName,
+          mimeType: detectedMime,
+          checksumSha256: fileObject.checksumSha256,
+        });
+
+        await auditWriter.write({
+          organizationId,
+          actorUserId,
+          action: "DOCUMENT_PREVIEWED",
+          resourceType: "DOCUMENT",
+          resourceId: documentId,
+          result: "SUCCESS",
+          requestId: request.id,
+          ipAddress: request.ip,
+          metadata: {
+            versionId,
+            fileObjectId: fileObject.id,
+            delivery: "OFFICE_PDF_CONVERTED",
+            convertedFromMime: detectedMime,
+          },
+        });
+
+        const pdfFileName = sanitizeInlinePdfFileName(
+          fileObject.originalFileName.replace(/\.(docx|doc|pptx|ppt)$/i, ""),
+        );
+        reply.header("Cache-Control", "private, no-store, no-cache, must-revalidate, max-age=0");
+        reply.header("Pragma", "no-cache");
+        reply.header("Vary", "Cookie, Origin");
+        reply.header("X-Content-Type-Options", "nosniff");
+        reply.header("Content-Type", "application/pdf");
+        reply.header("Content-Disposition", `inline; filename="${pdfFileName}"`);
+        reply.header("Content-Length", String(pdfBuffer.length));
+        reply.header(
+          "Content-Security-Policy",
+          "default-src 'none'; img-src 'self'; object-src 'self'; frame-ancestors 'self'",
+        );
+        reply.header("X-Frame-Options", "SAMEORIGIN");
+
+        return reply.status(200).send(pdfBuffer);
+      } catch (error) {
+        if (error instanceof StorageError) {
+          return reply.status(503).send({
+            error: {
+              code: "STORAGE_UNAVAILABLE",
+              message: error.message,
+              requestId: request.id,
+            },
+          });
+        }
+        if (error instanceof OfficePreviewConversionError) {
+          const statusCode =
+            error.code === "CONVERSION_TIMEOUT"
+              ? 504
+              : error.code === "CONVERTER_UNAVAILABLE"
+                ? 503
+                : 422;
+          return reply.status(statusCode).send({
+            error: {
+              code:
+                error.code === "CONVERTER_UNAVAILABLE"
+                  ? "PREVIEW_CONVERTER_UNAVAILABLE"
+                  : "PREVIEW_CONVERSION_FAILED",
+              message: error.message,
+              requestId: request.id,
+            },
+          });
+        }
+        throw error;
+      }
     },
   );
 
@@ -435,6 +615,20 @@ export async function registerDocumentPreviewRoutes(
             code: "UPLOAD_TOO_LARGE",
             message:
               "O arquivo excede o limite de tamanho para pré-visualização inline. Realize o download autorizado.",
+            requestId: request.id,
+          },
+        });
+      }
+
+      if (
+        ALLOWED_PREVIEW_SPREADSHEET_MIME_TYPES.has(detectedMime) &&
+        subject.fileObject.sizeBytes > maxSpreadsheetPreviewBytes
+      ) {
+        return reply.status(413).send({
+          error: {
+            code: "UPLOAD_TOO_LARGE",
+            message:
+              "A planilha excede o limite de tamanho para pré-visualização inline. Realize o download autorizado.",
             requestId: request.id,
           },
         });

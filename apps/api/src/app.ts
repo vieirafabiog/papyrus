@@ -57,6 +57,7 @@ import { registerDashboardRoutes } from "./modules/dashboard/dashboard.routes.js
 import { registerDocumentRoutes } from "./modules/documents/documents.routes.js";
 import { registerDocumentDownloadRoutes } from "./modules/documents/download.routes.js";
 import { registerDocumentExpirationRoutes } from "./modules/documents/expirations.routes.js";
+import type { OfficePreviewConverterPort } from "./modules/documents/office-preview-converter.js";
 import { registerDocumentPreviewRoutes } from "./modules/documents/preview.routes.js";
 import { registerDocumentSearchRoutes } from "./modules/documents/search.routes.js";
 import { registerFolderRoutes } from "./modules/folders/folders.routes.js";
@@ -122,6 +123,7 @@ export interface AppOptions {
         readonly uploadRepository?: UploadSessionRepositoryPort | undefined;
         readonly storageConnections?: StorageConnectionRepositoryPort | undefined;
         readonly storageRegistry?: StorageProviderRegistry | undefined;
+        readonly officePreviewConverter?: OfficePreviewConverterPort | undefined;
         readonly dashboardRepository?: DashboardRepository | undefined;
         readonly dashboardNow?: (() => Date) | undefined;
         readonly reportRepository?: ReportRepository | undefined;
@@ -365,6 +367,7 @@ export function buildApp(options: AppOptions = {}): FastifyInstance {
             storageConnections: documentDeps.storageConnections,
             storageRegistry: documentDeps.storageRegistry,
             auditRepository: documentDeps.auditRepository,
+            officePreviewConverter: documentDeps.officePreviewConverter,
           });
         }
         await registerDocumentRoutes(instance, {

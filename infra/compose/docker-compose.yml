@@ -45,8 +45,9 @@ services:
       STORAGE_LOCAL_ROOT: /var/lib/papyrus/storage
       UPLOAD_MAX_BYTES: ${UPLOAD_MAX_BYTES:-52428800}
       PROXY_MAX_BODY_BYTES: ${PROXY_MAX_BODY_BYTES:-54525952}
-      UPLOAD_ALLOWED_EXTENSIONS: ${UPLOAD_ALLOWED_EXTENSIONS:-.pdf,.png,.jpg,.jpeg,.webp,.gif,.tif,.tiff,.txt,.csv,.docx,.xlsx,.pptx}
+      UPLOAD_ALLOWED_EXTENSIONS: ${UPLOAD_ALLOWED_EXTENSIONS:-.pdf,.png,.jpg,.jpeg,.webp,.gif,.tif,.tiff,.bmp,.txt,.log,.md,.csv,.json,.docx,.xlsx,.pptx}
       WORKER_HEALTH_URL: ${WORKER_HEALTH_URL:-http://worker:3001/health/ready}
+      OFFICE_CONVERTER_URL: ${OFFICE_CONVERTER_URL:-http://gotenberg:3000}
       LOG_LEVEL: ${LOG_LEVEL:-info}
     expose:
       - "3000"
@@ -95,7 +96,7 @@ services:
       STORAGE_DEFAULT_CONNECTION: ${STORAGE_DEFAULT_CONNECTION:-local-default}
       STORAGE_LOCAL_ROOT: /var/lib/papyrus/storage
       UPLOAD_MAX_BYTES: ${UPLOAD_MAX_BYTES:-52428800}
-      UPLOAD_ALLOWED_EXTENSIONS: ${UPLOAD_ALLOWED_EXTENSIONS:-.pdf,.png,.jpg,.jpeg,.webp,.gif,.tif,.tiff,.txt,.csv,.docx,.xlsx,.pptx}
+      UPLOAD_ALLOWED_EXTENSIONS: ${UPLOAD_ALLOWED_EXTENSIONS:-.pdf,.png,.jpg,.jpeg,.webp,.gif,.tif,.tiff,.bmp,.txt,.log,.md,.csv,.json,.docx,.xlsx,.pptx}
       CLAMAV_HOST: ${CLAMAV_HOST:-clamav}
       CLAMAV_PORT: ${CLAMAV_PORT:-3310}
       CLAMAV_TIMEOUT_MS: ${CLAMAV_TIMEOUT_MS:-30000}
@@ -127,6 +128,28 @@ services:
       timeout: 5s
       retries: 5
       start_period: 20s
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+
+  gotenberg:
+    image: gotenberg/gotenberg:8
+    restart: unless-stopped
+    command:
+      - "gotenberg"
+      - "--api-timeout=30s"
+      - "--chromium-disable-routes=true"
+    networks:
+      - papyrus_internal
+    tmpfs:
+      - /tmp
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:3000/health"]
+      interval: 20s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
     cap_drop:
       - ALL
     security_opt:

@@ -76,6 +76,7 @@ import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { buildApp } from "./app.js";
 import { createAuthService } from "./modules/auth/auth.service.js";
+import { createGotenbergOfficeConverter } from "./modules/documents/office-preview-converter.js";
 import { createDrizzleSetupRepository } from "./modules/setup/setup.repository.js";
 import { createSetupService } from "./modules/setup/setup.service.js";
 import { createStorageHealthTester } from "./modules/storage/storage-health.adapter.js";
@@ -102,6 +103,12 @@ const standaloneApiEnvSchema = z.object({
     .default(DOMAIN_DEFAULT_PROXY_MAX_BODY_BYTES),
   UPLOAD_ALLOWED_EXTENSIONS: z.string().optional(),
   WORKER_HEALTH_URL: z.string().trim().url().optional(),
+  OFFICE_CONVERTER_URL: z
+    .string()
+    .trim()
+    .transform((val) => (val.length === 0 ? undefined : val))
+    .pipe(z.string().url().optional())
+    .optional(),
 });
 
 export interface StandaloneApiRuntime {
@@ -546,6 +553,9 @@ export function createStandaloneApiRuntime(
       uploadRepository,
       storageConnections: connectionRepository,
       storageRegistry,
+      officePreviewConverter: config.OFFICE_CONVERTER_URL
+        ? createGotenbergOfficeConverter({ baseUrl: config.OFFICE_CONVERTER_URL })
+        : undefined,
       dashboardRepository,
       reportRepository,
     },

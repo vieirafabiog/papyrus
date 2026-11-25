@@ -221,6 +221,32 @@ export const documentsEn = {
   "documents.preview.markdown.renderedMode": "Formatted",
   "documents.preview.markdown.sourceMode": "Source",
   "documents.preview.markdown.badge": "Markdown",
+  "documents.preview.expand": "Expand",
+  "documents.preview.closeExpanded": "Close expanded preview",
+  "documents.preview.zoomIn": "Zoom in",
+  "documents.preview.zoomOut": "Zoom out",
+  "documents.preview.fitZoom": "Fit",
+  "documents.preview.fitToView": "Fit",
+  "documents.preview.rotateLeft": "Rotate left 90°",
+  "documents.preview.rotateRight": "Rotate right 90°",
+  "documents.preview.convertedPdfBadge": "Read-only PDF",
+  "documents.preview.convertingOfficePdf": "Preparing read-only PDF preview...",
+  "documents.preview.loadingSpreadsheet": "Loading spreadsheet...",
+  "documents.preview.officeConverterUnavailable":
+    "Office document preview conversion is currently unavailable. Please download the file to view it.",
+  "documents.preview.officeConversionFailed":
+    "Unable to convert this Office document for in-page preview. Please download the file to view it.",
+  "documents.preview.xlsx.sheetsCount": "{count} sheet(s)",
+  "documents.preview.xlsx.sheetsAriaLabel": "Spreadsheet sheets",
+  "documents.preview.xlsx.tableAriaLabel": "Spreadsheet preview: {sheetName}",
+  "documents.preview.xlsx.emptyWorkbook": "This spreadsheet contains no worksheets to display.",
+  "documents.preview.xlsx.parseError":
+    "Unable to read this spreadsheet for in-page preview. Please download the file to open it.",
+  "documents.preview.tiff.previousPage": "Previous page",
+  "documents.preview.tiff.nextPage": "Next page",
+  "documents.preview.tiff.pageIndicator": "Page {current} of {total}",
+  "documents.preview.tiff.parseError":
+    "Unable to decode this TIFF image for in-page preview. Please download the file to view it.",
 
   "documents.trash.title": "Document trash",
   "documents.trash.subtitle":
@@ -697,6 +723,32 @@ export const documentsPt: Readonly<Record<DocumentsMessageKey, string>> = {
   "documents.preview.markdown.renderedMode": "Visual",
   "documents.preview.markdown.sourceMode": "Código",
   "documents.preview.markdown.badge": "Markdown",
+  "documents.preview.expand": "Expandir",
+  "documents.preview.closeExpanded": "Fechar visualização expandida",
+  "documents.preview.zoomIn": "Aumentar zoom",
+  "documents.preview.zoomOut": "Diminuir zoom",
+  "documents.preview.fitZoom": "Ajustar",
+  "documents.preview.fitToView": "Ajustar",
+  "documents.preview.rotateLeft": "Girar 90° à esquerda",
+  "documents.preview.rotateRight": "Girar 90° à direita",
+  "documents.preview.convertedPdfBadge": "PDF somente leitura",
+  "documents.preview.convertingOfficePdf": "Preparando pré-visualização em PDF...",
+  "documents.preview.loadingSpreadsheet": "Carregando planilha...",
+  "documents.preview.officeConverterUnavailable":
+    "O conversor de visualização para documentos Office está indisponível no momento. Baixe o arquivo para visualizar.",
+  "documents.preview.officeConversionFailed":
+    "Não foi possível converter este documento Office para pré-visualização. Baixe o arquivo para visualizar.",
+  "documents.preview.xlsx.sheetsCount": "{count} aba(s)",
+  "documents.preview.xlsx.sheetsAriaLabel": "Abas da planilha",
+  "documents.preview.xlsx.tableAriaLabel": "Pré-visualização da planilha: {sheetName}",
+  "documents.preview.xlsx.emptyWorkbook": "Esta planilha não possui abas para exibição.",
+  "documents.preview.xlsx.parseError":
+    "Não foi possível ler esta planilha para pré-visualização. Baixe o arquivo para abri-la.",
+  "documents.preview.tiff.previousPage": "Página anterior",
+  "documents.preview.tiff.nextPage": "Próxima página",
+  "documents.preview.tiff.pageIndicator": "Página {current} de {total}",
+  "documents.preview.tiff.parseError":
+    "Não foi possível decodificar esta imagem TIFF para pré-visualização. Baixe o arquivo para visualizar.",
 
   "documents.trash.title": "Lixeira de documentos",
   "documents.trash.subtitle":
