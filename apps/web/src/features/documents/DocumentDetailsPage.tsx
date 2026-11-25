@@ -8,10 +8,14 @@ import PersonOutlineOutlinedIcon from "@mui/icons-material/PersonOutlineOutlined
 import SendOutlinedIcon from "@mui/icons-material/SendOutlined";
 import UploadFileOutlinedIcon from "@mui/icons-material/UploadFileOutlined";
 import { Alert, Box, Button, Chip, Divider, Grid, Paper, Stack, Typography } from "@mui/material";
-import type { DocumentMetadataValue, DocumentStatus } from "@papyrus/contracts";
+import type {
+  DocumentMetadataValue,
+  DocumentStatus,
+  DocumentVersionHistoryItem,
+} from "@papyrus/contracts";
 import { EmptyState, ErrorState, LoadingState, PAPYRUS_COLOR_TOKENS } from "@papyrus/ui";
 import { useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { type MessageKey, useI18n } from "../../i18n/index.js";
 import { DocumentTagsField } from "../tags/DocumentTagsField.js";
@@ -97,12 +101,23 @@ export function DocumentDetailsPage() {
   const [uploadNewVersionOpen, setUploadNewVersionOpen] = useState(false);
   const [startWorkflowOpen, setStartWorkflowOpen] = useState(false);
   const [editingMetadata, setEditingMetadata] = useState(false);
+  const [previewVersion, setPreviewVersion] = useState<DocumentVersionHistoryItem | null>(null);
+  const previewSectionRef = useRef<HTMLDivElement | null>(null);
   const [lifecycleFeedback, setLifecycleFeedback] = useState<{
     readonly severity: "success" | "error";
     readonly message: string;
   } | null>(null);
 
   const query = useDocumentDetailsQuery(id);
+  const currentDocId = query.data?.id ?? null;
+  const currentDocVersionId = query.data?.currentVersionId ?? null;
+
+  useEffect(() => {
+    if (currentDocId === null && currentDocVersionId === null) {
+      return;
+    }
+    setPreviewVersion(null);
+  }, [currentDocId, currentDocVersionId]);
 
   if (query.isLoading) {
     return <LoadingState message={t("documents.details.loading")} />;
@@ -157,6 +172,13 @@ export function DocumentDetailsPage() {
   const definedKeys = new Set(sortedFields.map((field) => field.key));
   const extraMetadataKeys = Object.keys(doc.metadata).filter((key) => !definedKeys.has(key));
   const emptyDateLabel = t("documents.common.notProvidedFem");
+
+  const handlePreviewVersion = (version: DocumentVersionHistoryItem): void => {
+    setPreviewVersion(version.id === doc.currentVersionId ? null : version);
+    if (typeof previewSectionRef.current?.scrollIntoView === "function") {
+      previewSectionRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  };
 
   return (
     <Stack spacing={3}>
@@ -464,13 +486,19 @@ export function DocumentDetailsPage() {
           </Stack>
         </Grid>
 
-        <Grid size={{ xs: 12 }}>
-          <DocumentPreviewPanel document={doc} />
+        <Grid ref={previewSectionRef} size={{ xs: 12 }}>
+          <DocumentPreviewPanel
+            document={doc}
+            targetVersion={previewVersion}
+            onResetToCurrentVersion={previewVersion ? () => setPreviewVersion(null) : undefined}
+          />
         </Grid>
 
         <Grid size={{ xs: 12 }}>
           <VersionHistory
             document={doc}
+            activePreviewVersionId={previewVersion?.id ?? doc.currentVersionId}
+            onPreviewVersion={handlePreviewVersion}
             onUploadNewVersion={
               doc.permissions.canUpload ? () => setUploadNewVersionOpen(true) : undefined
             }

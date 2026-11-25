@@ -254,4 +254,163 @@ describe("DocumentDetailsPage", () => {
     fireEvent.click(screen.getByRole("button", { name: "Back to documents" }));
     expect(await screen.findByRole("heading", { name: "Documents List" })).toBeInTheDocument();
   });
+
+  it("allows previewing a previous version from Version History and returning to current version", async () => {
+    const V1_ID = "550e8400-e29b-41d4-a716-446655440015";
+    const V1_FILE_ID = "550e8400-e29b-41d4-a716-446655440016";
+
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockImplementation(async (input) => {
+      const url = typeof input === "string" ? input : input.toString();
+      if (url === `/api/v1/documents/${DOC_ID}`) {
+        return new Response(
+          JSON.stringify({
+            data: {
+              id: DOC_ID,
+              organizationId: ORG_ID,
+              title: "Release Notes",
+              categoryId: CAT_ID,
+              folderId: null,
+              status: "APPROVED",
+              currentVersionId: VER_ID,
+              ownerUserId: OWNER_ID,
+              issueDate: "2026-01-10",
+              expirationDate: null,
+              metadata: {},
+              version: 2,
+              createdAt: "2026-01-10T12:00:00Z",
+              updatedAt: "2026-01-11T15:30:00Z",
+              category: { id: CAT_ID, name: "Contratos", color: null, icon: null, fields: [] },
+              folder: null,
+              owner: { id: OWNER_ID, fullName: "Ana Souza", email: "ana.souza@papyrus.local" },
+              currentVersion: {
+                id: VER_ID,
+                versionNumber: 2,
+                fileObjectId: FILE_ID,
+                uploadedByUserId: OWNER_ID,
+                changeNote: "Segunda revisão",
+                createdAt: "2026-01-11T15:30:00Z",
+                fileObject: {
+                  id: FILE_ID,
+                  originalFileName: "notes-v2.txt",
+                  detectedContentType: "text/plain",
+                  sizeBytes: 256,
+                  checksumSha256: "b".repeat(64),
+                  status: "AVAILABLE",
+                },
+              },
+              tags: [],
+              permissions: {
+                canUpdate: false,
+                canDelete: false,
+                canUpload: false,
+                canDownload: true,
+              },
+            },
+          }),
+          { status: 200, headers: { "Content-Type": "application/json" } },
+        );
+      }
+      if (url === `/api/v1/documents/${DOC_ID}/tags`) {
+        return new Response(JSON.stringify({ data: [] }), { status: 200 });
+      }
+      if (url === `/api/v1/documents/${DOC_ID}/versions`) {
+        return new Response(
+          JSON.stringify({
+            data: [
+              {
+                id: VER_ID,
+                documentId: DOC_ID,
+                versionNumber: 2,
+                fileObjectId: FILE_ID,
+                uploadedByUserId: OWNER_ID,
+                uploadedByUser: {
+                  id: OWNER_ID,
+                  fullName: "Ana Souza",
+                  email: "ana.souza@papyrus.local",
+                },
+                changeNote: "Segunda revisão",
+                createdAt: "2026-01-11T15:30:00Z",
+                isCurrent: true,
+                fileObject: {
+                  id: FILE_ID,
+                  originalFileName: "notes-v2.txt",
+                  detectedContentType: "text/plain",
+                  sizeBytes: 256,
+                  checksumSha256: "b".repeat(64),
+                  status: "AVAILABLE",
+                },
+                permissions: { canDownload: true, canRestore: false },
+              },
+              {
+                id: V1_ID,
+                documentId: DOC_ID,
+                versionNumber: 1,
+                fileObjectId: V1_FILE_ID,
+                uploadedByUserId: OWNER_ID,
+                uploadedByUser: {
+                  id: OWNER_ID,
+                  fullName: "Ana Souza",
+                  email: "ana.souza@papyrus.local",
+                },
+                changeNote: "Versão inicial",
+                createdAt: "2026-01-10T12:00:00Z",
+                isCurrent: false,
+                fileObject: {
+                  id: V1_FILE_ID,
+                  originalFileName: "notes-v1.txt",
+                  detectedContentType: "text/plain",
+                  sizeBytes: 128,
+                  checksumSha256: "a".repeat(64),
+                  status: "AVAILABLE",
+                },
+                permissions: { canDownload: true, canRestore: true },
+              },
+            ],
+          }),
+          { status: 200, headers: { "Content-Type": "application/json" } },
+        );
+      }
+      if (url === `/api/v1/documents/${DOC_ID}/content`) {
+        return new Response("Current version v2 body", {
+          status: 200,
+          headers: { "Content-Type": "text/plain; charset=utf-8" },
+        });
+      }
+      if (url === `/api/v1/documents/${DOC_ID}/content?versionId=${encodeURIComponent(V1_ID)}`) {
+        return new Response("Historical version v1 body", {
+          status: 200,
+          headers: { "Content-Type": "text/plain; charset=utf-8" },
+        });
+      }
+      if (url.startsWith("/api/v1/tags")) {
+        return new Response(
+          JSON.stringify({
+            data: {
+              items: [],
+              pagination: { page: 1, pageSize: 50, totalItems: 0, totalPages: 0 },
+            },
+          }),
+          { status: 200 },
+        );
+      }
+      return new Response(null, { status: 404 });
+    });
+
+    renderDetailsPage();
+
+    expect(await screen.findByText("Current version v2 body")).toBeInTheDocument();
+
+    const previewV1Btn = await screen.findByRole("button", { name: "Preview version v1" });
+    fireEvent.click(previewV1Btn);
+
+    expect(await screen.findByText("Historical version v1 body")).toBeInTheDocument();
+    expect(screen.getByText("You are previewing version v1 (notes-v1.txt).")).toBeInTheDocument();
+    expect(fetchSpy).toHaveBeenCalledWith(
+      `/api/v1/documents/${DOC_ID}/content?versionId=${encodeURIComponent(V1_ID)}`,
+      expect.objectContaining({ credentials: "include", method: "GET" }),
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Back to current version" }));
+    expect(await screen.findByText("Current version v2 body")).toBeInTheDocument();
+  });
 });

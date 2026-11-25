@@ -1,6 +1,7 @@
 import DownloadOutlinedIcon from "@mui/icons-material/DownloadOutlined";
 import HistoryOutlinedIcon from "@mui/icons-material/HistoryOutlined";
 import RestoreOutlinedIcon from "@mui/icons-material/RestoreOutlined";
+import VisibilityOutlinedIcon from "@mui/icons-material/VisibilityOutlined";
 import {
   Alert,
   Box,
@@ -53,6 +54,8 @@ const FILE_STATUS_COLOR: Readonly<
 
 export interface VersionHistoryProps {
   readonly document: DocumentDetail;
+  readonly activePreviewVersionId?: string | null | undefined;
+  readonly onPreviewVersion?: ((version: DocumentVersionHistoryItem) => void) | undefined;
   readonly onUploadNewVersion?: (() => void) | undefined;
   readonly onDownloadVersion?:
     | ((version: DocumentVersionHistoryItem) => Promise<void> | void)
@@ -61,10 +64,12 @@ export interface VersionHistoryProps {
 
 /**
  * Version history table displaying version number, timestamp, author,
- * change note, file status, and server-authorized actions (download / non-destructive restore).
+ * change note, file status, and server-authorized actions (preview / download / non-destructive restore).
  */
 export function VersionHistory({
   document,
+  activePreviewVersionId,
+  onPreviewVersion,
   onUploadNewVersion,
   onDownloadVersion,
 }: VersionHistoryProps) {
@@ -258,11 +263,17 @@ export function VersionHistory({
                     ? FILE_STATUS_COLOR[version.fileObject.status]
                     : null;
                   const isDownloading = downloadingVersionId === version.id;
+                  const canPreviewRow = Boolean(
+                    onPreviewVersion && version.fileObject?.status === "AVAILABLE",
+                  );
+                  const isSelectedForPreview = Boolean(
+                    activePreviewVersionId && activePreviewVersionId === version.id,
+                  );
 
                   return (
-                    <TableRow key={version.id} hover>
+                    <TableRow key={version.id} hover selected={isSelectedForPreview}>
                       <TableCell>
-                        <Stack direction="row" spacing={1} alignItems="center">
+                        <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
                           <Typography variant="body2" fontWeight={600}>
                             v{version.versionNumber}
                           </Typography>
@@ -271,6 +282,14 @@ export function VersionHistory({
                               label={t("documents.versions.currentBadge")}
                               color="primary"
                               size="small"
+                            />
+                          ) : null}
+                          {isSelectedForPreview && !version.isCurrent ? (
+                            <Chip
+                              label={t("documents.versions.viewingBadge")}
+                              color="secondary"
+                              size="small"
+                              variant="outlined"
                             />
                           ) : null}
                         </Stack>
@@ -328,6 +347,23 @@ export function VersionHistory({
                           justifyContent="flex-end"
                           flexWrap="wrap"
                         >
+                          {canPreviewRow ? (
+                            <Button
+                              size="small"
+                              variant={isSelectedForPreview ? "contained" : "outlined"}
+                              startIcon={<VisibilityOutlinedIcon />}
+                              disabled={isSelectedForPreview || restoreMutation.isPending}
+                              onClick={() => onPreviewVersion?.(version)}
+                              aria-label={t("documents.versions.previewAria", {
+                                version: version.versionNumber,
+                              })}
+                            >
+                              {isSelectedForPreview
+                                ? t("documents.versions.viewingBadge")
+                                : t("documents.versions.previewButton")}
+                            </Button>
+                          ) : null}
+
                           {version.permissions.canDownload ? (
                             <Button
                               size="small"
@@ -360,7 +396,9 @@ export function VersionHistory({
                             </Button>
                           ) : null}
 
-                          {!version.permissions.canDownload && !version.permissions.canRestore ? (
+                          {!canPreviewRow &&
+                          !version.permissions.canDownload &&
+                          !version.permissions.canRestore ? (
                             <Typography variant="caption" color="text.secondary">
                               {t("documents.versions.noActions")}
                             </Typography>

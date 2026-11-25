@@ -230,6 +230,9 @@ export const documentsEn = {
   "documents.preview.rotateLeft": "Rotate left 90°",
   "documents.preview.rotateRight": "Rotate right 90°",
   "documents.preview.convertedPdfBadge": "Read-only PDF",
+  "documents.preview.viewingHistoricalVersion":
+    "You are previewing version v{version} ({fileName}).",
+  "documents.preview.backToCurrentVersion": "Back to current version",
   "documents.preview.convertingOfficePdf": "Preparing read-only PDF preview...",
   "documents.preview.loadingSpreadsheet": "Loading spreadsheet...",
   "documents.preview.officeConverterUnavailable":
@@ -356,8 +359,11 @@ export const documentsEn = {
   "documents.versions.columns.noteAndFile": "Note and file",
   "documents.versions.columns.actions": "Actions",
   "documents.versions.currentBadge": "Current",
+  "documents.versions.viewingBadge": "Viewing",
   "documents.versions.noChangeNote": "No note recorded",
   "documents.versions.noFileAttached": "No file attached",
+  "documents.versions.previewButton": "Preview",
+  "documents.versions.previewAria": "Preview version v{version}",
   "documents.versions.downloadAria": "Download version v{version}",
   "documents.versions.restoreButton": "Restore version",
   "documents.versions.restoreAria": "Restore version v{version}",
@@ -732,6 +738,9 @@ export const documentsPt: Readonly<Record<DocumentsMessageKey, string>> = {
   "documents.preview.rotateLeft": "Girar 90° à esquerda",
   "documents.preview.rotateRight": "Girar 90° à direita",
   "documents.preview.convertedPdfBadge": "PDF somente leitura",
+  "documents.preview.viewingHistoricalVersion":
+    "Você está pré-visualizando a versão v{version} ({fileName}).",
+  "documents.preview.backToCurrentVersion": "Voltar à versão atual",
   "documents.preview.convertingOfficePdf": "Preparando pré-visualização em PDF...",
   "documents.preview.loadingSpreadsheet": "Carregando planilha...",
   "documents.preview.officeConverterUnavailable":
@@ -862,8 +871,11 @@ export const documentsPt: Readonly<Record<DocumentsMessageKey, string>> = {
   "documents.versions.columns.noteAndFile": "Observação e arquivo",
   "documents.versions.columns.actions": "Ações",
   "documents.versions.currentBadge": "Vigente",
+  "documents.versions.viewingBadge": "Em visualização",
   "documents.versions.noChangeNote": "Sem observação registrada",
   "documents.versions.noFileAttached": "Nenhum arquivo anexado",
+  "documents.versions.previewButton": "Visualizar",
+  "documents.versions.previewAria": "Visualizar versão v{version}",
   "documents.versions.downloadAria": "Baixar versão v{version}",
   "documents.versions.restoreButton": "Restaurar versão",
   "documents.versions.restoreAria": "Restaurar versão v{version}",

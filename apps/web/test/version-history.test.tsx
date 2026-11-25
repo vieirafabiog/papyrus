@@ -63,6 +63,8 @@ function createDocument(overrides?: Partial<DocumentDetail>): DocumentDetail {
 function renderVersionHistory(
   document = createDocument(),
   props?: {
+    readonly activePreviewVersionId?: string | null;
+    readonly onPreviewVersion?: (version: DocumentVersionHistoryItem) => void;
     readonly onUploadNewVersion?: () => void;
     readonly onDownloadVersion?: (version: DocumentVersionHistoryItem) => Promise<void> | void;
   },
@@ -79,6 +81,8 @@ function renderVersionHistory(
       <QueryClientProvider client={queryClient}>
         <VersionHistory
           document={document}
+          activePreviewVersionId={props?.activePreviewVersionId}
+          onPreviewVersion={props?.onPreviewVersion}
           onUploadNewVersion={props?.onUploadNewVersion}
           onDownloadVersion={props?.onDownloadVersion}
         />
@@ -440,5 +444,80 @@ describe("VersionHistory", () => {
     expect(
       await screen.findByText("This document was updated by someone else. Refresh and try again."),
     ).toBeInTheDocument();
+  });
+
+  it("invokes onPreviewVersion for available versions and highlights the currently previewed older version", async () => {
+    const history: DocumentVersionHistoryItem[] = [
+      {
+        id: VER_2_ID,
+        documentId: DOC_ID,
+        versionNumber: 2,
+        fileObjectId: FILE_2_ID,
+        uploadedByUserId: AUTHOR_2_ID,
+        uploadedByUser: {
+          id: AUTHOR_2_ID,
+          fullName: "Carlos Lima",
+          email: "carlos.lima@papyrus.local",
+        },
+        changeNote: "Versão 2",
+        createdAt: "2026-01-15T14:30:00Z",
+        isCurrent: true,
+        fileObject: {
+          id: FILE_2_ID,
+          originalFileName: "contrato-v2.pdf",
+          detectedContentType: "application/pdf",
+          sizeBytes: 3072,
+          checksumSha256: "b".repeat(64),
+          status: "AVAILABLE",
+        },
+        permissions: { canDownload: true, canRestore: false },
+      },
+      {
+        id: VER_1_ID,
+        documentId: DOC_ID,
+        versionNumber: 1,
+        fileObjectId: FILE_1_ID,
+        uploadedByUserId: OWNER_ID,
+        uploadedByUser: {
+          id: OWNER_ID,
+          fullName: "Ana Souza",
+          email: "ana.souza@papyrus.local",
+        },
+        changeNote: "Versão 1",
+        createdAt: "2026-01-10T10:00:00Z",
+        isCurrent: false,
+        fileObject: {
+          id: FILE_1_ID,
+          originalFileName: "contrato-v1.txt",
+          detectedContentType: "text/plain",
+          sizeBytes: 512,
+          checksumSha256: "a".repeat(64),
+          status: "AVAILABLE",
+        },
+        permissions: { canDownload: true, canRestore: true },
+      },
+    ];
+
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(JSON.stringify({ data: history }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }),
+    );
+
+    const onPreviewVersion = vi.fn();
+    renderVersionHistory(createDocument(), {
+      activePreviewVersionId: VER_1_ID,
+      onPreviewVersion,
+    });
+
+    const previewV2Btn = await screen.findByRole("button", { name: "Preview version v2" });
+    const previewV1Btn = screen.getByRole("button", { name: "Preview version v1" });
+    expect(previewV2Btn).toBeEnabled();
+    expect(previewV1Btn).toBeDisabled();
+    expect(screen.getAllByText("Viewing").length).toBeGreaterThanOrEqual(1);
+
+    fireEvent.click(previewV2Btn);
+    expect(onPreviewVersion).toHaveBeenCalledWith(expect.objectContaining({ id: VER_2_ID }));
   });
 });

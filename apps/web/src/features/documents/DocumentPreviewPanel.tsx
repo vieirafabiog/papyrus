@@ -27,6 +27,8 @@ import {
 import {
   CONTRACTS_API_PREFIX,
   type DocumentDetail,
+  type DocumentDetailVersion,
+  type DocumentVersionHistoryItem,
   apiErrorResponseSchema,
 } from "@papyrus/contracts";
 import { ErrorState, LoadingState, PAPYRUS_COLOR_TOKENS } from "@papyrus/ui";
@@ -74,6 +76,8 @@ export {
 export interface DocumentPreviewPanelProps {
   readonly document: DocumentDetail;
   readonly versionId?: string | undefined;
+  readonly targetVersion?: DocumentDetailVersion | DocumentVersionHistoryItem | null | undefined;
+  readonly onResetToCurrentVersion?: (() => void) | undefined;
   readonly maxImageBytes?: number | undefined;
   readonly maxTextBytes?: number | undefined;
   readonly maxSpreadsheetBytes?: number | undefined;
@@ -143,6 +147,8 @@ async function extractPreviewErrorMessage(
 export function DocumentPreviewPanel({
   document,
   versionId,
+  targetVersion,
+  onResetToCurrentVersion,
   maxImageBytes = DEFAULT_MAX_IMAGE_PREVIEW_BYTES,
   maxTextBytes = DEFAULT_MAX_TEXT_PREVIEW_BYTES,
   maxSpreadsheetBytes = DEFAULT_MAX_SPREADSHEET_PREVIEW_BYTES,
@@ -151,7 +157,19 @@ export function DocumentPreviewPanel({
   onDownload,
 }: DocumentPreviewPanelProps) {
   const { locale, t, formatBytes } = useI18n();
-  const fileObject = document.currentVersion?.fileObject ?? null;
+  const effectiveVersion = targetVersion ?? document.currentVersion ?? null;
+  const fileObject = effectiveVersion?.fileObject ?? null;
+  const canDownloadEffectiveVersion =
+    targetVersion && "permissions" in targetVersion
+      ? targetVersion.permissions.canDownload
+      : document.permissions.canDownload;
+  const isViewingHistoricalVersion = Boolean(
+    effectiveVersion &&
+      document.currentVersionId &&
+      effectiveVersion.id !== document.currentVersionId,
+  );
+  const explicitQueryVersionId =
+    versionId ?? (isViewingHistoricalVersion ? effectiveVersion?.id : undefined);
   const detectedMime = fileObject?.detectedContentType.toLowerCase() ?? "";
   const isAvailable = fileObject?.status === "AVAILABLE";
   const previewKind = fileObject
@@ -216,7 +234,9 @@ export function DocumentPreviewPanel({
     setBinaryBuffer(null);
 
     const endpoint = isPdfLike ? "preview" : "content";
-    const querySuffix = versionId ? `?versionId=${encodeURIComponent(versionId)}` : "";
+    const querySuffix = explicitQueryVersionId
+      ? `?versionId=${encodeURIComponent(explicitQueryVersionId)}`
+      : "";
     const url = `${CONTRACTS_API_PREFIX}/documents/${document.id}/${endpoint}${querySuffix}`;
 
     void fetchImpl(url, {
@@ -295,7 +315,7 @@ export function DocumentPreviewPanel({
     isBinaryBuffer,
     previewKind,
     document.id,
-    versionId,
+    explicitQueryVersionId,
     reloadToken,
     fetchImpl,
     locale,
@@ -306,7 +326,8 @@ export function DocumentPreviewPanel({
   }
 
   const handleFallbackDownload = async (): Promise<void> => {
-    if (!document.currentVersion) {
+    const downloadVersionId = effectiveVersion?.id ?? document.currentVersion?.id;
+    if (!downloadVersionId) {
       return;
     }
     setDownloading(true);
@@ -315,7 +336,7 @@ export function DocumentPreviewPanel({
       if (onDownload) {
         await onDownload();
       } else {
-        const result = await requestVersionDownloadTarget(document.id, document.currentVersion.id);
+        const result = await requestVersionDownloadTarget(document.id, downloadVersionId);
         if (result.url) {
           window.open(result.url, "_blank", "noopener,noreferrer");
         }
@@ -358,7 +379,7 @@ export function DocumentPreviewPanel({
           {formatBytes(fileObject.sizeBytes)} — {fileObject.detectedContentType})
         </Typography>
 
-        {document.permissions.canDownload ? (
+        {canDownloadEffectiveVersion ? (
           <Button
             variant="contained"
             size="small"
@@ -515,6 +536,16 @@ export function DocumentPreviewPanel({
                   <Typography variant="h6" component="h2">
                     {t("documents.preview.title")}
                   </Typography>
+                  {isViewingHistoricalVersion && effectiveVersion ? (
+                    <Chip
+                      size="small"
+                      color="secondary"
+                      variant="outlined"
+                      label={t("documents.details.versionBadge", {
+                        version: effectiveVersion.versionNumber,
+                      })}
+                    />
+                  ) : null}
                   {previewKind === "office-pdf" ? (
                     <Chip
                       size="small"
@@ -565,6 +596,24 @@ export function DocumentPreviewPanel({
           </Box>
 
           <Divider />
+
+          {isViewingHistoricalVersion && effectiveVersion ? (
+            <Alert
+              severity="info"
+              action={
+                onResetToCurrentVersion ? (
+                  <Button size="small" color="inherit" onClick={onResetToCurrentVersion}>
+                    {t("documents.preview.backToCurrentVersion")}
+                  </Button>
+                ) : null
+              }
+            >
+              {t("documents.preview.viewingHistoricalVersion", {
+                version: effectiveVersion.versionNumber,
+                fileName: fileObject.originalFileName,
+              })}
+            </Alert>
+          ) : null}
 
           {!isAvailable ? (
             <Alert severity="info">{t("documents.preview.pendingSecurity")}</Alert>
@@ -644,6 +693,9 @@ export function DocumentPreviewPanel({
                   {document.title}
                 </Typography>
                 <Typography variant="caption" color="text.secondary" noWrap display="block">
+                  {effectiveVersion
+                    ? `${t("documents.details.versionBadge", { version: effectiveVersion.versionNumber })} · `
+                    : ""}
                   {fileObject.originalFileName} · {formatBytes(fileObject.sizeBytes)}
                 </Typography>
               </Box>
