@@ -5,6 +5,7 @@ import type {
   TextExtractionOutcome,
   TextExtractionPolicy,
   TextExtractorKind,
+  TextOcrEnginePort,
 } from "./types.js";
 
 export interface PostgresSqlExecutor {
@@ -227,6 +228,7 @@ export async function extractAndIndexDocumentVersionText(params: {
   readonly fileObjectId: string;
   readonly policy: TextExtractionPolicy;
   readonly indexRepository: ExtractedTextIndexRepository;
+  readonly ocrEngine?: TextOcrEnginePort | undefined;
 }): Promise<{
   readonly extraction: TextExtractionOutcome;
   readonly indexing: ExtractedTextIndexSaveResult;
@@ -243,6 +245,7 @@ export async function extractAndIndexDocumentVersionText(params: {
       ? await extractTextFromBuffer(
           { content: params.source.content, mimeType: params.source.mimeType },
           params.policy,
+          { ocrEngine: params.ocrEngine },
         )
       : await extractTextFromStream(
           {
@@ -251,6 +254,7 @@ export async function extractAndIndexDocumentVersionText(params: {
             declaredSizeBytes: params.source.declaredSizeBytes,
           },
           params.policy,
+          { ocrEngine: params.ocrEngine },
         );
 
   if (extraction.status !== "EXTRACTED") {

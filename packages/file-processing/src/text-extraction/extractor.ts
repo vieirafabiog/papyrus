@@ -1,123 +1,28 @@
 import type { Readable } from "node:stream";
-import { inflateRawSync, inflateSync } from "node:zlib";
+import { inflateSync } from "node:zlib";
+import {
+  extractDocxXmlText,
+  extractJsonText,
+  extractMarkdownText,
+  extractPptxXmlText,
+  extractXlsxXmlText,
+} from "./office-zip.js";
 import { evaluateAndNormalizeExtractedText } from "./quality.js";
-import type { TextExtractionOutcome, TextExtractionPolicy, TextExtractorKind } from "./types.js";
+import {
+  DEFAULT_OCR_IMAGE_MIME_TYPES,
+  type TextExtractionOutcome,
+  type TextExtractionPolicy,
+  type TextExtractorKind,
+  type TextOcrEnginePort,
+} from "./types.js";
 
 const DOCX_MIME = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
-const ZIP_LOCAL_FILE_SIGNATURE = 0x04034b50;
+const XLSX_MIME = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+const PPTX_MIME = "application/vnd.openxmlformats-officedocument.presentationml.presentation";
+const OCR_IMAGE_MIME_SET = new Set<string>(DEFAULT_OCR_IMAGE_MIME_TYPES);
 
-function decodeXmlEntities(value: string): string {
-  return value
-    .replace(/&amp;/g, "&")
-    .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">")
-    .replace(/&quot;/g, '"')
-    .replace(/&apos;/g, "'")
-    .replace(/&#(\d+);/g, (_match, dec: string) => {
-      const code = Number.parseInt(dec, 10);
-      return Number.isFinite(code) && code > 0 ? String.fromCodePoint(code) : "";
-    })
-    .replace(/&#x([0-9a-fA-F]+);/g, (_match, hex: string) => {
-      const code = Number.parseInt(hex, 16);
-      return Number.isFinite(code) && code > 0 ? String.fromCodePoint(code) : "";
-    });
-}
-
-function extractTextFromDocxBuffer(
-  buffer: Buffer,
-  policy: TextExtractionPolicy,
-): { readonly ok: true; readonly text: string } | { readonly ok: false; readonly reason: string } {
-  let offset = 0;
-
-  while (offset + 30 <= buffer.length) {
-    const signature = buffer.readUInt32LE(offset);
-    if (signature !== ZIP_LOCAL_FILE_SIGNATURE) {
-      break;
-    }
-
-    const flags = buffer.readUInt16LE(offset + 6);
-    const compressionMethod = buffer.readUInt16LE(offset + 8);
-    const compressedSize = buffer.readUInt32LE(offset + 18);
-    const uncompressedSize = buffer.readUInt32LE(offset + 22);
-    const fileNameLength = buffer.readUInt16LE(offset + 26);
-    const extraLength = buffer.readUInt16LE(offset + 28);
-
-    const nameStart = offset + 30;
-    const dataStart = nameStart + fileNameLength + extraLength;
-    if (dataStart > buffer.length || fileNameLength === 0) {
-      break;
-    }
-
-    const entryName = buffer.subarray(nameStart, nameStart + fileNameLength).toString("utf8");
-    const hasDataDescriptor = (flags & 0x08) !== 0;
-
-    let entryCompressedSlice: Buffer;
-    let nextOffset: number;
-
-    if (hasDataDescriptor && compressedSize === 0) {
-      const nextHeaderOffset = buffer.indexOf(Buffer.from([0x50, 0x4b, 0x03, 0x04]), dataStart);
-      const centralDirOffset = buffer.indexOf(Buffer.from([0x50, 0x4b, 0x01, 0x02]), dataStart);
-      const endOffset =
-        nextHeaderOffset !== -1 && (centralDirOffset === -1 || nextHeaderOffset < centralDirOffset)
-          ? nextHeaderOffset
-          : centralDirOffset !== -1
-            ? centralDirOffset
-            : buffer.length;
-      entryCompressedSlice = buffer.subarray(dataStart, endOffset);
-      nextOffset = endOffset;
-    } else {
-      const dataEnd = dataStart + compressedSize;
-      if (dataEnd > buffer.length) {
-        return { ok: false, reason: "Estrutura ZIP truncada durante a leitura do DOCX." };
-      }
-      entryCompressedSlice = buffer.subarray(dataStart, dataEnd);
-      nextOffset = dataEnd;
-    }
-
-    if (entryName === "word/document.xml") {
-      if (uncompressedSize > policy.maxZipEntryBytes) {
-        return { ok: false, reason: "Entrada XML do DOCX excede o limite de tamanho permitido." };
-      }
-      if (compressedSize > 0 && uncompressedSize > compressedSize * policy.maxCompressionRatio) {
-        return { ok: false, reason: "Taxa de compressão suspeita no conteúdo XML do DOCX." };
-      }
-
-      let xmlBuffer: Buffer;
-      if (compressionMethod === 0) {
-        if (entryCompressedSlice.length > policy.maxZipEntryBytes) {
-          return { ok: false, reason: "Entrada XML do DOCX excede o limite de tamanho permitido." };
-        }
-        xmlBuffer = entryCompressedSlice;
-      } else if (compressionMethod === 8) {
-        try {
-          xmlBuffer = inflateRawSync(entryCompressedSlice, {
-            maxOutputLength: policy.maxZipEntryBytes,
-          });
-        } catch {
-          return {
-            ok: false,
-            reason: "Falha ou limite excedido ao descompactar XML do documento DOCX.",
-          };
-        }
-      } else {
-        return { ok: false, reason: "Método de compressão ZIP não suportado para extração." };
-      }
-
-      const xmlString = xmlBuffer.toString("utf8");
-      const rawText = decodeXmlEntities(
-        xmlString
-          .replace(/<\/w:p>/g, "\n")
-          .replace(/<w:br\b[^>]*\/>/g, "\n")
-          .replace(/<w:tab\b[^>]*\/>/g, " ")
-          .replace(/<[^>]+>/g, ""),
-      );
-      return { ok: true, text: rawText };
-    }
-
-    offset = nextOffset;
-  }
-
-  return { ok: false, reason: "Conteúdo textual word/document.xml não encontrado no DOCX." };
+export interface ExtractTextOptions {
+  readonly ocrEngine?: TextOcrEnginePort | undefined;
 }
 
 function unescapePdfLiteral(literal: string): string {
@@ -159,7 +64,6 @@ function unescapePdfLiteral(literal: string): string {
 function extractPdfOperatorsText(contentStreamText: string): string {
   const parts: string[] = [];
 
-  // Match literal strings followed by Tj or collected inside [...] TJ arrays
   const tjMatches = contentStreamText.matchAll(/\(([^()\\]*(?:\\.[^()\\]*)*)\)\s*Tj/g);
   for (const match of tjMatches) {
     if (match[1]) {
@@ -189,13 +93,11 @@ function extractTextFromPdfBuffer(buffer: Buffer, policy: TextExtractionPolicy):
   const collected: string[] = [];
   const rawLatin1 = buffer.toString("latin1");
 
-  // Direct uncompressed PDF text operators if present
   const directText = extractPdfOperatorsText(rawLatin1);
   if (directText.length > 0) {
     collected.push(directText);
   }
 
-  // Decompress bounded FlateDecode streams
   let searchFrom = 0;
   while (searchFrom < buffer.length) {
     const streamTokenIdx = rawLatin1.indexOf("stream", searchFrom);
@@ -275,13 +177,36 @@ function finalizeOutcome(
   };
 }
 
+function isTimeoutError(error: unknown): boolean {
+  if (!(error instanceof Error)) {
+    return false;
+  }
+  const errObj = error as Error & { readonly killed?: boolean; readonly code?: string };
+  return (
+    errObj.killed === true || errObj.code === "ETIMEDOUT" || /timed?\s*out/i.test(errObj.message)
+  );
+}
+
+function isTimeoutError(error: unknown): boolean {
+  if (!(error instanceof Error)) {
+    return false;
+  }
+  const errObj = error as Error & { readonly killed?: boolean; readonly code?: string };
+  return (
+    errObj.killed === true ||
+    errObj.code === "ETIMEDOUT" ||
+    /timed?\s*out/i.test(errObj.message)
+  );
+}
+
 /**
  * Performs bounded, toggle-aware text extraction from an in-memory buffer within
- * configured byte, timeout, and text quality limits.
+ * configured byte, timeout, quality, and optional OCR fallback limits.
  */
 export async function extractTextFromBuffer(
   input: { readonly content: Buffer; readonly mimeType: string },
   policy: TextExtractionPolicy,
+  options: ExtractTextOptions = {},
 ): Promise<TextExtractionOutcome> {
   if (!policy.enabled) {
     return { status: "DISABLED" };
@@ -302,32 +227,143 @@ export async function extractTextFromBuffer(
   }
 
   const deadlineMs = Date.now() + policy.timeoutMs;
-  const runExtraction = (): TextExtractionOutcome => {
-    if (Date.now() > deadlineMs) {
-      return { status: "TIMED_OUT", timeoutMs: policy.timeoutMs };
+  if (Date.now() > deadlineMs) {
+    return { status: "TIMED_OUT", timeoutMs: policy.timeoutMs };
+  }
+
+  if (normalizedMime === "text/plain" || normalizedMime === "text/csv") {
+    return finalizeOutcome(input.content.toString("utf8"), normalizedMime, "plain_text", policy);
+  }
+
+  if (normalizedMime === "text/markdown") {
+    const cleanMd = extractMarkdownText(input.content.toString("utf8"));
+    return finalizeOutcome(cleanMd, normalizedMime, "structured_text", policy);
+  }
+
+  if (normalizedMime === "application/json") {
+    const cleanJson = extractJsonText(input.content.toString("utf8"), policy.maxExtractedChars);
+    return finalizeOutcome(cleanJson, normalizedMime, "structured_text", policy);
+  }
+
+  if (normalizedMime === DOCX_MIME) {
+    const docxResult = extractDocxXmlText(input.content, policy);
+    if (!docxResult.ok) {
+      return { status: "FAILED", reason: docxResult.reason };
+    }
+    return finalizeOutcome(docxResult.text, normalizedMime, "docx_xml", policy);
+  }
+
+  if (normalizedMime === XLSX_MIME) {
+    const xlsxResult = extractXlsxXmlText(input.content, policy);
+    if (!xlsxResult.ok) {
+      return { status: "FAILED", reason: xlsxResult.reason };
+    }
+    return finalizeOutcome(xlsxResult.text, normalizedMime, "xlsx_xml", policy);
+  }
+
+  if (normalizedMime === PPTX_MIME) {
+    const pptxResult = extractPptxXmlText(input.content, policy);
+    if (!pptxResult.ok) {
+      return { status: "FAILED", reason: pptxResult.reason };
+    }
+    return finalizeOutcome(pptxResult.text, normalizedMime, "pptx_xml", policy);
+  }
+
+  if (OCR_IMAGE_MIME_SET.has(normalizedMime)) {
+    if (!policy.ocr.enabled) {
+      return {
+        status: "OCR_UNAVAILABLE",
+        reason: "O reconhecimento OCR para imagens está desabilitado na política atual.",
+      };
+    }
+    if (!options.ocrEngine) {
+      return {
+        status: "OCR_UNAVAILABLE",
+        reason: "Motor de OCR não disponível neste ambiente para extrair texto da imagem.",
+      };
     }
 
-    if (normalizedMime === "text/plain" || normalizedMime === "text/csv") {
-      return finalizeOutcome(input.content.toString("utf8"), normalizedMime, "plain_text", policy);
-    }
-
-    if (normalizedMime === "application/pdf") {
-      const pdfText = extractTextFromPdfBuffer(input.content, policy);
-      return finalizeOutcome(pdfText, normalizedMime, "pdf_basic", policy);
-    }
-
-    if (normalizedMime === DOCX_MIME) {
-      const docxResult = extractTextFromDocxBuffer(input.content, policy);
-      if (!docxResult.ok) {
-        return { status: "FAILED", reason: docxResult.reason };
+    const ocrTimeoutMs = Math.min(policy.ocr.timeoutMs, Math.max(500, deadlineMs - Date.now()));
+    try {
+      const ocrText = await options.ocrEngine.recognizeImageBuffer({
+        buffer: input.content,
+        mimeType: normalizedMime,
+        languages: policy.ocr.languages,
+        timeoutMs: ocrTimeoutMs,
+      });
+      return finalizeOutcome(ocrText, normalizedMime, "ocr_image", policy);
+    } catch (error) {
+      if (isTimeoutError(error)) {
+        return { status: "TIMED_OUT", timeoutMs: ocrTimeoutMs };
       }
-      return finalizeOutcome(docxResult.text, normalizedMime, "docx_xml", policy);
+      return {
+        status: "FAILED",
+        reason: error instanceof Error ? error.message : "Falha no OCR da imagem.",
+      };
+    }
+  }
+
+  if (normalizedMime === "application/pdf") {
+    let nativeText = "";
+    let nativeKind: TextExtractorKind = "pdf_basic";
+
+    if (options.ocrEngine?.extractPdfText) {
+      const popplerTimeout = Math.min(10_000, Math.max(500, deadlineMs - Date.now()));
+      const popplerText = await options.ocrEngine.extractPdfText({
+        buffer: input.content,
+        timeoutMs: popplerTimeout,
+      });
+      if (popplerText && popplerText.trim().length > 0) {
+        nativeText = popplerText;
+        nativeKind = "pdf_poppler";
+      }
     }
 
-    return { status: "UNSUPPORTED_MIME", mimeType: normalizedMime };
-  };
+    if (nativeText.trim().length === 0) {
+      nativeText = extractTextFromPdfBuffer(input.content, policy);
+      nativeKind = "pdf_basic";
+    }
 
-  return runExtraction();
+    const nativeOutcome = finalizeOutcome(nativeText, normalizedMime, nativeKind, policy);
+    if (
+      nativeOutcome.status === "EXTRACTED" &&
+      nativeOutcome.charCount >= policy.ocr.minNativePdfCharsForSkipOcr
+    ) {
+      return nativeOutcome;
+    }
+
+    if (!policy.ocr.enabled) {
+      return nativeOutcome;
+    }
+
+    if (!options.ocrEngine) {
+      return {
+        status: "OCR_UNAVAILABLE",
+        reason: "PDF sem texto pesquisável e motor de OCR indisponível neste ambiente.",
+      };
+    }
+
+    const ocrTimeoutMs = Math.min(policy.ocr.timeoutMs, Math.max(500, deadlineMs - Date.now()));
+    try {
+      const ocrPdfText = await options.ocrEngine.recognizePdfBuffer({
+        buffer: input.content,
+        languages: policy.ocr.languages,
+        maxPages: policy.ocr.maxPdfPages,
+        timeoutMs: ocrTimeoutMs,
+      });
+      return finalizeOutcome(ocrPdfText, normalizedMime, "ocr_pdf", policy);
+    } catch (error) {
+      if (isTimeoutError(error)) {
+        return { status: "TIMED_OUT", timeoutMs: ocrTimeoutMs };
+      }
+      return {
+        status: "FAILED",
+        reason: error instanceof Error ? error.message : "Falha ao executar OCR no PDF.",
+      };
+    }
+  }
+
+  return { status: "UNSUPPORTED_MIME", mimeType: normalizedMime };
 }
 
 /**
@@ -341,6 +377,7 @@ export async function extractTextFromStream(
     readonly declaredSizeBytes?: number | undefined;
   },
   policy: TextExtractionPolicy,
+  options: ExtractTextOptions = {},
 ): Promise<TextExtractionOutcome> {
   if (!policy.enabled) {
     input.stream.destroy();
@@ -403,9 +440,11 @@ export async function extractTextFromStream(
 
     input.stream.on("end", () => {
       const buffer = Buffer.concat(chunks, bytesRead);
-      void extractTextFromBuffer({ content: buffer, mimeType: normalizedMime }, policy).then(
-        finish,
-      );
+      void extractTextFromBuffer(
+        { content: buffer, mimeType: normalizedMime },
+        policy,
+        options,
+      ).then(finish);
     });
   });
 }

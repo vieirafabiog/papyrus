@@ -56,9 +56,9 @@ ARG PAPYRUS_VERSION=1.0.0-rc.1
 ARG VCS_REF=unknown
 
 LABEL org.opencontainers.image.title="papyrus-worker" \
-      org.opencontainers.image.description="papyrus background worker (upload scan, retention, notifications)" \
-      org.opencontainers.image.version="${PAPYRUS_VERSION}" \
-      org.opencontainers.image.revision="${VCS_REF}"
+  org.opencontainers.image.description="papyrus background worker (upload scan, retention, notifications)" \
+  org.opencontainers.image.version="${PAPYRUS_VERSION}" \
+  org.opencontainers.image.revision="${VCS_REF}"
 
 ENV NODE_ENV=production
 ENV WORKER_HEALTH_HOST=0.0.0.0
@@ -67,8 +67,13 @@ ENV PAPYRUS_VERSION="${PAPYRUS_VERSION}"
 
 WORKDIR /app
 
-# Remove package managers and dev tooling from final worker runtime image
-RUN rm -rf /usr/local/lib/node_modules /usr/local/bin/npm /usr/local/bin/npx /usr/local/bin/corepack /opt/yarn* \
+# Install OCR/PDF runtime binaries and remove Node package managers from final worker image
+RUN apk add --no-cache \
+  tesseract-ocr \
+  tesseract-ocr-data-por \
+  tesseract-ocr-data-eng \
+  poppler-utils \
+  && rm -rf /usr/local/lib/node_modules /usr/local/bin/npm /usr/local/bin/npx /usr/local/bin/corepack /opt/yarn* \
   && mkdir -p /var/lib/papyrus/storage \
   && chown -R node:node /var/lib/papyrus/storage
 
