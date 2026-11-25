@@ -1,7 +1,8 @@
 export type InAppNotificationEventKind =
   | "TASK_ASSIGNED"
   | "WORKFLOW_DECISION"
-  | "DOCUMENT_EXPIRATION";
+  | "DOCUMENT_EXPIRATION"
+  | "COMMENT_MENTION";
 
 export type InAppNotificationResourceType = "WORKFLOW_TASK" | "DOCUMENT" | "WORKFLOW_INSTANCE";
 
@@ -119,6 +120,18 @@ export interface NotifyDocumentExpirationInput {
   readonly tx?: unknown;
 }
 
+export interface NotifyCommentMentionInput {
+  readonly organizationId: string;
+  readonly recipientUserIds: readonly string[];
+  readonly authorUserId: string;
+  readonly authorDisplayName: string;
+  readonly documentId: string;
+  readonly documentTitle: string;
+  readonly commentId: string;
+  readonly commentExcerpt: string;
+  readonly tx?: unknown;
+}
+
 export interface InAppNotificationDispatchSummary {
   readonly createdCount: number;
   readonly deduplicatedCount: number;
@@ -131,6 +144,7 @@ export interface InAppNotificationService {
   notifyDocumentExpiration(
     input: NotifyDocumentExpirationInput,
   ): Promise<InAppNotificationDispatchSummary>;
+  notifyCommentMention(input: NotifyCommentMentionInput): Promise<InAppNotificationDispatchSummary>;
   listForUser(query: ListInAppNotificationsQuery): Promise<ListInAppNotificationsResult>;
   markAsRead(input: {
     readonly organizationId: string;

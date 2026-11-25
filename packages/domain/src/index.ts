@@ -587,3 +587,19 @@ export {
   type UploadLimitsView,
   type UploadPolicyRepositoryPort,
 } from "./uploads/upload-policy.js";
+
+export {
+  type CreateDocumentCommentCommand,
+  type CreateDocumentCommentRecordInput,
+  createDocumentCommentService,
+  type DeleteDocumentCommentCommand,
+  type DocumentCommentEntity,
+  type DocumentCommentMentionEntity,
+  type DocumentCommentMentionNotifierPort,
+  type DocumentCommentParticipantEntity,
+  type DocumentCommentRepositoryPort,
+  type DocumentCommentService,
+  type DocumentCommentServiceDependencies,
+  MAX_DOCUMENT_COMMENT_BODY_LENGTH,
+  MAX_DOCUMENT_COMMENT_MENTION_IDS,
+} from "./documents/document-comments.js";

@@ -8,6 +8,7 @@ import {
   createCategoryRepository,
   createDashboardRepository,
   createDatabaseClient,
+  createDocumentCommentRepository,
   createDocumentExpirationRepository,
   createDocumentRepository,
   createDocumentRetentionHoldRepository,
@@ -49,6 +50,7 @@ import {
   createCategoryFieldService,
   createCategoryService,
   createDecideTaskUseCase,
+  createDocumentCommentService,
   createDocumentUseCase,
   createDocumentVersionUseCase,
   createFinalizeUploadService,
@@ -155,6 +157,7 @@ export function createStandaloneApiRuntime(
   const auditRepository = createAuditRepository(db);
   const authzRepository = createAuthorizationRepository(db);
   const documentRepository = createDocumentRepository(db);
+  const documentCommentRepository = createDocumentCommentRepository(db);
   const documentVersionRepository = createDocumentVersionRepository(db);
   const documentSearchRepository = createDocumentSearchRepository(db);
   const documentExpirationRepository = createDocumentExpirationRepository(db);
@@ -487,6 +490,15 @@ export function createStandaloneApiRuntime(
     generateId: () => randomUUID(),
   });
 
+  const documentCommentService = createDocumentCommentService({
+    comments: documentCommentRepository,
+    documents: documentRepository,
+    transactions,
+    audit: auditRepository,
+    mentionNotifier: notificationService,
+    generateId: () => randomUUID(),
+  });
+
   const app = buildApp({
     logger: true,
     secureCookies,
@@ -544,6 +556,7 @@ export function createStandaloneApiRuntime(
       categoryRepository,
       createDocumentService,
       createDocumentVersionService,
+      documentCommentService,
       moveDocumentService,
       archiveDocumentService,
       trashDocumentService,

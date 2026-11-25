@@ -19,6 +19,7 @@ import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { type MessageKey, useI18n } from "../../i18n/index.js";
 import { DocumentTagsField } from "../tags/DocumentTagsField.js";
+import { DocumentCommentsPanel } from "./DocumentCommentsPanel.js";
 import { DocumentLifecycleActions } from "./DocumentLifecycleActions.js";
 import { DocumentMetadataForm } from "./DocumentMetadataForm.js";
 import { DocumentPreviewPanel } from "./DocumentPreviewPanel.js";
@@ -507,6 +508,10 @@ export function DocumentDetailsPage() {
 
         <Grid size={{ xs: 12 }}>
           <DocumentWorkflowTimeline documentId={doc.id} />
+        </Grid>
+
+        <Grid size={{ xs: 12 }}>
+          <DocumentCommentsPanel documentId={doc.id} documentStatus={doc.status} />
         </Grid>
       </Grid>
 

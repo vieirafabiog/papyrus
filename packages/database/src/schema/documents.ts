@@ -194,3 +194,61 @@ export const documentExtractedTexts = pgTable(
     check("document_extracted_texts_char_non_neg_chk", sql`${table.charCount} >= 0`),
   ],
 );
+
+export const documentComments = pgTable(
+  "document_comments",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "restrict" }),
+    documentId: uuid("document_id")
+      .notNull()
+      .references(() => documents.id, { onDelete: "restrict" }),
+    authorUserId: uuid("author_user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "restrict" }),
+    body: text("body").notNull(),
+    deletedAt: timestamp("deleted_at", { withTimezone: true, mode: "date" }),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "date" }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true, mode: "date" }).notNull().defaultNow(),
+  },
+  (table) => [
+    index("document_comments_org_doc_created_idx").on(
+      table.organizationId,
+      table.documentId,
+      table.deletedAt,
+      table.createdAt,
+      table.id,
+    ),
+    index("document_comments_author_idx").on(table.authorUserId),
+    check(
+      "document_comments_body_len_chk",
+      sql`length(btrim(${table.body})) >= 1 AND length(${table.body}) <= 2000`,
+    ),
+  ],
+);
+
+export const documentCommentMentions = pgTable(
+  "document_comment_mentions",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "restrict" }),
+    commentId: uuid("comment_id")
+      .notNull()
+      .references(() => documentComments.id, { onDelete: "restrict" }),
+    mentionedUserId: uuid("mentioned_user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "restrict" }),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "date" }).notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("document_comment_mentions_comment_user_unique").on(
+      table.commentId,
+      table.mentionedUserId,
+    ),
+    index("document_comment_mentions_user_created_idx").on(table.mentionedUserId, table.createdAt),
+  ],
+);

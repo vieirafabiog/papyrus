@@ -8,6 +8,7 @@ import type {
   ListInAppNotificationsResult,
   MarkInAppNotificationReadOutcome,
   NotificationDecisionKind,
+  NotifyCommentMentionInput,
   NotifyDocumentExpirationInput,
   NotifyTaskAssignedInput,
   NotifyTaskDecisionInput,
@@ -202,6 +203,54 @@ export function createInAppNotificationService(
             recipientUserId,
             kind: "DOCUMENT_EXPIRATION",
             idempotencyKey: `document-expiration:${input.documentId}:${input.expirationDate}:${input.alertWindowKey}:${recipientUserId}`,
+            title,
+            body,
+            resourceType: "DOCUMENT",
+            resourceId: input.documentId,
+            sentAt: now(),
+          },
+          input.tx,
+        );
+
+        notifications.push(result.notification);
+        if (result.created) {
+          createdCount += 1;
+        } else {
+          deduplicatedCount += 1;
+        }
+      }
+
+      return { createdCount, deduplicatedCount, notifications };
+    },
+
+    async notifyCommentMention(
+      input: NotifyCommentMentionInput,
+    ): Promise<InAppNotificationDispatchSummary> {
+      const recipients = dedupeRecipientIds(input.recipientUserIds).filter(
+        (id) => id !== input.authorUserId,
+      );
+      const notifications: InAppNotificationRecord[] = [];
+      let createdCount = 0;
+      let deduplicatedCount = 0;
+
+      const title = truncateText(
+        `${input.authorDisplayName} mencionou você em "${input.documentTitle}"`,
+        MAX_TITLE_LENGTH,
+      );
+      const excerpt = truncateText(input.commentExcerpt, 180);
+      const body =
+        excerpt.length > 0
+          ? `${input.authorDisplayName} comentou em "${input.documentTitle}": "${excerpt}"`
+          : `${input.authorDisplayName} mencionou você em um comentário do documento "${input.documentTitle}".`;
+
+      for (const recipientUserId of recipients) {
+        const result = await deps.repository.insertIdempotent(
+          {
+            id: generateId(),
+            organizationId: input.organizationId,
+            recipientUserId,
+            kind: "COMMENT_MENTION",
+            idempotencyKey: `comment-mention:${input.commentId}:${recipientUserId}`,
             title,
             body,
             resourceType: "DOCUMENT",

@@ -14,6 +14,7 @@ export const notificationKindSchema = z.enum([
   "TASK_ASSIGNED",
   "WORKFLOW_DECISION",
   "DOCUMENT_EXPIRATION",
+  "COMMENT_MENTION",
 ]);
 export type NotificationKindContract = z.infer<typeof notificationKindSchema>;
 

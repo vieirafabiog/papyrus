@@ -54,6 +54,7 @@ export {
   createDocumentRepository,
   createDocumentVersionRepository,
 } from "./repositories/document-repository.js";
+export { createDocumentCommentRepository } from "./repositories/document-comment-repository.js";
 export {
   createDocumentExpirationRepository,
   type DocumentExpirationListItemRecord,
@@ -145,6 +146,8 @@ export {
 } from "./repositories/workflow-repository.js";
 
 export {
+  documentCommentMentions,
+  documentComments,
   documentExtractedTexts,
   type DocumentMetadataColumnValue,
   documentMetadata,

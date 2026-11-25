@@ -123,6 +123,7 @@ export const commonEn = {
   "notifications.kind.TASK_ASSIGNED": "Task assigned",
   "notifications.kind.WORKFLOW_DECISION": "Workflow decision",
   "notifications.kind.DOCUMENT_EXPIRATION": "Expiration",
+  "notifications.kind.COMMENT_MENTION": "Comment mention",
 
   // Dashboard
   "dashboard.title": "Overview",
@@ -319,6 +320,7 @@ export const commonPt: Readonly<Record<CommonMessageKey, string>> = {
   "notifications.kind.TASK_ASSIGNED": "Tarefa atribuída",
   "notifications.kind.WORKFLOW_DECISION": "Decisão de fluxo",
   "notifications.kind.DOCUMENT_EXPIRATION": "Vencimento",
+  "notifications.kind.COMMENT_MENTION": "Menção em comentário",
 
   // Dashboard
   "dashboard.title": "Visão geral",

@@ -20,6 +20,7 @@ import type {
   CreateDocumentVersionService,
   CreateWorkflowTasksService,
   DecideTaskService,
+  DocumentCommentService,
   DocumentRepositoryPort,
   DocumentVersionRepositoryPort,
   FinalizeUploadService,
@@ -55,6 +56,7 @@ import type { AuthService } from "./modules/auth/auth.service.js";
 import { registerCategoryRoutes } from "./modules/categories/categories.routes.js";
 import { registerDashboardRoutes } from "./modules/dashboard/dashboard.routes.js";
 import { registerDocumentBulkActionRoutes } from "./modules/documents/bulk-actions.routes.js";
+import { registerDocumentCommentRoutes } from "./modules/documents/comments.routes.js";
 import { registerDocumentRoutes } from "./modules/documents/documents.routes.js";
 import { registerDocumentDownloadRoutes } from "./modules/documents/download.routes.js";
 import { registerDocumentExpirationRoutes } from "./modules/documents/expirations.routes.js";
@@ -114,6 +116,7 @@ export interface AppOptions {
         readonly categoryRepository?: CategoryRepositoryPort | undefined;
         readonly createDocumentService?: CreateDocumentService | undefined;
         readonly createDocumentVersionService?: CreateDocumentVersionService | undefined;
+        readonly documentCommentService?: DocumentCommentService | undefined;
         readonly moveDocumentService?: MoveDocumentService | undefined;
         readonly archiveDocumentService?: ArchiveDocumentService | undefined;
         readonly trashDocumentService?: TrashDocumentService | undefined;
@@ -399,6 +402,13 @@ export function buildApp(options: AppOptions = {}): FastifyInstance {
           storageRegistry: documentDeps.storageRegistry,
           auditRepository: documentDeps.auditRepository,
         });
+        if (documentDeps.documentCommentService) {
+          await registerDocumentCommentRoutes(instance, {
+            guard,
+            commentService: documentDeps.documentCommentService,
+            authzRepository: documentDeps.authzRepository,
+          });
+        }
       });
     }
 

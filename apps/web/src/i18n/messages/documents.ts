@@ -539,6 +539,39 @@ export const documentsEn = {
   "tags.errors.loadDocumentTagsFailed": "Unable to load document tags.",
   "tags.errors.attachFailed": "Unable to attach tag.",
   "tags.errors.detachFailed": "Unable to remove tag.",
+
+  "documents.comments.heading": "Comments and mentions",
+  "documents.comments.countLabel": "{count}",
+  "documents.comments.inputLabel": "Write a comment",
+  "documents.comments.inputPlaceholder": "Share feedback or type @ to mention a colleague...",
+  "documents.comments.mentionHelper":
+    "Type @ followed by a name or email to mention someone from your organization.",
+  "documents.comments.mentionButton": "Mention",
+  "documents.comments.mentionsListAria": "Mention suggestions",
+  "documents.comments.searchingMentions": "Searching users...",
+  "documents.comments.noMentionMatches": "No active users match that search.",
+  "documents.comments.selectedMentionsLabel": "Will notify:",
+  "documents.comments.submit": "Post comment",
+  "documents.comments.submitting": "Posting...",
+  "documents.comments.loading": "Loading comments...",
+  "documents.comments.emptyTitle": "No comments yet",
+  "documents.comments.emptyDescription":
+    "Start the discussion on this document or mention a colleague with @.",
+  "documents.comments.deletedReadOnlyNotice":
+    "Comments are disabled while this document is in the trash.",
+  "documents.comments.deleteAction": "Delete comment",
+  "documents.comments.deleteDialogTitle": "Delete comment",
+  "documents.comments.deleteDialogDescription":
+    "Are you sure you want to remove this comment from the document discussion?",
+  "documents.comments.deleteSuccess": "Comment removed.",
+  "documents.comments.createSuccess": "Comment posted.",
+  "documents.comments.previousPage": "Previous",
+  "documents.comments.nextPage": "Next",
+  "documents.comments.pageIndicator": "Page {page} of {totalPages}",
+  "documents.comments.errors.loadFailed": "Unable to load comments.",
+  "documents.comments.errors.createFailed": "Unable to post comment.",
+  "documents.comments.errors.deleteFailed": "Unable to delete comment.",
+  "documents.comments.errors.mentionsLoadFailed": "Unable to search users to mention.",
 } as const;
 
 export type DocumentsMessageKey = keyof typeof documentsEn;
@@ -1092,4 +1125,38 @@ export const documentsPt: Readonly<Record<DocumentsMessageKey, string>> = {
   "tags.errors.loadDocumentTagsFailed": "Falha ao carregar etiquetas do documento.",
   "tags.errors.attachFailed": "Falha ao associar etiqueta.",
   "tags.errors.detachFailed": "Falha ao remover etiqueta.",
+
+  "documents.comments.heading": "Comentários e menções",
+  "documents.comments.countLabel": "{count}",
+  "documents.comments.inputLabel": "Escrever comentário",
+  "documents.comments.inputPlaceholder":
+    "Registre uma observação ou digite @ para mencionar um colega...",
+  "documents.comments.mentionHelper":
+    "Digite @ seguido do nome ou e-mail para mencionar alguém da organização.",
+  "documents.comments.mentionButton": "Mencionar",
+  "documents.comments.mentionsListAria": "Sugestões de usuários para menção",
+  "documents.comments.searchingMentions": "Buscando usuários...",
+  "documents.comments.noMentionMatches": "Nenhum usuário ativo encontrado para essa busca.",
+  "documents.comments.selectedMentionsLabel": "Notificar:",
+  "documents.comments.submit": "Publicar comentário",
+  "documents.comments.submitting": "Publicando...",
+  "documents.comments.loading": "Carregando comentários...",
+  "documents.comments.emptyTitle": "Nenhum comentário ainda",
+  "documents.comments.emptyDescription":
+    "Inicie a conversa sobre este documento ou mencione um colega com @.",
+  "documents.comments.deletedReadOnlyNotice":
+    "Não é possível publicar comentários enquanto o documento estiver na lixeira.",
+  "documents.comments.deleteAction": "Excluir comentário",
+  "documents.comments.deleteDialogTitle": "Excluir comentário",
+  "documents.comments.deleteDialogDescription":
+    "Tem certeza de que deseja remover este comentário da discussão do documento?",
+  "documents.comments.deleteSuccess": "Comentário removido.",
+  "documents.comments.createSuccess": "Comentário publicado.",
+  "documents.comments.previousPage": "Anterior",
+  "documents.comments.nextPage": "Próxima",
+  "documents.comments.pageIndicator": "Página {page} de {totalPages}",
+  "documents.comments.errors.loadFailed": "Não foi possível carregar os comentários.",
+  "documents.comments.errors.createFailed": "Não foi possível publicar o comentário.",
+  "documents.comments.errors.deleteFailed": "Não foi possível excluir o comentário.",
+  "documents.comments.errors.mentionsLoadFailed": "Não foi possível buscar usuários para menção.",
 };

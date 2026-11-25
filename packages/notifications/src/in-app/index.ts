@@ -15,6 +15,7 @@ export type {
   ListInAppNotificationsResult,
   MarkInAppNotificationReadOutcome,
   NotificationDecisionKind,
+  NotifyCommentMentionInput,
   NotifyDocumentExpirationInput,
   NotifyTaskAssignedInput,
   NotifyTaskDecisionInput,

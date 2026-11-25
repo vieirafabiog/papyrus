@@ -1,3 +1,4 @@
+import AlternateEmailOutlinedIcon from "@mui/icons-material/AlternateEmailOutlined";
 import DoneOutlinedIcon from "@mui/icons-material/DoneOutlined";
 import EventBusyOutlinedIcon from "@mui/icons-material/EventBusyOutlined";
 import NotificationsNoneOutlinedIcon from "@mui/icons-material/NotificationsNoneOutlined";
@@ -51,6 +52,7 @@ const NOTIFICATION_KIND_META: Readonly<
   TASK_ASSIGNED: { labelKey: "notifications.kind.TASK_ASSIGNED", color: "info" },
   WORKFLOW_DECISION: { labelKey: "notifications.kind.WORKFLOW_DECISION", color: "success" },
   DOCUMENT_EXPIRATION: { labelKey: "notifications.kind.DOCUMENT_EXPIRATION", color: "warning" },
+  COMMENT_MENTION: { labelKey: "notifications.kind.COMMENT_MENTION", color: "info" },
 };
 
 class LocalizedNotificationError extends Error {}
@@ -176,6 +178,8 @@ function renderKindIcon(kind: NotificationKindContract) {
       return <RuleOutlinedIcon fontSize="small" color="success" />;
     case "DOCUMENT_EXPIRATION":
       return <EventBusyOutlinedIcon fontSize="small" color="warning" />;
+    case "COMMENT_MENTION":
+      return <AlternateEmailOutlinedIcon fontSize="small" color="info" />;
   }
 }
 
