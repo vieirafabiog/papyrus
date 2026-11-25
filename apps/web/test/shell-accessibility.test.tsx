@@ -122,6 +122,68 @@ describe("Shell and shared states accessibility", () => {
     expect(screen.getByRole("menuitem", { name: "Sign out" })).toBeInTheDocument();
   });
 
+  it("sends x-csrf-token when signing out and redirects to /login", async () => {
+    const validUuid = "550e8400-e29b-41d4-a716-446655440000";
+    let logoutCsrfHeader: string | null = null;
+    let isLoggedOut = false;
+
+    vi.spyOn(globalThis, "fetch").mockImplementation((input, init) => {
+      const url = typeof input === "string" ? input : input.toString();
+      if (url.endsWith("/auth/me")) {
+        if (isLoggedOut) {
+          return Promise.resolve(new Response(null, { status: 401 }));
+        }
+        return Promise.resolve(
+          new Response(
+            JSON.stringify({
+              data: {
+                user: {
+                  id: validUuid,
+                  organizationId: validUuid,
+                  email: "admin@papyrus.local",
+                  fullName: "Administrator",
+                  status: "ACTIVE",
+                  createdAt: "2026-11-20T10:00:00Z",
+                  updatedAt: "2026-11-20T10:00:00Z",
+                },
+                groups: [],
+                roles: [],
+                permissions: [],
+                sessionExpiresAt: "2026-11-21T10:00:00Z",
+              },
+            }),
+            { status: 200, headers: { "Content-Type": "application/json" } },
+          ),
+        );
+      }
+      if (url.endsWith("/auth/csrf-token")) {
+        return Promise.resolve(
+          new Response(JSON.stringify({ data: { csrfToken: "csrf-logout-token" } }), {
+            status: 200,
+            headers: { "Content-Type": "application/json" },
+          }),
+        );
+      }
+      if (url.endsWith("/auth/logout")) {
+        const headers = new Headers(init?.headers);
+        logoutCsrfHeader = headers.get("x-csrf-token");
+        isLoggedOut = true;
+        return Promise.resolve(new Response(null, { status: 204 }));
+      }
+      return Promise.resolve(new Response(null, { status: 404 }));
+    });
+
+    renderAuthenticatedShell("/");
+
+    const profileBtn = await screen.findByRole("button", { name: "User profile" });
+    fireEvent.click(profileBtn);
+    const signOutItem = await screen.findByRole("menuitem", { name: "Sign out" });
+    fireEvent.click(signOutItem);
+
+    expect(await screen.findByRole("heading", { name: "Sign in to papyrus" })).toBeInTheDocument();
+    expect(logoutCsrfHeader).toBe("csrf-logout-token");
+  });
+
   it("supports keyboard Escape dismissal and ARIA attributes in ConfirmDialog", () => {
     const onCancel = vi.fn();
     render(
