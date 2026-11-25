@@ -42,6 +42,7 @@ export interface UploadMetadataFormValues {
   readonly folderId: string | null;
   readonly expirationDate: string;
   readonly changeNote: string;
+  readonly indexContentRequested?: boolean | null | undefined;
   readonly metadata?: Readonly<Record<string, DocumentMetadataValue>> | undefined;
 }
 
@@ -417,6 +418,9 @@ export function useUploadDocuments(options: UseUploadDocumentsOptions = {}) {
           declaredSizeBytes: item.file.size,
           declaredContentType,
           ...(declaredChecksumSha256 ? { declaredChecksumSha256 } : {}),
+          ...(metadata.indexContentRequested !== undefined
+            ? { indexContentRequested: metadata.indexContentRequested }
+            : {}),
           idempotencyKey: generateLocalId(),
         });
 

@@ -3,6 +3,8 @@ import { describe, expect, it } from "vitest";
 import type {
   AuditEventInput,
   AuditRepositoryPort,
+  CategoryEntity,
+  CategoryRepositoryPort,
   CreateDocumentVersionInput,
   DocumentEntity,
   DocumentRepositoryPort,
@@ -29,6 +31,7 @@ function sha256Hex(content: string): string {
 }
 
 interface TestHarnessState {
+  categories: Map<string, CategoryEntity>;
   sessions: Map<string, UploadSessionEntity>;
   fileObjects: Map<string, FileObjectEntity>;
   documents: Map<string, DocumentEntity>;
@@ -41,6 +44,7 @@ interface TestHarnessState {
 
 function createHarness(initial?: Partial<TestHarnessState>) {
   const state: TestHarnessState = {
+    categories: initial?.categories ?? new Map(),
     sessions: initial?.sessions ?? new Map(),
     fileObjects: initial?.fileObjects ?? new Map(),
     documents: initial?.documents ?? new Map(),
@@ -292,8 +296,54 @@ function createHarness(initial?: Partial<TestHarnessState>) {
     },
   };
 
+  const categories: CategoryRepositoryPort = {
+    async findById(id) {
+      return state.categories.get(id) ?? null;
+    },
+    async findByName() {
+      return null;
+    },
+    async countExistingDocuments() {
+      return 0;
+    },
+    async listAuthorized() {
+      return { items: [], page: 1, pageSize: 20, totalItems: 0, totalPages: 0 };
+    },
+    async create() {
+      throw new Error("not implemented");
+    },
+    async update() {
+      return null;
+    },
+    async listFields() {
+      return [];
+    },
+    async findFieldById() {
+      return null;
+    },
+    async findFieldByKey() {
+      return null;
+    },
+    async createField() {
+      throw new Error("not implemented");
+    },
+    async updateField() {
+      return null;
+    },
+    async deleteField() {
+      return false;
+    },
+    async listExistingDocumentMetadata() {
+      return [];
+    },
+    async backfillFieldMetadata() {},
+    async resetFieldMetadata() {},
+    async removeFieldMetadata() {},
+  };
+
   const service = createFinalizeUploadService({
     uploads,
+    categories,
     objectVerifier,
     transactions,
     audit,
@@ -632,5 +682,78 @@ describe("Idempotent upload finalization (createFinalizeUploadService)", () => {
 
     expect(state.sessions.get(ids.sessionId)?.status).toBe("EXPIRED");
     expect(state.fileObjects.get(ids.fileObjectId)?.status).toBe("UPLOADING");
+  });
+
+  it("enqueues indexContent decision based on category textIndexingMode and session opt-in", async () => {
+    const checksum = sha256Hex("indexable-content");
+
+    const scenarios: readonly {
+      readonly label: string;
+      readonly mode: CategoryEntity["textIndexingMode"];
+      readonly requested: boolean | null;
+      readonly expectedIndexContent: boolean;
+    }[] = [
+      {
+        label: "NEVER ignores opt-in",
+        mode: "NEVER",
+        requested: true,
+        expectedIndexContent: false,
+      },
+      {
+        label: "ALWAYS forces indexing",
+        mode: "ALWAYS",
+        requested: false,
+        expectedIndexContent: true,
+      },
+      { label: "ASK honors true", mode: "ASK", requested: true, expectedIndexContent: true },
+      {
+        label: "ASK skips when null/false",
+        mode: "ASK",
+        requested: null,
+        expectedIndexContent: false,
+      },
+    ];
+
+    for (const scenario of scenarios) {
+      const { state, service, seedDocumentAndSession } = createHarness();
+      const ids = seedDocumentAndSession();
+      state.categories.set("cat-1", {
+        id: "cat-1",
+        organizationId: ids.orgId,
+        name: scenario.label,
+        description: null,
+        color: null,
+        icon: null,
+        isActive: true,
+        textIndexingMode: scenario.mode,
+        createdAt: "2026-11-21T10:00:00.000Z",
+        updatedAt: "2026-11-21T10:00:00.000Z",
+      });
+      const existingSession = state.sessions.get(ids.sessionId);
+      if (!existingSession) {
+        throw new Error("Expected seeded session");
+      }
+      state.sessions.set(ids.sessionId, {
+        ...existingSession,
+        categoryId: "cat-1",
+        indexContentRequested: scenario.requested,
+      });
+      state.storedObjects.set(`${ids.connId}:${ids.objectKey}`, {
+        objectKey: ids.objectKey,
+        contentLength: ids.sizeBytes,
+        contentType: "application/pdf",
+        checksumSha256: checksum,
+      });
+
+      const finalized = await service.finalizeUpload({
+        organizationId: ids.orgId,
+        actorUserId: ids.userId,
+        requestId: `req-${scenario.mode}`,
+        sessionId: ids.sessionId,
+      });
+
+      expect(finalized.processingEnqueued).toBe(true);
+      expect(state.queuedJobs[0]?.indexContent).toBe(scenario.expectedIndexContent);
+    }
   });
 });

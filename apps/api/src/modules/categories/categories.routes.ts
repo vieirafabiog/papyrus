@@ -145,6 +145,7 @@ export async function registerCategoryRoutes(
         description: parsed.data.description,
         color: parsed.data.color,
         icon: parsed.data.icon,
+        textIndexingMode: parsed.data.textIndexingMode,
       });
       return reply.status(201).send({ data: created });
     } catch (error) {
@@ -205,7 +206,8 @@ export async function registerCategoryRoutes(
       bodyParsed.data.description === undefined &&
       bodyParsed.data.color === undefined &&
       bodyParsed.data.icon === undefined &&
-      bodyParsed.data.isActive === undefined
+      bodyParsed.data.isActive === undefined &&
+      bodyParsed.data.textIndexingMode === undefined
     ) {
       return reply.status(400).send({
         error: {
@@ -232,6 +234,7 @@ export async function registerCategoryRoutes(
         color: bodyParsed.data.color,
         icon: bodyParsed.data.icon,
         isActive: bodyParsed.data.isActive,
+        textIndexingMode: bodyParsed.data.textIndexingMode,
       });
       return reply.status(200).send({ data: updated });
     } catch (error) {

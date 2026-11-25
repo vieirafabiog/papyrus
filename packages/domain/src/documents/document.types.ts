@@ -1,3 +1,5 @@
+import type { CategoryTextIndexingMode } from "../categories/category.types.js";
+
 export const DOCUMENT_STATUSES = [
   "DRAFT",
   "IN_REVIEW",
@@ -95,6 +97,7 @@ export interface DocumentDetailQueryData {
     readonly name: string;
     readonly color: string | null;
     readonly icon: string | null;
+    readonly textIndexingMode: CategoryTextIndexingMode;
     readonly fields: readonly DocumentDetailCategoryFieldSummary[];
   };
   readonly folder: {

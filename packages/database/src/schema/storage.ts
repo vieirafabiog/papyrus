@@ -162,8 +162,10 @@ export const uploadSessions = pgTable(
     fileObjectId: uuid("file_object_id")
       .notNull()
       .references(() => fileObjects.id, { onDelete: "restrict" }),
+    categoryId: uuid("category_id").references(() => categories.id, { onDelete: "set null" }),
     declaredSizeBytes: bigint("declared_size_bytes", { mode: "number" }).notNull(),
     declaredContentType: varchar("declared_content_type", { length: 255 }).notNull(),
+    indexContentRequested: boolean("index_content_requested"),
     idempotencyKey: varchar("idempotency_key", { length: 128 }).notNull(),
     status: uploadSessionStatusEnum("status").notNull().default("PENDING"),
     expiresAt: timestamp("expires_at", { withTimezone: true, mode: "date" }).notNull(),

@@ -260,7 +260,11 @@ export function DocumentListPage() {
 
       <UploadDialog
         open={uploadOpen}
-        categories={categories.map((cat) => ({ id: cat.id, name: cat.name }))}
+        categories={categories.map((cat) => ({
+          id: cat.id,
+          name: cat.name,
+          textIndexingMode: cat.textIndexingMode,
+        }))}
         folders={folders.map((folder) => ({
           id: folder.id,
           name: folder.name,

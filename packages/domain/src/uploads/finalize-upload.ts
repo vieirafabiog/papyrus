@@ -1,7 +1,9 @@
+import { resolveCategoryTextIndexingDecision } from "../categories/category-service.js";
 import type { DocumentVersionEntity, FileObjectEntity } from "../documents/document.types.js";
 import { buildNextDocumentVersion } from "../documents/versioning.js";
 import { DomainError } from "../index.js";
 import type { AuditRepositoryPort } from "../ports/audit-repository.port.js";
+import type { CategoryRepositoryPort } from "../ports/category-repository.port.js";
 import type {
   DocumentRepositoryPort,
   DocumentVersionRepositoryPort,
@@ -36,6 +38,7 @@ export interface UploadProcessingEnqueueInput {
   readonly storageConnectionId: string;
   readonly documentId: string | null;
   readonly documentVersionId: string | null;
+  readonly indexContent?: boolean | undefined;
 }
 
 export interface UploadProcessingQueuePort {
@@ -65,6 +68,7 @@ export interface FinalizeUploadServiceDependencies {
   readonly objectVerifier: UploadObjectVerifierPort;
   readonly transactions: TransactionManagerPort;
   readonly audit: AuditRepositoryPort;
+  readonly categories?: CategoryRepositoryPort | undefined;
   readonly documents?: DocumentRepositoryPort | undefined;
   readonly documentVersions?: DocumentVersionRepositoryPort | undefined;
   readonly processingQueue?: UploadProcessingQueuePort | undefined;
@@ -304,6 +308,7 @@ export function createFinalizeUploadService(
       }
 
       return deps.transactions.runInTransaction(async (tx) => {
+        let resolvedCategoryId: string | null = session.categoryId ?? null;
         if (command.documentId !== undefined) {
           if (!deps.documents || !deps.documentVersions) {
             throw new DomainError(
@@ -325,7 +330,17 @@ export function createFinalizeUploadService(
               "Não é possível anexar versão a um documento excluído.",
             );
           }
+          resolvedCategoryId = targetDoc.categoryId;
         }
+
+        const targetCategory =
+          resolvedCategoryId !== null && deps.categories
+            ? await deps.categories.findById(resolvedCategoryId, tx)
+            : null;
+        const resolvedIndexContent = resolveCategoryTextIndexingDecision(
+          targetCategory?.textIndexingMode ?? "NEVER",
+          session.indexContentRequested ?? null,
+        );
 
         const finalizedRecords = await deps.uploads.finalizeToQuarantine(
           {
@@ -422,6 +437,7 @@ export function createFinalizeUploadService(
               storageConnectionId: finalizedRecords.session.storageConnectionId,
               documentId: command.documentId ?? null,
               documentVersionId: createdVersion?.id ?? null,
+              indexContent: resolvedIndexContent,
             },
             tx,
           );
@@ -443,6 +459,7 @@ export function createFinalizeUploadService(
               sizeBytes: verifiedObject.contentLength,
               documentId: command.documentId ?? null,
               documentVersionId: createdVersion?.id ?? null,
+              indexContent: resolvedIndexContent,
             },
           },
           tx,

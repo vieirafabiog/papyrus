@@ -37,6 +37,7 @@ function createInMemoryFieldHarness() {
         color: null,
         icon: null,
         isActive: true,
+        textIndexingMode: "NEVER",
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       },
@@ -79,6 +80,7 @@ function createInMemoryFieldHarness() {
         color: input.color,
         icon: input.icon,
         isActive: true,
+        textIndexingMode: input.textIndexingMode ?? "NEVER",
         createdAt: now,
         updatedAt: now,
       };

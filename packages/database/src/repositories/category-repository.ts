@@ -56,6 +56,7 @@ function toCategoryEntity(row: typeof categories.$inferSelect): CategoryEntity {
     color: row.color,
     icon: row.icon,
     isActive: row.isActive,
+    textIndexingMode: row.textIndexingMode,
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
   };
@@ -265,6 +266,9 @@ export function createCategoryRepository(db: NodePgDatabase): CategoryRepository
           color: input.color,
           icon: input.icon,
           isActive: true,
+          ...(input.textIndexingMode !== undefined
+            ? { textIndexingMode: input.textIndexingMode }
+            : {}),
           createdBy: input.createdBy,
           updatedBy: input.createdBy,
         })
@@ -299,6 +303,9 @@ export function createCategoryRepository(db: NodePgDatabase): CategoryRepository
       }
       if (input.isActive !== undefined) {
         updateSet.isActive = input.isActive;
+      }
+      if (input.textIndexingMode !== undefined) {
+        updateSet.textIndexingMode = input.textIndexingMode;
       }
 
       const [row] = await executor

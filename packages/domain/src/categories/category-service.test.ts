@@ -11,7 +11,7 @@ import type {
 } from "../ports/category-repository.port.js";
 import type { PaginatedResult } from "../ports/document-repository.port.js";
 import type { TransactionContext, TransactionManagerPort } from "../ports/transaction.port.js";
-import { createCategoryService } from "./category-service.js";
+import { createCategoryService, resolveCategoryTextIndexingDecision } from "./category-service.js";
 import type {
   AuthorizedCategoryQueryScope,
   CategoryEntity,
@@ -64,6 +64,7 @@ function createInMemoryCategoryHarness() {
         color: input.color,
         icon: input.icon,
         isActive: true,
+        textIndexingMode: input.textIndexingMode ?? "NEVER",
         createdAt: now,
         updatedAt: now,
       };
@@ -82,6 +83,8 @@ function createInMemoryCategoryHarness() {
         color: input.color !== undefined ? input.color : existing.color,
         icon: input.icon !== undefined ? input.icon : existing.icon,
         isActive: input.isActive !== undefined ? input.isActive : existing.isActive,
+        textIndexingMode:
+          input.textIndexingMode !== undefined ? input.textIndexingMode : existing.textIndexingMode,
         updatedAt: new Date().toISOString(),
       };
       store.set(updated.id, updated);
@@ -223,5 +226,43 @@ describe("CategoryService", () => {
     });
     expect(deactivated.isActive).toBe(false);
     expect(auditEvents.map((e) => e.action)).toContain("CATEGORY_DEACTIVATED");
+  });
+
+  it("persists textIndexingMode policy per category and resolves server indexing intent", async () => {
+    const { service } = createInMemoryCategoryHarness();
+
+    const defaultCat = await service.createCategory({
+      organizationId: "org-1",
+      actorUserId: "user-1",
+      requestId: "req-default",
+      name: "Geral",
+    });
+    expect(defaultCat.textIndexingMode).toBe("NEVER");
+
+    const alwaysCat = await service.createCategory({
+      organizationId: "org-1",
+      actorUserId: "user-1",
+      requestId: "req-always",
+      name: "Fiscais",
+      textIndexingMode: "ALWAYS",
+    });
+    expect(alwaysCat.textIndexingMode).toBe("ALWAYS");
+
+    const updated = await service.updateCategory({
+      organizationId: "org-1",
+      actorUserId: "user-1",
+      requestId: "req-ask",
+      categoryId: alwaysCat.id,
+      textIndexingMode: "ASK",
+    });
+    expect(updated.textIndexingMode).toBe("ASK");
+
+    expect(resolveCategoryTextIndexingDecision("NEVER", true)).toBe(false);
+    expect(resolveCategoryTextIndexingDecision("NEVER", null)).toBe(false);
+    expect(resolveCategoryTextIndexingDecision("ALWAYS", false)).toBe(true);
+    expect(resolveCategoryTextIndexingDecision("ALWAYS", null)).toBe(true);
+    expect(resolveCategoryTextIndexingDecision("ASK", true)).toBe(true);
+    expect(resolveCategoryTextIndexingDecision("ASK", false)).toBe(false);
+    expect(resolveCategoryTextIndexingDecision("ASK", null)).toBe(false);
   });
 });

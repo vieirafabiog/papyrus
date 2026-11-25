@@ -337,8 +337,14 @@ export {
   normalizeCategoryDescription,
   normalizeCategoryIcon,
   normalizeCategoryName,
+  normalizeCategoryTextIndexingMode,
+  resolveCategoryTextIndexingDecision,
   type UpdateCategoryCommand,
 } from "./categories/category-service.js";
+export {
+  CATEGORY_TEXT_INDEXING_MODES,
+  type CategoryTextIndexingMode,
+} from "./categories/category.types.js";
 export type {
   AuthorizedCategoryQueryScope,
   CategoryEntity,

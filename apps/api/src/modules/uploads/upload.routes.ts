@@ -414,6 +414,7 @@ export async function registerUploadRoutes(
         declaredSizeBytes: data.declaredSizeBytes,
         declaredContentType: data.declaredContentType,
         declaredChecksumSha256: data.declaredChecksumSha256,
+        indexContentRequested: data.indexContentRequested,
         idempotencyKey: data.idempotencyKey,
         expiresInSeconds: data.expiresInSeconds,
       });

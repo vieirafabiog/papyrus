@@ -201,6 +201,7 @@ describe("Retention policies and legal hold governance", () => {
       color: null,
       icon: null,
       isActive: true,
+      textIndexingMode: "NEVER",
       createdAt: "2026-01-01T00:00:00.000Z",
       updatedAt: "2026-01-01T00:00:00.000Z",
     });
@@ -281,6 +282,7 @@ describe("Retention policies and legal hold governance", () => {
       color: null,
       icon: null,
       isActive: true,
+      textIndexingMode: "NEVER",
       createdAt: "2025-01-01T00:00:00.000Z",
       updatedAt: "2025-01-01T00:00:00.000Z",
     });
@@ -406,6 +408,7 @@ describe("Retention policies and legal hold governance", () => {
       color: null,
       icon: null,
       isActive: true,
+      textIndexingMode: "NEVER",
       createdAt: "2024-01-01T00:00:00.000Z",
       updatedAt: "2024-01-01T00:00:00.000Z",
     });

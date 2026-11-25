@@ -516,6 +516,7 @@ export function createAuthorizationRepository(db: NodePgDatabase): Authorization
           name: categoryRow.name,
           color: categoryRow.color,
           icon: categoryRow.icon,
+          textIndexingMode: categoryRow.textIndexingMode,
           fields: fieldRows.map((field) => ({
             id: field.id,
             key: field.key,

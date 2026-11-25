@@ -148,6 +148,11 @@ export const categoryFieldRecordSchema = z.object({
 });
 export type CategoryFieldRecord = z.infer<typeof categoryFieldRecordSchema>;
 
+export const CATEGORY_TEXT_INDEXING_MODES = ["NEVER", "ALWAYS", "ASK"] as const;
+
+export const categoryTextIndexingModeSchema = z.enum(CATEGORY_TEXT_INDEXING_MODES);
+export type CategoryTextIndexingMode = z.infer<typeof categoryTextIndexingModeSchema>;
+
 export const categoryHexColorSchema = z
   .string()
   .trim()
@@ -161,6 +166,7 @@ export const categorySummarySchema = z.object({
   color: categoryHexColorSchema.nullable(),
   icon: z.string().trim().min(1).max(64).nullable(),
   isActive: z.boolean(),
+  textIndexingMode: categoryTextIndexingModeSchema.default("NEVER"),
   createdAt: isoDateTimeSchema,
   updatedAt: isoDateTimeSchema,
 });
@@ -191,6 +197,7 @@ export const createCategoryInputSchema = z.object({
     .max(64, "Nome do ícone deve ter no máximo 64 caracteres.")
     .nullable()
     .optional(),
+  textIndexingMode: categoryTextIndexingModeSchema.optional(),
 });
 export type CreateCategoryInput = z.infer<typeof createCategoryInputSchema>;
 

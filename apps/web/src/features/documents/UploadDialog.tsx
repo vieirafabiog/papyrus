@@ -41,6 +41,7 @@ import {
 import {
   CONTRACTS_API_PREFIX,
   type CategoryFieldRecord,
+  type CategoryTextIndexingMode,
   type DocumentMetadataValue,
   categoryFieldListResponseSchema,
 } from "@papyrus/contracts";
@@ -72,6 +73,7 @@ import {
 export interface UploadCategoryOption {
   readonly id: string;
   readonly name: string;
+  readonly textIndexingMode?: CategoryTextIndexingMode | undefined;
   readonly fields?: readonly CategoryFieldRecord[] | undefined;
 }
 
@@ -88,6 +90,7 @@ export interface UploadDialogProps {
   readonly folders?: readonly UploadFolderOption[] | undefined;
   readonly defaultCategoryId?: string | undefined;
   readonly defaultFolderId?: string | null | undefined;
+  readonly categoryTextIndexingMode?: CategoryTextIndexingMode | undefined;
   readonly documentId?: string | undefined;
   readonly createDocumentOnFinalize?: boolean | undefined;
   readonly maxFileBytes?: number | undefined;
@@ -328,6 +331,7 @@ export function UploadDialog({
   folders = [],
   defaultCategoryId = "",
   defaultFolderId = null,
+  categoryTextIndexingMode,
   documentId,
   createDocumentOnFinalize,
   maxFileBytes,
@@ -352,6 +356,7 @@ export function UploadDialog({
   const [changeNote, setChangeNote] = useState("");
   const [categoryError, setCategoryError] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
+  const [indexContentRequested, setIndexContentRequested] = useState(false);
 
   const [categoryFields, setCategoryFields] = useState<readonly CategoryFieldRecord[]>([]);
   const [loadingCategoryFields, setLoadingCategoryFields] = useState(false);
@@ -365,6 +370,9 @@ export function UploadDialog({
     () => categories.find((cat) => cat.id === categoryId),
     [categories, categoryId],
   );
+
+  const effectiveTextIndexingMode: CategoryTextIndexingMode =
+    categoryTextIndexingMode ?? selectedCategory?.textIndexingMode ?? "NEVER";
 
   const sortedCategoryFields = useMemo(
     () => [...categoryFields].sort((a, b) => a.sortOrder - b.sortOrder),
@@ -389,6 +397,7 @@ export function UploadDialog({
     setCustomMultiValues({});
     setCustomFieldErrors({});
     setCategoryFieldsError(null);
+    setIndexContentRequested(false);
 
     if (!open || !shouldLoadCategoryFields || trimmedCategoryId.length === 0) {
       setCategoryFields([]);
@@ -534,6 +543,7 @@ export function UploadDialog({
       folderId: folderId.trim().length > 0 ? folderId : null,
       expirationDate,
       changeNote,
+      ...(effectiveTextIndexingMode === "ASK" ? { indexContentRequested } : {}),
       metadata: customValidation.normalizedMetadata,
     };
   };
@@ -1026,6 +1036,36 @@ export function UploadDialog({
                       ) : null}
                     </Stack>
                   </>
+                ) : null}
+
+                {effectiveTextIndexingMode === "ALWAYS" ? (
+                  <Alert severity="info">{t("documents.upload.textIndexingAlwaysNotice")}</Alert>
+                ) : null}
+
+                {effectiveTextIndexingMode === "ASK" ? (
+                  <Paper
+                    variant="outlined"
+                    sx={{
+                      px: 2,
+                      py: 1.25,
+                      bgcolor: PAPYRUS_COLOR_TOKENS.surface.containerLowest,
+                      borderColor: PAPYRUS_COLOR_TOKENS.surface.outlineVariant,
+                    }}
+                  >
+                    <FormControlLabel
+                      control={
+                        <Switch
+                          checked={indexContentRequested}
+                          onChange={(event) => setIndexContentRequested(event.target.checked)}
+                          disabled={summary.isUploading}
+                        />
+                      }
+                      label={t("documents.upload.indexContentSwitch")}
+                    />
+                    <FormHelperText sx={{ mt: 0.25 }}>
+                      {t("documents.upload.indexContentHelper")}
+                    </FormHelperText>
+                  </Paper>
                 ) : null}
 
                 <TextField

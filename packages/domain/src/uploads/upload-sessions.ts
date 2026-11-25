@@ -32,6 +32,7 @@ export interface CreateUploadSessionCommand {
   readonly declaredSizeBytes: number;
   readonly declaredContentType: string;
   readonly declaredChecksumSha256?: string | undefined;
+  readonly indexContentRequested?: boolean | null | undefined;
   readonly idempotencyKey: string;
   readonly expiresInSeconds?: number | undefined;
 }
@@ -270,11 +271,13 @@ export function createUploadSessionService(
             userId: command.userId,
             storageConnectionId: resolvedTarget.connection.id,
             fileObjectId,
+            categoryId: routingCategoryId,
             objectKey,
             originalFileName,
             declaredSizeBytes: command.declaredSizeBytes,
             declaredContentType,
             checksumSha256: initialChecksum,
+            indexContentRequested: command.indexContentRequested ?? null,
             idempotencyKey,
             expiresAt,
           },

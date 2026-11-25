@@ -528,6 +528,7 @@ export function DocumentDetailsPage() {
       <UploadDialog
         open={uploadNewVersionOpen}
         documentId={doc.id}
+        categoryTextIndexingMode={doc.category.textIndexingMode}
         onUploadBatchFinished={() => {
           void Promise.all([
             queryClient.invalidateQueries({ queryKey: documentDetailsQueryKey(doc.id) }),

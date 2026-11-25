@@ -203,6 +203,7 @@ export function createOutboxRepository(db: NodePgDatabase): OutboxRepository {
                 storageConnectionId: input.storageConnectionId,
                 documentId: input.documentId,
                 documentVersionId: input.documentVersionId,
+                ...(input.indexContent !== undefined ? { indexContent: input.indexContent } : {}),
               },
             },
             tx,

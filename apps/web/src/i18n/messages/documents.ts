@@ -342,6 +342,11 @@ export const documentsEn = {
   "documents.upload.loadingCategoryFields": "Loading category fields...",
   "documents.upload.categoryFieldsError": "Unable to load custom fields for this category.",
   "documents.upload.categoryFieldsInvalid": "Received unexpected category fields data.",
+  "documents.upload.textIndexingAlwaysNotice":
+    "Automatic indexing enabled: text and OCR content for files in this category will be indexed for search.",
+  "documents.upload.indexContentSwitch": "Index file content for search (text & OCR)",
+  "documents.upload.indexContentHelper":
+    "Allows searching words inside PDFs, Office files, and scanned images.",
   "documents.upload.versionNoteLabel": "Version note",
   "documents.upload.selectFilesAria": "Select files to upload",
   "documents.upload.dropzonePrompt": "Drag and drop files here or choose from your device",
@@ -1008,6 +1013,11 @@ export const documentsPt: Readonly<Record<DocumentsMessageKey, string>> = {
     "Não foi possível carregar os campos personalizados da categoria.",
   "documents.upload.categoryFieldsInvalid":
     "Resposta inesperada ao carregar os campos da categoria.",
+  "documents.upload.textIndexingAlwaysNotice":
+    "Indexação automática ativa: o texto e o conteúdo OCR dos arquivos desta categoria serão indexados para pesquisa.",
+  "documents.upload.indexContentSwitch": "Indexar conteúdo para pesquisa (texto e OCR)",
+  "documents.upload.indexContentHelper":
+    "Permite encontrar termos dentro de PDFs, documentos Office e imagens digitalizadas.",
   "documents.upload.versionNoteLabel": "Observação da versão",
   "documents.upload.selectFilesAria": "Selecionar arquivos para envio",
   "documents.upload.dropzonePrompt": "Arraste e solte arquivos aqui ou selecione manualmente",

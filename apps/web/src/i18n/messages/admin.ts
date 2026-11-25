@@ -241,6 +241,7 @@ export const adminEn = {
   "admin.categories.filters.inactive": "Inactive",
   "admin.categories.table.ariaLabel": "Document categories list",
   "admin.categories.table.category": "Category",
+  "admin.categories.table.textIndexingMode": "Content indexing",
   "admin.categories.table.statusActive": "Active",
   "admin.categories.table.statusInactive": "Inactive",
   "admin.categories.table.emptyTitle": "No categories found",
@@ -267,6 +268,16 @@ export const adminEn = {
   "admin.categories.editor.color": "Hex color (optional)",
   "admin.categories.editor.icon": "Icon (optional)",
   "admin.categories.editor.description": "Category description (optional)",
+  "admin.categories.editor.textIndexingModeLabel": "Full-text & OCR indexing policy",
+  "admin.categories.textIndexingMode.NEVER": "Never index",
+  "admin.categories.textIndexingMode.ALWAYS": "Always index automatically",
+  "admin.categories.textIndexingMode.ASK": "Ask user on upload",
+  "admin.categories.editor.textIndexingModeHelp.NEVER":
+    "Files in this category skip text extraction and OCR and will not appear in content search.",
+  "admin.categories.editor.textIndexingModeHelp.ALWAYS":
+    "All new documents and versions in this category are automatically extracted and indexed with OCR.",
+  "admin.categories.editor.textIndexingModeHelp.ASK":
+    "Uploaders choose on each upload whether the file content should be extracted and indexed.",
   "admin.categories.editor.activeSwitch": "Category active for new documents",
   "admin.categories.editor.saveCategory": "Save category",
   "admin.categories.editor.createCategory": "Create category",
@@ -958,6 +969,7 @@ export const adminPt: Readonly<Record<AdminMessageKey, string>> = {
   "admin.categories.filters.inactive": "Inativas",
   "admin.categories.table.ariaLabel": "Lista de categorias documentais",
   "admin.categories.table.category": "Categoria",
+  "admin.categories.table.textIndexingMode": "Indexação de conteúdo",
   "admin.categories.table.statusActive": "Ativa",
   "admin.categories.table.statusInactive": "Inativa",
   "admin.categories.table.emptyTitle": "Nenhuma categoria encontrada",
@@ -984,6 +996,16 @@ export const adminPt: Readonly<Record<AdminMessageKey, string>> = {
   "admin.categories.editor.color": "Cor hexadecimal (opcional)",
   "admin.categories.editor.icon": "Ícone (opcional)",
   "admin.categories.editor.description": "Descrição da categoria (opcional)",
+  "admin.categories.editor.textIndexingModeLabel": "Política de indexação e OCR (conteúdo)",
+  "admin.categories.textIndexingMode.NEVER": "Nunca indexar",
+  "admin.categories.textIndexingMode.ALWAYS": "Sempre indexar",
+  "admin.categories.textIndexingMode.ASK": "Perguntar antes",
+  "admin.categories.editor.textIndexingModeHelp.NEVER":
+    "Arquivos desta categoria não passam por extração de texto/OCR e ficam fora da busca por conteúdo.",
+  "admin.categories.editor.textIndexingModeHelp.ALWAYS":
+    "Todo documento ou nova versão enviada nesta categoria terá texto e OCR indexados automaticamente.",
+  "admin.categories.editor.textIndexingModeHelp.ASK":
+    "O usuário poderá escolher em cada envio se deseja extrair e indexar o conteúdo para pesquisa.",
   "admin.categories.editor.activeSwitch": "Categoria ativa para novos documentos",
   "admin.categories.editor.saveCategory": "Salvar categoria",
   "admin.categories.editor.createCategory": "Criar categoria",

@@ -55,6 +55,7 @@ function createTestHarness() {
         color: null,
         icon: null,
         isActive: true,
+        textIndexingMode: "NEVER",
         createdAt: "2026-11-20T10:00:00Z",
         updatedAt: "2026-11-20T10:00:00Z",
       },

@@ -270,6 +270,7 @@ export function createStandaloneApiRuntime(
 
   const finalizeUploadService = createFinalizeUploadService({
     uploads: uploadRepository,
+    categories: categoryRepository,
     documents: documentRepository,
     documentVersions: documentVersionRepository,
     objectVerifier: {

@@ -18,8 +18,10 @@ export interface UploadSessionEntity {
   readonly userId: string;
   readonly storageConnectionId: string;
   readonly fileObjectId: string;
+  readonly categoryId?: string | null | undefined;
   readonly declaredSizeBytes: number;
   readonly declaredContentType: string;
+  readonly indexContentRequested?: boolean | null | undefined;
   readonly idempotencyKey: string;
   readonly status: UploadSessionStatus;
   readonly expiresAt: string;
@@ -34,11 +36,13 @@ export interface CreateUploadSessionWithFileObjectInput {
   readonly userId: string;
   readonly storageConnectionId: string;
   readonly fileObjectId: string;
+  readonly categoryId?: string | null | undefined;
   readonly objectKey: string;
   readonly originalFileName: string;
   readonly declaredSizeBytes: number;
   readonly declaredContentType: string;
   readonly checksumSha256: string;
+  readonly indexContentRequested?: boolean | null | undefined;
   readonly idempotencyKey: string;
   readonly expiresAt: Date;
 }

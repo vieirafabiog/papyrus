@@ -183,16 +183,6 @@ function isTimeoutError(error: unknown): boolean {
   }
   const errObj = error as Error & { readonly killed?: boolean; readonly code?: string };
   return (
-    errObj.killed === true || errObj.code === "ETIMEDOUT" || /timed?\s*out/i.test(errObj.message)
-  );
-}
-
-function isTimeoutError(error: unknown): boolean {
-  if (!(error instanceof Error)) {
-    return false;
-  }
-  const errObj = error as Error & { readonly killed?: boolean; readonly code?: string };
-  return (
     errObj.killed === true ||
     errObj.code === "ETIMEDOUT" ||
     /timed?\s*out/i.test(errObj.message)

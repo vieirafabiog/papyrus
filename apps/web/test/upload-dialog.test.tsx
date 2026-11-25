@@ -535,4 +535,126 @@ describe("UploadDialog and useUploadDocuments", () => {
     });
     expect(screen.getByRole("button", { name: "Start upload (1)" })).toBeDisabled();
   });
+
+  it("renders per-category indexing controls and sends indexContentRequested for ASK mode", async () => {
+    const capturedSessionBodies: Array<Record<string, unknown>> = [];
+
+    const mockFetch: typeof fetch = vi.fn(async (input, init) => {
+      const url = typeof input === "string" ? input : input.toString();
+      if (url.endsWith(`/categories/${SAMPLE_UUID_2}/fields`)) {
+        return new Response(JSON.stringify({ data: [] }), { status: 200 });
+      }
+      if (url.endsWith(`/categories/${SAMPLE_UUID_3}/fields`)) {
+        return new Response(JSON.stringify({ data: [] }), { status: 200 });
+      }
+      if (url.endsWith("/auth/csrf-token")) {
+        return new Response(JSON.stringify({ data: { csrfToken: "csrf-ask" } }), { status: 200 });
+      }
+      if (url.endsWith("/uploads/sessions")) {
+        capturedSessionBodies.push(
+          JSON.parse(typeof init?.body === "string" ? init.body : "{}") as Record<string, unknown>,
+        );
+        return new Response(
+          JSON.stringify({
+            data: {
+              id: SAMPLE_UUID_1,
+              organizationId: SAMPLE_UUID_1,
+              userId: SAMPLE_UUID_2,
+              storageConnectionId: SAMPLE_UUID_3,
+              fileObjectId: SAMPLE_UUID_3,
+              categoryId: SAMPLE_UUID_3,
+              objectKey: `org/1/documents/d/versions/v/${SAMPLE_UUID_1}`,
+              declaredSizeBytes: 9,
+              declaredContentType: "application/pdf",
+              indexContentRequested: true,
+              idempotencyKey: "idem-ask",
+              status: "PENDING",
+              uploadMode: "API_STREAM",
+              expiresAt: "2026-11-21T14:00:00.000Z",
+              finalizedAt: null,
+              createdAt: "2026-11-21T12:00:00.000Z",
+              updatedAt: "2026-11-21T12:00:00.000Z",
+            },
+          }),
+          { status: 201 },
+        );
+      }
+      if (url.endsWith(`/uploads/sessions/${SAMPLE_UUID_1}/finalize`)) {
+        return new Response(
+          JSON.stringify({
+            data: {
+              id: SAMPLE_UUID_1,
+              status: "FINALIZED",
+              fileObjectStatus: "QUARANTINED",
+            },
+          }),
+          { status: 200 },
+        );
+      }
+      if (url.endsWith("/documents")) {
+        return new Response(JSON.stringify({ data: { id: SAMPLE_UUID_2 } }), { status: 201 });
+      }
+      return new Response(JSON.stringify({ error: { message: "Unexpected" } }), { status: 404 });
+    });
+
+    const binaryUploader = vi.fn(
+      async (_req: BinaryUploadRequest): Promise<BinaryUploadResponse> => ({
+        status: 200,
+        responseText: JSON.stringify({
+          data: {
+            sessionId: SAMPLE_UUID_1,
+            fileObjectId: SAMPLE_UUID_3,
+            storageConnectionId: SAMPLE_UUID_3,
+            status: "UPLOADED",
+            fileObjectStatus: "UPLOADING",
+            sizeBytes: 9,
+            checksumSha256: "a".repeat(64),
+          },
+        }),
+      }),
+    );
+
+    renderDialog({
+      categories: [
+        { id: SAMPLE_UUID_1, name: "Sigilosos", textIndexingMode: "NEVER" },
+        { id: SAMPLE_UUID_2, name: "Notas Fiscais", textIndexingMode: "ALWAYS" },
+        { id: SAMPLE_UUID_3, name: "Contratos Mistos", textIndexingMode: "ASK" },
+      ],
+      createDocumentOnFinalize: true,
+      fetchFn: mockFetch,
+      binaryUploader,
+    });
+
+    expect(
+      screen.queryByRole("switch", { name: "Index file content for search (text & OCR)" }),
+    ).not.toBeInTheDocument();
+
+    const categoryField = screen.getByLabelText(/Category/);
+    fireEvent.mouseDown(categoryField);
+    fireEvent.click(await screen.findByRole("option", { name: "Notas Fiscais" }));
+    expect(
+      await screen.findByText(/Automatic indexing enabled: text and OCR content/),
+    ).toBeInTheDocument();
+
+    fireEvent.mouseDown(categoryField);
+    fireEvent.click(await screen.findByRole("option", { name: "Contratos Mistos" }));
+    const indexingSwitch = await screen.findByRole("switch", {
+      name: "Index file content for search (text & OCR)",
+    });
+    expect(indexingSwitch).not.toBeChecked();
+    fireEvent.click(indexingSwitch);
+    expect(indexingSwitch).toBeChecked();
+
+    const input = screen.getByLabelText("Select files to upload") as HTMLInputElement;
+    fireEvent.change(input, {
+      target: { files: [new File(["%PDF-1.7\n"], "contrato.pdf", { type: "application/pdf" })] },
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Start upload (1)" }));
+
+    await waitFor(() => {
+      expect(capturedSessionBodies).toHaveLength(1);
+    });
+    expect(capturedSessionBodies[0]?.indexContentRequested).toBe(true);
+  });
 });

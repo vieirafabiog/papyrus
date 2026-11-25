@@ -29,13 +29,13 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
-import type {
-  CategoryFieldRecord,
-  CategoryFieldType,
-  CategorySummaryRecord,
-  FieldMigrationStrategy,
-} from "@papyrus/contracts";
 import {
+  CATEGORY_TEXT_INDEXING_MODES,
+  type CategoryFieldRecord,
+  type CategoryFieldType,
+  type CategorySummaryRecord,
+  type CategoryTextIndexingMode,
+  type FieldMigrationStrategy,
   createCategoryFieldInputSchema,
   createCategoryInputSchema,
   updateCategoryFieldInputSchema,
@@ -79,11 +79,24 @@ const FIELD_TYPE_VALUES: readonly CategoryFieldType[] = [
 
 type MigrationMode = "NONE" | "BACKFILL_DEFAULT" | "RESET_TO_DEFAULT";
 
+const TEXT_INDEXING_MODE_LABEL_KEYS: Readonly<Record<CategoryTextIndexingMode, MessageKey>> = {
+  NEVER: "admin.categories.textIndexingMode.NEVER",
+  ALWAYS: "admin.categories.textIndexingMode.ALWAYS",
+  ASK: "admin.categories.textIndexingMode.ASK",
+};
+
+const TEXT_INDEXING_MODE_HELP_KEYS: Readonly<Record<CategoryTextIndexingMode, MessageKey>> = {
+  NEVER: "admin.categories.editor.textIndexingModeHelp.NEVER",
+  ALWAYS: "admin.categories.editor.textIndexingModeHelp.ALWAYS",
+  ASK: "admin.categories.editor.textIndexingModeHelp.ASK",
+};
+
 interface CategoryFormState {
   readonly name: string;
   readonly description: string;
   readonly color: string;
   readonly icon: string;
+  readonly textIndexingMode: CategoryTextIndexingMode;
   readonly isActive: boolean;
 }
 
@@ -133,6 +146,7 @@ function createEmptyCategoryForm(category: CategorySummaryRecord | null): Catego
     description: category?.description ?? "",
     color: category?.color ?? "",
     icon: category?.icon ?? "",
+    textIndexingMode: category?.textIndexingMode ?? "NEVER",
     isActive: category?.isActive ?? true,
   };
 }
@@ -317,6 +331,7 @@ export function CategoryEditor({
         description: normalizedDescription.length > 0 ? normalizedDescription : null,
         color: normalizedColor.length > 0 ? normalizedColor : null,
         icon: normalizedIcon.length > 0 ? normalizedIcon : null,
+        textIndexingMode: catForm.textIndexingMode,
       });
       if (!parsed.success) {
         setCatError(t("admin.categories.editor.reviewCategoryData"));
@@ -344,6 +359,7 @@ export function CategoryEditor({
       description: normalizedDescription.length > 0 ? normalizedDescription : null,
       color: normalizedColor.length > 0 ? normalizedColor : null,
       icon: normalizedIcon.length > 0 ? normalizedIcon : null,
+      textIndexingMode: catForm.textIndexingMode,
       isActive: catForm.isActive,
     });
     if (!parsed.success) {
@@ -649,6 +665,28 @@ export function CategoryEditor({
                     }
                     disabled={!canEditCategory || isSavingCategory}
                   />
+                </Grid>
+                <Grid size={{ xs: 12 }}>
+                  <TextField
+                    select
+                    label={t("admin.categories.editor.textIndexingModeLabel")}
+                    fullWidth
+                    value={catForm.textIndexingMode}
+                    onChange={(event) =>
+                      setCatForm((prev) => ({
+                        ...prev,
+                        textIndexingMode: event.target.value as CategoryTextIndexingMode,
+                      }))
+                    }
+                    helperText={t(TEXT_INDEXING_MODE_HELP_KEYS[catForm.textIndexingMode])}
+                    disabled={!canEditCategory || isSavingCategory}
+                  >
+                    {CATEGORY_TEXT_INDEXING_MODES.map((mode) => (
+                      <MenuItem key={mode} value={mode}>
+                        {t(TEXT_INDEXING_MODE_LABEL_KEYS[mode])}
+                      </MenuItem>
+                    ))}
+                  </TextField>
                 </Grid>
               </Grid>
 

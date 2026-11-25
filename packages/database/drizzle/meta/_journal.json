@@ -43,6 +43,13 @@
       "when": 1795615747083,
       "tag": "0005_fancy_meltdown",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1795618739568,
+      "tag": "0006_oval_the_stranger",
+      "breakpoints": true
     }
   ]
 }

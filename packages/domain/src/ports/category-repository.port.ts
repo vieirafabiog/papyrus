@@ -3,6 +3,7 @@ import type {
   CategoryEntity,
   CategoryFieldEntity,
   CategoryListFilter,
+  CategoryTextIndexingMode,
 } from "../categories/category.types.js";
 import type { CategoryFieldType } from "../categories/metadata-validation.js";
 import type { DocumentMetadataMap, DocumentMetadataValue } from "../documents/document.types.js";
@@ -16,6 +17,7 @@ export interface CreateCategoryInput {
   readonly description: string | null;
   readonly color: string | null;
   readonly icon: string | null;
+  readonly textIndexingMode?: CategoryTextIndexingMode | undefined;
   readonly createdBy: string;
 }
 
@@ -27,6 +29,7 @@ export interface UpdateCategoryInput {
   readonly color?: string | null | undefined;
   readonly icon?: string | null | undefined;
   readonly isActive?: boolean | undefined;
+  readonly textIndexingMode?: CategoryTextIndexingMode | undefined;
   readonly updatedBy: string;
 }
 

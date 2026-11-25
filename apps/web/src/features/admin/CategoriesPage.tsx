@@ -4,7 +4,7 @@ import CategoryOutlinedIcon from "@mui/icons-material/CategoryOutlined";
 import CheckCircleOutlineOutlinedIcon from "@mui/icons-material/CheckCircleOutlineOutlined";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import { Alert, Box, Button, Chip, Stack, Typography } from "@mui/material";
-import type { CategorySummaryRecord } from "@papyrus/contracts";
+import type { CategorySummaryRecord, CategoryTextIndexingMode } from "@papyrus/contracts";
 import {
   ConfirmDialog,
   DataTable,
@@ -15,7 +15,7 @@ import {
 } from "@papyrus/ui";
 import { useCallback, useMemo, useState } from "react";
 import { useSessionQuery } from "../../app/session.js";
-import { useI18n } from "../../i18n/index.js";
+import { type MessageKey, useI18n } from "../../i18n/index.js";
 import { CategoryEditor, type CategoryEditorFeedback } from "./CategoryEditor.js";
 import {
   canCreateCategories,
@@ -26,6 +26,17 @@ import {
   useUpdateCategoryMutation,
 } from "./useCategoriesAdmin.js";
 import { canManageStorage } from "./useStorageSettings.js";
+
+const TEXT_INDEXING_CHIP_PROPS: Readonly<
+  Record<
+    CategoryTextIndexingMode,
+    { readonly labelKey: MessageKey; readonly color: "default" | "info" | "primary" }
+  >
+> = {
+  NEVER: { labelKey: "admin.categories.textIndexingMode.NEVER", color: "default" },
+  ALWAYS: { labelKey: "admin.categories.textIndexingMode.ALWAYS", color: "info" },
+  ASK: { labelKey: "admin.categories.textIndexingMode.ASK", color: "primary" },
+};
 
 /**
  * Category and custom metadata management page wired at /categories.
@@ -159,6 +170,22 @@ export function CategoriesPage() {
             size="small"
           />
         ),
+      },
+      {
+        id: "textIndexingMode",
+        label: t("admin.categories.table.textIndexingMode"),
+        width: 175,
+        render: (row) => {
+          const descriptor = TEXT_INDEXING_CHIP_PROPS[row.textIndexingMode];
+          return (
+            <Chip
+              label={t(descriptor.labelKey)}
+              color={descriptor.color}
+              variant={row.textIndexingMode === "NEVER" ? "outlined" : "filled"}
+              size="small"
+            />
+          );
+        },
       },
       {
         id: "updatedAt",

@@ -652,4 +652,110 @@ describe("CategoriesPage & CategoryEditor (Step 14.05)", () => {
       });
     });
   });
+
+  it("displays textIndexingMode badge and saves textIndexingMode changes in CategoryEditor", async () => {
+    let capturedPatchBody: Record<string, unknown> | null = null;
+
+    vi.spyOn(globalThis, "fetch").mockImplementation(async (input, init) => {
+      const url =
+        typeof input === "string" ? input : input instanceof URL ? input.toString() : input.url;
+      const method = (init?.method ?? "GET").toUpperCase();
+
+      if (url.endsWith("/auth/me")) {
+        return new Response(JSON.stringify({ data: buildSession("admin") }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+      if (url.endsWith("/auth/csrf-token")) {
+        return new Response(JSON.stringify({ data: { csrfToken: "csrf-indexing-1" } }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+      if (url.includes("/api/v1/categories?") && method === "GET") {
+        return new Response(
+          JSON.stringify({
+            data: {
+              items: [
+                {
+                  id: CAT_1_ID,
+                  organizationId: ORG_ID,
+                  name: "Contratos",
+                  description: null,
+                  color: "#0F5C73",
+                  icon: null,
+                  isActive: true,
+                  textIndexingMode: "ALWAYS",
+                  createdAt: "2026-01-01T10:00:00.000Z",
+                  updatedAt: "2026-02-01T10:00:00.000Z",
+                },
+              ],
+              pagination: { page: 1, pageSize: 20, totalItems: 1, totalPages: 1 },
+            },
+          }),
+          { status: 200, headers: { "Content-Type": "application/json" } },
+        );
+      }
+      if (url.endsWith(`/api/v1/categories/${CAT_1_ID}/fields`) && method === "GET") {
+        return new Response(JSON.stringify({ data: [] }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+      if (url.endsWith("/api/v1/admin/storage-connections") && method === "GET") {
+        return new Response(JSON.stringify({ data: [] }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+      if (url.endsWith("/api/v1/admin/storage-routing-rules") && method === "GET") {
+        return new Response(JSON.stringify({ data: [] }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+      if (url.endsWith(`/api/v1/categories/${CAT_1_ID}`) && method === "PATCH") {
+        capturedPatchBody = JSON.parse(typeof init?.body === "string" ? init.body : "{}") as Record<
+          string,
+          unknown
+        >;
+        return new Response(
+          JSON.stringify({
+            data: {
+              id: CAT_1_ID,
+              organizationId: ORG_ID,
+              name: "Contratos",
+              description: null,
+              color: "#0F5C73",
+              icon: null,
+              isActive: true,
+              textIndexingMode: capturedPatchBody.textIndexingMode ?? "ASK",
+              createdAt: "2026-01-01T10:00:00.000Z",
+              updatedAt: "2026-02-02T10:00:00.000Z",
+            },
+          }),
+          { status: 200, headers: { "Content-Type": "application/json" } },
+        );
+      }
+      return new Response(JSON.stringify({ error: { message: "Unexpected endpoint" } }), {
+        status: 404,
+      });
+    });
+
+    renderCategoriesPage();
+
+    expect(await screen.findByText("Always index automatically")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Fields & storage" }));
+
+    const dialog = await screen.findByRole("dialog");
+    const modeSelect = await within(dialog).findByLabelText("Full-text & OCR indexing policy");
+    fireEvent.mouseDown(modeSelect);
+    fireEvent.click(await screen.findByRole("option", { name: "Ask user on upload" }));
+    fireEvent.click(within(dialog).getByRole("button", { name: "Save category" }));
+
+    await waitFor(() => {
+      expect(capturedPatchBody?.textIndexingMode).toBe("ASK");
+    });
+  });
 });

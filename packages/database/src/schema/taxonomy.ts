@@ -18,6 +18,12 @@ import { organizations, users } from "./identity.js";
 
 export const folderStatusEnum = pgEnum("folder_status", ["ACTIVE", "ARCHIVED"]);
 
+export const categoryTextIndexingModeEnum = pgEnum("category_text_indexing_mode", [
+  "NEVER",
+  "ALWAYS",
+  "ASK",
+]);
+
 export const categoryFieldTypeEnum = pgEnum("category_field_type", [
   "TEXT",
   "NUMBER",
@@ -75,6 +81,7 @@ export const categories = pgTable(
     color: varchar("color", { length: 7 }),
     icon: varchar("icon", { length: 64 }),
     isActive: boolean("is_active").notNull().default(true),
+    textIndexingMode: categoryTextIndexingModeEnum("text_indexing_mode").notNull().default("NEVER"),
     createdBy: uuid("created_by").references(() => users.id, { onDelete: "restrict" }),
     updatedBy: uuid("updated_by").references(() => users.id, { onDelete: "restrict" }),
     createdAt: timestamp("created_at", { withTimezone: true, mode: "date" }).notNull().defaultNow(),

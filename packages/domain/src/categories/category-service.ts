@@ -10,6 +10,7 @@ import type {
   AuthorizedCategoryQueryScope,
   CategoryEntity,
   CategoryListFilter,
+  CategoryTextIndexingMode,
 } from "./category.types.js";
 
 export const MAX_CATEGORY_NAME_LENGTH = 120;
@@ -33,6 +34,7 @@ export interface CreateCategoryCommand {
   readonly description?: string | null | undefined;
   readonly color?: string | null | undefined;
   readonly icon?: string | null | undefined;
+  readonly textIndexingMode?: CategoryTextIndexingMode | undefined;
 }
 
 export interface UpdateCategoryCommand {
@@ -45,6 +47,7 @@ export interface UpdateCategoryCommand {
   readonly color?: string | null | undefined;
   readonly icon?: string | null | undefined;
   readonly isActive?: boolean | undefined;
+  readonly textIndexingMode?: CategoryTextIndexingMode | undefined;
 }
 
 export interface DeactivateCategoryCommand {
@@ -145,6 +148,41 @@ export function normalizeCategoryIcon(rawIcon: string | null | undefined): strin
 }
 
 /**
+ * Validates the per-category full-text and OCR indexing policy mode.
+ */
+export function normalizeCategoryTextIndexingMode(
+  rawMode: CategoryTextIndexingMode | undefined,
+  fallback: CategoryTextIndexingMode = "NEVER",
+): CategoryTextIndexingMode {
+  if (rawMode === undefined) {
+    return fallback;
+  }
+  if (rawMode !== "NEVER" && rawMode !== "ALWAYS" && rawMode !== "ASK") {
+    throw new DomainError(
+      "INVALID_CATEGORY_TEXT_INDEXING_MODE",
+      "Política de indexação de conteúdo inválida para a categoria.",
+    );
+  }
+  return rawMode;
+}
+
+/**
+ * Resolves effective indexing intent on the server from category policy and optional upload opt-in.
+ */
+export function resolveCategoryTextIndexingDecision(
+  mode: CategoryTextIndexingMode | null | undefined,
+  requested: boolean | null | undefined,
+): boolean {
+  if (mode === "ALWAYS") {
+    return true;
+  }
+  if (mode === "ASK") {
+    return requested === true;
+  }
+  return false;
+}
+
+/**
  * Creates the domain service responsible for category CRUD and document-link safeguards.
  */
 export function createCategoryService(deps: CategoryServiceDependencies): CategoryService {
@@ -169,6 +207,7 @@ export function createCategoryService(deps: CategoryServiceDependencies): Catego
       const description = normalizeCategoryDescription(command.description);
       const color = normalizeCategoryColor(command.color);
       const icon = normalizeCategoryIcon(command.icon);
+      const textIndexingMode = normalizeCategoryTextIndexingMode(command.textIndexingMode, "NEVER");
 
       return deps.transactions.runInTransaction(async (tx) => {
         const existing = await deps.categories.findByName(
@@ -191,6 +230,7 @@ export function createCategoryService(deps: CategoryServiceDependencies): Catego
             description,
             color,
             icon,
+            textIndexingMode,
             createdBy: command.actorUserId,
           },
           tx,
@@ -207,6 +247,7 @@ export function createCategoryService(deps: CategoryServiceDependencies): Catego
             requestId: command.requestId,
             metadata: {
               name: created.name,
+              textIndexingMode: created.textIndexingMode,
             },
           },
           tx,
@@ -225,6 +266,10 @@ export function createCategoryService(deps: CategoryServiceDependencies): Catego
       const nextColor =
         command.color !== undefined ? normalizeCategoryColor(command.color) : undefined;
       const nextIcon = command.icon !== undefined ? normalizeCategoryIcon(command.icon) : undefined;
+      const nextTextIndexingMode =
+        command.textIndexingMode !== undefined
+          ? normalizeCategoryTextIndexingMode(command.textIndexingMode)
+          : undefined;
 
       return deps.transactions.runInTransaction(async (tx) => {
         const existing = await deps.categories.findById(command.categoryId, tx);
@@ -269,6 +314,7 @@ export function createCategoryService(deps: CategoryServiceDependencies): Catego
           ...(nextColor !== undefined ? { color: nextColor } : {}),
           ...(nextIcon !== undefined ? { icon: nextIcon } : {}),
           ...(command.isActive !== undefined ? { isActive: command.isActive } : {}),
+          ...(nextTextIndexingMode !== undefined ? { textIndexingMode: nextTextIndexingMode } : {}),
         };
 
         const updated = await deps.categories.update(updatePayload, tx);
@@ -295,6 +341,7 @@ export function createCategoryService(deps: CategoryServiceDependencies): Catego
             metadata: {
               name: updated.name,
               isActive: updated.isActive,
+              textIndexingMode: updated.textIndexingMode,
             },
           },
           tx,

@@ -1,5 +1,9 @@
 import { z } from "zod";
-import { categoryFieldDefinitionSchema, categoryHexColorSchema } from "./category.schema.js";
+import {
+  categoryFieldDefinitionSchema,
+  categoryHexColorSchema,
+  categoryTextIndexingModeSchema,
+} from "./category.schema.js";
 import {
   createApiResponseSchema,
   createPaginatedResponseSchema,
@@ -413,6 +417,7 @@ export const documentDetailSchema = documentRecordSchema.extend({
     name: z.string().trim().min(1).max(120),
     color: categoryHexColorSchema.nullable(),
     icon: z.string().trim().min(1).max(64).nullable(),
+    textIndexingMode: categoryTextIndexingModeSchema.default("NEVER"),
     fields: z.array(categoryFieldDefinitionSchema),
   }),
   folder: z

@@ -1,5 +1,8 @@
 import type { CategoryFieldType } from "./metadata-validation.js";
 
+export const CATEGORY_TEXT_INDEXING_MODES = ["NEVER", "ALWAYS", "ASK"] as const;
+export type CategoryTextIndexingMode = (typeof CATEGORY_TEXT_INDEXING_MODES)[number];
+
 export interface CategoryEntity {
   readonly id: string;
   readonly organizationId: string;
@@ -8,6 +11,7 @@ export interface CategoryEntity {
   readonly color: string | null;
   readonly icon: string | null;
   readonly isActive: boolean;
+  readonly textIndexingMode: CategoryTextIndexingMode;
   readonly createdAt: string;
   readonly updatedAt: string;
 }
