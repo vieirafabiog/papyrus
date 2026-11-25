@@ -1,10 +1,12 @@
 import AccountCircleOutlinedIcon from "@mui/icons-material/AccountCircleOutlined";
+import InstallDesktopOutlinedIcon from "@mui/icons-material/InstallDesktopOutlined";
 import LogoutOutlinedIcon from "@mui/icons-material/LogoutOutlined";
 import MenuIcon from "@mui/icons-material/Menu";
 import {
   Alert,
   AppBar,
   Box,
+  Button,
   IconButton,
   ListItemIcon,
   Menu,
@@ -24,6 +26,7 @@ import { LanguageSwitcher } from "../components/LanguageSwitcher.js";
 import { NotificationBell } from "../components/NotificationBell.js";
 import { extractUserErrorMessage } from "../i18n/api-errors.js";
 import { useI18n } from "../i18n/index.js";
+import { usePwaInstall } from "../pwa/usePwaInstall.js";
 
 export interface AppHeaderProps {
   readonly desktopCollapsed: boolean;
@@ -86,6 +89,7 @@ export function AppHeader({
   onToggleDesktopSidebar,
 }: AppHeaderProps) {
   const { t, locale } = useI18n();
+  const { canInstall, promptInstall } = usePwaInstall();
   const { data: session } = useSessionQuery();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
@@ -190,6 +194,18 @@ export function AppHeader({
           <Box sx={{ flexGrow: 1, display: "flex", justifyContent: "flex-end", mr: 1 }}>
             {session ? <GlobalSearch /> : null}
           </Box>
+
+          {canInstall ? (
+            <Button
+              size="small"
+              variant="outlined"
+              startIcon={<InstallDesktopOutlinedIcon fontSize="small" />}
+              onClick={() => void promptInstall()}
+              sx={{ display: { xs: "none", sm: "inline-flex" } }}
+            >
+              {t("shell.header.installApp")}
+            </Button>
+          ) : null}
 
           {session ? <NotificationBell /> : null}
 
