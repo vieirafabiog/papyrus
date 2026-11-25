@@ -268,16 +268,16 @@ export const adminEn = {
   "admin.categories.editor.color": "Hex color (optional)",
   "admin.categories.editor.icon": "Icon (optional)",
   "admin.categories.editor.description": "Category description (optional)",
-  "admin.categories.editor.textIndexingModeLabel": "Full-text & OCR indexing policy",
+  "admin.categories.editor.textIndexingModeLabel": "Content search policy",
   "admin.categories.textIndexingMode.NEVER": "Never index",
   "admin.categories.textIndexingMode.ALWAYS": "Always index automatically",
   "admin.categories.textIndexingMode.ASK": "Ask user on upload",
   "admin.categories.editor.textIndexingModeHelp.NEVER":
-    "Files in this category skip text extraction and OCR and will not appear in content search.",
+    "Files in this category are not indexed for internal content search.",
   "admin.categories.editor.textIndexingModeHelp.ALWAYS":
-    "All new documents and versions in this category are automatically extracted and indexed with OCR.",
+    "New documents and versions in this category have their content automatically included in search.",
   "admin.categories.editor.textIndexingModeHelp.ASK":
-    "Uploaders choose on each upload whether the file content should be extracted and indexed.",
+    "Uploaders choose on each upload whether the file content should be included in search.",
   "admin.categories.editor.activeSwitch": "Category active for new documents",
   "admin.categories.editor.saveCategory": "Save category",
   "admin.categories.editor.createCategory": "Create category",
@@ -996,16 +996,16 @@ export const adminPt: Readonly<Record<AdminMessageKey, string>> = {
   "admin.categories.editor.color": "Cor hexadecimal (opcional)",
   "admin.categories.editor.icon": "Ícone (opcional)",
   "admin.categories.editor.description": "Descrição da categoria (opcional)",
-  "admin.categories.editor.textIndexingModeLabel": "Política de indexação e OCR (conteúdo)",
+  "admin.categories.editor.textIndexingModeLabel": "Pesquisa no conteúdo dos arquivos",
   "admin.categories.textIndexingMode.NEVER": "Nunca indexar",
   "admin.categories.textIndexingMode.ALWAYS": "Sempre indexar",
   "admin.categories.textIndexingMode.ASK": "Perguntar antes",
   "admin.categories.editor.textIndexingModeHelp.NEVER":
-    "Arquivos desta categoria não passam por extração de texto/OCR e ficam fora da busca por conteúdo.",
+    "Arquivos desta categoria não entram na busca por texto interno.",
   "admin.categories.editor.textIndexingModeHelp.ALWAYS":
-    "Todo documento ou nova versão enviada nesta categoria terá texto e OCR indexados automaticamente.",
+    "Todo documento ou nova versão nesta categoria terá o texto incluído automaticamente na pesquisa.",
   "admin.categories.editor.textIndexingModeHelp.ASK":
-    "O usuário poderá escolher em cada envio se deseja extrair e indexar o conteúdo para pesquisa.",
+    "Quem enviar o arquivo poderá escolher se o conteúdo ficará pesquisável.",
   "admin.categories.editor.activeSwitch": "Categoria ativa para novos documentos",
   "admin.categories.editor.saveCategory": "Salvar categoria",
   "admin.categories.editor.createCategory": "Criar categoria",

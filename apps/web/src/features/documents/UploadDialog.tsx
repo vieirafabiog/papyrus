@@ -1038,10 +1038,6 @@ export function UploadDialog({
                   </>
                 ) : null}
 
-                {effectiveTextIndexingMode === "ALWAYS" ? (
-                  <Alert severity="info">{t("documents.upload.textIndexingAlwaysNotice")}</Alert>
-                ) : null}
-
                 {effectiveTextIndexingMode === "ASK" ? (
                   <Paper
                     variant="outlined"

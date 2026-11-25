@@ -749,7 +749,7 @@ describe("CategoriesPage & CategoryEditor (Step 14.05)", () => {
     fireEvent.click(screen.getByRole("button", { name: "Fields & storage" }));
 
     const dialog = await screen.findByRole("dialog");
-    const modeSelect = await within(dialog).findByLabelText("Full-text & OCR indexing policy");
+    const modeSelect = await within(dialog).findByLabelText("Content search policy");
     fireEvent.mouseDown(modeSelect);
     fireEvent.click(await screen.findByRole("option", { name: "Ask user on upload" }));
     fireEvent.click(within(dialog).getByRole("button", { name: "Save category" }));

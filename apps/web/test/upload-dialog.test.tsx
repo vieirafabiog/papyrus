@@ -626,20 +626,20 @@ describe("UploadDialog and useUploadDocuments", () => {
     });
 
     expect(
-      screen.queryByRole("switch", { name: "Index file content for search (text & OCR)" }),
+      screen.queryByRole("switch", { name: "Include file content in search" }),
     ).not.toBeInTheDocument();
 
     const categoryField = screen.getByLabelText(/Category/);
     fireEvent.mouseDown(categoryField);
     fireEvent.click(await screen.findByRole("option", { name: "Notas Fiscais" }));
     expect(
-      await screen.findByText(/Automatic indexing enabled: text and OCR content/),
-    ).toBeInTheDocument();
+      screen.queryByRole("switch", { name: "Include file content in search" }),
+    ).not.toBeInTheDocument();
 
     fireEvent.mouseDown(categoryField);
     fireEvent.click(await screen.findByRole("option", { name: "Contratos Mistos" }));
     const indexingSwitch = await screen.findByRole("switch", {
-      name: "Index file content for search (text & OCR)",
+      name: "Include file content in search",
     });
     expect(indexingSwitch).not.toBeChecked();
     fireEvent.click(indexingSwitch);

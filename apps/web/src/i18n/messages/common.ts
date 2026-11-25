@@ -82,7 +82,7 @@ export const commonEn = {
     "Request a secure reset link from your administrator or via your configured email.",
 
   // Global search
-  "search.placeholder": "Search documents by title, file, or content (OCR)...",
+  "search.placeholder": "Search documents by title, file, or content...",
   "search.ariaLabel": "Global document search",
   "search.clearAriaLabel": "Clear search",
   "search.minChars": "Type at least {count} characters to search documents.",
@@ -278,7 +278,7 @@ export const commonPt: Readonly<Record<CommonMessageKey, string>> = {
     "Solicite um link seguro de redefinição ao administrador ou pelo e-mail configurado.",
 
   // Global search
-  "search.placeholder": "Buscar documentos por título, arquivo ou conteúdo (OCR)...",
+  "search.placeholder": "Buscar documentos por título, arquivo ou conteúdo...",
   "search.ariaLabel": "Busca global de documentos",
   "search.clearAriaLabel": "Limpar busca",
   "search.minChars": "Digite ao menos {count} caracteres para pesquisar documentos.",
