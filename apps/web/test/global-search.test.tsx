@@ -154,4 +154,45 @@ describe("GlobalSearch", () => {
       await screen.findByText("Unable to complete the search. Please try again."),
     ).toBeInTheDocument();
   });
+
+  it("renders highlighted contentSnippet excerpts safely as React mark elements", async () => {
+    const docId = "550e8400-e29b-41d4-a716-446655440901";
+    const fetchMock = vi.fn<typeof fetch>(async () => {
+      return new Response(
+        JSON.stringify({
+          items: [
+            {
+              id: docId,
+              title: "Nota Fiscal Digitalizada",
+              categoryId: "550e8400-e29b-41d4-a716-446655440902",
+              folderId: null,
+              status: "APPROVED",
+              currentVersionId: null,
+              ownerUserId: "550e8400-e29b-41d4-a716-446655440903",
+              issueDate: null,
+              expirationDate: null,
+              version: 1,
+              contentSnippet:
+                "Referente à [[HL]]cláusula[[/HL]] de <script>alert(1)</script> vigência",
+              createdAt: "2026-11-20T10:00:00.000Z",
+              updatedAt: "2026-11-25T10:00:00.000Z",
+            },
+          ],
+          pagination: { page: 1, pageSize: 8, totalItems: 1, totalPages: 1 },
+        }),
+        { status: 200, headers: { "Content-Type": "application/json" } },
+      );
+    });
+
+    renderGlobalSearch({ debounceMs: 10, fetchFn: fetchMock });
+
+    const input = screen.getByRole("textbox", { name: "Global document search" });
+    fireEvent.change(input, { target: { value: "cláusula" } });
+
+    expect(await screen.findByText("Nota Fiscal Digitalizada")).toBeInTheDocument();
+    const markEl = screen.getByText("cláusula");
+    expect(markEl.tagName.toLowerCase()).toBe("mark");
+    expect(screen.getByText(/<script>alert\(1\)<\/script>/)).toBeInTheDocument();
+    expect(document.querySelector("script")).toBeNull();
+  });
 });

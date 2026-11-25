@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import {
   type DatabaseClient,
   createAuditRepository,
+  createCategoryRepository,
   createDatabaseClient,
   createDocumentPurgeRepository,
   createDocumentRepository,
@@ -19,7 +20,12 @@ import {
   DOMAIN_MIN_UPLOAD_MAX_BYTES,
   createUploadLimitsService,
 } from "@papyrus/domain";
-import { createClamAvScanner } from "@papyrus/file-processing";
+import {
+  createClamAvScanner,
+  createExtractedTextIndexRepository,
+  createFullContentExtractionPolicy,
+  createTesseractOcrEngine,
+} from "@papyrus/file-processing";
 import {
   type StorageProviderRegistry,
   createStorageProviderRegistry,
@@ -28,6 +34,7 @@ import {
 import { createLocalStorageProvider } from "@papyrus/storage-local";
 import { createS3StorageProvider } from "@papyrus/storage-s3";
 import { z } from "zod";
+import { createIndexDocumentTextJobHandler } from "./jobs/index-document-text.js";
 import { createProcessUploadJobHandler } from "./jobs/process-upload.js";
 import { createPurgeDeletedDocumentsHandler } from "./jobs/purge-deleted-documents.js";
 import type { WorkerLogger } from "./worker.js";
@@ -184,6 +191,7 @@ export function createStandaloneWorkerJobs(
   const outboxRepository = createOutboxRepository(db);
   const uploadRepository = createUploadSessionRepository(db);
   const connectionRepository = createStorageConnectionRepository(db);
+  const categoryRepository = createCategoryRepository(db);
   const documentRepository = createDocumentRepository(db);
   const documentVersionRepository = createDocumentVersionRepository(db);
   const auditRepository = createAuditRepository(db);
@@ -191,6 +199,22 @@ export function createStandaloneWorkerJobs(
   const purgeRepository = createDocumentPurgeRepository(db);
 
   const storageRegistry = createWorkerStorageProviderRegistry(config.ENCRYPTION_KEY);
+
+  const textExtractionPolicy = createFullContentExtractionPolicy({
+    enabled: true,
+    postgresFtsConfig: "portuguese",
+    ocr: {
+      enabled: true,
+    },
+  });
+  const ocrEngine = createTesseractOcrEngine();
+  const extractedTextIndexRepository = createExtractedTextIndexRepository({
+    executor: {
+      query: <T extends Record<string, unknown>>(sqlText: string, params?: readonly unknown[]) =>
+        dbClient.pool.query<T>(sqlText, params ? [...params] : undefined),
+    },
+    policy: textExtractionPolicy,
+  });
 
   const uploadLimitsService = createUploadLimitsService({
     repository: uploadPolicyRepository,
@@ -228,6 +252,21 @@ export function createStandaloneWorkerJobs(
     },
   });
 
+  const indexDocumentTextHandler = createIndexDocumentTextJobHandler({
+    outbox: outboxRepository,
+    uploads: uploadRepository,
+    connections: connectionRepository,
+    documents: documentRepository,
+    documentVersions: documentVersionRepository,
+    categories: categoryRepository,
+    audit: auditRepository,
+    transactions,
+    storageRegistry,
+    policy: textExtractionPolicy,
+    indexRepository: extractedTextIndexRepository,
+    ocrEngine,
+  });
+
   const purgeHandler = createPurgeDeletedDocumentsHandler({
     store: purgeRepository,
     connections: connectionRepository,
@@ -248,26 +287,52 @@ export function createStandaloneWorkerJobs(
     });
 
   const runUploadLoop = async (): Promise<void> => {
-    logger.info("Worker upload processing loop started", {
+    logger.info("Worker upload and indexing processing loop started", {
       pollIntervalMs: config.WORKER_POLL_INTERVAL_MS,
       clamavPort: config.CLAMAV_PORT,
     });
 
     while (running) {
+      let processedAnyJob = false;
+
       try {
         const result = await processUploadHandler.processNextJob();
         if (result.outcome !== "NO_JOB") {
+          processedAnyJob = true;
           logger.info("Processed upload job", {
             outcome: result.outcome,
             jobId: result.jobId,
             fileObjectId: result.fileObjectId,
           });
-          continue;
         }
       } catch (error) {
         logger.error("Error while processing upload job", {
           error: error instanceof Error ? error.message : String(error),
         });
+      }
+
+      if (!running) {
+        break;
+      }
+
+      try {
+        const indexingResult = await indexDocumentTextHandler.processNextJob();
+        if (indexingResult.outcome !== "NO_JOB") {
+          processedAnyJob = true;
+          logger.info("Processed document text indexing job", {
+            outcome: indexingResult.outcome,
+            jobId: indexingResult.jobId,
+            documentVersionId: indexingResult.documentVersionId,
+          });
+        }
+      } catch (error) {
+        logger.error("Error while processing document text indexing job", {
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
+
+      if (processedAnyJob) {
+        continue;
       }
 
       if (!running) {

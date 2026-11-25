@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 import { PassThrough, type Readable } from "node:stream";
 import { uuidSchema } from "@papyrus/contracts";
 import type { OutboxJobRecord, OutboxRepository } from "@papyrus/database";
-import { UPLOAD_PROCESSING_EVENT_TYPE } from "@papyrus/database";
+import { DOCUMENT_TEXT_INDEXING_EVENT_TYPE, UPLOAD_PROCESSING_EVENT_TYPE } from "@papyrus/database";
 import type {
   AuditRepositoryPort,
   DocumentRepositoryPort,
@@ -37,6 +37,7 @@ const uploadProcessingPayloadSchema = z.object({
   storageConnectionId: uuidSchema,
   documentId: uuidSchema.nullable(),
   documentVersionId: uuidSchema.nullable(),
+  indexContent: z.boolean().optional(),
 });
 
 export type ProcessUploadOutcome =
@@ -521,6 +522,36 @@ export function createProcessUploadJobHandler(
             if (!updatedDoc) {
               throw new Error("DOCUMENT_OPTIMISTIC_LOCK_CONFLICT");
             }
+          }
+        }
+
+        if (payload.indexContent === true) {
+          let indexingDocumentId = payload.documentId;
+          let indexingVersionId = payload.documentVersionId;
+          if (!indexingDocumentId || !indexingVersionId) {
+            const linkedVersion = await deps.documentVersions.findByFileObjectId(fileObject.id, tx);
+            if (linkedVersion) {
+              indexingDocumentId = linkedVersion.documentId;
+              indexingVersionId = linkedVersion.id;
+            }
+          }
+
+          if (indexingDocumentId && indexingVersionId) {
+            await deps.outbox.enqueue(
+              {
+                organizationId: job.organizationId,
+                eventType: DOCUMENT_TEXT_INDEXING_EVENT_TYPE,
+                aggregateType: "DOCUMENT_VERSION",
+                aggregateId: indexingVersionId,
+                payload: {
+                  documentId: indexingDocumentId,
+                  documentVersionId: indexingVersionId,
+                  fileObjectId: fileObject.id,
+                  storageConnectionId: fileObject.storageConnectionId,
+                },
+              },
+              tx,
+            );
           }
         }
 

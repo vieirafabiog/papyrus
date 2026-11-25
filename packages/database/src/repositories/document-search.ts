@@ -422,7 +422,13 @@ export function createDocumentSearchRepository(
       const totalItems = Number(countRow?.total ?? 0);
       const totalPages = totalItems === 0 ? 0 : Math.ceil(totalItems / filter.pageSize);
 
-      const rows = await db
+      const trimmedSearch = filter.search !== undefined ? filter.search.trim() : "";
+      const includeExtractedTextSnippet =
+        enableExtractedTextSearch &&
+        filter.includeExtractedText !== false &&
+        trimmedSearch.length > 0;
+
+      const baseQuery = db
         .select({
           id: documents.id,
           title: documents.title,
@@ -436,8 +442,32 @@ export function createDocumentSearchRepository(
           version: documents.version,
           createdAt: documents.createdAt,
           updatedAt: documents.updatedAt,
+          contentSnippet: includeExtractedTextSnippet
+            ? sql<string | null>`CASE
+                WHEN ${documentExtractedTexts.id} IS NOT NULL THEN
+                  ts_headline(
+                    ${ftsConfig}::regconfig,
+                    ${documentExtractedTexts.extractedText},
+                    websearch_to_tsquery(${ftsConfig}::regconfig, ${trimmedSearch}),
+                    'MaxWords=24, MinWords=8, ShortWord=3, HighlightAll=false, StartSel=[[HL]], StopSel=[[/HL]]'
+                  )
+                ELSE NULL
+              END`
+            : sql<string | null>`NULL`,
         })
-        .from(documents)
+        .from(documents);
+
+      const rows = await (includeExtractedTextSnippet
+        ? baseQuery.leftJoin(
+            documentExtractedTexts,
+            and(
+              eq(documentExtractedTexts.documentVersionId, documents.currentVersionId),
+              eq(documentExtractedTexts.organizationId, filter.organizationId),
+              sql`${documentExtractedTexts.searchVector} @@ websearch_to_tsquery(${ftsConfig}::regconfig, ${trimmedSearch})`,
+            ),
+          )
+        : baseQuery
+      )
         .where(whereClause)
         .orderBy(primaryOrder, tiebreakerOrder)
         .limit(filter.pageSize)
@@ -455,6 +485,7 @@ export function createDocumentSearchRepository(
           issueDate: row.issueDate,
           expirationDate: row.expirationDate,
           version: row.version,
+          ...(row.contentSnippet ? { contentSnippet: row.contentSnippet } : {}),
           createdAt: row.createdAt.toISOString(),
           updatedAt: row.updatedAt.toISOString(),
         })),

@@ -1,4 +1,6 @@
 import type {
+  DocumentTextIndexingEnqueueInput,
+  DocumentTextIndexingQueuePort,
   TransactionContext,
   UploadProcessingEnqueueInput,
   UploadProcessingQueuePort,
@@ -9,6 +11,7 @@ import { outboxEvents } from "../schema/governance.js";
 import { resolveDbExecutor } from "./transaction-manager.js";
 
 export const UPLOAD_PROCESSING_EVENT_TYPE = "UPLOAD_PROCESSING_REQUESTED" as const;
+export const DOCUMENT_TEXT_INDEXING_EVENT_TYPE = "DOCUMENT_TEXT_INDEXING_REQUESTED" as const;
 
 export interface OutboxJobRecord {
   readonly id: string;
@@ -59,6 +62,7 @@ export interface OutboxRepository {
     tx?: TransactionContext,
   ): Promise<OutboxJobRecord | null>;
   asUploadProcessingQueue(): UploadProcessingQueuePort;
+  asDocumentTextIndexingQueue(): DocumentTextIndexingQueuePort;
 }
 
 function toOutboxJobRecord(row: typeof outboxEvents.$inferSelect): OutboxJobRecord {
@@ -204,6 +208,31 @@ export function createOutboxRepository(db: NodePgDatabase): OutboxRepository {
                 documentId: input.documentId,
                 documentVersionId: input.documentVersionId,
                 ...(input.indexContent !== undefined ? { indexContent: input.indexContent } : {}),
+              },
+            },
+            tx,
+          );
+        },
+      };
+    },
+
+    asDocumentTextIndexingQueue(): DocumentTextIndexingQueuePort {
+      return {
+        async enqueueIndexing(
+          input: DocumentTextIndexingEnqueueInput,
+          tx?: TransactionContext,
+        ): Promise<void> {
+          await enqueueImpl(
+            {
+              organizationId: input.organizationId,
+              eventType: DOCUMENT_TEXT_INDEXING_EVENT_TYPE,
+              aggregateType: "DOCUMENT_VERSION",
+              aggregateId: input.documentVersionId,
+              payload: {
+                documentId: input.documentId,
+                documentVersionId: input.documentVersionId,
+                fileObjectId: input.fileObjectId,
+                storageConnectionId: input.storageConnectionId,
               },
             },
             tx,

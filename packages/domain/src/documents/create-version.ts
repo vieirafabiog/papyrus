@@ -1,12 +1,15 @@
 import { createAuditWriter } from "../audit/audit-writer.js";
+import { resolveCategoryTextIndexingDecision } from "../categories/category-service.js";
 import { DomainError } from "../index.js";
 import type { AuditRepositoryPort } from "../ports/audit-repository.port.js";
+import type { CategoryRepositoryPort } from "../ports/category-repository.port.js";
 import type {
   DocumentRepositoryPort,
   DocumentVersionRepositoryPort,
 } from "../ports/document-repository.port.js";
 import type { TransactionManagerPort } from "../ports/transaction.port.js";
 import type { UploadSessionRepositoryPort } from "../ports/upload-session-repository.port.js";
+import type { DocumentTextIndexingQueuePort } from "../uploads/finalize-upload.js";
 import type { DocumentEntity, DocumentVersionEntity, FileObjectEntity } from "./document.types.js";
 import { buildNextDocumentVersion, restoreHistoricalVersion } from "./versioning.js";
 
@@ -16,6 +19,8 @@ export interface CreateDocumentVersionServiceDependencies {
   readonly uploadSessions: UploadSessionRepositoryPort;
   readonly transactions: TransactionManagerPort;
   readonly audit: AuditRepositoryPort;
+  readonly categories?: CategoryRepositoryPort | undefined;
+  readonly textIndexingQueue?: DocumentTextIndexingQueuePort | undefined;
   readonly generateId: () => string;
   readonly now?: (() => Date) | undefined;
 }
@@ -92,6 +97,8 @@ export function createDocumentVersionUseCase(
         }
 
         let targetFileObjectId = command.fileObjectId;
+        let linkedUploadSession: Awaited<ReturnType<UploadSessionRepositoryPort["findById"]>> =
+          null;
         if (command.uploadSessionId !== undefined) {
           const session = await deps.uploadSessions.findById(command.uploadSessionId, tx);
           if (!session || session.organizationId !== command.organizationId) {
@@ -115,6 +122,7 @@ export function createDocumentVersionUseCase(
               "O arquivo informado não corresponde à sessão de upload selecionada.",
             );
           }
+          linkedUploadSession = session;
           targetFileObjectId = session.fileObjectId;
         }
 
@@ -189,6 +197,27 @@ export function createDocumentVersionUseCase(
             "DOCUMENT_VERSION_CONFLICT",
             "Concorrência detectada ao atualizar a versão corrente do documento.",
           );
+        }
+
+        if (deps.textIndexingQueue && deps.categories) {
+          const category = await deps.categories.findById(updatedDocument.categoryId, tx);
+          if (
+            resolveCategoryTextIndexingDecision(
+              category?.textIndexingMode ?? "NEVER",
+              linkedUploadSession?.indexContentRequested ?? null,
+            )
+          ) {
+            await deps.textIndexingQueue.enqueueIndexing(
+              {
+                organizationId: command.organizationId,
+                documentId: updatedDocument.id,
+                documentVersionId: createdVersion.id,
+                fileObjectId: fileObject.id,
+                storageConnectionId: fileObject.storageConnectionId,
+              },
+              tx,
+            );
+          }
         }
 
         await auditWriter.write(
@@ -321,6 +350,22 @@ export function createDocumentVersionUseCase(
             "DOCUMENT_VERSION_CONFLICT",
             "Concorrência detectada ao atualizar a versão corrente do documento.",
           );
+        }
+
+        if (deps.textIndexingQueue && deps.categories) {
+          const category = await deps.categories.findById(updatedDocument.categoryId, tx);
+          if (resolveCategoryTextIndexingDecision(category?.textIndexingMode ?? "NEVER", null)) {
+            await deps.textIndexingQueue.enqueueIndexing(
+              {
+                organizationId: command.organizationId,
+                documentId: updatedDocument.id,
+                documentVersionId: createdVersion.id,
+                fileObjectId: fileObject.id,
+                storageConnectionId: fileObject.storageConnectionId,
+              },
+              tx,
+            );
+          }
         }
 
         await auditWriter.write(

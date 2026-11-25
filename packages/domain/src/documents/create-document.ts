@@ -1,4 +1,5 @@
 import { createAuditWriter } from "../audit/audit-writer.js";
+import { resolveCategoryTextIndexingDecision } from "../categories/category-service.js";
 import type { CategoryFieldDefinition } from "../categories/metadata-validation.js";
 import { validateDocumentMetadata } from "../categories/metadata-validation.js";
 import { DomainError } from "../index.js";
@@ -12,6 +13,7 @@ import type { FolderRepositoryPort } from "../ports/folder-repository.port.js";
 import type { TransactionManagerPort } from "../ports/transaction.port.js";
 import type { UploadSessionRepositoryPort } from "../ports/upload-session-repository.port.js";
 import type { UserRepositoryPort } from "../ports/user-repository.port.js";
+import type { DocumentTextIndexingQueuePort } from "../uploads/finalize-upload.js";
 import { canSubmitDocumentForReview } from "./document-state.js";
 import type {
   DocumentEntity,
@@ -33,6 +35,7 @@ export interface CreateDocumentServiceDependencies {
   readonly uploadSessions: UploadSessionRepositoryPort;
   readonly transactions: TransactionManagerPort;
   readonly audit: AuditRepositoryPort;
+  readonly textIndexingQueue?: DocumentTextIndexingQueuePort | undefined;
   readonly generateId: () => string;
   readonly now?: (() => Date) | undefined;
 }
@@ -316,6 +319,26 @@ export function createDocumentUseCase(
               documentId: finalDocument.id,
               fields,
               metadata: metadataResult.normalizedMetadata,
+            },
+            tx,
+          );
+        }
+
+        if (
+          fileObject.status === "AVAILABLE" &&
+          deps.textIndexingQueue &&
+          resolveCategoryTextIndexingDecision(
+            category.textIndexingMode,
+            uploadSession.indexContentRequested ?? null,
+          )
+        ) {
+          await deps.textIndexingQueue.enqueueIndexing(
+            {
+              organizationId: command.organizationId,
+              documentId: finalDocument.id,
+              documentVersionId: initialVersion.id,
+              fileObjectId: fileObject.id,
+              storageConnectionId: uploadSession.storageConnectionId,
             },
             tx,
           );

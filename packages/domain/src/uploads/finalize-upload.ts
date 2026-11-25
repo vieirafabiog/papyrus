@@ -45,6 +45,18 @@ export interface UploadProcessingQueuePort {
   enqueueProcessing(input: UploadProcessingEnqueueInput, tx?: TransactionContext): Promise<void>;
 }
 
+export interface DocumentTextIndexingEnqueueInput {
+  readonly organizationId: string;
+  readonly documentId: string;
+  readonly documentVersionId: string;
+  readonly fileObjectId: string;
+  readonly storageConnectionId: string;
+}
+
+export interface DocumentTextIndexingQueuePort {
+  enqueueIndexing(input: DocumentTextIndexingEnqueueInput, tx?: TransactionContext): Promise<void>;
+}
+
 export interface FinalizeUploadCommand {
   readonly organizationId: string;
   readonly actorUserId: string;

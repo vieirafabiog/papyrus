@@ -55,6 +55,7 @@ export interface DocumentListItemEntity {
   readonly issueDate: string | null;
   readonly expirationDate: string | null;
   readonly version: number;
+  readonly contentSnippet?: string | null | undefined;
   readonly createdAt: string;
   readonly updatedAt: string;
 }

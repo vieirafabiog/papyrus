@@ -293,6 +293,8 @@ export {
 
 export {
   createFinalizeUploadService,
+  type DocumentTextIndexingEnqueueInput,
+  type DocumentTextIndexingQueuePort,
   type FinalizeUploadCommand,
   type FinalizeUploadResult,
   type FinalizeUploadService,

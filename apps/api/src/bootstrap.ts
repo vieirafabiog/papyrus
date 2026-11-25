@@ -163,7 +163,10 @@ export function createStandaloneApiRuntime(
   const documentCommentRepository = createDocumentCommentRepository(db);
   const documentShareLinkRepository = createDocumentShareLinkRepository(db);
   const documentVersionRepository = createDocumentVersionRepository(db);
-  const documentSearchRepository = createDocumentSearchRepository(db);
+  const documentSearchRepository = createDocumentSearchRepository(db, {
+    enableExtractedTextSearch: true,
+    ftsConfig: "portuguese",
+  });
   const documentExpirationRepository = createDocumentExpirationRepository(db);
   const documentTrashRepository = createDocumentTrashRepository(db);
   const dashboardRepository = createDashboardRepository(db);
@@ -307,6 +310,7 @@ export function createStandaloneApiRuntime(
     uploadSessions: uploadRepository,
     transactions,
     audit: auditRepository,
+    textIndexingQueue: outboxRepository.asDocumentTextIndexingQueue(),
     generateId: () => randomUUID(),
   });
 
@@ -316,6 +320,8 @@ export function createStandaloneApiRuntime(
     uploadSessions: uploadRepository,
     transactions,
     audit: auditRepository,
+    categories: categoryRepository,
+    textIndexingQueue: outboxRepository.asDocumentTextIndexingQueue(),
     generateId: () => randomUUID(),
   });
 

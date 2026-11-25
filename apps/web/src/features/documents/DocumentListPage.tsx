@@ -5,6 +5,7 @@ import { DataTable, type DataTableColumn } from "@papyrus/ui";
 import { useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import { HighlightedSnippet } from "../../components/HighlightedSnippet.js";
 import { useI18n } from "../../i18n/index.js";
 import { buildFolderTreeOptions } from "../folders/folderTree.js";
 import { DocumentBulkActionBar } from "./DocumentBulkActionBar.js";
@@ -134,9 +135,12 @@ export function DocumentListPage() {
       label: t("documents.list.columns.title"),
       sortable: true,
       render: (row) => (
-        <Typography variant="body2" fontWeight={500}>
-          {row.title}
-        </Typography>
+        <Stack spacing={0.25}>
+          <Typography variant="body2" fontWeight={500}>
+            {row.title}
+          </Typography>
+          {row.contentSnippet ? <HighlightedSnippet text={row.contentSnippet} /> : null}
+        </Stack>
       ),
     },
     {

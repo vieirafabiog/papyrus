@@ -117,6 +117,7 @@ export const documentListItemSchema = z.object({
   issueDate: isoDateSchema.nullable(),
   expirationDate: isoDateSchema.nullable(),
   version: z.number().int().min(1),
+  contentSnippet: z.string().nullable().optional(),
   createdAt: isoDateTimeSchema,
   updatedAt: isoDateTimeSchema,
 });

@@ -291,4 +291,89 @@ describe("DocumentListPage", () => {
     ).length;
     expect(afterInvalidCount).toBe(initialSearchCount + 1);
   });
+
+  it("displays highlighted contentSnippet matches under document titles when full-text search matches", async () => {
+    vi.spyOn(globalThis, "fetch").mockImplementation(async (input) => {
+      const url =
+        typeof input === "string" ? input : input instanceof URL ? input.toString() : input.url;
+
+      if (url.startsWith("/api/v1/categories")) {
+        return new Response(
+          JSON.stringify({
+            data: {
+              items: [
+                {
+                  id: CAT_1_ID,
+                  organizationId: "550e8400-e29b-41d4-a716-446655440000",
+                  name: "Contratos",
+                  description: null,
+                  color: null,
+                  icon: null,
+                  isActive: true,
+                  textIndexingMode: "ALWAYS",
+                  createdAt: "2026-11-01T10:00:00.000Z",
+                  updatedAt: "2026-11-01T10:00:00.000Z",
+                },
+              ],
+              pagination: { page: 1, pageSize: 100, totalItems: 1, totalPages: 1 },
+            },
+          }),
+          { status: 200, headers: { "Content-Type": "application/json" } },
+        );
+      }
+
+      if (url.startsWith("/api/v1/folders/tree")) {
+        return new Response(JSON.stringify({ data: [] }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+
+      if (url.startsWith("/api/v1/users")) {
+        return new Response(
+          JSON.stringify({
+            items: [],
+            pagination: { page: 1, pageSize: 100, totalItems: 0, totalPages: 0 },
+          }),
+          { status: 200, headers: { "Content-Type": "application/json" } },
+        );
+      }
+
+      if (url.startsWith("/api/v1/documents/search")) {
+        return new Response(
+          JSON.stringify({
+            items: [
+              {
+                id: "550e8400-e29b-41d4-a716-446655440777",
+                title: "Comprovante Bancário",
+                categoryId: CAT_1_ID,
+                folderId: null,
+                status: "APPROVED",
+                currentVersionId: null,
+                ownerUserId: OWNER_1_ID,
+                issueDate: null,
+                expirationDate: null,
+                version: 1,
+                contentSnippet: "Pagamento [[HL]]autenticado[[/HL]] por OCR",
+                createdAt: "2026-11-10T10:00:00.000Z",
+                updatedAt: "2026-11-25T10:00:00.000Z",
+              },
+            ],
+            pagination: { page: 1, pageSize: 20, totalItems: 1, totalPages: 1 },
+          }),
+          { status: 200, headers: { "Content-Type": "application/json" } },
+        );
+      }
+
+      return new Response(JSON.stringify({ error: { message: "Unexpected URL" } }), {
+        status: 404,
+      });
+    });
+
+    renderDocumentListPage();
+
+    expect(await screen.findByText("Comprovante Bancário")).toBeInTheDocument();
+    const mark = screen.getByText("autenticado");
+    expect(mark.tagName.toLowerCase()).toBe("mark");
+  });
 });

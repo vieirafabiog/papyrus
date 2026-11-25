@@ -39,7 +39,7 @@ export const documentsEn = {
   "documents.list.uploadAction": "Upload documents",
 
   "documents.filters.searchLabel": "Search documents",
-  "documents.filters.searchPlaceholder": "Title or file name...",
+  "documents.filters.searchPlaceholder": "Title, file name, or content (OCR)...",
   "documents.filters.category": "Category",
   "documents.filters.allCategories": "All categories",
   "documents.filters.folder": "Folder",
@@ -705,7 +705,7 @@ export const documentsPt: Readonly<Record<DocumentsMessageKey, string>> = {
   "documents.list.uploadAction": "Enviar documentos",
 
   "documents.filters.searchLabel": "Pesquisar documento",
-  "documents.filters.searchPlaceholder": "Título ou nome do arquivo...",
+  "documents.filters.searchPlaceholder": "Título, arquivo ou conteúdo (OCR)...",
   "documents.filters.category": "Categoria",
   "documents.filters.allCategories": "Todas as categorias",
   "documents.filters.folder": "Pasta",

@@ -100,6 +100,7 @@ export { createInAppNotificationRepository } from "./repositories/notification-r
 export {
   type ClaimOutboxJobOptions,
   createOutboxRepository,
+  DOCUMENT_TEXT_INDEXING_EVENT_TYPE,
   type EnqueueOutboxEventInput,
   type OutboxJobRecord,
   type OutboxRepository,

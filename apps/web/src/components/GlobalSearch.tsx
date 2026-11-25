@@ -30,6 +30,7 @@ import { type KeyboardEvent, useEffect, useId, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { extractUserErrorMessage } from "../i18n/api-errors.js";
 import { type MessageKey, translate, useI18n } from "../i18n/index.js";
+import { HighlightedSnippet } from "./HighlightedSnippet.js";
 
 const DEFAULT_DEBOUNCE_MS = 300;
 const MIN_SEARCH_LENGTH = 2;
@@ -347,15 +348,20 @@ export function GlobalSearch({ debounceMs = DEFAULT_DEBOUNCE_MS, fetchFn }: Glob
                           </Typography>
                         }
                         secondary={
-                          <Stack direction="row" spacing={1} alignItems="center" sx={{ mt: 0.25 }}>
-                            <Chip
-                              label={t(statusMeta.labelKey)}
-                              color={statusMeta.color}
-                              size="small"
-                            />
-                            <Typography variant="caption" color="text.secondary">
-                              {t("search.updatedAt", { date: formatDate(doc.updatedAt) })}
-                            </Typography>
+                          <Stack spacing={0.5} sx={{ mt: 0.25 }}>
+                            <Stack direction="row" spacing={1} alignItems="center">
+                              <Chip
+                                label={t(statusMeta.labelKey)}
+                                color={statusMeta.color}
+                                size="small"
+                              />
+                              <Typography variant="caption" color="text.secondary">
+                                {t("search.updatedAt", { date: formatDate(doc.updatedAt) })}
+                              </Typography>
+                            </Stack>
+                            {doc.contentSnippet ? (
+                              <HighlightedSnippet text={doc.contentSnippet} />
+                            ) : null}
                           </Stack>
                         }
                       />
