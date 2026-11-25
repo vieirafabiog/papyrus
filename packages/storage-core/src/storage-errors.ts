@@ -22,11 +22,11 @@ export function sanitizeStorageErrorMessage(rawMessage: string): string {
     .replace(/([a-z][a-z0-9+.-]*:\/\/)([^:@/\s]+):([^@/\s]+)@/gi, "$1[REDACTED]@")
     .replace(/\bBearer\s+[A-Za-z0-9._~+/=-]+/gi, "Bearer [REDACTED]")
     .replace(
-      /(x-amz-security-token|x-amz-credential|x-amz-signature|awsaccesskeyid|authorization|secretaccesskey|accesskeyid|sessiontoken|password|secret|token|signature)\s*[:=]\s*["']?[^\s"',;&}]+["']?/gi,
+      /(x-amz-security-token|x-amz-credential|x-amz-signature|awsaccesskeyid|authorization|secretaccesskey|accesskeyid|sessiontoken|client_secret|clientsecret|access_token|password|secret|token|signature)\s*[:=]\s*["']?[^\s"',;&}]+["']?/gi,
       "$1=[REDACTED]",
     )
     .replace(
-      /"(secretAccessKey|accessKeyId|sessionToken|password|secret|token|signature)"\s*:\s*"[^"]*"/gi,
+      /"(secretAccessKey|accessKeyId|sessionToken|clientSecret|client_secret|access_token|password|secret|token|signature)"\s*:\s*"[^"]*"/gi,
       '"$1":"[REDACTED]"',
     )
     .slice(0, 500);

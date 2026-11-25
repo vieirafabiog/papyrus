@@ -1,7 +1,13 @@
 import { z } from "zod";
 import { createApiResponseSchema, isoDateTimeSchema, uuidSchema } from "./common.schema.js";
 
-export const storageConnectionKindSchema = z.enum(["local", "s3", "azure_blob", "google_cloud"]);
+export const storageConnectionKindSchema = z.enum([
+  "local",
+  "s3",
+  "sharepoint",
+  "azure_blob",
+  "google_cloud",
+]);
 export type StorageConnectionKindContract = z.infer<typeof storageConnectionKindSchema>;
 
 export const storageConnectionStatusSchema = z.enum(["ACTIVE", "INACTIVE", "ERROR"]);
@@ -73,6 +79,15 @@ export const s3TimeoutsContractSchema = z.object({
   requestTimeoutMs: z.number().int().min(1_000).max(300_000).default(30_000),
 });
 
+export const sharePointCredentialsContractSchema = z.object({
+  clientSecret: z.string().min(4).max(512),
+});
+
+export const sharePointTimeoutsContractSchema = z.object({
+  connectionTimeoutMs: z.number().int().min(500).max(60_000).default(10_000),
+  requestTimeoutMs: z.number().int().min(1_000).max(300_000).default(60_000),
+});
+
 export const createLocalStorageConnectionContractSchema = z.object({
   kind: z.literal("local").default("local"),
   name: z.string().trim().min(1).max(120),
@@ -96,9 +111,34 @@ export const createS3StorageConnectionContractSchema = z.object({
   isDefault: z.boolean().optional(),
 });
 
+export const createSharePointStorageConnectionContractSchema = z.object({
+  kind: z.literal("sharepoint"),
+  name: z.string().trim().min(1).max(120),
+  tenantId: z
+    .string()
+    .trim()
+    .min(3)
+    .max(128)
+    .refine((val) => !/\s/.test(val), "tenantId não pode conter espaços."),
+  clientId: z
+    .string()
+    .trim()
+    .min(8)
+    .max(64)
+    .refine((val) => !/\s/.test(val), "clientId não pode conter espaços."),
+  siteUrl: z.string().trim().min(12).max(512),
+  libraryName: z.string().trim().min(1).max(200).optional(),
+  driveId: z.string().trim().min(4).max(200).optional(),
+  baseFolderPath: z.string().trim().max(256).optional(),
+  timeouts: sharePointTimeoutsContractSchema.optional(),
+  credentials: sharePointCredentialsContractSchema,
+  isDefault: z.boolean().optional(),
+});
+
 export const createStorageConnectionContractSchema = z.union([
   createLocalStorageConnectionContractSchema,
   createS3StorageConnectionContractSchema,
+  createSharePointStorageConnectionContractSchema,
 ]);
 export type CreateStorageConnectionContract = z.infer<typeof createStorageConnectionContractSchema>;
 
@@ -116,7 +156,27 @@ export const updateStorageConnectionContractSchema = z
     keyPrefix: z.string().trim().max(256).nullable().optional(),
     tls: s3TlsContractSchema.partial().optional(),
     timeouts: s3TimeoutsContractSchema.partial().optional(),
-    credentials: s3CredentialsContractSchema.optional(),
+    tenantId: z
+      .string()
+      .trim()
+      .min(3)
+      .max(128)
+      .refine((val) => !/\s/.test(val), "tenantId não pode conter espaços.")
+      .optional(),
+    clientId: z
+      .string()
+      .trim()
+      .min(8)
+      .max(64)
+      .refine((val) => !/\s/.test(val), "clientId não pode conter espaços.")
+      .optional(),
+    siteUrl: z.string().trim().min(12).max(512).optional(),
+    libraryName: z.string().trim().min(1).max(200).nullable().optional(),
+    driveId: z.string().trim().min(4).max(200).nullable().optional(),
+    baseFolderPath: z.string().trim().max(256).nullable().optional(),
+    credentials: z
+      .union([s3CredentialsContractSchema, sharePointCredentialsContractSchema])
+      .optional(),
   })
   .refine((data) => Object.values(data).some((value) => value !== undefined), {
     message: "Informe ao menos um campo para atualização.",

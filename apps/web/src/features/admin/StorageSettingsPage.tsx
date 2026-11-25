@@ -74,6 +74,7 @@ import {
 const CONNECTION_KIND_LABEL_KEYS: Readonly<Record<StorageConnectionKindContract, MessageKey>> = {
   local: "admin.storage.kind.local",
   s3: "admin.storage.kind.s3",
+  sharepoint: "admin.storage.kind.sharepoint",
   azure_blob: "admin.storage.kind.azure_blob",
   google_cloud: "admin.storage.kind.google_cloud",
 };
@@ -89,7 +90,7 @@ const CONNECTION_STATUS_BADGE_CONFIG: Readonly<
   ERROR: { labelKey: "admin.storage.status.ERROR", color: "error" },
 };
 
-type EditableKind = "local" | "s3";
+type EditableKind = "local" | "s3" | "sharepoint";
 
 interface ConnectionFormState {
   readonly kind: EditableKind;
@@ -111,6 +112,13 @@ interface ConnectionFormState {
   readonly accessKeyId: string;
   readonly secretAccessKey: string;
   readonly sessionToken: string;
+  readonly tenantId: string;
+  readonly clientId: string;
+  readonly clientSecret: string;
+  readonly siteUrl: string;
+  readonly libraryName: string;
+  readonly driveId: string;
+  readonly baseFolderPath: string;
 }
 
 interface FeedbackMessage {
@@ -163,17 +171,27 @@ function createEmptyFormState(kind: EditableKind = "local"): ConnectionFormState
     rejectUnauthorized: true,
     allowInsecureHttp: false,
     caCertificatePem: "",
-    connectionTimeoutMs: "5000",
-    requestTimeoutMs: "30000",
+    connectionTimeoutMs: kind === "sharepoint" ? "10000" : "5000",
+    requestTimeoutMs: kind === "sharepoint" ? "60000" : "30000",
     accessKeyId: "",
     secretAccessKey: "",
     sessionToken: "",
+    tenantId: "",
+    clientId: "",
+    clientSecret: "",
+    siteUrl: "",
+    libraryName: "",
+    driveId: "",
+    baseFolderPath: "",
   };
 }
 
 function formStateFromConnection(connection: StorageConnectionViewContract): ConnectionFormState {
-  const kind: EditableKind = connection.kind === "s3" ? "s3" : "local";
+  const kind: EditableKind =
+    connection.kind === "s3" ? "s3" : connection.kind === "sharepoint" ? "sharepoint" : "local";
   const config = connection.nonSecretConfig;
+  const defaultConnTimeout = kind === "sharepoint" ? "10000" : "5000";
+  const defaultReqTimeout = kind === "sharepoint" ? "60000" : "30000";
   return {
     kind,
     name: connection.name,
@@ -189,12 +207,19 @@ function formStateFromConnection(connection: StorageConnectionViewContract): Con
     rejectUnauthorized: readConfigBoolean(config, "tlsRejectUnauthorized", true),
     allowInsecureHttp: readConfigBoolean(config, "tlsAllowInsecureHttp", false),
     caCertificatePem: readConfigString(config, "caCertificatePem"),
-    connectionTimeoutMs: readConfigNumberString(config, "connectionTimeoutMs", "5000"),
-    requestTimeoutMs: readConfigNumberString(config, "requestTimeoutMs", "30000"),
+    connectionTimeoutMs: readConfigNumberString(config, "connectionTimeoutMs", defaultConnTimeout),
+    requestTimeoutMs: readConfigNumberString(config, "requestTimeoutMs", defaultReqTimeout),
     // Credentials are never returned by the backend; fields stay empty unless updated.
     accessKeyId: "",
     secretAccessKey: "",
     sessionToken: "",
+    tenantId: readConfigString(config, "tenantId"),
+    clientId: readConfigString(config, "clientId"),
+    clientSecret: "",
+    siteUrl: readConfigString(config, "siteUrl"),
+    libraryName: readConfigString(config, "libraryName"),
+    driveId: readConfigString(config, "driveId"),
+    baseFolderPath: readConfigString(config, "baseFolderPath"),
   };
 }
 
@@ -215,6 +240,17 @@ function describeNonSecretTarget(
   if (connection.kind === "local") {
     const rootDirectory = readConfigString(config, "rootDirectory", "—");
     return t("admin.storage.target.local", { path: rootDirectory });
+  }
+  if (connection.kind === "sharepoint") {
+    const siteUrl = readConfigString(config, "siteUrl", "—");
+    const library =
+      readConfigString(config, "libraryName") ||
+      readConfigString(config, "driveId") ||
+      t("admin.storage.target.sharepointDefaultLibrary");
+    const folder = readConfigString(config, "baseFolderPath");
+    return folder
+      ? t("admin.storage.target.sharepointWithFolder", { siteUrl, library, folder })
+      : t("admin.storage.target.sharepoint", { siteUrl, library });
   }
   const bucket = readConfigString(config, "bucket", "—");
   const endpoint = readConfigString(config, "endpoint", "—");
@@ -254,6 +290,37 @@ function validateAndBuildCreatePayload(
     });
     if (!parsed.success) {
       return { error: t("admin.storage.validation.invalidLocalCreate") };
+    }
+    return { payload: parsed.data };
+  }
+
+  if (form.kind === "sharepoint") {
+    const connectionTimeoutMs = parseOptionalInt(form.connectionTimeoutMs) ?? 10_000;
+    const requestTimeoutMs = parseOptionalInt(form.requestTimeoutMs) ?? 60_000;
+    if (Number.isNaN(connectionTimeoutMs) || Number.isNaN(requestTimeoutMs)) {
+      return { error: t("admin.storage.validation.invalidTimeouts") };
+    }
+
+    const parsed = createStorageConnectionContractSchema.safeParse({
+      kind: "sharepoint",
+      name: form.name.trim(),
+      tenantId: form.tenantId.trim(),
+      clientId: form.clientId.trim(),
+      siteUrl: form.siteUrl.trim(),
+      ...(form.libraryName.trim() ? { libraryName: form.libraryName.trim() } : {}),
+      ...(form.driveId.trim() ? { driveId: form.driveId.trim() } : {}),
+      ...(form.baseFolderPath.trim() ? { baseFolderPath: form.baseFolderPath.trim() } : {}),
+      timeouts: {
+        connectionTimeoutMs,
+        requestTimeoutMs,
+      },
+      credentials: {
+        clientSecret: form.clientSecret,
+      },
+      ...(form.isDefault ? { isDefault: true } : {}),
+    });
+    if (!parsed.success) {
+      return { error: t("admin.storage.validation.invalidSharePointCreate") };
     }
     return { payload: parsed.data };
   }
@@ -322,6 +389,40 @@ function validateAndBuildUpdatePayload(
     });
     if (!parsed.success) {
       return { error: t("admin.storage.validation.invalidLocalUpdate") };
+    }
+    return { payload: parsed.data };
+  }
+
+  if (form.kind === "sharepoint") {
+    const connectionTimeoutMs = parseOptionalInt(form.connectionTimeoutMs) ?? 10_000;
+    const requestTimeoutMs = parseOptionalInt(form.requestTimeoutMs) ?? 60_000;
+    if (Number.isNaN(connectionTimeoutMs) || Number.isNaN(requestTimeoutMs)) {
+      return { error: t("admin.storage.validation.invalidTimeouts") };
+    }
+
+    const hasClientSecret = form.clientSecret.trim().length > 0;
+    const parsed = updateStorageConnectionContractSchema.safeParse({
+      name: form.name.trim(),
+      tenantId: form.tenantId.trim(),
+      clientId: form.clientId.trim(),
+      siteUrl: form.siteUrl.trim(),
+      libraryName: form.libraryName.trim() ? form.libraryName.trim() : null,
+      driveId: form.driveId.trim() ? form.driveId.trim() : null,
+      baseFolderPath: form.baseFolderPath.trim() ? form.baseFolderPath.trim() : null,
+      timeouts: {
+        connectionTimeoutMs,
+        requestTimeoutMs,
+      },
+      ...(hasClientSecret
+        ? {
+            credentials: {
+              clientSecret: form.clientSecret,
+            },
+          }
+        : {}),
+    });
+    if (!parsed.success) {
+      return { error: t("admin.storage.validation.invalidSharePointUpdate") };
     }
     return { payload: parsed.data };
   }
@@ -484,7 +585,11 @@ export function StorageSettingsPage() {
   }
 
   function handleOpenEditDialog(connection: StorageConnectionViewContract) {
-    if (connection.kind !== "local" && connection.kind !== "s3") {
+    if (
+      connection.kind !== "local" &&
+      connection.kind !== "s3" &&
+      connection.kind !== "sharepoint"
+    ) {
       setFeedback({
         severity: "info",
         text: t("admin.storage.feedback.providerNotEditable", { kind: connection.kind }),
@@ -1072,12 +1177,28 @@ export function StorageSettingsPage() {
                   value={formState.kind}
                   onChange={(_event, nextKind: EditableKind) => {
                     setFormError(null);
-                    setFormState((prev) => ({ ...prev, kind: nextKind }));
+                    setFormState((prev) => ({
+                      ...prev,
+                      kind: nextKind,
+                      connectionTimeoutMs:
+                        nextKind === "sharepoint" && prev.connectionTimeoutMs === "5000"
+                          ? "10000"
+                          : nextKind === "s3" && prev.connectionTimeoutMs === "10000"
+                            ? "5000"
+                            : prev.connectionTimeoutMs,
+                      requestTimeoutMs:
+                        nextKind === "sharepoint" && prev.requestTimeoutMs === "30000"
+                          ? "60000"
+                          : nextKind === "s3" && prev.requestTimeoutMs === "60000"
+                            ? "30000"
+                            : prev.requestTimeoutMs,
+                    }));
                   }}
                   aria-label={t("admin.storage.dialog.kindTabsAria")}
                 >
                   <Tab value="local" label={t("admin.storage.kind.local")} />
                   <Tab value="s3" label={t("admin.storage.kind.s3")} />
+                  <Tab value="sharepoint" label={t("admin.storage.kind.sharepoint")} />
                 </Tabs>
               ) : (
                 <Typography variant="body2" color="text.secondary">
@@ -1143,6 +1264,156 @@ export function StorageSettingsPage() {
                     />
                   </Grid>
                 </Grid>
+              ) : formState.kind === "sharepoint" ? (
+                <Stack spacing={2}>
+                  <Typography variant="subtitle2" fontWeight={600}>
+                    {t("admin.storage.dialog.sharepointSiteSectionTitle")}
+                  </Typography>
+
+                  <Grid container spacing={2}>
+                    <Grid size={{ xs: 12 }}>
+                      <TextField
+                        label={t("admin.storage.dialog.sharepointSiteUrl")}
+                        required
+                        fullWidth
+                        placeholder={t("admin.storage.dialog.sharepointSiteUrlPlaceholder")}
+                        helperText={t("admin.storage.dialog.sharepointSiteUrlHelper")}
+                        value={formState.siteUrl}
+                        onChange={(event) =>
+                          setFormState((prev) => ({ ...prev, siteUrl: event.target.value }))
+                        }
+                        disabled={isDialogSaving}
+                      />
+                    </Grid>
+                    <Grid size={{ xs: 12, sm: 6 }}>
+                      <TextField
+                        label={t("admin.storage.dialog.sharepointLibraryName")}
+                        fullWidth
+                        placeholder={t("admin.storage.dialog.sharepointLibraryNamePlaceholder")}
+                        helperText={t("admin.storage.dialog.sharepointLibraryNameHelper")}
+                        value={formState.libraryName}
+                        onChange={(event) =>
+                          setFormState((prev) => ({ ...prev, libraryName: event.target.value }))
+                        }
+                        disabled={isDialogSaving}
+                      />
+                    </Grid>
+                    <Grid size={{ xs: 12, sm: 6 }}>
+                      <TextField
+                        label={t("admin.storage.dialog.sharepointBaseFolderPath")}
+                        fullWidth
+                        placeholder={t("admin.storage.dialog.sharepointBaseFolderPathPlaceholder")}
+                        helperText={t("admin.storage.dialog.sharepointBaseFolderPathHelper")}
+                        value={formState.baseFolderPath}
+                        onChange={(event) =>
+                          setFormState((prev) => ({ ...prev, baseFolderPath: event.target.value }))
+                        }
+                        disabled={isDialogSaving}
+                      />
+                    </Grid>
+                    <Grid size={{ xs: 12, sm: 4 }}>
+                      <TextField
+                        label={t("admin.storage.dialog.sharepointDriveId")}
+                        fullWidth
+                        helperText={t("admin.storage.dialog.sharepointDriveIdHelper")}
+                        value={formState.driveId}
+                        onChange={(event) =>
+                          setFormState((prev) => ({ ...prev, driveId: event.target.value }))
+                        }
+                        disabled={isDialogSaving}
+                      />
+                    </Grid>
+                    <Grid size={{ xs: 12, sm: 4 }}>
+                      <TextField
+                        label={t("admin.storage.dialog.connectionTimeoutMs")}
+                        type="number"
+                        fullWidth
+                        value={formState.connectionTimeoutMs}
+                        onChange={(event) =>
+                          setFormState((prev) => ({
+                            ...prev,
+                            connectionTimeoutMs: event.target.value,
+                          }))
+                        }
+                        disabled={isDialogSaving}
+                      />
+                    </Grid>
+                    <Grid size={{ xs: 12, sm: 4 }}>
+                      <TextField
+                        label={t("admin.storage.dialog.requestTimeoutMs")}
+                        type="number"
+                        fullWidth
+                        value={formState.requestTimeoutMs}
+                        onChange={(event) =>
+                          setFormState((prev) => ({
+                            ...prev,
+                            requestTimeoutMs: event.target.value,
+                          }))
+                        }
+                        disabled={isDialogSaving}
+                      />
+                    </Grid>
+                  </Grid>
+
+                  <Divider />
+
+                  <Typography variant="subtitle2" fontWeight={600}>
+                    {t("admin.storage.dialog.sharepointAdSectionTitle")}
+                  </Typography>
+
+                  {editingConnection?.hasCredentials ? (
+                    <Alert severity="info">
+                      {t("admin.storage.dialog.updateCredentialsNotice")}
+                    </Alert>
+                  ) : null}
+
+                  <Grid container spacing={2}>
+                    <Grid size={{ xs: 12, sm: 4 }}>
+                      <TextField
+                        label={t("admin.storage.dialog.sharepointTenantId")}
+                        required
+                        fullWidth
+                        helperText={t("admin.storage.dialog.sharepointTenantIdHelper")}
+                        inputProps={{ autoComplete: "off" }}
+                        value={formState.tenantId}
+                        onChange={(event) =>
+                          setFormState((prev) => ({ ...prev, tenantId: event.target.value }))
+                        }
+                        disabled={isDialogSaving}
+                      />
+                    </Grid>
+                    <Grid size={{ xs: 12, sm: 4 }}>
+                      <TextField
+                        label={t("admin.storage.dialog.sharepointClientId")}
+                        required
+                        fullWidth
+                        helperText={t("admin.storage.dialog.sharepointClientIdHelper")}
+                        inputProps={{ autoComplete: "off" }}
+                        value={formState.clientId}
+                        onChange={(event) =>
+                          setFormState((prev) => ({ ...prev, clientId: event.target.value }))
+                        }
+                        disabled={isDialogSaving}
+                      />
+                    </Grid>
+                    <Grid size={{ xs: 12, sm: 4 }}>
+                      <TextField
+                        label={t("admin.storage.dialog.sharepointClientSecret")}
+                        type="password"
+                        required={!editingConnection}
+                        fullWidth
+                        placeholder={editingConnection?.hasCredentials ? "••••••••" : ""}
+                        helperText={t("admin.storage.dialog.sharepointClientSecretHelper")}
+                        inputProps={{ autoComplete: "new-password" }}
+                        value={formState.clientSecret}
+                        onChange={(event) =>
+                          setFormState((prev) => ({ ...prev, clientSecret: event.target.value }))
+                        }
+                        disabled={isDialogSaving}
+                      />
+                    </Grid>
+                  </Grid>
+                </Stack>
               ) : (
                 <Stack spacing={2}>
                   <Grid container spacing={2}>

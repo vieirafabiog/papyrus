@@ -11,6 +11,10 @@ import {
   type S3SignedTargetsOptions,
   createS3StorageProvider,
 } from "@papyrus/storage-s3";
+import {
+  type SharePointSecurityPolicy,
+  createSharePointStorageProvider,
+} from "@papyrus/storage-sharepoint";
 
 function readNonEmptyString(value: string | number | boolean | null | undefined): string | null {
   if (typeof value !== "string") {
@@ -40,6 +44,8 @@ export interface ApiStorageProviderRegistryOptions {
   readonly secretVault?: StorageSecretVault | undefined;
   readonly connectionLookup?: StorageConnectionLookup | undefined;
   readonly s3SecurityPolicy?: S3EndpointSecurityPolicy | undefined;
+  readonly sharePointSecurityPolicy?: SharePointSecurityPolicy | undefined;
+  readonly sharePointFetchFn?: typeof fetch | undefined;
   readonly dnsLookup?: DnsLookupAllFn | undefined;
   readonly healthVerifyReadWrite?: boolean | undefined;
   readonly enableS3SignedTargets?: boolean | undefined;
@@ -126,6 +132,48 @@ export function createApiStorageProviderRegistry(
         healthVerifyReadWrite: options.healthVerifyReadWrite,
         enableSignedTargets: options.enableS3SignedTargets,
         signedTargetsOptions: options.s3SignedTargetsOptions,
+      },
+    );
+  });
+
+  registry.registerFactory("sharepoint", ({ connection, resolvedSecret }) => {
+    const tenantId = readNonEmptyString(connection.nonSecretConfig.tenantId);
+    const clientId = readNonEmptyString(connection.nonSecretConfig.clientId);
+    const siteUrl = readNonEmptyString(connection.nonSecretConfig.siteUrl);
+    const clientSecret = resolvedSecret?.clientSecret;
+
+    if (!tenantId || !clientId || !siteUrl || !clientSecret) {
+      throw new Error("SharePoint configuration or decrypted credentials are missing");
+    }
+
+    const libraryName = readNonEmptyString(connection.nonSecretConfig.libraryName) ?? undefined;
+    const driveId = readNonEmptyString(connection.nonSecretConfig.driveId) ?? undefined;
+    const baseFolderPath =
+      readNonEmptyString(connection.nonSecretConfig.baseFolderPath) ?? undefined;
+    const connectionTimeoutMs =
+      readOptionalPositiveNumber(connection.nonSecretConfig.connectionTimeoutMs) ?? 10_000;
+    const requestTimeoutMs =
+      readOptionalPositiveNumber(connection.nonSecretConfig.requestTimeoutMs) ?? 60_000;
+
+    return createSharePointStorageProvider(
+      {
+        tenantId,
+        clientId,
+        siteUrl,
+        ...(libraryName ? { libraryName } : {}),
+        ...(driveId ? { driveId } : {}),
+        ...(baseFolderPath ? { baseFolderPath } : {}),
+        timeouts: {
+          connectionTimeoutMs,
+          requestTimeoutMs,
+        },
+        credentials: {
+          clientSecret,
+        },
+      },
+      {
+        securityPolicy: options.sharePointSecurityPolicy,
+        fetchFn: options.sharePointFetchFn,
       },
     );
   });

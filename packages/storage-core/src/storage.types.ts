@@ -1,6 +1,6 @@
 import type { Readable } from "node:stream";
 
-export type StorageProviderKind = "local" | "s3" | "azure_blob" | "google_cloud";
+export type StorageProviderKind = "local" | "s3" | "sharepoint" | "azure_blob" | "google_cloud";
 
 export interface StorageObjectKey {
   readonly value: string;

@@ -259,6 +259,9 @@ importers:
       '@papyrus/storage-s3':
         specifier: workspace:*
         version: link:../../packages/storage-s3
+      '@papyrus/storage-sharepoint':
+        specifier: workspace:*
+        version: link:../../packages/storage-sharepoint
       fastify:
         specifier: ^5.2.1
         version: 5.12.8
@@ -375,6 +378,9 @@ importers:
       '@papyrus/storage-s3':
         specifier: workspace:*
         version: link:../../packages/storage-s3
+      '@papyrus/storage-sharepoint':
+        specifier: workspace:*
+        version: link:../../packages/storage-sharepoint
       zod:
         specifier: ^3.24.2
         version: 3.25.76
@@ -470,6 +476,12 @@ importers:
       testcontainers:
         specifier: ^10.18.0
         version: 10.28.0(bare-buffer@3.7.3)
+
+  packages/storage-sharepoint:
+    dependencies:
+      '@papyrus/storage-core':
+        specifier: workspace:*
+        version: link:../storage-core
 
   packages/ui:
     devDependencies:

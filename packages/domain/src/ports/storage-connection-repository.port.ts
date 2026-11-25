@@ -1,6 +1,6 @@
 import type { TransactionContext } from "./transaction.port.js";
 
-export type StorageConnectionKind = "local" | "s3" | "azure_blob" | "google_cloud";
+export type StorageConnectionKind = "local" | "s3" | "sharepoint" | "azure_blob" | "google_cloud";
 
 export type StorageConnectionStatus = "ACTIVE" | "INACTIVE" | "ERROR";
 

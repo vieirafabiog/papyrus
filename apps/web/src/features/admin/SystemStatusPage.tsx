@@ -61,6 +61,7 @@ const STORAGE_STATUS_BADGE_CONFIG: Readonly<
 const STORAGE_KIND_LABEL_KEYS: Readonly<Record<string, MessageKey>> = {
   local: "admin.storage.kind.local",
   s3: "admin.storage.kind.s3",
+  sharepoint: "admin.storage.kind.sharepoint",
   azure_blob: "admin.storage.kind.azure_blob",
   google_cloud: "admin.storage.kind.google_cloud",
 };

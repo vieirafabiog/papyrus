@@ -50,6 +50,13 @@
       "when": 1795618739568,
       "tag": "0006_oval_the_stranger",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1795627411069,
+      "tag": "0007_stale_spencer_smythe",
+      "breakpoints": true
     }
   ]
 }

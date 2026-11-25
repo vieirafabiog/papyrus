@@ -15,6 +15,7 @@ COPY packages/notifications/package.json packages/notifications/package.json
 COPY packages/storage-core/package.json packages/storage-core/package.json
 COPY packages/storage-local/package.json packages/storage-local/package.json
 COPY packages/storage-s3/package.json packages/storage-s3/package.json
+COPY packages/storage-sharepoint/package.json packages/storage-sharepoint/package.json
 COPY apps/worker/package.json apps/worker/package.json
 
 RUN pnpm install --frozen-lockfile --filter @papyrus/worker...
@@ -26,6 +27,7 @@ COPY packages/file-processing packages/file-processing
 COPY packages/storage-core packages/storage-core
 COPY packages/storage-local packages/storage-local
 COPY packages/storage-s3 packages/storage-s3
+COPY packages/storage-sharepoint packages/storage-sharepoint
 COPY packages/database packages/database
 COPY apps/worker apps/worker
 
@@ -46,6 +48,7 @@ COPY packages/notifications/package.json packages/notifications/package.json
 COPY packages/storage-core/package.json packages/storage-core/package.json
 COPY packages/storage-local/package.json packages/storage-local/package.json
 COPY packages/storage-s3/package.json packages/storage-s3/package.json
+COPY packages/storage-sharepoint/package.json packages/storage-sharepoint/package.json
 COPY apps/worker/package.json apps/worker/package.json
 
 RUN pnpm install --prod --frozen-lockfile --filter-prod @papyrus/worker...
@@ -86,6 +89,7 @@ COPY --from=builder --chown=node:node /app/packages/file-processing/dist package
 COPY --from=builder --chown=node:node /app/packages/storage-core/dist packages/storage-core/dist
 COPY --from=builder --chown=node:node /app/packages/storage-local/dist packages/storage-local/dist
 COPY --from=builder --chown=node:node /app/packages/storage-s3/dist packages/storage-s3/dist
+COPY --from=builder --chown=node:node /app/packages/storage-sharepoint/dist packages/storage-sharepoint/dist
 COPY --from=builder --chown=node:node /app/packages/database/dist packages/database/dist
 COPY --from=builder --chown=node:node /app/apps/worker/dist apps/worker/dist
 

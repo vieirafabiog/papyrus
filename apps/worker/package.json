@@ -19,6 +19,7 @@
     "@papyrus/storage-core": "workspace:*",
     "@papyrus/storage-local": "workspace:*",
     "@papyrus/storage-s3": "workspace:*",
+    "@papyrus/storage-sharepoint": "workspace:*",
     "zod": "^3.24.2"
   },
   "devDependencies": {

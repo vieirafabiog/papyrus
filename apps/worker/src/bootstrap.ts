@@ -33,6 +33,7 @@ import {
 } from "@papyrus/storage-core";
 import { createLocalStorageProvider } from "@papyrus/storage-local";
 import { createS3StorageProvider } from "@papyrus/storage-s3";
+import { createSharePointStorageProvider } from "@papyrus/storage-sharepoint";
 import { z } from "zod";
 import { createIndexDocumentTextJobHandler } from "./jobs/index-document-text.js";
 import { createProcessUploadJobHandler } from "./jobs/process-upload.js";
@@ -158,6 +159,42 @@ function createWorkerStorageProviderRegistry(encryptionKey: string): StorageProv
       timeouts: {
         connectionTimeoutMs,
         requestTimeoutMs,
+      },
+    });
+  });
+
+  registry.registerFactory("sharepoint", ({ connection, resolvedSecret }) => {
+    const tenantId = readNonEmptyString(connection.nonSecretConfig.tenantId);
+    const clientId = readNonEmptyString(connection.nonSecretConfig.clientId);
+    const siteUrl = readNonEmptyString(connection.nonSecretConfig.siteUrl);
+    const clientSecret = resolvedSecret?.clientSecret;
+
+    if (!tenantId || !clientId || !siteUrl || !clientSecret) {
+      throw new Error("SharePoint configuration or decrypted credentials are missing");
+    }
+
+    const libraryName = readNonEmptyString(connection.nonSecretConfig.libraryName) ?? undefined;
+    const driveId = readNonEmptyString(connection.nonSecretConfig.driveId) ?? undefined;
+    const baseFolderPath =
+      readNonEmptyString(connection.nonSecretConfig.baseFolderPath) ?? undefined;
+    const connectionTimeoutMs =
+      readOptionalPositiveNumber(connection.nonSecretConfig.connectionTimeoutMs) ?? 10_000;
+    const requestTimeoutMs =
+      readOptionalPositiveNumber(connection.nonSecretConfig.requestTimeoutMs) ?? 60_000;
+
+    return createSharePointStorageProvider({
+      tenantId,
+      clientId,
+      siteUrl,
+      ...(libraryName ? { libraryName } : {}),
+      ...(driveId ? { driveId } : {}),
+      ...(baseFolderPath ? { baseFolderPath } : {}),
+      timeouts: {
+        connectionTimeoutMs,
+        requestTimeoutMs,
+      },
+      credentials: {
+        clientSecret,
       },
     });
   });

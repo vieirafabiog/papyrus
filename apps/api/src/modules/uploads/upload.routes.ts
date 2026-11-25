@@ -613,7 +613,28 @@ export async function registerUploadRoutes(
       }
       const { ctx, session, fileObject, connection } = authorized;
 
-      if (connection.kind !== "local") {
+      let resolvedProvider: Awaited<
+        ReturnType<typeof uploadStorageDeps.storageRegistry.resolveProvider>
+      >;
+      try {
+        resolvedProvider = await uploadStorageDeps.storageRegistry.resolveProvider(connection);
+      } catch (error) {
+        return reply.status(503).send({
+          error: {
+            code: "STORAGE_UNAVAILABLE",
+            message:
+              error instanceof StorageError
+                ? error.message
+                : "Conexão de armazenamento de destino indisponível.",
+            requestId: request.id,
+          },
+        });
+      }
+
+      if (
+        hasStorageCapability(resolvedProvider, "signedUpload") &&
+        resolveUploadMode(resolvedProvider, true) === "SIGNED_UPLOAD"
+      ) {
         return reply.status(409).send({
           error: {
             code: "CONFLICT",
@@ -696,7 +717,7 @@ export async function registerUploadRoutes(
 
       try {
         try {
-          const provider = await uploadStorageDeps.storageRegistry.resolveProvider(connection);
+          const provider = resolvedProvider;
           resolveUploadMode(provider, false);
 
           tempDir = await mkdtemp(

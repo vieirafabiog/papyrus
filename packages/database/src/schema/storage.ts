@@ -20,6 +20,7 @@ import { categories } from "./taxonomy.js";
 export const storageConnectionKindEnum = pgEnum("storage_connection_kind", [
   "local",
   "s3",
+  "sharepoint",
   "azure_blob",
   "google_cloud",
 ]);

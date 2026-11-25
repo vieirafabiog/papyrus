@@ -57,6 +57,7 @@ const DOCUMENT_STATUS_META: Readonly<
 const STORAGE_KIND_KEYS: Readonly<Record<string, MessageKey>> = {
   local: "reports.page.byStorage.kinds.local",
   s3: "reports.page.byStorage.kinds.s3",
+  sharepoint: "reports.page.byStorage.kinds.sharepoint",
   azure_blob: "reports.page.byStorage.kinds.azure_blob",
   google_cloud: "reports.page.byStorage.kinds.google_cloud",
 };

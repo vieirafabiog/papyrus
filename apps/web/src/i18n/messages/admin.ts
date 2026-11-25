@@ -399,6 +399,7 @@ export const adminEn = {
   "admin.storage.credentialsMissing": "Not set",
   "admin.storage.kind.local": "Local storage",
   "admin.storage.kind.s3": "Cloud storage (S3-compatible)",
+  "admin.storage.kind.sharepoint": "Microsoft SharePoint",
   "admin.storage.kind.azure_blob": "Azure Blob",
   "admin.storage.kind.google_cloud": "Google Cloud",
   "admin.storage.status.ACTIVE": "Active",
@@ -407,6 +408,9 @@ export const adminEn = {
   "admin.storage.target.local": "Folder: {path}",
   "admin.storage.target.s3WithPrefix": "{bucket} ({region}) • {endpoint} • prefix {prefix}",
   "admin.storage.target.s3": "{bucket} ({region}) • {endpoint}",
+  "admin.storage.target.sharepoint": "{siteUrl} • library {library}",
+  "admin.storage.target.sharepointWithFolder": "{siteUrl} • library {library} • folder {folder}",
+  "admin.storage.target.sharepointDefaultLibrary": "Default library",
   "admin.storage.routing.title": "Category routing rules",
   "admin.storage.routing.subtitle":
     "Route new uploads for a category to a specific storage connection. Existing files remain in their original locations.",
@@ -452,6 +456,33 @@ export const adminEn = {
   "admin.storage.dialog.accessKeyId": "Access Key ID",
   "admin.storage.dialog.secretAccessKey": "Secret Access Key",
   "admin.storage.dialog.sessionToken": "Session Token (optional)",
+  "admin.storage.dialog.sharepointAdSectionTitle": "Microsoft Entra ID (Azure AD) application",
+  "admin.storage.dialog.sharepointSiteSectionTitle": "SharePoint site and library",
+  "admin.storage.dialog.sharepointTenantId": "Tenant ID",
+  "admin.storage.dialog.sharepointTenantIdHelper":
+    "Directory (tenant) ID from your Azure AD app registration.",
+  "admin.storage.dialog.sharepointClientId": "Client ID",
+  "admin.storage.dialog.sharepointClientIdHelper":
+    "Application (client) ID registered in Azure AD.",
+  "admin.storage.dialog.sharepointClientSecret": "Client Secret",
+  "admin.storage.dialog.sharepointClientSecretHelper":
+    "Encrypted at rest and never shown again after saving.",
+  "admin.storage.dialog.sharepointSiteUrl": "SharePoint site URL",
+  "admin.storage.dialog.sharepointSiteUrlPlaceholder":
+    "https://contoso.sharepoint.com/sites/Documents",
+  "admin.storage.dialog.sharepointSiteUrlHelper":
+    "Full HTTPS address of the target SharePoint site.",
+  "admin.storage.dialog.sharepointLibraryName": "Document library name",
+  "admin.storage.dialog.sharepointLibraryNamePlaceholder": "Documents",
+  "admin.storage.dialog.sharepointLibraryNameHelper":
+    "Leave blank to use the site's default library.",
+  "admin.storage.dialog.sharepointDriveId": "Drive ID (optional)",
+  "admin.storage.dialog.sharepointDriveIdHelper":
+    "Optional direct library identifier. Overrides library name when provided.",
+  "admin.storage.dialog.sharepointBaseFolderPath": "Base folder (optional)",
+  "admin.storage.dialog.sharepointBaseFolderPathPlaceholder": "papyrus/production",
+  "admin.storage.dialog.sharepointBaseFolderPathHelper":
+    "Optional subfolder inside the library where files will be organized.",
   "admin.storage.dialog.setDefaultSwitch": "Set as organization default connection",
   "admin.storage.dialog.createSubmit": "Create connection",
   "admin.storage.confirmToggle.deactivateTitle": "Deactivate connection",
@@ -473,6 +504,10 @@ export const adminEn = {
   "admin.storage.validation.invalidS3Create": "Invalid cloud storage connection details.",
   "admin.storage.validation.invalidS3Update":
     "Invalid details when updating cloud storage connection.",
+  "admin.storage.validation.invalidSharePointCreate":
+    "Invalid SharePoint connection details. Verify Tenant ID, Client ID, Client Secret, and HTTPS SharePoint site URL.",
+  "admin.storage.validation.invalidSharePointUpdate":
+    "Invalid details when updating SharePoint connection.",
   "admin.storage.validation.credentialsRequiredTogether":
     "To update credentials, enter both Access Key ID and Secret Access Key.",
   "admin.storage.validation.reviewConnectionData": "Please review the connection details.",
@@ -1128,6 +1163,7 @@ export const adminPt: Readonly<Record<AdminMessageKey, string>> = {
   "admin.storage.credentialsMissing": "Não informadas",
   "admin.storage.kind.local": "Armazenamento local",
   "admin.storage.kind.s3": "Armazenamento em nuvem (compatível com S3)",
+  "admin.storage.kind.sharepoint": "Microsoft SharePoint",
   "admin.storage.kind.azure_blob": "Azure Blob",
   "admin.storage.kind.google_cloud": "Google Cloud",
   "admin.storage.status.ACTIVE": "Ativa",
@@ -1136,6 +1172,9 @@ export const adminPt: Readonly<Record<AdminMessageKey, string>> = {
   "admin.storage.target.local": "Pasta: {path}",
   "admin.storage.target.s3WithPrefix": "{bucket} ({region}) • {endpoint} • prefixo {prefix}",
   "admin.storage.target.s3": "{bucket} ({region}) • {endpoint}",
+  "admin.storage.target.sharepoint": "{siteUrl} • biblioteca {library}",
+  "admin.storage.target.sharepointWithFolder": "{siteUrl} • biblioteca {library} • pasta {folder}",
+  "admin.storage.target.sharepointDefaultLibrary": "Biblioteca padrão",
   "admin.storage.routing.title": "Regras de direcionamento por categoria",
   "admin.storage.routing.subtitle":
     "Direcione novos envios de uma categoria para uma conexão específica. Arquivos enviados anteriormente permanecem em seus locais originais.",
@@ -1181,6 +1220,32 @@ export const adminPt: Readonly<Record<AdminMessageKey, string>> = {
   "admin.storage.dialog.accessKeyId": "Access Key ID",
   "admin.storage.dialog.secretAccessKey": "Secret Access Key",
   "admin.storage.dialog.sessionToken": "Session Token (opcional)",
+  "admin.storage.dialog.sharepointAdSectionTitle": "Aplicativo Microsoft Entra ID (Azure AD)",
+  "admin.storage.dialog.sharepointSiteSectionTitle": "Site e biblioteca do SharePoint",
+  "admin.storage.dialog.sharepointTenantId": "Tenant ID (ID do diretório)",
+  "admin.storage.dialog.sharepointTenantIdHelper":
+    "ID do diretório (locatário) do aplicativo registrado no Azure AD.",
+  "admin.storage.dialog.sharepointClientId": "Client ID (ID do aplicativo)",
+  "admin.storage.dialog.sharepointClientIdHelper":
+    "ID do aplicativo (cliente) registrado no Azure AD.",
+  "admin.storage.dialog.sharepointClientSecret": "Client Secret (segredo do cliente)",
+  "admin.storage.dialog.sharepointClientSecretHelper":
+    "Armazenado criptografado e nunca exibido novamente após salvar.",
+  "admin.storage.dialog.sharepointSiteUrl": "URL do site do SharePoint",
+  "admin.storage.dialog.sharepointSiteUrlPlaceholder":
+    "https://contoso.sharepoint.com/sites/Documentos",
+  "admin.storage.dialog.sharepointSiteUrlHelper": "Endereço HTTPS completo do site do SharePoint.",
+  "admin.storage.dialog.sharepointLibraryName": "Nome da biblioteca de documentos",
+  "admin.storage.dialog.sharepointLibraryNamePlaceholder": "Documentos",
+  "admin.storage.dialog.sharepointLibraryNameHelper":
+    "Deixe em branco para usar a biblioteca padrão do site.",
+  "admin.storage.dialog.sharepointDriveId": "Drive ID (opcional)",
+  "admin.storage.dialog.sharepointDriveIdHelper":
+    "Identificador direto opcional da biblioteca. Quando informado, substitui a busca pelo nome.",
+  "admin.storage.dialog.sharepointBaseFolderPath": "Pasta base (opcional)",
+  "admin.storage.dialog.sharepointBaseFolderPathPlaceholder": "papyrus/producao",
+  "admin.storage.dialog.sharepointBaseFolderPathHelper":
+    "Subpasta opcional dentro da biblioteca onde os arquivos serão organizados.",
   "admin.storage.dialog.setDefaultSwitch": "Definir como conexão padrão da organização",
   "admin.storage.dialog.createSubmit": "Cadastrar conexão",
   "admin.storage.confirmToggle.deactivateTitle": "Desativar conexão",
@@ -1205,6 +1270,10 @@ export const adminPt: Readonly<Record<AdminMessageKey, string>> = {
     "Dados inválidos para conexão em nuvem compatível com S3.",
   "admin.storage.validation.invalidS3Update":
     "Dados inválidos ao atualizar conexão em nuvem compatível com S3.",
+  "admin.storage.validation.invalidSharePointCreate":
+    "Dados inválidos para conexão SharePoint. Verifique Tenant ID, Client ID, Client Secret e a URL HTTPS do site.",
+  "admin.storage.validation.invalidSharePointUpdate":
+    "Dados inválidos ao atualizar a conexão SharePoint.",
   "admin.storage.validation.credentialsRequiredTogether":
     "Para atualizar as credenciais, informe Access Key ID e Secret Access Key.",
   "admin.storage.validation.reviewConnectionData": "Revise os dados da conexão.",

@@ -17,6 +17,11 @@ import {
   type S3StorageConfigInput,
   parseS3StorageConfig,
 } from "@papyrus/storage-s3";
+import {
+  type SharePointSecurityPolicy,
+  type SharePointStorageConfigInput,
+  parseSharePointStorageConfig,
+} from "@papyrus/storage-sharepoint";
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { SESSION_COOKIE_NAME } from "../auth/auth.routes.js";
 import type { AuthService } from "../auth/auth.service.js";
@@ -117,6 +122,28 @@ function buildS3NonSecretConfigRecord(
   return record;
 }
 
+function buildSharePointNonSecretConfigRecord(
+  validated: ReturnType<typeof parseSharePointStorageConfig>,
+): Record<string, string | number | boolean | null> {
+  const record: Record<string, string | number | boolean | null> = {
+    tenantId: validated.tenantId,
+    clientId: validated.clientId,
+    siteUrl: validated.siteUrl,
+    connectionTimeoutMs: validated.timeouts.connectionTimeoutMs,
+    requestTimeoutMs: validated.timeouts.requestTimeoutMs,
+  };
+  if (validated.libraryName) {
+    record.libraryName = validated.libraryName;
+  }
+  if (validated.driveId) {
+    record.driveId = validated.driveId;
+  }
+  if (validated.baseFolderPath) {
+    record.baseFolderPath = validated.baseFolderPath;
+  }
+  return record;
+}
+
 export async function registerStorageRoutes(
   app: FastifyInstance,
   deps: {
@@ -124,9 +151,16 @@ export async function registerStorageRoutes(
     readonly storageAdminService: StorageConnectionAdminService;
     readonly storageRouterService?: StorageRouterService | undefined;
     readonly s3SecurityPolicy?: S3EndpointSecurityPolicy | undefined;
+    readonly sharePointSecurityPolicy?: SharePointSecurityPolicy | undefined;
   },
 ): Promise<void> {
-  const { authService, storageAdminService, storageRouterService, s3SecurityPolicy } = deps;
+  const {
+    authService,
+    storageAdminService,
+    storageRouterService,
+    s3SecurityPolicy,
+    sharePointSecurityPolicy,
+  } = deps;
 
   app.get(`${CONTRACTS_API_PREFIX}/admin/storage-connections`, async (request, reply) => {
     const actor = await requireStorageAdmin(request, reply, authService);
@@ -177,6 +211,36 @@ export async function registerStorageRoutes(
           kind: "local",
           isDefault: payload.isDefault,
           nonSecretConfig,
+        });
+        return reply.status(201).send({ data: created });
+      }
+
+      if (payload.kind === "sharepoint") {
+        const validatedSharePoint = parseSharePointStorageConfig(
+          {
+            tenantId: payload.tenantId,
+            clientId: payload.clientId,
+            siteUrl: payload.siteUrl,
+            libraryName: payload.libraryName,
+            driveId: payload.driveId,
+            baseFolderPath: payload.baseFolderPath,
+            timeouts: payload.timeouts,
+            credentials: payload.credentials,
+          },
+          sharePointSecurityPolicy,
+        );
+
+        const created = await storageAdminService.createConnection({
+          organizationId: actor.user.organizationId,
+          actorUserId: actor.user.id,
+          requestId: request.id,
+          name: payload.name,
+          kind: "sharepoint",
+          isDefault: payload.isDefault,
+          nonSecretConfig: buildSharePointNonSecretConfigRecord(validatedSharePoint),
+          credentials: {
+            clientSecret: validatedSharePoint.credentials.clientSecret,
+          },
         });
         return reply.status(201).send({ data: created });
       }
@@ -301,6 +365,18 @@ export async function registerStorageRoutes(
             body.timeouts !== undefined;
 
           if (hasS3ConfigChanges || body.credentials !== undefined) {
+            if (body.credentials !== undefined && !("accessKeyId" in body.credentials)) {
+              return reply.status(400).send({
+                error: {
+                  code: "VALIDATION_ERROR",
+                  message: "Credenciais incompatíveis para conexão S3.",
+                  requestId: request.id,
+                },
+              });
+            }
+            const s3CredentialsInput =
+              body.credentials && "accessKeyId" in body.credentials ? body.credentials : undefined;
+
             const candidateInput: S3StorageConfigInput = {
               endpoint:
                 body.endpoint ?? readStringOrUndefined(current.nonSecretConfig.endpoint) ?? "",
@@ -332,7 +408,7 @@ export async function registerStorageRoutes(
                   body.timeouts?.requestTimeoutMs ??
                   readIntOrDefault(current.nonSecretConfig.requestTimeoutMs, 30_000),
               },
-              credentials: body.credentials ?? {
+              credentials: s3CredentialsInput ?? {
                 accessKeyId: "placeholder-keep-existing",
                 secretAccessKey: "placeholder-keep-existing",
               },
@@ -342,7 +418,7 @@ export async function registerStorageRoutes(
             if (hasS3ConfigChanges) {
               nextConfig = buildS3NonSecretConfigRecord(validatedS3);
             }
-            if (body.credentials !== undefined) {
+            if (s3CredentialsInput !== undefined) {
               nextCredentials = {
                 accessKeyId: validatedS3.credentials.accessKeyId,
                 secretAccessKey: validatedS3.credentials.secretAccessKey,
@@ -350,6 +426,75 @@ export async function registerStorageRoutes(
               if (validatedS3.credentials.sessionToken) {
                 nextCredentials.sessionToken = validatedS3.credentials.sessionToken;
               }
+            }
+          }
+        } else if (current.kind === "sharepoint") {
+          const hasSharePointConfigChanges =
+            body.tenantId !== undefined ||
+            body.clientId !== undefined ||
+            body.siteUrl !== undefined ||
+            body.libraryName !== undefined ||
+            body.driveId !== undefined ||
+            body.baseFolderPath !== undefined ||
+            body.timeouts !== undefined;
+
+          if (hasSharePointConfigChanges || body.credentials !== undefined) {
+            if (body.credentials !== undefined && !("clientSecret" in body.credentials)) {
+              return reply.status(400).send({
+                error: {
+                  code: "VALIDATION_ERROR",
+                  message: "Credenciais incompatíveis para conexão SharePoint.",
+                  requestId: request.id,
+                },
+              });
+            }
+            const sharePointCredentialsInput =
+              body.credentials && "clientSecret" in body.credentials ? body.credentials : undefined;
+
+            const candidateInput: SharePointStorageConfigInput = {
+              tenantId:
+                body.tenantId ?? readStringOrUndefined(current.nonSecretConfig.tenantId) ?? "",
+              clientId:
+                body.clientId ?? readStringOrUndefined(current.nonSecretConfig.clientId) ?? "",
+              siteUrl: body.siteUrl ?? readStringOrUndefined(current.nonSecretConfig.siteUrl) ?? "",
+              libraryName:
+                body.libraryName === null
+                  ? undefined
+                  : (body.libraryName ??
+                    readStringOrUndefined(current.nonSecretConfig.libraryName)),
+              driveId:
+                body.driveId === null
+                  ? undefined
+                  : (body.driveId ?? readStringOrUndefined(current.nonSecretConfig.driveId)),
+              baseFolderPath:
+                body.baseFolderPath === null
+                  ? undefined
+                  : (body.baseFolderPath ??
+                    readStringOrUndefined(current.nonSecretConfig.baseFolderPath)),
+              timeouts: {
+                connectionTimeoutMs:
+                  body.timeouts?.connectionTimeoutMs ??
+                  readIntOrDefault(current.nonSecretConfig.connectionTimeoutMs, 10_000),
+                requestTimeoutMs:
+                  body.timeouts?.requestTimeoutMs ??
+                  readIntOrDefault(current.nonSecretConfig.requestTimeoutMs, 60_000),
+              },
+              credentials: sharePointCredentialsInput ?? {
+                clientSecret: "placeholder-keep-existing-secret",
+              },
+            };
+
+            const validatedSharePoint = parseSharePointStorageConfig(
+              candidateInput,
+              sharePointSecurityPolicy,
+            );
+            if (hasSharePointConfigChanges) {
+              nextConfig = buildSharePointNonSecretConfigRecord(validatedSharePoint);
+            }
+            if (sharePointCredentialsInput !== undefined) {
+              nextCredentials = {
+                clientSecret: validatedSharePoint.credentials.clientSecret,
+              };
             }
           }
         }

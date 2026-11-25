@@ -567,4 +567,194 @@ describe("StorageSettingsPage (Step 14.04)", () => {
     });
     expect(deletedRuleCategoryId).toBe(CATEGORY_FIN_ID);
   });
+
+  it("creates and edits a SharePoint connection with masked Azure AD credentials", async () => {
+    const CONN_SP_ID = "00000000-0000-4000-8000-000000000203";
+    let connections = createInitialConnections();
+    const categories = createCategoriesFixture();
+    let capturedCreateBody: Record<string, unknown> | null = null;
+    let capturedPatchBody: Record<string, unknown> | null = null;
+
+    vi.spyOn(globalThis, "fetch").mockImplementation(async (input, init) => {
+      const url =
+        typeof input === "string" ? input : input instanceof URL ? input.toString() : input.url;
+      const method = init?.method ?? "GET";
+
+      if (url.endsWith("/auth/me")) {
+        return new Response(JSON.stringify({ data: buildSession(true) }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+
+      if (url.endsWith("/auth/csrf-token")) {
+        return new Response(JSON.stringify({ data: { csrfToken: "csrf-sp-1" } }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+
+      if (url.includes("/api/v1/categories")) {
+        return new Response(
+          JSON.stringify({
+            data: {
+              items: categories,
+              pagination: { page: 1, pageSize: 100, totalItems: 2, totalPages: 1 },
+            },
+          }),
+          { status: 200, headers: { "Content-Type": "application/json" } },
+        );
+      }
+
+      if (url.endsWith("/api/v1/admin/storage-routing-rules") && method === "GET") {
+        return new Response(JSON.stringify({ data: [] }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+
+      if (url.endsWith("/api/v1/admin/storage-connections") && method === "GET") {
+        return new Response(JSON.stringify({ data: connections }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+
+      if (url.endsWith("/api/v1/admin/storage-connections") && method === "POST") {
+        capturedCreateBody = JSON.parse(
+          typeof init?.body === "string" ? init.body : "{}",
+        ) as Record<string, unknown>;
+        const created: StorageConnectionViewContract = {
+          id: CONN_SP_ID,
+          organizationId: ORG_ID,
+          name: String(capturedCreateBody.name ?? ""),
+          kind: "sharepoint",
+          isDefault: false,
+          status: "ACTIVE",
+          nonSecretConfig: {
+            tenantId: String(capturedCreateBody.tenantId ?? ""),
+            clientId: String(capturedCreateBody.clientId ?? ""),
+            siteUrl: String(capturedCreateBody.siteUrl ?? ""),
+            libraryName: String(capturedCreateBody.libraryName ?? ""),
+            baseFolderPath: String(capturedCreateBody.baseFolderPath ?? ""),
+            connectionTimeoutMs: 10_000,
+            requestTimeoutMs: 60_000,
+          },
+          hasCredentials: true,
+          lastHealthCheckAt: null,
+          lastHealthMessage: null,
+          createdAt: "2026-04-02T12:00:00.000Z",
+          updatedAt: "2026-04-02T12:00:00.000Z",
+        };
+        connections = [...connections, created];
+        return new Response(JSON.stringify({ data: created }), {
+          status: 201,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+
+      if (url.endsWith(`/api/v1/admin/storage-connections/${CONN_SP_ID}`) && method === "PATCH") {
+        capturedPatchBody = JSON.parse(typeof init?.body === "string" ? init.body : "{}") as Record<
+          string,
+          unknown
+        >;
+        connections = connections.map((conn) =>
+          conn.id === CONN_SP_ID
+            ? {
+                ...conn,
+                name: String(capturedPatchBody?.name ?? conn.name),
+                nonSecretConfig: {
+                  ...conn.nonSecretConfig,
+                  libraryName:
+                    typeof capturedPatchBody?.libraryName === "string"
+                      ? capturedPatchBody.libraryName
+                      : conn.nonSecretConfig.libraryName,
+                },
+                updatedAt: "2026-04-02T12:30:00.000Z",
+              }
+            : conn,
+        );
+        const updated = connections.find((conn) => conn.id === CONN_SP_ID);
+        return new Response(JSON.stringify({ data: updated }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+
+      return new Response(JSON.stringify({ error: { message: "Unexpected endpoint" } }), {
+        status: 404,
+      });
+    });
+
+    renderStorageSettingsPage();
+    expect(await screen.findByText("File storage")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "New connection" }));
+    const createDialog = await screen.findByRole("dialog");
+
+    fireEvent.click(within(createDialog).getByRole("tab", { name: "Microsoft SharePoint" }));
+    fireEvent.change(within(createDialog).getByLabelText(/Connection name/i), {
+      target: { value: "SharePoint Jurídico" },
+    });
+    fireEvent.change(within(createDialog).getByLabelText(/SharePoint site URL/i), {
+      target: { value: "https://contoso.sharepoint.com/sites/Legal" },
+    });
+    fireEvent.change(within(createDialog).getByLabelText(/Document library name/i), {
+      target: { value: "Contratos" },
+    });
+    fireEvent.change(within(createDialog).getByLabelText(/Base folder/i), {
+      target: { value: "papyrus/juridico" },
+    });
+    fireEvent.change(within(createDialog).getByLabelText(/Tenant ID/i), {
+      target: { value: "11111111-2222-3333-4444-555555555555" },
+    });
+    fireEvent.change(within(createDialog).getByLabelText(/Client ID/i), {
+      target: { value: "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee" },
+    });
+    fireEvent.change(within(createDialog).getByLabelText(/Client Secret/i), {
+      target: { value: "super-secret-value-123" },
+    });
+
+    fireEvent.click(within(createDialog).getByRole("button", { name: "Create connection" }));
+
+    await waitFor(() => {
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    });
+    expect(capturedCreateBody).toMatchObject({
+      kind: "sharepoint",
+      name: "SharePoint Jurídico",
+      tenantId: "11111111-2222-3333-4444-555555555555",
+      clientId: "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee",
+      siteUrl: "https://contoso.sharepoint.com/sites/Legal",
+      libraryName: "Contratos",
+      baseFolderPath: "papyrus/juridico",
+      credentials: {
+        clientSecret: "super-secret-value-123",
+      },
+    });
+
+    const spCell = await screen.findByText("SharePoint Jurídico");
+    const spRow = spCell.closest("tr");
+    if (!spRow) {
+      throw new Error("Expected SharePoint row");
+    }
+    fireEvent.click(within(spRow).getByRole("button", { name: "Edit" }));
+    const editDialog = await screen.findByRole("dialog");
+
+    // Client secret is never prefilled when editing
+    expect(within(editDialog).getByLabelText(/Client Secret/i)).toHaveValue("");
+    fireEvent.change(within(editDialog).getByLabelText(/Document library name/i), {
+      target: { value: "Contratos 2026" },
+    });
+    fireEvent.click(within(editDialog).getByRole("button", { name: "Save changes" }));
+
+    await waitFor(() => {
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    });
+    expect(capturedPatchBody).toMatchObject({
+      name: "SharePoint Jurídico",
+      libraryName: "Contratos 2026",
+    });
+    expect(capturedPatchBody?.credentials).toBeUndefined();
+  });
 });

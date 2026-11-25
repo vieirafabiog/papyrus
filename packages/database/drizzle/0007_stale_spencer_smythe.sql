@@ -1,0 +1,1 @@
+ALTER TYPE "public"."storage_connection_kind" ADD VALUE 'sharepoint' BEFORE 'azure_blob';
