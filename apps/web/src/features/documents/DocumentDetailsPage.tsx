@@ -23,6 +23,7 @@ import { DocumentCommentsPanel } from "./DocumentCommentsPanel.js";
 import { DocumentLifecycleActions } from "./DocumentLifecycleActions.js";
 import { DocumentMetadataForm } from "./DocumentMetadataForm.js";
 import { DocumentPreviewPanel } from "./DocumentPreviewPanel.js";
+import { DocumentShareLinksPanel } from "./DocumentShareLinksPanel.js";
 import { DocumentWorkflowTimeline } from "./DocumentWorkflowTimeline.js";
 import { DocumentFileAvailabilityPanel } from "./FileProcessingStatus.js";
 import { StartWorkflowDialog } from "./StartWorkflowDialog.js";
@@ -512,6 +513,15 @@ export function DocumentDetailsPage() {
 
         <Grid size={{ xs: 12 }}>
           <DocumentCommentsPanel documentId={doc.id} documentStatus={doc.status} />
+        </Grid>
+
+        <Grid size={{ xs: 12 }}>
+          <DocumentShareLinksPanel
+            documentId={doc.id}
+            documentStatus={doc.status}
+            hasAvailableFile={doc.currentVersion?.fileObject?.status === "AVAILABLE"}
+            canDownload={doc.permissions.canDownload}
+          />
         </Grid>
       </Grid>
 

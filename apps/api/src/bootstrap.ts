@@ -13,6 +13,7 @@ import {
   createDocumentRepository,
   createDocumentRetentionHoldRepository,
   createDocumentSearchRepository,
+  createDocumentShareLinkRepository,
   createDocumentTrashRepository,
   createDocumentVersionRepository,
   createFolderRepository,
@@ -51,6 +52,7 @@ import {
   createCategoryService,
   createDecideTaskUseCase,
   createDocumentCommentService,
+  createDocumentShareService,
   createDocumentUseCase,
   createDocumentVersionUseCase,
   createFinalizeUploadService,
@@ -79,6 +81,7 @@ import { z } from "zod";
 import { buildApp } from "./app.js";
 import { createAuthService } from "./modules/auth/auth.service.js";
 import { createGotenbergOfficeConverter } from "./modules/documents/office-preview-converter.js";
+import { createShareLinkCryptoAdapter } from "./modules/documents/share-links.routes.js";
 import { createDrizzleSetupRepository } from "./modules/setup/setup.repository.js";
 import { createSetupService } from "./modules/setup/setup.service.js";
 import { createStorageHealthTester } from "./modules/storage/storage-health.adapter.js";
@@ -158,6 +161,7 @@ export function createStandaloneApiRuntime(
   const authzRepository = createAuthorizationRepository(db);
   const documentRepository = createDocumentRepository(db);
   const documentCommentRepository = createDocumentCommentRepository(db);
+  const documentShareLinkRepository = createDocumentShareLinkRepository(db);
   const documentVersionRepository = createDocumentVersionRepository(db);
   const documentSearchRepository = createDocumentSearchRepository(db);
   const documentExpirationRepository = createDocumentExpirationRepository(db);
@@ -499,6 +503,21 @@ export function createStandaloneApiRuntime(
     generateId: () => randomUUID(),
   });
 
+  const officePreviewConverter = config.OFFICE_CONVERTER_URL
+    ? createGotenbergOfficeConverter({ baseUrl: config.OFFICE_CONVERTER_URL })
+    : undefined;
+  const shareCrypto = createShareLinkCryptoAdapter(config.SESSION_SECRET);
+  const documentShareService = createDocumentShareService({
+    shareLinks: documentShareLinkRepository,
+    documents: documentRepository,
+    documentVersions: documentVersionRepository,
+    uploads: uploadRepository,
+    transactions,
+    audit: auditRepository,
+    crypto: shareCrypto,
+    generateId: () => randomUUID(),
+  });
+
   const app = buildApp({
     logger: true,
     secureCookies,
@@ -557,6 +576,8 @@ export function createStandaloneApiRuntime(
       createDocumentService,
       createDocumentVersionService,
       documentCommentService,
+      documentShareService,
+      shareCrypto,
       moveDocumentService,
       archiveDocumentService,
       trashDocumentService,
@@ -567,9 +588,7 @@ export function createStandaloneApiRuntime(
       uploadRepository,
       storageConnections: connectionRepository,
       storageRegistry,
-      officePreviewConverter: config.OFFICE_CONVERTER_URL
-        ? createGotenbergOfficeConverter({ baseUrl: config.OFFICE_CONVERTER_URL })
-        : undefined,
+      officePreviewConverter,
       dashboardRepository,
       reportRepository,
     },

@@ -22,6 +22,7 @@ import type {
   DecideTaskService,
   DocumentCommentService,
   DocumentRepositoryPort,
+  DocumentShareService,
   DocumentVersionRepositoryPort,
   FinalizeUploadService,
   FolderRepositoryPort,
@@ -32,6 +33,7 @@ import type {
   PermissionAdministrationService,
   RestoreDocumentService,
   RetentionGovernanceService,
+  ShareLinkCryptoPort,
   StartWorkflowService,
   StorageConnectionAdminService,
   StorageConnectionRepositoryPort,
@@ -63,6 +65,7 @@ import { registerDocumentExpirationRoutes } from "./modules/documents/expiration
 import type { OfficePreviewConverterPort } from "./modules/documents/office-preview-converter.js";
 import { registerDocumentPreviewRoutes } from "./modules/documents/preview.routes.js";
 import { registerDocumentSearchRoutes } from "./modules/documents/search.routes.js";
+import { registerDocumentShareRoutes } from "./modules/documents/share-links.routes.js";
 import { registerFolderRoutes } from "./modules/folders/folders.routes.js";
 import { registerGroupRoutes } from "./modules/groups/groups.routes.js";
 import { registerHealthRoutes } from "./modules/health/health.routes.js";
@@ -117,6 +120,8 @@ export interface AppOptions {
         readonly createDocumentService?: CreateDocumentService | undefined;
         readonly createDocumentVersionService?: CreateDocumentVersionService | undefined;
         readonly documentCommentService?: DocumentCommentService | undefined;
+        readonly documentShareService?: DocumentShareService | undefined;
+        readonly shareCrypto?: ShareLinkCryptoPort | undefined;
         readonly moveDocumentService?: MoveDocumentService | undefined;
         readonly archiveDocumentService?: ArchiveDocumentService | undefined;
         readonly trashDocumentService?: TrashDocumentService | undefined;
@@ -407,6 +412,21 @@ export function buildApp(options: AppOptions = {}): FastifyInstance {
             guard,
             commentService: documentDeps.documentCommentService,
             authzRepository: documentDeps.authzRepository,
+          });
+        }
+        if (
+          documentDeps.documentShareService &&
+          documentDeps.shareCrypto &&
+          documentDeps.storageConnections &&
+          documentDeps.storageRegistry
+        ) {
+          await registerDocumentShareRoutes(instance, {
+            guard,
+            shareService: documentDeps.documentShareService,
+            shareCrypto: documentDeps.shareCrypto,
+            storageConnections: documentDeps.storageConnections,
+            storageRegistry: documentDeps.storageRegistry,
+            officePreviewConverter: documentDeps.officePreviewConverter,
           });
         }
       });

@@ -603,3 +603,26 @@ export {
   MAX_DOCUMENT_COMMENT_BODY_LENGTH,
   MAX_DOCUMENT_COMMENT_MENTION_IDS,
 } from "./documents/document-comments.js";
+
+export {
+  computeShareLinkStatus,
+  type CreateDocumentShareLinkCommand,
+  type CreateDocumentShareLinkRecordInput,
+  createDocumentShareService,
+  type DocumentShareLinkEntity,
+  type DocumentShareLinkRepositoryPort,
+  type DocumentShareService,
+  type DocumentShareServiceDependencies,
+  type PublicShareDeliveryTarget,
+  type PublicShareMetadataResult,
+  type RevokeDocumentShareLinkCommand,
+  SHARE_MAX_PASSCODE_LENGTH,
+  SHARE_MAX_TTL_MINUTES,
+  SHARE_MAX_USES_LIMIT,
+  SHARE_MIN_PASSCODE_LENGTH,
+  SHARE_MIN_TTL_MINUTES,
+  SHARE_UNLOCK_TTL_SECONDS,
+  type ShareDeliveryMode,
+  type ShareLinkCryptoPort,
+  type ShareLinkStatus,
+} from "./documents/document-share.js";

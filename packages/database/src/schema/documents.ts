@@ -252,3 +252,49 @@ export const documentCommentMentions = pgTable(
     index("document_comment_mentions_user_created_idx").on(table.mentionedUserId, table.createdAt),
   ],
 );
+
+export const documentShareLinks = pgTable(
+  "document_share_links",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "restrict" }),
+    documentId: uuid("document_id")
+      .notNull()
+      .references(() => documents.id, { onDelete: "restrict" }),
+    documentVersionId: uuid("document_version_id")
+      .notNull()
+      .references(() => documentVersions.id, { onDelete: "restrict" }),
+    tokenHash: varchar("token_hash", { length: 128 }).notNull(),
+    label: varchar("label", { length: 120 }),
+    allowDownload: boolean("allow_download").notNull().default(true),
+    passcodeHash: text("passcode_hash"),
+    maxUses: integer("max_uses"),
+    useCount: integer("use_count").notNull().default(0),
+    expiresAt: timestamp("expires_at", { withTimezone: true, mode: "date" }).notNull(),
+    revokedAt: timestamp("revoked_at", { withTimezone: true, mode: "date" }),
+    revokedByUserId: uuid("revoked_by_user_id").references(() => users.id, {
+      onDelete: "restrict",
+    }),
+    lastAccessedAt: timestamp("last_accessed_at", { withTimezone: true, mode: "date" }),
+    createdByUserId: uuid("created_by_user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "restrict" }),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "date" }).notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("document_share_links_token_hash_unique").on(table.tokenHash),
+    index("document_share_links_org_doc_created_idx").on(
+      table.organizationId,
+      table.documentId,
+      table.createdAt,
+    ),
+    index("document_share_links_expires_idx").on(table.expiresAt),
+    check("document_share_links_use_count_chk", sql`${table.useCount} >= 0`),
+    check(
+      "document_share_links_max_uses_chk",
+      sql`${table.maxUses} IS NULL OR ${table.maxUses} >= 1`,
+    ),
+  ],
+);

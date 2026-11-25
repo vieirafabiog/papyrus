@@ -73,8 +73,22 @@ export {
   type DocumentPreviewKind,
 };
 
+export interface PreviewFileDescriptor {
+  readonly originalFileName: string;
+  readonly detectedContentType: string;
+  readonly sizeBytes: number;
+  readonly status:
+    | "UPLOADING"
+    | "QUARANTINED"
+    | "AVAILABLE"
+    | "REJECTED"
+    | "MISSING"
+    | "DELETE_PENDING";
+}
+
 export interface DocumentPreviewPanelProps {
-  readonly document: DocumentDetail;
+  readonly document?: DocumentDetail | undefined;
+  readonly previewFile?: PreviewFileDescriptor | undefined;
   readonly versionId?: string | undefined;
   readonly targetVersion?: DocumentDetailVersion | DocumentVersionHistoryItem | null | undefined;
   readonly onResetToCurrentVersion?: (() => void) | undefined;
@@ -83,6 +97,10 @@ export interface DocumentPreviewPanelProps {
   readonly maxSpreadsheetBytes?: number | undefined;
   readonly maxOfficeBytes?: number | undefined;
   readonly fetchFn?: typeof fetch | undefined;
+  readonly contentUrlOverride?: string | undefined;
+  readonly requestHeaders?: Readonly<Record<string, string>> | undefined;
+  readonly allowDownloadOverride?: boolean | undefined;
+  readonly allowOpenInNewTab?: boolean | undefined;
   readonly onDownload?: (() => Promise<void> | void) | undefined;
 }
 
@@ -146,6 +164,7 @@ async function extractPreviewErrorMessage(
  */
 export function DocumentPreviewPanel({
   document,
+  previewFile,
   versionId,
   targetVersion,
   onResetToCurrentVersion,
@@ -154,18 +173,23 @@ export function DocumentPreviewPanel({
   maxSpreadsheetBytes = DEFAULT_MAX_SPREADSHEET_PREVIEW_BYTES,
   maxOfficeBytes = DEFAULT_MAX_OFFICE_PREVIEW_BYTES,
   fetchFn,
+  contentUrlOverride,
+  requestHeaders,
+  allowDownloadOverride,
+  allowOpenInNewTab = true,
   onDownload,
 }: DocumentPreviewPanelProps) {
   const { locale, t, formatBytes } = useI18n();
-  const effectiveVersion = targetVersion ?? document.currentVersion ?? null;
-  const fileObject = effectiveVersion?.fileObject ?? null;
+  const effectiveVersion = targetVersion ?? document?.currentVersion ?? null;
+  const fileObject = previewFile ?? effectiveVersion?.fileObject ?? null;
   const canDownloadEffectiveVersion =
-    targetVersion && "permissions" in targetVersion
+    allowDownloadOverride ??
+    (targetVersion && "permissions" in targetVersion
       ? targetVersion.permissions.canDownload
-      : document.permissions.canDownload;
+      : (document?.permissions.canDownload ?? false));
   const isViewingHistoricalVersion = Boolean(
     effectiveVersion &&
-      document.currentVersionId &&
+      document?.currentVersionId &&
       effectiveVersion.id !== document.currentVersionId,
   );
   const explicitQueryVersionId =
@@ -237,11 +261,14 @@ export function DocumentPreviewPanel({
     const querySuffix = explicitQueryVersionId
       ? `?versionId=${encodeURIComponent(explicitQueryVersionId)}`
       : "";
-    const url = `${CONTRACTS_API_PREFIX}/documents/${document.id}/${endpoint}${querySuffix}`;
+    const url =
+      contentUrlOverride ??
+      `${CONTRACTS_API_PREFIX}/documents/${document?.id ?? ""}/${endpoint}${querySuffix}`;
 
     void fetchImpl(url, {
       method: "GET",
       credentials: "include",
+      ...(requestHeaders ? { headers: requestHeaders } : {}),
       signal: controller.signal,
     })
       .then(async (response) => {
@@ -314,7 +341,9 @@ export function DocumentPreviewPanel({
     isTextLike,
     isBinaryBuffer,
     previewKind,
-    document.id,
+    document?.id,
+    contentUrlOverride,
+    requestHeaders,
     explicitQueryVersionId,
     reloadToken,
     fetchImpl,
@@ -326,8 +355,8 @@ export function DocumentPreviewPanel({
   }
 
   const handleFallbackDownload = async (): Promise<void> => {
-    const downloadVersionId = effectiveVersion?.id ?? document.currentVersion?.id;
-    if (!downloadVersionId) {
+    const downloadVersionId = effectiveVersion?.id ?? document?.currentVersion?.id;
+    if (!onDownload && (!document?.id || !downloadVersionId)) {
       return;
     }
     setDownloading(true);
@@ -335,7 +364,7 @@ export function DocumentPreviewPanel({
     try {
       if (onDownload) {
         await onDownload();
-      } else {
+      } else if (document?.id && downloadVersionId) {
         const result = await requestVersionDownloadTarget(document.id, downloadVersionId);
         if (result.url) {
           window.open(result.url, "_blank", "noopener,noreferrer");
@@ -581,7 +610,7 @@ export function DocumentPreviewPanel({
                     {t("documents.preview.expand")}
                   </Button>
                 ) : null}
-                {blobUrl ? (
+                {blobUrl && allowOpenInNewTab ? (
                   <Button
                     size="small"
                     variant="outlined"
@@ -690,7 +719,7 @@ export function DocumentPreviewPanel({
                   fontWeight={600}
                   noWrap
                 >
-                  {document.title}
+                  {document?.title ?? fileObject.originalFileName}
                 </Typography>
                 <Typography variant="caption" color="text.secondary" noWrap display="block">
                   {effectiveVersion
@@ -702,7 +731,7 @@ export function DocumentPreviewPanel({
             </Stack>
 
             <Stack direction="row" spacing={1} alignItems="center">
-              {blobUrl ? (
+              {blobUrl && allowOpenInNewTab ? (
                 <Button
                   size="small"
                   variant="outlined"

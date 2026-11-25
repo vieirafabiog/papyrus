@@ -80,6 +80,11 @@ const OrganizationSettingsPage = lazy(() =>
     default: m.OrganizationSettingsPage,
   })),
 );
+const PublicSharePage = lazy(() =>
+  import("../features/documents/PublicSharePage.js").then((m) => ({
+    default: m.PublicSharePage,
+  })),
+);
 
 interface PublicRouteViewProps {
   readonly title: string;
@@ -131,6 +136,15 @@ function LegacyRouteRedirect({ targetPrefix, paramKey }: LegacyRouteRedirectProp
 export function AppRoutes() {
   return (
     <Routes>
+      <Route
+        path="/share/:token"
+        element={
+          <Suspense fallback={<RouteLoadingFallback fullPage />}>
+            <PublicSharePage />
+          </Suspense>
+        }
+      />
+
       <Route element={<RedirectIfAuthenticated />}>
         <Route
           path="/login"
@@ -147,87 +161,84 @@ export function AppRoutes() {
         />
       </Route>
 
-        <Route element={<RequireAuth />}>
-          <Route element={<AppShell />}>
-            <Route path="/" element={<DashboardPage />} />
+      <Route element={<RequireAuth />}>
+        <Route element={<AppShell />}>
+          <Route path="/" element={<DashboardPage />} />
 
-            {/* Canonical English routes */}
-            <Route path="/documents" element={<DocumentListPage />} />
-            <Route path="/documents/:id" element={<DocumentDetailsPage />} />
-            <Route path="/trash" element={<TrashDocumentsPage />} />
-            <Route path="/folders" element={<FoldersPage />} />
-            <Route path="/folders/:folderId" element={<FoldersPage />} />
-            <Route path="/categories" element={<CategoriesPage />} />
-            <Route path="/tags" element={<TagsPage />} />
-            <Route path="/workflows" element={<WorkflowsPage />} />
-            <Route path="/tasks" element={<TaskInboxPage />} />
-            <Route path="/tasks/:id" element={<TaskReviewPage />} />
-            <Route path="/expirations" element={<ExpirationsPage />} />
-            <Route path="/reports" element={<ReportsPage />} />
-            <Route path="/admin/users" element={<UsersPage />} />
-            <Route path="/admin/groups" element={<GroupsPage />} />
-            <Route path="/admin/permissions" element={<PermissionsPage />} />
-            <Route path="/admin/storage" element={<StorageSettingsPage />} />
-            <Route path="/admin/status" element={<SystemStatusPage />} />
-            <Route path="/admin/audit" element={<AuditPage />} />
-            <Route path="/admin/settings" element={<OrganizationSettingsPage />} />
+          {/* Canonical English routes */}
+          <Route path="/documents" element={<DocumentListPage />} />
+          <Route path="/documents/:id" element={<DocumentDetailsPage />} />
+          <Route path="/trash" element={<TrashDocumentsPage />} />
+          <Route path="/folders" element={<FoldersPage />} />
+          <Route path="/folders/:folderId" element={<FoldersPage />} />
+          <Route path="/categories" element={<CategoriesPage />} />
+          <Route path="/tags" element={<TagsPage />} />
+          <Route path="/workflows" element={<WorkflowsPage />} />
+          <Route path="/tasks" element={<TaskInboxPage />} />
+          <Route path="/tasks/:id" element={<TaskReviewPage />} />
+          <Route path="/expirations" element={<ExpirationsPage />} />
+          <Route path="/reports" element={<ReportsPage />} />
+          <Route path="/admin/users" element={<UsersPage />} />
+          <Route path="/admin/groups" element={<GroupsPage />} />
+          <Route path="/admin/permissions" element={<PermissionsPage />} />
+          <Route path="/admin/storage" element={<StorageSettingsPage />} />
+          <Route path="/admin/status" element={<SystemStatusPage />} />
+          <Route path="/admin/audit" element={<AuditPage />} />
+          <Route path="/admin/settings" element={<OrganizationSettingsPage />} />
 
-            {/* Legacy Portuguese route compatibility redirects */}
-            <Route path="/documentos" element={<LegacyRouteRedirect targetPrefix="/documents" />} />
-            <Route
-              path="/documentos/:id"
-              element={<LegacyRouteRedirect targetPrefix="/documents" paramKey="id" />}
-            />
-            <Route path="/lixeira" element={<LegacyRouteRedirect targetPrefix="/trash" />} />
-            <Route path="/pastas" element={<LegacyRouteRedirect targetPrefix="/folders" />} />
-            <Route
-              path="/pastas/:folderId"
-              element={<LegacyRouteRedirect targetPrefix="/folders" paramKey="folderId" />}
-            />
-            <Route
-              path="/categorias"
-              element={<LegacyRouteRedirect targetPrefix="/categories" />}
-            />
-            <Route path="/etiquetas" element={<LegacyRouteRedirect targetPrefix="/tags" />} />
-            <Route path="/fluxos" element={<LegacyRouteRedirect targetPrefix="/workflows" />} />
-            <Route path="/tarefas" element={<LegacyRouteRedirect targetPrefix="/tasks" />} />
-            <Route
-              path="/tarefas/:id"
-              element={<LegacyRouteRedirect targetPrefix="/tasks" paramKey="id" />}
-            />
-            <Route
-              path="/vencimentos"
-              element={<LegacyRouteRedirect targetPrefix="/expirations" />}
-            />
-            <Route path="/relatorios" element={<LegacyRouteRedirect targetPrefix="/reports" />} />
-            <Route
-              path="/admin/usuarios"
-              element={<LegacyRouteRedirect targetPrefix="/admin/users" />}
-            />
-            <Route
-              path="/admin/grupos"
-              element={<LegacyRouteRedirect targetPrefix="/admin/groups" />}
-            />
-            <Route
-              path="/admin/permissoes"
-              element={<LegacyRouteRedirect targetPrefix="/admin/permissions" />}
-            />
-            <Route
-              path="/admin/armazenamento"
-              element={<LegacyRouteRedirect targetPrefix="/admin/storage" />}
-            />
-            <Route
-              path="/admin/auditoria"
-              element={<LegacyRouteRedirect targetPrefix="/admin/audit" />}
-            />
-            <Route
-              path="/admin/configuracoes"
-              element={<LegacyRouteRedirect targetPrefix="/admin/settings" />}
-            />
-          </Route>
+          {/* Legacy Portuguese route compatibility redirects */}
+          <Route path="/documentos" element={<LegacyRouteRedirect targetPrefix="/documents" />} />
+          <Route
+            path="/documentos/:id"
+            element={<LegacyRouteRedirect targetPrefix="/documents" paramKey="id" />}
+          />
+          <Route path="/lixeira" element={<LegacyRouteRedirect targetPrefix="/trash" />} />
+          <Route path="/pastas" element={<LegacyRouteRedirect targetPrefix="/folders" />} />
+          <Route
+            path="/pastas/:folderId"
+            element={<LegacyRouteRedirect targetPrefix="/folders" paramKey="folderId" />}
+          />
+          <Route path="/categorias" element={<LegacyRouteRedirect targetPrefix="/categories" />} />
+          <Route path="/etiquetas" element={<LegacyRouteRedirect targetPrefix="/tags" />} />
+          <Route path="/fluxos" element={<LegacyRouteRedirect targetPrefix="/workflows" />} />
+          <Route path="/tarefas" element={<LegacyRouteRedirect targetPrefix="/tasks" />} />
+          <Route
+            path="/tarefas/:id"
+            element={<LegacyRouteRedirect targetPrefix="/tasks" paramKey="id" />}
+          />
+          <Route
+            path="/vencimentos"
+            element={<LegacyRouteRedirect targetPrefix="/expirations" />}
+          />
+          <Route path="/relatorios" element={<LegacyRouteRedirect targetPrefix="/reports" />} />
+          <Route
+            path="/admin/usuarios"
+            element={<LegacyRouteRedirect targetPrefix="/admin/users" />}
+          />
+          <Route
+            path="/admin/grupos"
+            element={<LegacyRouteRedirect targetPrefix="/admin/groups" />}
+          />
+          <Route
+            path="/admin/permissoes"
+            element={<LegacyRouteRedirect targetPrefix="/admin/permissions" />}
+          />
+          <Route
+            path="/admin/armazenamento"
+            element={<LegacyRouteRedirect targetPrefix="/admin/storage" />}
+          />
+          <Route
+            path="/admin/auditoria"
+            element={<LegacyRouteRedirect targetPrefix="/admin/audit" />}
+          />
+          <Route
+            path="/admin/configuracoes"
+            element={<LegacyRouteRedirect targetPrefix="/admin/settings" />}
+          />
         </Route>
+      </Route>
 
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
   );
 }

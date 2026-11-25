@@ -36,6 +36,13 @@
       "when": 1795614540578,
       "tag": "0004_woozy_agent_brand",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1795615747083,
+      "tag": "0005_fancy_meltdown",
+      "breakpoints": true
     }
   ]
 }

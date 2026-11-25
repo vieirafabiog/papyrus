@@ -55,6 +55,7 @@ export {
   createDocumentVersionRepository,
 } from "./repositories/document-repository.js";
 export { createDocumentCommentRepository } from "./repositories/document-comment-repository.js";
+export { createDocumentShareLinkRepository } from "./repositories/document-share-repository.js";
 export {
   createDocumentExpirationRepository,
   type DocumentExpirationListItemRecord,
@@ -151,6 +152,7 @@ export {
   documentExtractedTexts,
   type DocumentMetadataColumnValue,
   documentMetadata,
+  documentShareLinks,
   documentStatusEnum,
   documents,
   documentTags,
