@@ -314,21 +314,6 @@ export async function registerUploadRoutes(
   const maxSignedTargetTtlSeconds =
     uploadStorageDeps?.maxSignedTargetTtlSeconds ?? MAX_SIGNED_TARGET_TTL_SECONDS;
 
-  // Pass raw stream directly for multipart and binary uploads inside this encapsulated plugin
-  // without buffering the whole payload into memory.
-  app.addContentTypeParser(/^multipart\/form-data(?:\s*;.*)?$/i, (_request, payload, done) => {
-    done(null, payload);
-  });
-  app.addContentTypeParser("application/octet-stream", (_request, payload, done) => {
-    done(null, payload);
-  });
-  app.addContentTypeParser("application/pdf", (_request, payload, done) => {
-    done(null, payload);
-  });
-  app.addContentTypeParser(/^image\/[a-z0-9.+-]+$/i, (_request, payload, done) => {
-    done(null, payload);
-  });
-
   const resolveSessionUploadMode = async (
     storageConnectionId: string,
   ): Promise<UploadModeContract | undefined> => {
@@ -1043,16 +1028,28 @@ export async function registerUploadRoutes(
       `${CONTRACTS_API_PREFIX}/uploads/sessions/:id/signed-target`,
       handleIssueSignedUploadTarget,
     );
-    app.post<{ Params: { id: string } }>(
-      `${CONTRACTS_API_PREFIX}/uploads/sessions/:id/content`,
-      { bodyLimit: streamBodyLimit },
-      handleStreamContentUpload,
-    );
-    app.put<{ Params: { id: string } }>(
-      `${CONTRACTS_API_PREFIX}/uploads/sessions/:id/content`,
-      { bodyLimit: streamBodyLimit },
-      handleStreamContentUpload,
-    );
+
+    // Encapsulate streaming binary endpoints so ANY allowed MIME (text/markdown,
+    // text/plain, application/json, Office OOXML, PDF, images, multipart, etc.)
+    // flows directly as a Readable stream without buffering or 415 rejections,
+    // while keeping JSON parsing intact for /sessions, /signed-target, and /finalize.
+    await app.register(async (contentApp) => {
+      contentApp.removeAllContentTypeParsers();
+      contentApp.addContentTypeParser("*", (_request, payload, done) => {
+        done(null, payload);
+      });
+
+      contentApp.post<{ Params: { id: string } }>(
+        `${CONTRACTS_API_PREFIX}/uploads/sessions/:id/content`,
+        { bodyLimit: streamBodyLimit },
+        handleStreamContentUpload,
+      );
+      contentApp.put<{ Params: { id: string } }>(
+        `${CONTRACTS_API_PREFIX}/uploads/sessions/:id/content`,
+        { bodyLimit: streamBodyLimit },
+        handleStreamContentUpload,
+      );
+    });
   }
 
   if (finalizeUploadService) {
