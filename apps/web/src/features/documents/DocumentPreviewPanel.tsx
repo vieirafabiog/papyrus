@@ -1,9 +1,13 @@
+import ArticleOutlinedIcon from "@mui/icons-material/ArticleOutlined";
+import DataObjectOutlinedIcon from "@mui/icons-material/DataObjectOutlined";
+import DescriptionOutlinedIcon from "@mui/icons-material/DescriptionOutlined";
 import DownloadOutlinedIcon from "@mui/icons-material/DownloadOutlined";
 import ImageOutlinedIcon from "@mui/icons-material/ImageOutlined";
 import InsertDriveFileOutlinedIcon from "@mui/icons-material/InsertDriveFileOutlined";
 import OpenInNewOutlinedIcon from "@mui/icons-material/OpenInNewOutlined";
 import PictureAsPdfOutlinedIcon from "@mui/icons-material/PictureAsPdfOutlined";
 import RefreshOutlinedIcon from "@mui/icons-material/RefreshOutlined";
+import TableChartOutlinedIcon from "@mui/icons-material/TableChartOutlined";
 import { Alert, Box, Button, Divider, Paper, Stack, Typography } from "@mui/material";
 import {
   CONTRACTS_API_PREFIX,
@@ -15,28 +19,48 @@ import { useEffect, useState } from "react";
 import { containsTechnicalJargon, getLocalizedApiErrorMessage } from "../../i18n/api-errors.js";
 import { type UiLocale, getCurrentUiLocale, translate, useI18n } from "../../i18n/index.js";
 import { requestVersionDownloadTarget } from "./useDocumentDetails.js";
+import { CsvPreviewViewer } from "./viewers/CsvPreviewViewer.js";
+import { JsonPreviewViewer } from "./viewers/JsonPreviewViewer.js";
+import { MarkdownPreviewViewer } from "./viewers/MarkdownPreviewViewer.js";
+import { TextPreviewViewer } from "./viewers/TextPreviewViewer.js";
+import {
+  ALLOWED_IMAGE_PREVIEW_MIME_TYPES,
+  ALLOWED_TEXT_PREVIEW_MIME_TYPES,
+  DEFAULT_MAX_IMAGE_PREVIEW_BYTES,
+  DEFAULT_MAX_TEXT_PREVIEW_BYTES,
+  type DocumentPreviewKind,
+  isTextPreviewKind,
+  resolveDocumentPreviewKind,
+} from "./viewers/preview-formats.js";
 
-export const DEFAULT_MAX_IMAGE_PREVIEW_BYTES = 15 * 1024 * 1024;
-
-export const ALLOWED_IMAGE_PREVIEW_MIME_TYPES = new Set<string>([
-  "image/png",
-  "image/jpeg",
-  "image/webp",
-  "image/gif",
-]);
+export {
+  ALLOWED_IMAGE_PREVIEW_MIME_TYPES,
+  ALLOWED_TEXT_PREVIEW_MIME_TYPES,
+  DEFAULT_MAX_IMAGE_PREVIEW_BYTES,
+  DEFAULT_MAX_TEXT_PREVIEW_BYTES,
+  resolveDocumentPreviewKind,
+  type DocumentPreviewKind,
+};
 
 export interface DocumentPreviewPanelProps {
   readonly document: DocumentDetail;
   readonly versionId?: string | undefined;
   readonly maxImageBytes?: number | undefined;
+  readonly maxTextBytes?: number | undefined;
   readonly fetchFn?: typeof fetch | undefined;
   readonly onDownload?: (() => Promise<void> | void) | undefined;
 }
 
 async function extractPreviewErrorMessage(
   response: Response,
+  previewKind: DocumentPreviewKind,
   locale: UiLocale = getCurrentUiLocale(),
 ): Promise<string> {
+  const tooLargeKey =
+    previewKind === "image"
+      ? "documents.preview.imageTooLargeError"
+      : "documents.preview.fileTooLargeError";
+
   try {
     const raw: unknown = await response.json();
     const parsed = apiErrorResponseSchema.safeParse(raw);
@@ -48,7 +72,7 @@ async function extractPreviewErrorMessage(
         return translate("documents.preview.pendingSecurity", undefined, locale);
       }
       if (response.status === 413) {
-        return translate("documents.preview.imageTooLargeError", undefined, locale);
+        return translate(tooLargeKey, undefined, locale);
       }
       return getLocalizedApiErrorMessage(
         parsed.data.error.code,
@@ -68,19 +92,21 @@ async function extractPreviewErrorMessage(
     return translate("documents.preview.pendingSecurity", undefined, locale);
   }
   if (response.status === 413) {
-    return translate("documents.preview.imageTooLargeError", undefined, locale);
+    return translate(tooLargeKey, undefined, locale);
   }
   return translate("documents.preview.loadFailed", undefined, locale);
 }
 
 /**
- * Unified authorized preview viewer supporting PDF documents and safe raster images
- * within size constraints, offering authorized download fallback for oversized or other formats.
+ * Unified authorized preview viewer supporting PDFs, safe raster images (PNG, JPEG, WebP,
+ * GIF, BMP), CSV tables, formatted JSON, plain text/logs, and safe Markdown rendering,
+ * offering authorized download fallback for oversized or unsupported formats.
  */
 export function DocumentPreviewPanel({
   document,
   versionId,
   maxImageBytes = DEFAULT_MAX_IMAGE_PREVIEW_BYTES,
+  maxTextBytes = DEFAULT_MAX_TEXT_PREVIEW_BYTES,
   fetchFn,
   onDownload,
 }: DocumentPreviewPanelProps) {
@@ -88,20 +114,27 @@ export function DocumentPreviewPanel({
   const fileObject = document.currentVersion?.fileObject ?? null;
   const detectedMime = fileObject?.detectedContentType.toLowerCase() ?? "";
   const isAvailable = fileObject?.status === "AVAILABLE";
-  const isPdf = detectedMime === "application/pdf";
-  const isAllowedImage = ALLOWED_IMAGE_PREVIEW_MIME_TYPES.has(detectedMime);
-  const isOversizedImage = Boolean(
-    fileObject && isAllowedImage && fileObject.sizeBytes > maxImageBytes,
-  );
+  const previewKind = fileObject
+    ? resolveDocumentPreviewKind(detectedMime, fileObject.originalFileName)
+    : "unsupported";
+
+  const isPdf = previewKind === "pdf";
+  const isImage = previewKind === "image";
+  const isTextLike = isTextPreviewKind(previewKind);
+  const isOversizedImage = Boolean(fileObject && isImage && fileObject.sizeBytes > maxImageBytes);
+  const isOversizedText = Boolean(fileObject && isTextLike && fileObject.sizeBytes > maxTextBytes);
 
   const canFetchPreview = Boolean(
-    fileObject && isAvailable && (isPdf || (isAllowedImage && !isOversizedImage)),
+    fileObject &&
+      isAvailable &&
+      (isPdf || (isImage && !isOversizedImage) || (isTextLike && !isOversizedText)),
   );
 
   const [reloadToken, setReloadToken] = useState(0);
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [blobUrl, setBlobUrl] = useState<string | null>(null);
+  const [textContent, setTextContent] = useState<string | null>(null);
   const [downloading, setDownloading] = useState(false);
   const [downloadError, setDownloadError] = useState<string | null>(null);
 
@@ -112,6 +145,7 @@ export function DocumentPreviewPanel({
       setLoading(false);
       setErrorMessage(null);
       setBlobUrl(null);
+      setTextContent(null);
       return;
     }
 
@@ -121,6 +155,8 @@ export function DocumentPreviewPanel({
 
     setLoading(true);
     setErrorMessage(null);
+    setBlobUrl(null);
+    setTextContent(null);
 
     const endpoint = isPdf ? "preview" : "content";
     const querySuffix = versionId ? `?versionId=${encodeURIComponent(versionId)}` : "";
@@ -133,7 +169,17 @@ export function DocumentPreviewPanel({
     })
       .then(async (response) => {
         if (!response.ok) {
-          throw new Error(await extractPreviewErrorMessage(response, locale));
+          throw new Error(await extractPreviewErrorMessage(response, previewKind, locale));
+        }
+
+        if (isTextLike) {
+          const decoded = await response.text();
+          if (cancelled) {
+            return;
+          }
+          setTextContent(decoded);
+          setLoading(false);
+          return;
         }
 
         const blob = await response.blob();
@@ -157,6 +203,7 @@ export function DocumentPreviewPanel({
           return;
         }
         setBlobUrl(null);
+        setTextContent(null);
         const rawMessage = error instanceof Error ? error.message.trim() : "";
         setErrorMessage(
           rawMessage.length > 0 && !containsTechnicalJargon(rawMessage)
@@ -173,7 +220,17 @@ export function DocumentPreviewPanel({
         URL.revokeObjectURL(activeObjectUrl);
       }
     };
-  }, [canFetchPreview, isPdf, document.id, versionId, reloadToken, fetchImpl, locale]);
+  }, [
+    canFetchPreview,
+    isPdf,
+    isTextLike,
+    previewKind,
+    document.id,
+    versionId,
+    reloadToken,
+    fetchImpl,
+    locale,
+  ]);
 
   if (!fileObject) {
     return null;
@@ -253,13 +310,34 @@ export function DocumentPreviewPanel({
     </Stack>
   );
 
-  const headerIcon = isPdf ? (
-    <PictureAsPdfOutlinedIcon color="primary" fontSize="small" />
-  ) : isAllowedImage ? (
-    <ImageOutlinedIcon color="primary" fontSize="small" />
-  ) : (
-    <InsertDriveFileOutlinedIcon color="primary" fontSize="small" />
-  );
+  const headerIcon =
+    previewKind === "pdf" ? (
+      <PictureAsPdfOutlinedIcon color="primary" fontSize="small" />
+    ) : previewKind === "image" ? (
+      <ImageOutlinedIcon color="primary" fontSize="small" />
+    ) : previewKind === "csv" ? (
+      <TableChartOutlinedIcon color="primary" fontSize="small" />
+    ) : previewKind === "json" ? (
+      <DataObjectOutlinedIcon color="primary" fontSize="small" />
+    ) : previewKind === "markdown" ? (
+      <ArticleOutlinedIcon color="primary" fontSize="small" />
+    ) : previewKind === "text" ? (
+      <DescriptionOutlinedIcon color="primary" fontSize="small" />
+    ) : (
+      <InsertDriveFileOutlinedIcon color="primary" fontSize="small" />
+    );
+
+  const loadingMessage = isPdf
+    ? t("documents.preview.loadingPdf")
+    : isImage
+      ? t("documents.preview.loadingImage")
+      : t("documents.preview.loadingText");
+
+  const errorTitle = isPdf
+    ? t("documents.preview.pdfErrorTitle")
+    : isImage
+      ? t("documents.preview.imageErrorTitle")
+      : t("documents.preview.textErrorTitle");
 
   return (
     <Paper
@@ -328,26 +406,37 @@ export function DocumentPreviewPanel({
               maxSize: formatBytes(maxImageBytes),
             }),
           )
-        ) : !isPdf && !isAllowedImage ? (
+        ) : isOversizedText ? (
+          renderDownloadOffer(
+            t("documents.preview.oversizedFile", {
+              size: formatBytes(fileObject.sizeBytes),
+              maxSize: formatBytes(maxTextBytes),
+            }),
+          )
+        ) : previewKind === "unsupported" ? (
           renderDownloadOffer(
             t("documents.preview.unsupportedFormat", {
               fileType: fileObject.detectedContentType,
             }),
           )
         ) : loading ? (
-          <LoadingState
-            message={
-              isPdf ? t("documents.preview.loadingPdf") : t("documents.preview.loadingImage")
-            }
-          />
+          <LoadingState message={loadingMessage} />
         ) : errorMessage ? (
           <ErrorState
-            title={
-              isPdf ? t("documents.preview.pdfErrorTitle") : t("documents.preview.imageErrorTitle")
-            }
+            title={errorTitle}
             description={errorMessage}
             onRetry={() => setReloadToken((prev) => prev + 1)}
           />
+        ) : isTextLike && textContent !== null ? (
+          previewKind === "csv" ? (
+            <CsvPreviewViewer content={textContent} />
+          ) : previewKind === "json" ? (
+            <JsonPreviewViewer content={textContent} />
+          ) : previewKind === "markdown" ? (
+            <MarkdownPreviewViewer content={textContent} />
+          ) : (
+            <TextPreviewViewer content={textContent} />
+          )
         ) : blobUrl ? (
           isPdf ? (
             <Box

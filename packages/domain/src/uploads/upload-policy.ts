@@ -62,8 +62,12 @@ export const DOMAIN_DEFAULT_UPLOAD_ALLOWED_EXTENSIONS: readonly string[] = [
   ".gif",
   ".tif",
   ".tiff",
+  ".bmp",
   ".txt",
+  ".log",
+  ".md",
   ".csv",
+  ".json",
   ".docx",
   ".xlsx",
   ".pptx",
@@ -119,12 +123,16 @@ const SAFE_FORMAT_BY_EXTENSION: ReadonlyMap<string, SafeDomainFormatRule> = new 
 const MIME_ALIASES: Readonly<Record<string, string>> = {
   "image/jpg": "image/jpeg",
   "image/pjpeg": "image/jpeg",
+  "image/x-ms-bmp": "image/bmp",
+  "image/x-bmp": "image/bmp",
   "application/x-pdf": "application/pdf",
   "application/acrobat": "application/pdf",
   "application/csv": "text/csv",
   "text/x-csv": "text/csv",
   "application/vnd.ms-excel": "text/csv",
   "text/json": "application/json",
+  "text/markdown": "text/plain",
+  "text/x-markdown": "text/plain",
 };
 
 export interface StoredUploadLimitsRecord {

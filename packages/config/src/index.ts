@@ -16,8 +16,12 @@ export const DEFAULT_UPLOAD_ALLOWED_EXTENSIONS: readonly string[] = [
   ".gif",
   ".tif",
   ".tiff",
+  ".bmp",
   ".txt",
+  ".log",
+  ".md",
   ".csv",
+  ".json",
   ".docx",
   ".xlsx",
   ".pptx",
@@ -25,10 +29,6 @@ export const DEFAULT_UPLOAD_ALLOWED_EXTENSIONS: readonly string[] = [
 
 export const SUPPORTED_UPLOAD_EXTENSIONS: readonly string[] = [
   ...DEFAULT_UPLOAD_ALLOWED_EXTENSIONS,
-  ".bmp",
-  ".log",
-  ".md",
-  ".json",
   ".doc",
   ".xls",
   ".ppt",

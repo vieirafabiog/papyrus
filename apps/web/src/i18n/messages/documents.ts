@@ -169,12 +169,16 @@ export const documentsEn = {
     "Preview is unavailable until the file passes security checks and becomes available.",
   "documents.preview.oversizedImage":
     "This image ({size}) exceeds the {maxSize} limit for in-page preview.",
+  "documents.preview.oversizedFile":
+    "This file ({size}) exceeds the {maxSize} limit for in-page preview.",
   "documents.preview.unsupportedFormat":
     'Preview is not available for "{fileType}" files. Download the file to view its contents.',
   "documents.preview.loadingPdf": "Loading PDF preview...",
   "documents.preview.loadingImage": "Loading image preview...",
+  "documents.preview.loadingText": "Loading document content...",
   "documents.preview.pdfErrorTitle": "Unable to load PDF",
   "documents.preview.imageErrorTitle": "Unable to load image",
+  "documents.preview.textErrorTitle": "Unable to load file preview",
   "documents.preview.pdfFrameTitle": "PDF preview: {fileName}",
   "documents.preview.imageAlt": "Image preview: {fileName}",
   "documents.preview.fileInfoPrefix": "File:",
@@ -186,6 +190,37 @@ export const documentsEn = {
   "documents.preview.forbidden": "You do not have permission to preview this document.",
   "documents.preview.imageTooLargeError":
     "The image exceeds the maximum size supported for browser preview.",
+  "documents.preview.fileTooLargeError":
+    "The file exceeds the maximum size supported for browser preview.",
+  "documents.preview.copyContent": "Copy",
+  "documents.preview.copied": "Copied",
+  "documents.preview.wrapLines": "Wrap lines",
+  "documents.preview.searchPlaceholder": "Filter content...",
+  "documents.preview.noMatches": "No lines match the current filter.",
+  "documents.preview.linesCount": "{count} lines",
+  "documents.preview.filteredLinesCount": "{shown} of {total} lines",
+  "documents.preview.truncatedLines":
+    "Showing the first {shown} of {total} lines. Download the file to view the full content.",
+  "documents.preview.emptyContent": "This file has no text content to display.",
+  "documents.preview.csv.tableMode": "Table",
+  "documents.preview.csv.sourceMode": "Raw",
+  "documents.preview.csv.summary": "{rows} rows · {columns} columns",
+  "documents.preview.csv.delimiter": "Delimiter: {delimiter}",
+  "documents.preview.csv.tableAriaLabel": "CSV spreadsheet preview",
+  "documents.preview.csv.truncated":
+    "Showing the first {shownRows} of {totalRows} rows. Download the file to inspect all records.",
+  "documents.preview.csv.noRowsMatch": "No rows match the current filter.",
+  "documents.preview.json.formattedMode": "Formatted",
+  "documents.preview.json.compactMode": "Compact",
+  "documents.preview.json.rawMode": "Raw",
+  "documents.preview.json.objectSummary": "JSON object · {count} keys",
+  "documents.preview.json.arraySummary": "JSON array · {count} items",
+  "documents.preview.json.primitiveSummary": "Valid JSON",
+  "documents.preview.json.invalidNotice":
+    "This file could not be parsed as strict JSON. Displaying raw content instead.",
+  "documents.preview.markdown.renderedMode": "Formatted",
+  "documents.preview.markdown.sourceMode": "Source",
+  "documents.preview.markdown.badge": "Markdown",
 
   "documents.trash.title": "Document trash",
   "documents.trash.subtitle":
@@ -608,12 +643,16 @@ export const documentsPt: Readonly<Record<DocumentsMessageKey, string>> = {
     "Pré-visualização indisponível até que a análise de segurança do arquivo seja concluída com sucesso.",
   "documents.preview.oversizedImage":
     "Esta imagem ({size}) ultrapassa o limite máximo de {maxSize} para pré-visualização na página.",
+  "documents.preview.oversizedFile":
+    "Este arquivo ({size}) ultrapassa o limite máximo de {maxSize} para pré-visualização na página.",
   "documents.preview.unsupportedFormat":
     'Pré-visualização não disponível para o formato "{fileType}". Baixe o arquivo para visualizar o conteúdo.',
   "documents.preview.loadingPdf": "Carregando pré-visualização do PDF...",
   "documents.preview.loadingImage": "Carregando pré-visualização da imagem...",
+  "documents.preview.loadingText": "Carregando conteúdo do documento...",
   "documents.preview.pdfErrorTitle": "Não foi possível carregar o PDF",
   "documents.preview.imageErrorTitle": "Não foi possível carregar a imagem",
+  "documents.preview.textErrorTitle": "Não foi possível carregar a pré-visualização do arquivo",
   "documents.preview.pdfFrameTitle": "Pré-visualização do PDF: {fileName}",
   "documents.preview.imageAlt": "Pré-visualização da imagem: {fileName}",
   "documents.preview.fileInfoPrefix": "Arquivo:",
@@ -627,6 +666,37 @@ export const documentsPt: Readonly<Record<DocumentsMessageKey, string>> = {
   "documents.preview.forbidden": "Você não possui permissão para pré-visualizar este documento.",
   "documents.preview.imageTooLargeError":
     "A imagem excede o tamanho máximo suportado para pré-visualização no navegador.",
+  "documents.preview.fileTooLargeError":
+    "O arquivo excede o tamanho máximo suportado para pré-visualização no navegador.",
+  "documents.preview.copyContent": "Copiar",
+  "documents.preview.copied": "Copiado",
+  "documents.preview.wrapLines": "Quebrar linhas",
+  "documents.preview.searchPlaceholder": "Filtrar conteúdo...",
+  "documents.preview.noMatches": "Nenhuma linha corresponde ao filtro atual.",
+  "documents.preview.linesCount": "{count} linhas",
+  "documents.preview.filteredLinesCount": "{shown} de {total} linhas",
+  "documents.preview.truncatedLines":
+    "Exibindo as primeiras {shown} de {total} linhas. Baixe o arquivo para visualizar o conteúdo completo.",
+  "documents.preview.emptyContent": "Este arquivo não possui conteúdo textual para exibição.",
+  "documents.preview.csv.tableMode": "Tabela",
+  "documents.preview.csv.sourceMode": "Texto",
+  "documents.preview.csv.summary": "{rows} linhas · {columns} colunas",
+  "documents.preview.csv.delimiter": "Separador: {delimiter}",
+  "documents.preview.csv.tableAriaLabel": "Pré-visualização da planilha CSV",
+  "documents.preview.csv.truncated":
+    "Exibindo as primeiras {shownRows} de {totalRows} linhas. Baixe o arquivo para consultar todos os registros.",
+  "documents.preview.csv.noRowsMatch": "Nenhuma linha da tabela corresponde ao filtro.",
+  "documents.preview.json.formattedMode": "Formatado",
+  "documents.preview.json.compactMode": "Compacto",
+  "documents.preview.json.rawMode": "Original",
+  "documents.preview.json.objectSummary": "Objeto JSON · {count} chaves",
+  "documents.preview.json.arraySummary": "Lista JSON · {count} itens",
+  "documents.preview.json.primitiveSummary": "JSON válido",
+  "documents.preview.json.invalidNotice":
+    "Este arquivo não pôde ser interpretado como JSON válido. Exibindo o conteúdo original.",
+  "documents.preview.markdown.renderedMode": "Visual",
+  "documents.preview.markdown.sourceMode": "Código",
+  "documents.preview.markdown.badge": "Markdown",
 
   "documents.trash.title": "Lixeira de documentos",
   "documents.trash.subtitle":

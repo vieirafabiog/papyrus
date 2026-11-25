@@ -10,8 +10,10 @@ export const DEFAULT_ALLOWED_MIME_TYPES: readonly string[] = [
   "image/webp",
   "image/gif",
   "image/tiff",
+  "image/bmp",
   "text/plain",
   "text/csv",
+  "application/json",
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
   "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
   "application/vnd.openxmlformats-officedocument.presentationml.presentation",
@@ -90,12 +92,16 @@ const DANGEROUS_EXTENSIONS: ReadonlySet<string> = new Set([
 const MIME_ALIASES: Readonly<Record<string, string>> = {
   "image/jpg": "image/jpeg",
   "image/pjpeg": "image/jpeg",
+  "image/x-ms-bmp": "image/bmp",
+  "image/x-bmp": "image/bmp",
   "application/x-pdf": "application/pdf",
   "application/acrobat": "application/pdf",
   "application/csv": "text/csv",
   "text/x-csv": "text/csv",
   "application/vnd.ms-excel": "text/csv",
   "text/json": "application/json",
+  "text/markdown": "text/plain",
+  "text/x-markdown": "text/plain",
 };
 
 interface MimeFormatRule {

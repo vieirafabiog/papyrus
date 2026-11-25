@@ -21,12 +21,21 @@ import type { DocumentAuthorizationGuard } from "../../plugins/authorization.js"
 
 const DEFAULT_PREVIEW_SIGNED_TTL_SECONDS = 60;
 export const DEFAULT_MAX_IMAGE_PREVIEW_BYTES = 15 * 1024 * 1024;
+export const DEFAULT_MAX_TEXT_PREVIEW_BYTES = 5 * 1024 * 1024;
 
 export const ALLOWED_PREVIEW_IMAGE_MIME_TYPES = new Set<string>([
   "image/png",
   "image/jpeg",
   "image/webp",
   "image/gif",
+  "image/bmp",
+]);
+
+export const ALLOWED_PREVIEW_TEXT_MIME_TYPES = new Set<string>([
+  "text/plain",
+  "text/markdown",
+  "text/csv",
+  "application/json",
 ]);
 
 const previewQuerySchema = z.object({
@@ -42,6 +51,7 @@ export interface DocumentPreviewRoutesDependencies {
   readonly storageRegistry: StorageProviderRegistry;
   readonly auditRepository: AuditRepositoryPort;
   readonly maxImagePreviewBytes?: number | undefined;
+  readonly maxTextPreviewBytes?: number | undefined;
 }
 
 function sanitizeInlineFileName(rawName: string, fallbackExtension = "bin"): string {
@@ -59,7 +69,11 @@ function sanitizeInlinePdfFileName(rawName: string): string {
 
 function isSupportedContentPreviewMime(mimeType: string): boolean {
   const normalized = mimeType.toLowerCase();
-  return normalized === "application/pdf" || ALLOWED_PREVIEW_IMAGE_MIME_TYPES.has(normalized);
+  return (
+    normalized === "application/pdf" ||
+    ALLOWED_PREVIEW_IMAGE_MIME_TYPES.has(normalized) ||
+    ALLOWED_PREVIEW_TEXT_MIME_TYPES.has(normalized)
+  );
 }
 
 /**
@@ -80,6 +94,7 @@ export async function registerDocumentPreviewRoutes(
     auditRepository,
   } = deps;
   const maxImagePreviewBytes = deps.maxImagePreviewBytes ?? DEFAULT_MAX_IMAGE_PREVIEW_BYTES;
+  const maxTextPreviewBytes = deps.maxTextPreviewBytes ?? DEFAULT_MAX_TEXT_PREVIEW_BYTES;
   const auditWriter = createAuditWriter({ repository: auditRepository });
 
   const authorizeAndLoadPreviewSubject = async (
@@ -320,16 +335,19 @@ export async function registerDocumentPreviewRoutes(
         },
       });
 
-      reply.header("Content-Type", contentType);
+      const isTextLike = ALLOWED_PREVIEW_TEXT_MIME_TYPES.has(contentType.toLowerCase());
+      reply.header("Content-Type", isTextLike ? `${contentType}; charset=utf-8` : contentType);
       reply.header("Content-Disposition", `inline; filename="${inlineFileName}"`);
       if (downloaded.metadata.contentLength > 0) {
         reply.header("Content-Length", String(downloaded.metadata.contentLength));
       }
       reply.header(
         "Content-Security-Policy",
-        "default-src 'none'; img-src 'self'; object-src 'self'; frame-ancestors 'self'",
+        isTextLike
+          ? "default-src 'none'; frame-ancestors 'none'"
+          : "default-src 'none'; img-src 'self'; object-src 'self'; frame-ancestors 'self'",
       );
-      reply.header("X-Frame-Options", "SAMEORIGIN");
+      reply.header("X-Frame-Options", isTextLike ? "DENY" : "SAMEORIGIN");
 
       return reply.status(200).send(downloaded.body);
     } catch (error) {
@@ -403,6 +421,20 @@ export async function registerDocumentPreviewRoutes(
             code: "UPLOAD_TOO_LARGE",
             message:
               "A imagem excede o limite de tamanho para pré-visualização inline. Realize o download autorizado.",
+            requestId: request.id,
+          },
+        });
+      }
+
+      if (
+        ALLOWED_PREVIEW_TEXT_MIME_TYPES.has(detectedMime) &&
+        subject.fileObject.sizeBytes > maxTextPreviewBytes
+      ) {
+        return reply.status(413).send({
+          error: {
+            code: "UPLOAD_TOO_LARGE",
+            message:
+              "O arquivo excede o limite de tamanho para pré-visualização inline. Realize o download autorizado.",
             requestId: request.id,
           },
         });
