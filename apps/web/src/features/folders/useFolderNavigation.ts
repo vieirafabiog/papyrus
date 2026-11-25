@@ -280,14 +280,14 @@ export async function fetchAuthorizedSubfolders(
 }
 
 export async function fetchAuthorizedFolderDocuments(
-  folderId: string,
+  folderId: string | null,
   page: number,
   pageSize: number,
   signal?: AbortSignal,
   locale: UiLocale = getCurrentUiLocale(),
 ): Promise<DocumentListResponse> {
   const params = new URLSearchParams({
-    folderId,
+    ...(folderId === null ? { rootOnly: "true" } : { folderId }),
     page: String(page),
     pageSize: String(pageSize),
     sortBy: "updatedAt",
@@ -330,13 +330,10 @@ export async function loadFolderNavigationState(
   locale: UiLocale = getCurrentUiLocale(),
 ): Promise<FolderNavigationResult> {
   if (folderId === null) {
-    const subfolders = await fetchAuthorizedSubfolders(
-      null,
-      options.statusFilter,
-      options.search,
-      signal,
-      locale,
-    );
+    const [subfolders, documents] = await Promise.all([
+      fetchAuthorizedSubfolders(null, options.statusFilter, options.search, signal, locale),
+      fetchAuthorizedFolderDocuments(null, options.docPage, options.docPageSize, signal, locale),
+    ]);
     return {
       currentFolder: null,
       breadcrumbs: [
@@ -348,7 +345,7 @@ export async function loadFolderNavigationState(
         },
       ],
       subfolders,
-      documents: null,
+      documents,
       archivedNotice: null,
     };
   }

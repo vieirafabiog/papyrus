@@ -116,6 +116,28 @@ describe("FoldersPage — hierarchical breadcrumbs, navigation authorization and
         });
       }
 
+      if (url.includes("/documents/search?rootOnly=true")) {
+        return jsonResponse({
+          items: [
+            {
+              id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+              title: "Documento na Raiz",
+              categoryId: CAT_ID,
+              folderId: null,
+              status: "DRAFT",
+              currentVersionId: null,
+              ownerUserId: OWNER_ID,
+              issueDate: null,
+              expirationDate: null,
+              version: 1,
+              createdAt: "2026-11-20T10:00:00.000Z",
+              updatedAt: "2026-11-20T10:00:00.000Z",
+            },
+          ],
+          pagination: { page: 1, pageSize: 20, totalItems: 1, totalPages: 1 },
+        });
+      }
+
       if (url.includes(`/documents/search?folderId=${ROOT_FOLDER_ID}`)) {
         return jsonResponse({
           items: [],
@@ -154,6 +176,8 @@ describe("FoldersPage — hierarchical breadcrumbs, navigation authorization and
     renderFoldersPage("/folders");
 
     expect(await screen.findByText("Jurídico")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Documents in root" })).toBeInTheDocument();
+    expect(screen.getByText("Documento na Raiz")).toBeInTheDocument();
     fireEvent.click(screen.getByText("Jurídico"));
 
     expect(await screen.findByText("Contratos 2026")).toBeInTheDocument();
@@ -225,6 +249,13 @@ describe("FoldersPage — hierarchical breadcrumbs, navigation authorization and
         });
       }
 
+      if (url.includes("/documents/search?rootOnly=true")) {
+        return jsonResponse({
+          items: [],
+          pagination: { page: 1, pageSize: 20, totalItems: 0, totalPages: 0 },
+        });
+      }
+
       if (url.includes("rootOnly=true")) {
         return jsonResponse({
           data: { items: [], pagination: { page: 1, pageSize: 100, totalItems: 0, totalPages: 0 } },
@@ -283,6 +314,13 @@ describe("FoldersPage — hierarchical breadcrumbs, navigation authorization and
       }
 
       if (url.includes(`/documents/search?folderId=${ARCHIVED_FOLDER_ID}`)) {
+        return jsonResponse({
+          items: [],
+          pagination: { page: 1, pageSize: 20, totalItems: 0, totalPages: 0 },
+        });
+      }
+
+      if (url.includes("/documents/search?rootOnly=true")) {
         return jsonResponse({
           items: [],
           pagination: { page: 1, pageSize: 20, totalItems: 0, totalPages: 0 },

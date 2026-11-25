@@ -14,6 +14,7 @@ import {
   gte,
   ilike,
   inArray,
+  isNull,
   lte,
   ne,
   not,
@@ -99,6 +100,7 @@ export interface DocumentSearchFilter {
   readonly includeExtractedText?: boolean | undefined;
   readonly categoryId?: string | undefined;
   readonly folderId?: string | undefined;
+  readonly rootOnly?: boolean | undefined;
   readonly includeSubfolders?: boolean | undefined;
   readonly status?: DocumentStatus | undefined;
   readonly authorUserId?: string | undefined;
@@ -298,6 +300,8 @@ export function createDocumentSearchRepository(
         } else {
           conditions.push(eq(documents.folderId, filter.folderId));
         }
+      } else if (filter.rootOnly) {
+        conditions.push(isNull(documents.folderId));
       }
       if (filter.authorUserId !== undefined) {
         conditions.push(eq(documents.createdBy, filter.authorUserId));

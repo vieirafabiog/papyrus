@@ -20,6 +20,7 @@ function toRepositorySearchFilter(
     search: input.search,
     categoryId: input.categoryId,
     folderId: input.folderId,
+    rootOnly: input.rootOnly,
     includeSubfolders: input.includeSubfolders,
     status: input.status,
     authorUserId: input.authorUserId,

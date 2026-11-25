@@ -449,13 +449,19 @@ export function FoldersPage() {
         )}
       </Paper>
 
-      {currentFolder && documents ? (
+      {documents ? (
         <Box>
           <Typography variant="h3" component="h2" gutterBottom>
-            {t("folders.documentsInHeading", { name: currentFolder.name })}
+            {currentFolder
+              ? t("folders.documentsInHeading", { name: currentFolder.name })
+              : t("folders.rootDocumentsHeading")}
           </Typography>
           <DataTable
-            ariaLabel={t("folders.documentsTableAria", { name: currentFolder.name })}
+            ariaLabel={
+              currentFolder
+                ? t("folders.documentsTableAria", { name: currentFolder.name })
+                : t("folders.rootDocumentsTableAria")
+            }
             columns={docColumns}
             rows={documents.items}
             getRowId={(row) => row.id}
@@ -469,8 +475,16 @@ export function FoldersPage() {
               setDocPage(1);
             }}
             onRowClick={(row) => void navigate(`/documents/${row.id}`)}
-            emptyTitle={t("folders.emptyDocumentsTitle")}
-            emptyDescription={t("folders.emptyDocumentsDescription")}
+            emptyTitle={
+              currentFolder
+                ? t("folders.emptyDocumentsTitle")
+                : t("folders.emptyRootDocumentsTitle")
+            }
+            emptyDescription={
+              currentFolder
+                ? t("folders.emptyDocumentsDescription")
+                : t("folders.emptyRootDocumentsDescription")
+            }
           />
         </Box>
       ) : null}

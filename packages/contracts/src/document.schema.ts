@@ -315,6 +315,7 @@ const documentSearchBaseObjectSchema = paginationQuerySchema.merge(documentListS
   search: z.string().trim().max(200).optional(),
   categoryId: uuidSchema.optional(),
   folderId: uuidSchema.optional(),
+  rootOnly: z.boolean().optional(),
   includeSubfolders: z.boolean().optional(),
   status: documentStatusSchema.optional(),
   authorUserId: uuidSchema.optional(),
@@ -338,6 +339,7 @@ export type DocumentSearchRequest = z.infer<typeof documentSearchRequestSchema>;
 
 export const documentSearchQuerySchema = documentSearchBaseObjectSchema
   .extend({
+    rootOnly: searchQueryBooleanSchema.optional(),
     includeSubfolders: searchQueryBooleanSchema.optional(),
     tagIds: searchQueryTagIdsSchema.optional(),
     metadataFilters: searchQueryMetadataFiltersSchema.optional(),
