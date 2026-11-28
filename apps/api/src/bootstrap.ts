@@ -80,6 +80,7 @@ import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { buildApp } from "./app.js";
 import { createAuthService } from "./modules/auth/auth.service.js";
+import { createMicrosoftOidcService } from "./modules/auth/microsoft-oidc.service.js";
 import { createGotenbergOfficeConverter } from "./modules/documents/office-preview-converter.js";
 import { createShareLinkCryptoAdapter } from "./modules/documents/share-links.routes.js";
 import { createDrizzleSetupRepository } from "./modules/setup/setup.repository.js";
@@ -109,6 +110,27 @@ const standaloneApiEnvSchema = z.object({
   UPLOAD_ALLOWED_EXTENSIONS: z.string().optional(),
   WORKER_HEALTH_URL: z.string().trim().url().optional(),
   OFFICE_CONVERTER_URL: z
+    .string()
+    .trim()
+    .transform((val) => (val.length === 0 ? undefined : val))
+    .pipe(z.string().url().optional())
+    .optional(),
+  MICROSOFT_AUTH_TENANT_ID: z
+    .string()
+    .trim()
+    .transform((val) => (val.length === 0 ? undefined : val))
+    .optional(),
+  MICROSOFT_AUTH_CLIENT_ID: z
+    .string()
+    .trim()
+    .transform((val) => (val.length === 0 ? undefined : val))
+    .optional(),
+  MICROSOFT_AUTH_CLIENT_SECRET: z
+    .string()
+    .trim()
+    .transform((val) => (val.length === 0 ? undefined : val))
+    .optional(),
+  MICROSOFT_AUTH_REDIRECT_URI: z
     .string()
     .trim()
     .transform((val) => (val.length === 0 ? undefined : val))
@@ -146,9 +168,24 @@ export function createStandaloneApiRuntime(
 ): StandaloneApiRuntime {
   const config = standaloneApiEnvSchema.parse(env);
   const allowedExtensions = parseAllowedExtensions(config.UPLOAD_ALLOWED_EXTENSIONS);
+  const appOrigin = new URL(config.APP_URL).origin;
   const secureCookies = new URL(config.APP_URL).protocol === "https:";
   const allowedOrigins = resolveAllowedOrigins(config.APP_URL);
   const workerHealthUrl = config.WORKER_HEALTH_URL ?? "http://worker:3001/health/ready";
+
+  const microsoftOidc =
+    config.MICROSOFT_AUTH_TENANT_ID &&
+    config.MICROSOFT_AUTH_CLIENT_ID &&
+    config.MICROSOFT_AUTH_CLIENT_SECRET
+      ? createMicrosoftOidcService({
+          tenantId: config.MICROSOFT_AUTH_TENANT_ID,
+          clientId: config.MICROSOFT_AUTH_CLIENT_ID,
+          clientSecret: config.MICROSOFT_AUTH_CLIENT_SECRET,
+          redirectUri:
+            config.MICROSOFT_AUTH_REDIRECT_URI ?? `${appOrigin}/api/v1/auth/microsoft/callback`,
+          stateSigningSecret: config.SESSION_SECRET,
+        })
+      : undefined;
 
   const dbClient = createDatabaseClient({
     connectionString: config.DATABASE_URL,
@@ -563,6 +600,8 @@ export function createStandaloneApiRuntime(
     },
     setupService,
     authService,
+    microsoftOidc,
+    appOrigin,
     userAdminService,
     groupAdminService,
     permissionAdminService,

@@ -55,6 +55,7 @@ import { registerPermissionRoutes } from "./modules/access/permissions.routes.js
 import { registerAuditRoutes } from "./modules/audit/audit.routes.js";
 import { registerAuthRoutes } from "./modules/auth/auth.routes.js";
 import type { AuthService } from "./modules/auth/auth.service.js";
+import type { MicrosoftOidcService } from "./modules/auth/microsoft-oidc.service.js";
 import { registerCategoryRoutes } from "./modules/categories/categories.routes.js";
 import { registerDashboardRoutes } from "./modules/dashboard/dashboard.routes.js";
 import { registerDocumentBulkActionRoutes } from "./modules/documents/bulk-actions.routes.js";
@@ -100,6 +101,8 @@ import { type SecurityPluginOptions, registerSecurityPlugin } from "./plugins/se
 export interface AppOptions {
   readonly logger?: boolean | undefined;
   readonly authService?: AuthService | undefined;
+  readonly microsoftOidc?: MicrosoftOidcService | undefined;
+  readonly appOrigin?: string | undefined;
   readonly setupService?: SetupService | undefined;
   readonly userAdminService?: UserAdministrationService | undefined;
   readonly groupAdminService?: GroupAdministrationService | undefined;
@@ -240,6 +243,8 @@ export function buildApp(options: AppOptions = {}): FastifyInstance {
               "*.passwordHash",
               "*.accessKeyId",
               "*.secretAccessKey",
+              "*.clientSecret",
+              "*.idToken",
               "*.sessionToken",
               "*.encryptedSecretRef",
               "*.encryptedSecretPayload",
@@ -280,8 +285,15 @@ export function buildApp(options: AppOptions = {}): FastifyInstance {
 
   if (options.authService) {
     const authService = options.authService;
+    const microsoftOidc = options.microsoftOidc;
+    const appOrigin = options.appOrigin;
     void app.register(async (instance) => {
-      await registerAuthRoutes(instance, { authService, secureCookies });
+      await registerAuthRoutes(instance, {
+        authService,
+        secureCookies,
+        appOrigin,
+        microsoftOidc,
+      });
     });
 
     if (options.userAdminService) {

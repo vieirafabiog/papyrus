@@ -101,6 +101,16 @@ export const loginRequestSchema = z.object({
 });
 export type LoginRequest = z.infer<typeof loginRequestSchema>;
 
+export const authProvidersStatusSchema = z.object({
+  microsoft: z.object({
+    enabled: z.boolean(),
+  }),
+});
+export type AuthProvidersStatus = z.infer<typeof authProvidersStatusSchema>;
+
+export const authProvidersResponseSchema = createApiResponseSchema(authProvidersStatusSchema);
+export type AuthProvidersResponse = z.infer<typeof authProvidersResponseSchema>;
+
 export const authMeResponseSchema = z.object({
   user: userSummarySchema,
   groups: z.array(groupSummarySchema),

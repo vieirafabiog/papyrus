@@ -8,7 +8,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { LoginPage } from "../src/features/auth/LoginPage.js";
 import { I18nProvider, resetUiLocaleForTests } from "../src/i18n/index.js";
 
-function renderLoginPage() {
+function renderLoginPage(initialEntry = "/login") {
   const queryClient = new QueryClient({
     defaultOptions: {
       queries: { retry: false },
@@ -21,7 +21,7 @@ function renderLoginPage() {
         <ThemeProvider theme={papyrusTheme}>
           <CssBaseline />
           <QueryClientProvider client={queryClient}>
-            <MemoryRouter initialEntries={["/login"]}>
+            <MemoryRouter initialEntries={[initialEntry]}>
               <Routes>
                 <Route path="/login" element={<LoginPage />} />
                 <Route path="/" element={<h1>Home dashboard</h1>} />
@@ -35,6 +35,10 @@ function renderLoginPage() {
   );
 }
 
+function getRequestUrl(input: RequestInfo | URL): string {
+  return typeof input === "string" ? input : input instanceof URL ? input.toString() : input.url;
+}
+
 describe("LoginPage", () => {
   afterEach(() => {
     cleanup();
@@ -42,8 +46,13 @@ describe("LoginPage", () => {
     vi.restoreAllMocks();
   });
 
-  it("validates email and password locally before calling the API", async () => {
-    const fetchSpy = vi.spyOn(globalThis, "fetch");
+  it("validates email and password locally before calling login and hides Microsoft when disabled", async () => {
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(JSON.stringify({ data: { microsoft: { enabled: false } } }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }),
+    );
     renderLoginPage();
 
     expect(screen.getByRole("heading", { name: "Sign in to papyrus" })).toBeInTheDocument();
@@ -54,15 +63,40 @@ describe("LoginPage", () => {
 
     expect(await screen.findByText("Enter a valid email address.")).toBeInTheDocument();
     expect(screen.getByText("Enter your password.")).toBeInTheDocument();
-    expect(fetchSpy).not.toHaveBeenCalled();
+    const loginCalls = fetchSpy.mock.calls.filter(([input]) =>
+      getRequestUrl(input).includes("/auth/login"),
+    );
+    expect(loginCalls).toHaveLength(0);
+    expect(
+      screen.queryByRole("button", { name: "Sign in with Microsoft" }),
+    ).not.toBeInTheDocument();
   });
 
   it("prevents duplicate submissions while login request is in flight and shows localized errors", async () => {
-    let resolveResponse!: (value: Response) => void;
-    const pendingFetch = new Promise<Response>((resolve) => {
-      resolveResponse = resolve;
+    let resolveLoginResponse!: (value: Response) => void;
+    const pendingLoginFetch = new Promise<Response>((resolve) => {
+      resolveLoginResponse = resolve;
     });
-    const fetchSpy = vi.spyOn(globalThis, "fetch").mockReturnValue(pendingFetch);
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockImplementation((input) => {
+      const url = getRequestUrl(input);
+      if (url.includes("/auth/providers")) {
+        return Promise.resolve(
+          new Response(JSON.stringify({ data: { microsoft: { enabled: false } } }), {
+            status: 200,
+            headers: { "Content-Type": "application/json" },
+          }),
+        );
+      }
+      if (url.includes("/auth/csrf-token")) {
+        return Promise.resolve(
+          new Response(JSON.stringify({ data: { csrfToken: "csrf-test-token" } }), {
+            status: 200,
+            headers: { "Content-Type": "application/json" },
+          }),
+        );
+      }
+      return pendingLoginFetch;
+    });
 
     renderLoginPage();
 
@@ -77,10 +111,15 @@ describe("LoginPage", () => {
     fireEvent.click(submitBtn);
     fireEvent.click(submitBtn);
 
-    expect(fetchSpy).toHaveBeenCalledTimes(1);
+    await waitFor(() => {
+      const loginCalls = fetchSpy.mock.calls.filter(([input]) =>
+        getRequestUrl(input).includes("/auth/login"),
+      );
+      expect(loginCalls).toHaveLength(1);
+    });
     expect(await screen.findByRole("button", { name: "Signing in..." })).toBeDisabled();
 
-    resolveResponse(
+    resolveLoginResponse(
       new Response(
         JSON.stringify({
           error: {
@@ -99,12 +138,23 @@ describe("LoginPage", () => {
   });
 
   it("navigates to home after successful login", async () => {
-    vi.spyOn(globalThis, "fetch").mockResolvedValue(
-      new Response(JSON.stringify({ data: { authenticated: true } }), {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      }),
-    );
+    vi.spyOn(globalThis, "fetch").mockImplementation((input) => {
+      const url = getRequestUrl(input);
+      if (url.includes("/auth/providers")) {
+        return Promise.resolve(
+          new Response(JSON.stringify({ data: { microsoft: { enabled: false } } }), {
+            status: 200,
+            headers: { "Content-Type": "application/json" },
+          }),
+        );
+      }
+      return Promise.resolve(
+        new Response(JSON.stringify({ data: { authenticated: true } }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        }),
+      );
+    });
 
     renderLoginPage();
 
@@ -120,5 +170,23 @@ describe("LoginPage", () => {
     await waitFor(() => {
       expect(screen.getByRole("heading", { name: "Home dashboard" })).toBeInTheDocument();
     });
+  });
+
+  it("shows Sign in with Microsoft button when enabled and renders authError alerts", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(JSON.stringify({ data: { microsoft: { enabled: true } } }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }),
+    );
+
+    renderLoginPage("/login?authError=user_not_found");
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "No papyrus user is registered with this Microsoft account email.",
+    );
+    expect(
+      await screen.findByRole("button", { name: "Sign in with Microsoft" }),
+    ).toBeInTheDocument();
   });
 });

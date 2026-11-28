@@ -77,6 +77,14 @@ export const commonEn = {
   "auth.login.invalidEmail": "Enter a valid email address.",
   "auth.login.requiredPassword": "Enter your password.",
   "auth.login.invalidCredentials": "Invalid credentials or access temporarily unavailable.",
+  "auth.login.orDivider": "or",
+  "auth.login.microsoftButton": "Sign in with Microsoft",
+  "auth.login.microsoftUserNotFound":
+    "No papyrus user is registered with this Microsoft account email. Ask your administrator to register your email first.",
+  "auth.login.microsoftAccountInactive":
+    "Your papyrus user account is currently inactive or locked. Contact your administrator.",
+  "auth.login.microsoftCancelled": "Microsoft sign-in was cancelled.",
+  "auth.login.microsoftFailed": "Unable to complete Microsoft sign-in. Please try again.",
   "auth.forgotPassword.title": "Password recovery",
   "auth.forgotPassword.description":
     "Request a secure reset link from your administrator or via your configured email.",
@@ -273,6 +281,15 @@ export const commonPt: Readonly<Record<CommonMessageKey, string>> = {
   "auth.login.invalidEmail": "Informe um endereço de e-mail válido.",
   "auth.login.requiredPassword": "Informe sua senha.",
   "auth.login.invalidCredentials": "Credenciais inválidas ou acesso temporariamente indisponível.",
+  "auth.login.orDivider": "ou",
+  "auth.login.microsoftButton": "Entrar com Microsoft",
+  "auth.login.microsoftUserNotFound":
+    "Nenhum usuário do papyrus está cadastrado com o e-mail desta conta Microsoft. Solicite o cadastro ao administrador.",
+  "auth.login.microsoftAccountInactive":
+    "Seu usuário no papyrus está inativo ou bloqueado. Procure o administrador.",
+  "auth.login.microsoftCancelled": "O login com a Microsoft foi cancelado.",
+  "auth.login.microsoftFailed":
+    "Não foi possível concluir o login com a Microsoft. Tente novamente.",
   "auth.forgotPassword.title": "Recuperação de senha",
   "auth.forgotPassword.description":
     "Solicite um link seguro de redefinição ao administrador ou pelo e-mail configurado.",

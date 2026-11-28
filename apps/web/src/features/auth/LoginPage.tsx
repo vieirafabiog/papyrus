@@ -5,22 +5,25 @@ import {
   Box,
   Button,
   CircularProgress,
+  Divider,
   IconButton,
   InputAdornment,
   Link,
   Paper,
   Stack,
+  SvgIcon,
   TextField,
   Typography,
 } from "@mui/material";
 import {
   CONTRACTS_API_PREFIX,
   apiErrorResponseSchema,
+  authProvidersResponseSchema,
   loginRequestSchema,
 } from "@papyrus/contracts";
 import { PAPYRUS_COLOR_TOKENS, PapyrusLogo } from "@papyrus/ui";
-import { useQueryClient } from "@tanstack/react-query";
-import { type FormEvent, useRef, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { type FormEvent, useEffect, useRef, useState } from "react";
 import { Link as RouterLink, useLocation, useNavigate } from "react-router-dom";
 import { SESSION_QUERY_KEY } from "../../app/session.js";
 import { LanguageSwitcher } from "../../components/LanguageSwitcher.js";
@@ -96,6 +99,56 @@ function resolveSafeRedirectPath(state: unknown): string {
   return "/";
 }
 
+function MicrosoftMarkIcon() {
+  return (
+    <SvgIcon viewBox="0 0 21 21" fontSize="small" aria-hidden="true">
+      <rect x="1" y="1" width="9" height="9" fill="#f25022" />
+      <rect x="11" y="1" width="9" height="9" fill="#7fba00" />
+      <rect x="1" y="11" width="9" height="9" fill="#00a4ef" />
+      <rect x="11" y="11" width="9" height="9" fill="#ffb900" />
+    </SvgIcon>
+  );
+}
+
+function resolveMicrosoftAuthErrorMessage(
+  authError: string | null,
+  t: ReturnType<typeof useI18n>["t"],
+): string | null {
+  switch (authError) {
+    case "user_not_found":
+      return t("auth.login.microsoftUserNotFound");
+    case "account_inactive":
+      return t("auth.login.microsoftAccountInactive");
+    case "microsoft_cancelled":
+      return t("auth.login.microsoftCancelled");
+    case "microsoft_failed":
+      return t("auth.login.microsoftFailed");
+    default:
+      return null;
+  }
+}
+
+async function fetchAuthProviders(): Promise<{ readonly microsoftEnabled: boolean }> {
+  try {
+    const response = await fetch(`${CONTRACTS_API_PREFIX}/auth/providers`, {
+      method: "GET",
+      credentials: "include",
+      headers: { Accept: "application/json" },
+    });
+    if (!response.ok) {
+      return { microsoftEnabled: false };
+    }
+    const raw: unknown = await response.json();
+    const parsed = authProvidersResponseSchema.safeParse(raw);
+    if (!parsed.success) {
+      return { microsoftEnabled: false };
+    }
+    return { microsoftEnabled: parsed.data.data.microsoft.enabled };
+  } catch {
+    return { microsoftEnabled: false };
+  }
+}
+
 export function LoginPage() {
   const { t, locale } = useI18n();
   const queryClient = useQueryClient();
@@ -103,12 +156,41 @@ export function LoginPage() {
   const location = useLocation();
   const submitLockRef = useRef(false);
 
+  const authErrorParam = new URLSearchParams(location.search).get("authError");
+  const initialExternalError = resolveMicrosoftAuthErrorMessage(authErrorParam, t);
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
-  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [submitError, setSubmitError] = useState<string | null>(initialExternalError);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isRedirectingMicrosoft, setIsRedirectingMicrosoft] = useState(false);
+
+  useEffect(() => {
+    const nextExternalError = resolveMicrosoftAuthErrorMessage(authErrorParam, t);
+    if (nextExternalError) {
+      setSubmitError(nextExternalError);
+    }
+  }, [authErrorParam, t]);
+
+  const providersQuery = useQuery({
+    queryKey: ["auth", "providers"],
+    queryFn: fetchAuthProviders,
+    staleTime: 60_000,
+    retry: false,
+  });
+  const microsoftEnabled = providersQuery.data?.microsoftEnabled ?? false;
+  const targetReturnTo = resolveSafeRedirectPath(location.state);
+
+  const handleMicrosoftLogin = (): void => {
+    if (isSubmitting || isRedirectingMicrosoft) {
+      return;
+    }
+    setIsRedirectingMicrosoft(true);
+    const startUrl = `${CONTRACTS_API_PREFIX}/auth/microsoft/start?returnTo=${encodeURIComponent(targetReturnTo)}`;
+    window.location.assign(startUrl);
+  };
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>): Promise<void> => {
     event.preventDefault();
@@ -304,7 +386,7 @@ export function LoginPage() {
                 type="submit"
                 variant="contained"
                 fullWidth
-                disabled={isSubmitting}
+                disabled={isSubmitting || isRedirectingMicrosoft}
                 startIcon={
                   isSubmitting ? <CircularProgress size={16} color="inherit" /> : undefined
                 }
@@ -313,6 +395,32 @@ export function LoginPage() {
               </Button>
             </Stack>
           </Box>
+
+          {microsoftEnabled ? (
+            <Stack spacing={2}>
+              <Divider>
+                <Typography variant="caption" color="text.secondary">
+                  {t("auth.login.orDivider")}
+                </Typography>
+              </Divider>
+              <Button
+                type="button"
+                variant="outlined"
+                fullWidth
+                disabled={isSubmitting || isRedirectingMicrosoft}
+                onClick={handleMicrosoftLogin}
+                startIcon={
+                  isRedirectingMicrosoft ? (
+                    <CircularProgress size={16} color="inherit" />
+                  ) : (
+                    <MicrosoftMarkIcon />
+                  )
+                }
+              >
+                {t("auth.login.microsoftButton")}
+              </Button>
+            </Stack>
+          ) : null}
         </Stack>
       </Paper>
     </Box>

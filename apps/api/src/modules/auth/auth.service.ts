@@ -49,6 +49,17 @@ export interface LoginCommand {
   readonly requestId: string;
 }
 
+export interface VerifiedEmailLoginCommand {
+  readonly email: string;
+  readonly ipAddress: string | null;
+  readonly userAgent: string | null;
+  readonly requestId: string;
+}
+
+export type VerifiedEmailLoginResult =
+  | { readonly ok: true; readonly outcome: LoginOutcome }
+  | { readonly ok: false; readonly reason: "USER_NOT_FOUND" | "USER_INACTIVE" };
+
 export interface LoginOutcome {
   readonly rawToken: string;
   readonly session: StoredSessionRecord;
@@ -63,6 +74,7 @@ export interface MeOutcome {
 
 export interface AuthService {
   login(command: LoginCommand): Promise<LoginOutcome | null>;
+  loginWithVerifiedEmail(command: VerifiedEmailLoginCommand): Promise<VerifiedEmailLoginResult>;
   logout(rawToken: string | undefined, requestId: string): Promise<void>;
   getMe(rawToken: string | undefined): Promise<MeOutcome | null>;
 }
@@ -86,6 +98,45 @@ function buildAuthMeResponse(profile: AuthUserProfile, sessionExpiresAt: Date): 
 }
 
 export function createAuthService(deps: AuthServiceDependencies): AuthService {
+  async function issueSessionOutcome(
+    user: UserSummary,
+    command: {
+      readonly ipAddress: string | null;
+      readonly userAgent: string | null;
+      readonly requestId: string;
+    },
+  ): Promise<LoginOutcome> {
+    const issued = await deps.sessionService.createSession({
+      organizationId: user.organizationId,
+      userId: user.id,
+      ipAddress: command.ipAddress,
+      userAgent: command.userAgent,
+    });
+
+    const profile = (await deps.users.findProfileById(user.id)) ?? {
+      user,
+      groups: [],
+      roles: [],
+      permissions: [],
+    };
+
+    if (deps.audit) {
+      await deps.audit.recordAuthEvent({
+        organizationId: user.organizationId,
+        actorUserId: user.id,
+        action: "AUTH_LOGIN_SUCCESS",
+        result: "SUCCESS",
+        requestId: command.requestId,
+      });
+    }
+
+    return {
+      rawToken: issued.rawToken,
+      session: issued.session,
+      me: buildAuthMeResponse(profile, issued.session.expiresAt),
+    };
+  }
+
   return {
     async login(command: LoginCommand): Promise<LoginOutcome | null> {
       const normalizedEmail = command.email.trim().toLowerCase();
@@ -122,35 +173,34 @@ export function createAuthService(deps: AuthServiceDependencies): AuthService {
         return null;
       }
 
-      const issued = await deps.sessionService.createSession({
-        organizationId: credential.user.organizationId,
-        userId: credential.user.id,
-        ipAddress: command.ipAddress,
-        userAgent: command.userAgent,
-      });
+      return issueSessionOutcome(credential.user, command);
+    },
 
-      const profile = (await deps.users.findProfileById(credential.user.id)) ?? {
-        user: credential.user,
-        groups: [],
-        roles: [],
-        permissions: [],
-      };
+    async loginWithVerifiedEmail(
+      command: VerifiedEmailLoginCommand,
+    ): Promise<VerifiedEmailLoginResult> {
+      const normalizedEmail = command.email.trim().toLowerCase();
+      const credential = await deps.users.findCredentialByEmail(normalizedEmail);
 
-      if (deps.audit) {
-        await deps.audit.recordAuthEvent({
-          organizationId: credential.user.organizationId,
-          actorUserId: credential.user.id,
-          action: "AUTH_LOGIN_SUCCESS",
-          result: "SUCCESS",
-          requestId: command.requestId,
-        });
+      if (!credential) {
+        return { ok: false, reason: "USER_NOT_FOUND" };
       }
 
-      return {
-        rawToken: issued.rawToken,
-        session: issued.session,
-        me: buildAuthMeResponse(profile, issued.session.expiresAt),
-      };
+      if (credential.user.status !== "ACTIVE") {
+        if (deps.audit) {
+          await deps.audit.recordAuthEvent({
+            organizationId: credential.user.organizationId,
+            actorUserId: credential.user.id,
+            action: "AUTH_LOGIN_FAILED",
+            result: "DENIED",
+            requestId: command.requestId,
+          });
+        }
+        return { ok: false, reason: "USER_INACTIVE" };
+      }
+
+      const outcome = await issueSessionOutcome(credential.user, command);
+      return { ok: true, outcome };
     },
 
     async logout(rawToken: string | undefined, requestId: string): Promise<void> {

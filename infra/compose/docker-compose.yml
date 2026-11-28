@@ -48,6 +48,10 @@ services:
       UPLOAD_ALLOWED_EXTENSIONS: ${UPLOAD_ALLOWED_EXTENSIONS:-.pdf,.png,.jpg,.jpeg,.webp,.gif,.tif,.tiff,.bmp,.txt,.log,.md,.csv,.json,.docx,.xlsx,.pptx}
       WORKER_HEALTH_URL: ${WORKER_HEALTH_URL:-http://worker:3001/health/ready}
       OFFICE_CONVERTER_URL: ${OFFICE_CONVERTER_URL:-http://gotenberg:3000}
+      MICROSOFT_AUTH_TENANT_ID: ${MICROSOFT_AUTH_TENANT_ID:-}
+      MICROSOFT_AUTH_CLIENT_ID: ${MICROSOFT_AUTH_CLIENT_ID:-}
+      MICROSOFT_AUTH_CLIENT_SECRET: ${MICROSOFT_AUTH_CLIENT_SECRET:-}
+      MICROSOFT_AUTH_REDIRECT_URI: ${MICROSOFT_AUTH_REDIRECT_URI:-}
       LOG_LEVEL: ${LOG_LEVEL:-info}
     expose:
       - "3000"
